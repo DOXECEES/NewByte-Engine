@@ -26,6 +26,7 @@ class Debug
 {
 
 public:
+
     template <typename T>
     static void debug(T val
                     , const std::source_location location = std::source_location::current())
@@ -57,7 +58,6 @@ public:
 
         if constexpr (is_map<Container<T...>>::value)
         {
-
             oss << "[ \n";
             for (const auto &i : container)
             {
@@ -124,6 +124,7 @@ private:
             << " ";
     }
 
+    
     template <typename T>
     struct is_map : std::false_type
     {

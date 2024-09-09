@@ -38,6 +38,11 @@ add_executable(${PROJECT_NAME} WIN32
         src/Loaders/PngLoader.cpp
         src/Loaders/PngLoader.hpp
 
+        src/Templates/BinaryTree.hpp
+
+        src/Shared/HuffmanTree.cpp
+        src/Shared/HuffmanTree.hpp
+
         )
 
 
