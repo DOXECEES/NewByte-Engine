@@ -77,15 +77,28 @@ namespace nb
                     }
                 }
 
-                void levelOrder()
+                void levelOrder(const std::function<void(T)>& func)
                 {
-
+                    if(root)
+                    {
+                        levelOrderFunction(root, func);
+                    }
                 }
                 //
 
+                // На уровень первой вставляется левая нода
+                // значит глубину можно считать по самой левой ноде  
                 inline constexpr uint8_t depth() const noexcept 
                 {
-                    
+                    std::shared_ptr<Node> cur = root;
+                    uint8_t index = 0;
+                    while(cur->left)
+                    {
+                        cur = cur->left;
+                        index++;
+                    }
+
+                    return index;
                 }
 
 
@@ -154,6 +167,26 @@ namespace nb
                         func(node->data);
                     }
                 }
+
+                void levelOrderFunction(const std::shared_ptr<Node>& node, const std::function<void(T)>& func) const
+                {
+                    std::shared_ptr<Node> cur = nullptr;
+                    std::queue<std::shared_ptr<Node>> q;
+                    q.push(node);
+
+                    while(!q.empty())
+                    {
+                        cur = q.front();
+                        func(cur->data);
+                        q.pop();
+
+                        if(cur->left)
+                            q.push(cur->left);
+                        if(cur->right)
+                            q.push(cur->right);
+                    }
+                }
+
 
                 std::shared_ptr<Node> root = nullptr;
         };

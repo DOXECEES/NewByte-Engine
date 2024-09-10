@@ -110,9 +110,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     tree.insert(6);
     tree.insert(7);
 
-    tree.inOrder([](int x)
-                 { Debug::debug(x + 10); });
+    tree.preOrder([](int x)
+                 { Debug::debug(x); });
 
+    Debug::debug(static_cast<uint16_t>(tree.depth()));
     // Debug::debug(a);
     // Debug::debug(a);
 
