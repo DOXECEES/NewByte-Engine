@@ -47,10 +47,13 @@
 #include "Loaders/BitmapLoader.hpp"
 #include "Loaders/PngLoader.hpp"
 
+#include "Templates/BinaryTree.hpp"
+
 #pragma comment(lib, "d2d1.lib")
 
-Button *b = new Button(NBPoint{100, 100}, 200, 200, "hello");
-Button *b1 = new Button(NBPoint{0, 0}, 50, 50, "hello");
+
+Button *b = new Button(nb::Math::Vector2{100, 100}, 200, 200, "hello");
+Button *b1 = new Button(nb::Math::Vector2{0, 0}, 50, 50, "hello");
 
 LRESULT _stdcall WndProc(HWND hWnd, UINT message,
                          WPARAM wParam, LPARAM lParam);
@@ -95,8 +98,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     std::deque<Example> a = {Example(), Example()};
 
     // nb::Loaders::BitmapLoader("C:\\Install Programms\\sample1.bmp");
-    nb::Loaders::PngLoader p("C:\\Install Programms\\a.png");
-    Debug::debug(p.good());
+    //nb::Loaders::PngLoader p("C:\\Install Programms\\a.png");
+   // Debug::debug(p.good());
+
+    nb::Templates::BinaryTree<int> tree;
+    tree.insert(1);
+    tree.insert(2);
+    tree.insert(3);
+    tree.insert(4);
+    tree.insert(5);
+    tree.insert(6);
+    tree.insert(7);
+
+    tree.inOrder([](int x)
+                 { Debug::debug(x + 10); });
 
     // Debug::debug(a);
     // Debug::debug(a);
@@ -140,7 +155,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg,
         auto y = HIWORD(lParam);
         POINT pos = {x, y};
 
-        if (b->onClick(NBPoint{pos.x, pos.y}))
+        if (b->onClick(nb::Math::Vector2{static_cast<float>(pos.x), static_cast<float>(pos.y)}))
         {
             renderer2D->changeBrush();
         }

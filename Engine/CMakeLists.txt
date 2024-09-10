@@ -33,6 +33,9 @@ add_executable(${PROJECT_NAME} WIN32
         src/Math/Vector4.cpp
         src/Math/Vector4.hpp
 
+        src/Math/AABB.cpp
+        src/Math/AABB.hpp
+
         src/Loaders/BitmapLoader.cpp
         src/Loaders/BitmapLoader.hpp
         src/Loaders/PngLoader.cpp
