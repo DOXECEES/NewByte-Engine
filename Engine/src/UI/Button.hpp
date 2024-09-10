@@ -8,7 +8,8 @@
 
 #include <d2d1.h>
 
-#include "../AABB.hpp"
+#include "../Math/AABB.hpp"
+#include "../Math/Vector2.hpp"
 #include "../Renderer/Renderer2D.hpp"
 
 struct Style
@@ -79,11 +80,11 @@ class Ui
 {
 
 public:
-    explicit Ui(NBPoint begin, const int32_t width, const int32_t height, std::string_view _text);
+    explicit Ui(nb::Math::Vector2 begin, const int32_t width, const int32_t height, std::string_view _text);
 
     virtual void handler() = 0;
 
-    bool onClick(const NBPoint pos) noexcept;
+    bool onClick(const nb::Math::Vector2 pos) noexcept;
     inline void setStyle(const Style &newStyle) noexcept { style = newStyle; };
 
     // void setHandler();
@@ -91,7 +92,7 @@ public:
     friend class Renderer2D;
 
 protected:
-    AABB aabb;
+    nb::Math::AABB aabb;
     Style style = {};
     std::string text;
 
@@ -102,7 +103,7 @@ class Button : public Ui
 {
 
 public:
-    explicit Button(NBPoint begin, const int32_t width, const int32_t height, std::string_view _text);
+    explicit Button(nb::Math::Vector2 begin, const int32_t width, const int32_t height, std::string_view _text);
 
     void handler() override;
 
