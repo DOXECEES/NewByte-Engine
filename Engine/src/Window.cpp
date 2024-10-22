@@ -17,8 +17,10 @@ Window::Window(HINSTANCE inst, WNDPROC handler)
     hwnd = CreateWindow(L"class", L"Direct2D init",
                         WS_OVERLAPPEDWINDOW, 100, 100, 600, 600, NULL, NULL,
                         inst, NULL);
+						
+	renderer = new nb::Renderer::Renderer(hwnd, nb::Renderer::Renderer::GraphicsAPI::OPENGL);
 
-    ShowWindow(hwnd, SW_SHOW);
+	ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
 }
 
@@ -33,5 +35,8 @@ bool Window::render()
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-    return true;
+
+	renderer->render();
+
+	return true;
 }

@@ -48,9 +48,18 @@
 #include "Loaders/PngLoader.hpp"
 
 #include "Templates/BinaryTree.hpp"
+#include "Shared/HuffmanTree.hpp"
+
+#include "Utils/BitReader.hpp"
+
+#include "Loaders/ShaderLoader.hpp"
+
+#include "Fatal.hpp"
+
+
+#include "Loaders/JSON/Json.hpp"
 
 #pragma comment(lib, "d2d1.lib")
-
 
 Button *b = new Button(nb::Math::Vector2{100, 100}, 200, 200, "hello");
 Button *b1 = new Button(nb::Math::Vector2{0, 0}, 50, 50, "hello");
@@ -92,28 +101,49 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     renderer2D = systems->GetRenderer2D();
 
     Window *w = new Window(hInstance, WndProc);
+    nb::Fatal::init(w);
 
 #ifdef _DEBUG
 
+    nb::Loaders::Json j(std::filesystem::path("C:\\rep\\GIMS\\1.json"));
+    Debug::debug(j["lastName"].get<std::string>().c_str());
+
+    nb::Loaders::Json j2(std::filesystem::path("C:\\rep\\GIMS\\2.json"));
+    Debug::debug(j2["address"]["zipcode"].get<int>());
+
+
     std::deque<Example> a = {Example(), Example()};
+    // std::vector<int32_t> vec{129};
+    // nb::Utils::BitReader<int32_t> br(vec);
+    // int ind = 0;
+    // while(true)
+    // {
+    //     ind++;
+    //     auto v = br.readLeftToRight(4);
+    //     Debug::debug(v);
+    //     //Debug::debug(ind);
+
+    // }
+    //nb::Loaders::ShaderLoader s;
+    //Debug::debug(s.getRawShader("C:\\rep\\Shooter\\Engine\\res\\Shaders\\frag.fs"));
 
     // nb::Loaders::BitmapLoader("C:\\Install Programms\\sample1.bmp");
-    //nb::Loaders::PngLoader p("C:\\Install Programms\\a.png");
-   // Debug::debug(p.good());
+    // nb::Loaders::PngLoader p("C:\\Install Programms\\a.png");
+    // Debug::debug(p.good());
+    // nb::Shared::HuffmanTree tr();
+    // nb::Templates::BinaryTree<int> tree;
+    // tree.insert(1);
+    // tree.insert(2);
+    // tree.insert(3);
+    // tree.insert(4);
+    // tree.insert(5);
+    // tree.insert(6);
+    // tree.insert(7);
 
-    nb::Templates::BinaryTree<int> tree;
-    tree.insert(1);
-    tree.insert(2);
-    tree.insert(3);
-    tree.insert(4);
-    tree.insert(5);
-    tree.insert(6);
-    tree.insert(7);
+    // tree.preOrder([](int x)
+    //              { Debug::debug(x); });
 
-    tree.preOrder([](int x)
-                 { Debug::debug(x); });
-
-    Debug::debug(static_cast<uint16_t>(tree.depth()));
+    // Debug::debug(static_cast<uint16_t>(tree.depth()));
     // Debug::debug(a);
     // Debug::debug(a);
 
@@ -125,10 +155,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Debug::debug(scal);
 
 #endif // _DEBUG
+        //nb::Fatal::exit(L"Rend");
 
     while (w->render())
     {
+        
     }
+
+    delete systems;
+    delete w;
 
     return 0;
 }
@@ -142,24 +177,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg,
         PostQuitMessage(0);
         return 0;
     case WM_PAINT:
-        renderer2D->beginPaint(hWnd);
-        renderer2D->drawUi(b1);
-        renderer2D->drawUi(b);
-        renderer2D->endPaint();
+
         return 0;
     case WM_SIZE:
-        renderer2D->resize(LOWORD(lParam), HIWORD(lParam));
-        InvalidateRect(hWnd, NULL, FALSE);
+
     case WM_LBUTTONDOWN:
     {
-        auto x = LOWORD(lParam);
-        auto y = HIWORD(lParam);
-        POINT pos = {x, y};
-
-        if (b->onClick(nb::Math::Vector2{static_cast<float>(pos.x), static_cast<float>(pos.y)}))
-        {
-            renderer2D->changeBrush();
-        }
 
         InvalidateRect(hWnd, NULL, FALSE);
 

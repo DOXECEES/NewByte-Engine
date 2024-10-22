@@ -38,6 +38,7 @@
 .vscode
 build
 bin
+docs
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles

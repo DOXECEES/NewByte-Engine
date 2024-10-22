@@ -9,32 +9,12 @@
 #include <bitset>
 
 #include "../Debug.hpp"
+#include "../Utils/BitReader.hpp"
 
 namespace nb
 {
     namespace Loaders
     {
-
-class BitReader
-        {
-        
-        public:
-
-            BitReader() = default;
-            BitReader(const std::vector<char> &vec);
-
-            bool peekBit();
-
-            uint32_t readLeftToRight(const uint8_t count);
-            uint32_t readRightToLeft(const uint8_t count);
-
-        private:
-
-            size_t currentPointerPos = 0;
-            size_t dataSize = 0;
-            
-            const char *data;
-        };
 
         class PngLoader
         {
@@ -42,10 +22,7 @@ class BitReader
             static constexpr std::array<uint8_t, PNG_HEADER_SIZE> PNG_HEADER = {
                 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
             };
-            static constexpr uint8_t MAX_COMMAND_ALPHABET_SIZE = 19;
-            static constexpr std::array<uint8_t, MAX_COMMAND_ALPHABET_SIZE> COMMAND_ALPHABET_SEQUENCE = {
-                16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
-            };
+            
 
             static constexpr uint8_t CHUNK_SIZE_IN_BYTES = 4;
             static constexpr uint8_t CHUNK_TYPE_SIZE_IN_BYTES = 4;
@@ -56,15 +33,6 @@ class BitReader
                 char name[4];
                 std::vector<char> data;
                 uint32_t crc;
-            };
-
-            struct ZlibHeader
-            {
-                std::bitset<4> cm;
-                std::bitset<4> cinfo;
-                std::bitset<5> fcheak;
-                std::bitset<1> fdict;
-                std::bitset<2> flevel;
             };
 
             struct IHDR
@@ -109,7 +77,6 @@ class BitReader
             bool validateHeader();
             bool validateIhdr();
 
-            ZlibHeader readZlibHeader(BitReader &br);
 
             void identifyChunk(const ChunkData &chunk);
             void readChunk();
