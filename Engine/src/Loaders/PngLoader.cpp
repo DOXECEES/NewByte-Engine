@@ -1,11 +1,15 @@
+
 #include "PngLoader.hpp"
+
+#include "../Utils/DeflateDecoder.hpp"
 
 nb::Loaders::PngLoader::PngLoader(const std::string &filePath)
     : file(filePath, std::ios::binary)
 {
-    if (!validateHeader()) isGood = false;
-    //if (!validateIhdr()) isGood = false;
-    while(true)
+    if (!validateHeader())
+        isGood = false;
+    // if (!validateIhdr()) isGood = false;
+    while (true)
         readChunk();
 }
 
@@ -22,79 +26,141 @@ bool nb::Loaders::PngLoader::validateIhdr()
     return true;
 }
 
-nb::Loaders::PngLoader::ZlibHeader nb::Loaders::PngLoader::readZlibHeader(BitReader &br)
-{
-    ZlibHeader zh;
-    zh.cm = br.readRightToLeft(4);
-    zh.cinfo = br.readRightToLeft(4);
-    zh.fcheak = br.readRightToLeft(5);
-    zh.fdict = br.readRightToLeft(1);
-    zh.flevel = br.readRightToLeft(2);
-    return zh;
-}
-
 void nb::Loaders::PngLoader::identifyChunk(const ChunkData &chunk)
 {
-    if(std::strncmp(chunk.name, "IHDR",4) == 0)
+    if (std::strncmp(chunk.name, "IHDR", 4) == 0)
     {
         Debug::debug("IHDR found");
     }
-    else if(std::strncmp(chunk.name, "IDAT", 4) == 0)
+    else if (std::strncmp(chunk.name, "IDAT", 4) == 0)
     {
         Debug::debug("IDAT found");
-        BitReader br(chunk.data);
+        //nb::Utils::BitReader<char> br(chunk.data);
 
-        auto zlibHeader = readZlibHeader(br);
+        nb::Utils::DeflateDecoder dd(chunk.data);
 
-        uint16_t HLIT = br.readRightToLeft(5) + 257;
-        uint16_t HDIST = br.readRightToLeft(5) + 1;
-        uint16_t HLEN = br.readRightToLeft(4) + 4;
+        auto zlibHeader = dd.readZlibHeader();
+        dd.processDynamicHuffman();
 
-        std::vector<std::pair<uint16_t, uint16_t>> commandAlphabet(HLEN);
+        //     Debug::debug(codes);
+        //     // uint16_t bits = br.readRightToLeft(2);
+        //     // uint16_t counter = 2;
 
-        for (size_t i = 0; i < MAX_COMMAND_ALPHABET_SIZE; i++)
-        {
-            commandAlphabet[i] = std::make_pair(COMMAND_ALPHABET_SEQUENCE[i], br.readRightToLeft(3));
-        }
+        //     std::vector<uint32_t> litLenLengths(HLIT, 0);
+        //     for (int counter = 0; counter < HLIT; ++counter)
+        //     {
+        //         uint16_t len = 0;
+        //         code = 0; // Сбрасываем code перед каждой попыткой найти новый символ
 
-        commandAlphabet.erase(std::remove_if(
-            commandAlphabet.begin(), commandAlphabet.end(),
-            [](const std::pair<uint16_t, uint16_t>& x) { 
-                return x.second == 0;
-            }), commandAlphabet.end());
+        //         // Попытка найти код длины в диапазоне от 1 до 15 бит
+        //         for (int length = 1; length <= 15; ++length)
+        //         {
+        //             code = (code << 1) | br.readRightToLeft(1); // Читаем по одному биту и сдвигаем
 
-        std::sort(commandAlphabet.begin(), commandAlphabet.end(), [](const std::pair<uint16_t, uint16_t> &a, const std::pair<uint16_t, uint16_t> &b) -> bool
-                  {
-                      return a.second < b.second;
-                  });
+        //             if (codes.contains(code))
+        //             {
+        //                 len = codes[code]; // Найденный код длины
+        //                 break;
+        //             }
+        //         }
 
-        // generate codes
+        //         switch (len)
+        //         {
+        //         case 16: // Повторение последней длины
+        //         {
+        //             if (counter == 0)
+        //                 throw std::runtime_error("Repeat length at start is invalid");
 
-        std::vector<uint16_t> codes;
-        uint16_t code = 0;
-        uint16_t prevLength = 0;
+        //             int repeat = 3 + br.readRightToLeft(2); // Читаем 2 бита для повторения
+        //             for (int j = 0; j < repeat && (counter + j) < HLIT; ++j)
+        //             {
+        //                 litLenLengths[counter + j] = litLenLengths[counter - 1];
+        //             }
+        //             counter += repeat - 1; // Корректируем счётчик
+        //             break;
+        //         }
+        //         case 17: // Повторение нулевой длины
+        //         {
+        //             int repeat = 3 + br.readRightToLeft(3); // Читаем 3 бита для повторения
+        //             counter += repeat - 1;                  // Корректируем счётчик
+        //             break;
+        //         }
+        //         case 18: // Длинное повторение нулевой длины
+        //         {
+        //             int repeat = 11 + br.readRightToLeft(7); // Читаем 7 бит для длинного повторения
+        //             counter += repeat - 1;                   // Корректируем счётчик
+        //             break;
+        //         }
+        //         default: // Значение длины от 0 до 15
+        //             litLenLengths[counter] = len;
+        //             break;
+        //         }
+        //     }
+        //     Debug::debug(litLenLengths);
 
-        for(auto& i: commandAlphabet)
-        {
-            if(i.second > prevLength)
-            {
-                code = code << (i.second - prevLength);
-                prevLength = i.second;
-            }
-            codes.push_back(code);
-            code += 1;
-        }
+        //     std::vector<uint32_t> distLengths(HDIST, 0);
+        //     for (int counter = 0; counter < HDIST; ++counter)
+        //     {
+        //         uint16_t len = 0;
+        //         code = 0;
 
-        
+        //         for (int length = 1; length <= 15; ++length)
+        //         {
+        //             code = (code << 1) | br.readRightToLeft(1);
+
+        //             if (codes.contains(code))
+        //             {
+        //                 len = codes[code];
+        //                 break;
+        //             }
+        //         }
+
+        //         switch (len)
+        //         {
+        //         case 16:
+        //         {
+        //             if (counter == 0)
+        //                 throw std::runtime_error("Repeat length at start is invalid");
+
+        //             int repeat = 3 + br.readRightToLeft(2);
+        //             for (int j = 0; j < repeat && (counter + j) < HDIST; ++j)
+        //             {
+        //                 distLengths[counter + j] = distLengths[counter - 1];
+        //             }
+        //             counter += repeat - 1;
+        //             break;
+        //         }
+        //         case 17:
+        //         {
+        //             int repeat = 3 + br.readRightToLeft(3);
+        //             counter += repeat - 1;
+        //             break;
+        //         }
+        //         case 18:
+        //         {
+        //             int repeat = 11 + br.readRightToLeft(7);
+        //             counter += repeat - 1;
+        //             break;
+        //         }
+        //         default:
+        //             distLengths[counter] = len;
+        //             break;
+        //         }
+
+        //         if (counter >= HDIST)
+        //         {
+        //             throw std::runtime_error("Out of bounds access in distLengths");
+        //         }
+        //     }
+
+        //     Debug::debug(distLengths);
 
 
-        Debug::debug(codes);
     }
-    else if (std::strncmp(chunk.name, "IEND", 4) == 0)
-    {
-        Debug::debug("IEND found");
-    }
-    
+    // else if (std::strncmp(chunk.name, "IEND", 4) == 0)
+    // {
+    //     Debug::debug("IEND found");
+    // }
 }
 
 void nb::Loaders::PngLoader::readChunk()
@@ -102,7 +168,7 @@ void nb::Loaders::PngLoader::readChunk()
     std::array<uint8_t, CHUNK_SIZE_IN_BYTES> chunkSize;
     file.read(reinterpret_cast<char *>(&chunkSize), CHUNK_SIZE_IN_BYTES);
 
-    uint32_t size = swapEndian(*reinterpret_cast<int*>(&chunkSize));
+    uint32_t size = swapEndian(*reinterpret_cast<int *>(&chunkSize));
 
     ChunkData cd;
 
@@ -110,45 +176,7 @@ void nb::Loaders::PngLoader::readChunk()
 
     cd.data.resize(size);
     file.read(cd.data.data(), size);
-    file.read(reinterpret_cast<char*>(&cd.crc), 4);
+    file.read(reinterpret_cast<char *>(&cd.crc), 4);
 
     identifyChunk(cd);
-}
-
-
-
-nb::Loaders::BitReader::BitReader(const std::vector<char> &vec)
-    :data(vec.data())
-    ,dataSize(vec.size())
-{
-}
-
-bool nb::Loaders::BitReader::peekBit()
-{
-    currentPointerPos++;
-    return (currentPointerPos < dataSize) ? (data[(currentPointerPos-1) / 8] & (1 << ((currentPointerPos - 1) % 8))) : false;
-}
-
-uint32_t nb::Loaders::BitReader::readLeftToRight(const uint8_t count)
-{
-    uint32_t res = 0;
-
-    for (size_t i = 0; i < count; i++)
-    {
-        res |= (peekBit() << (count - i - 1));
-    }
-
-    return res;
-}
-
-uint32_t nb::Loaders::BitReader::readRightToLeft(const uint8_t count)
-{
-    uint32_t res = 0;
-
-    for (size_t i = 0; i < count; i++)
-    {
-        res |= (peekBit() << i);
-    }
-
-    return res;
 }

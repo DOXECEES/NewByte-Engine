@@ -1,12 +1,39 @@
+#ifndef SRC_RENDERER_RENDERER_HPP
+#define SRC_RENDERER_RENDERER_HPP
 
-#include <d3d12.h>
-#include <wrl/client.h>
+#include "../Core.hpp"
 
-class Renderer
+#include "IRenderAPI.hpp"
+#include "OpenGL/OpenGLRender.hpp"
+
+namespace nb
 {
+    namespace Renderer
+    {
+        class Renderer 
+        {
+        public:
+            enum class GraphicsAPI
+            {
+                OPENGL,
+                DIRECTX,
+                VULKAN
+            };
 
-public:
-private:
-    Microsoft::WRL::ComPtr<ID3D12Device> device = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12DeviceContext> context = nullptr;
-}
+            Renderer() = delete;
+            Renderer(HWND hwnd, GraphicsAPI apiType) noexcept;
+
+            inline void render() noexcept { api->render(); };
+
+            ~Renderer();
+
+
+
+        private:
+            IRenderAPI * api;
+        };
+    };
+};
+
+#endif
+

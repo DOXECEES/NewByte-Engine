@@ -7,7 +7,7 @@
 namespace nb
 {
     namespace Math
-    {
+    {   
         class Vector2
         {
 

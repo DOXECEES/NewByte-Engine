@@ -1,5 +1,15 @@
-#ifndef SRC_NB_COMMON_HPP
-#define SRC_NB_COMMON_HPP
+#ifndef SRC_CORE_HPP
+#define SRC_CORE_HPP
+
+#include <memory>
+
+template<typename T>
+using Ref = std::shared_ptr<T>;
+template<typename T, typename ... Args>
+constexpr Ref<T> createRef(Args&& ... args)
+{
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
 
 #if defined(__has_cpp_attribute)
     #if __has_cpp_attribute(nodiscard)
@@ -54,17 +64,15 @@
     #define NB_UNLIKELY
 #endif
 
-/// todo find compiler defines
-// that mb incoorect
-//
-#if defined(__clang__)
 
+#if defined(__clang__)
+    #define NB_FORCEINLINE __attribute__((always_inline))
 
 #elif defined(__GNUC__) || defined(__GNUG__)
-
+    #define NB_FORCEINLINE __attribute__((always_inline))
 
 #elif defined(_MSC_VER)
-//
+    #define NB_FORCEINLINE __forceinline
 #endif
 
 #endif

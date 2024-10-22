@@ -2,28 +2,30 @@
 #define SRC_TEMPLATES_BINARYTREE_HPP
 
 #include <memory>
+#include <functional>
+#include <queue>
 
 namespace nb
 {
     namespace Templates
     {
         template <typename T>
+        struct Node
+        {
+            explicit Node(T data)
+                : data(data)
+            {
+            }
+
+            T data;
+            std::shared_ptr<Node> left = nullptr;
+            std::shared_ptr<Node> right = nullptr;
+        };
+
+        template <typename T, typename N = Node<T>>
         class BinaryTree
         {
             public:
-
-                struct Node
-                {
-                    explicit Node(T data)
-                        :data(data)
-                    {
-
-                    }
-                    
-                    T data = {};
-                    std::shared_ptr<Node> left = nullptr;
-                    std::shared_ptr<Node> right = nullptr;
-                };
                 
                 BinaryTree() = default;
 
@@ -31,13 +33,13 @@ namespace nb
                 
                 void insert(const T& val)
                 {
-                    if(!root)
+                    if(!this->root)
                     {
-                        root = std::make_shared<Node>(val);
+                        this->root = std::make_shared<N>(val);
                     }
                     else
                     {
-                        insertFunction(root, val);
+                        insertFunction(this->root, val);
                     }
                     
                 }
@@ -47,7 +49,7 @@ namespace nb
                     
                 }
 
-                Node* find(const T& val)
+                N* find(const T& val)
                 {
                     
                 }
@@ -55,34 +57,22 @@ namespace nb
                 // travel
                 void preOrder(const std::function<void(T)>& func)
                 {
-                    if(root)
-                    {
-                        preOrderFunction(root, func);
-                    }
+                    preOrderFunction(this->root, func);
                 }
 
                 void inOrder(const std::function<void(T)>& func)
                 {
-                    if(root)
-                    {
-                        inOrderFunction(root, func);
-                    }
+                    inOrderFunction(this->root, func);
                 }
 
                 void postOrder(const std::function<void(T)>& func)
                 {
-                    if(root)
-                    {
-                        postOrderFunction(root, func);
-                    }
+                    postOrderFunction(this->root, func);
                 }
 
                 void levelOrder(const std::function<void(T)>& func)
                 {
-                    if(root)
-                    {
-                        levelOrderFunction(root, func);
-                    }
+                    levelOrderFunction(this->root, func);
                 }
                 //
 
@@ -90,7 +80,7 @@ namespace nb
                 // значит глубину можно считать по самой левой ноде  
                 inline constexpr uint8_t depth() const noexcept 
                 {
-                    std::shared_ptr<Node> cur = root;
+                    std::shared_ptr<N> cur = root;
                     uint8_t index = 0;
                     while(cur->left)
                     {
@@ -101,13 +91,21 @@ namespace nb
                     return index;
                 }
 
+                void build(const std::vector<T>& vec) const noexcept
+                {
+                    for(const auto& i : vec)
+                    {
+                        insert(i);
+                    }
+                }
+
 
             protected:
 
-                void insertFunction(const std::shared_ptr<Node>& node, const T& val) const
+                void insertFunction(const std::shared_ptr<N>& node, const T& val) const
                 {
-                    std::shared_ptr<Node> temp;
-                    std::queue<std::shared_ptr<Node>> q;
+                    std::shared_ptr<N> temp;
+                    std::queue<std::shared_ptr<N>> q;
                     
                     q.push(node);
 
@@ -118,7 +116,7 @@ namespace nb
 
                         if(temp->left == nullptr)
                         {
-                            temp->left = std::make_shared<Node>(val);
+                            temp->left = std::make_shared<N>(val);
                             break;
                         }
                         else
@@ -128,7 +126,7 @@ namespace nb
 
                         if(temp->right == nullptr)
                         {
-                            temp->right = std::make_shared<Node>(val);
+                            temp->right = std::make_shared<N>(val);
                             break;
                         }
                         else
@@ -138,7 +136,7 @@ namespace nb
                     }
                 }
 
-                void preOrderFunction(const std::shared_ptr<Node>& node, const std::function<void(T)>& func) const
+                void preOrderFunction(const std::shared_ptr<N>& node, const std::function<void(T)>& func) const
                 {
                     if(node)
                     {
@@ -148,7 +146,7 @@ namespace nb
                     }
                 }
 
-                void inOrderFunction(const std::shared_ptr<Node>& node, const std::function<void(T)>& func) const
+                void inOrderFunction(const std::shared_ptr<N>& node, const std::function<void(T)>& func) const
                 {
                     if(node)
                     {
@@ -158,7 +156,7 @@ namespace nb
                     }
                 }
 
-                void postOrderFunction(const std::shared_ptr<Node>& node, const std::function<void(T)>& func) const
+                void postOrderFunction(const std::shared_ptr<N>& node, const std::function<void(T)>& func) const
                 {
                     if(node)
                     {
@@ -168,10 +166,10 @@ namespace nb
                     }
                 }
 
-                void levelOrderFunction(const std::shared_ptr<Node>& node, const std::function<void(T)>& func) const
+                void levelOrderFunction(const std::shared_ptr<N>& node, const std::function<void(T)>& func) const
                 {
-                    std::shared_ptr<Node> cur = nullptr;
-                    std::queue<std::shared_ptr<Node>> q;
+                    std::shared_ptr<N> cur = nullptr;
+                    std::queue<std::shared_ptr<N>> q;
                     q.push(node);
 
                     while(!q.empty())
@@ -188,7 +186,7 @@ namespace nb
                 }
 
 
-                std::shared_ptr<Node> root = nullptr;
+                std::shared_ptr<N> root = nullptr;
         };
     };
 };

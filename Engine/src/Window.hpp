@@ -4,6 +4,8 @@
 
 #include <functional>
 
+#include "Renderer/Renderer.hpp"
+
 class Window
 {
 
@@ -12,8 +14,14 @@ public:
 
     bool render();
 
-    HWND hwnd = {};
+    void exit(LPCWSTR text)
+    {
+        MessageBox(hwnd, text, NULL, MB_OK);
+        PostQuitMessage(0);
+    }
 
 private:
+    HWND hwnd = {};
     WNDCLASS wc = {};
+    nb::Renderer::Renderer* renderer;
 };
