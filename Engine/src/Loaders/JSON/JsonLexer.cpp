@@ -6,18 +6,7 @@ namespace nb
     {
         JsonLexer::JsonLexer(const std::filesystem::path &path)
         {
-            file.open(path, std::ios::in);
-            if (!file.is_open())
-            {
-                throw std::runtime_error("cannot open file");
-                return;
-            }
-
-            std::stringstream buffer;
-            buffer << file.rdbuf();
-
-            data = buffer.str();
-            size = data.size();
+            setPath(path);
         }
 
         JsonLexer::JsonLexer(const std::string &json) noexcept
@@ -29,6 +18,34 @@ namespace nb
         {
             if(file.is_open())
                 file.close();
+        }
+
+        void JsonLexer::setPath(const std::filesystem::path &path)
+        {
+            if(file.is_open())
+            {
+                throw std::runtime_error("file  is already open");
+                return;
+            }
+
+            file.open(path, std::ios::in);
+            if (!file.is_open())
+            {
+                throw std::runtime_error("cannot open file");
+                return;
+            }
+
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+
+            data = buffer.str();
+            size = data.size();        
+        }
+
+        void JsonLexer::setJson(const std::string &json)
+        {
+            data = std::move(json);
+            size = data.size();
         }
 
         JsonLexer::Token JsonLexer::nextToken()

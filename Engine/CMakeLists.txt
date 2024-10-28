@@ -11,6 +11,8 @@ add_subdirectory(dependencies/glad)
 add_executable(${PROJECT_NAME} WIN32 
         src/main.cpp
         
+
+
         src/Fatal.cpp
         src/Fatal.hpp
 
@@ -21,6 +23,9 @@ add_executable(${PROJECT_NAME} WIN32
         src/Window.cpp
         src/Window.hpp
 
+        src/Core/EngineSettings.cpp
+        src/Core/EngineSettings.hpp
+
         src/UI/Button.cpp
         src/UI/Button.hpp
 
@@ -29,6 +34,8 @@ add_executable(${PROJECT_NAME} WIN32
 
         src/Resources/IResource.cpp
         src/Resources/IResource.hpp
+        src/Resources/ShaderSource.cpp
+        src/Resources/ShaderSource.hpp
 
         src/Renderer/Renderer2D.hpp
         src/Renderer/Renderer2D.cpp

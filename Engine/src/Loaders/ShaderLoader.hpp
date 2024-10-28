@@ -24,13 +24,13 @@ namespace nb
 
         public:
             ShaderLoader() = default;
-            ShaderLoader(const ShaderLoader&) = delete;
-            ShaderLoader(ShaderLoader&&) = delete;
-            ShaderLoader& operator=(const ShaderLoader&) = delete;
-            ShaderLoader& operator=(ShaderLoader&&) = delete;
+            ShaderLoader(const ShaderLoader&) = default;
+            ShaderLoader(ShaderLoader&&) = default;
+            ShaderLoader& operator=(const ShaderLoader&) = default;
+            ShaderLoader& operator=(ShaderLoader&&) = default;
             ~ShaderLoader() = default;
 
-            //Ref<Resource::ShaderSource> getRawShader(const std::filesystem::path &path) const noexcept;
+            Ref<Resource::ShaderSource> getRawShader(const std::filesystem::path &path) const noexcept;
 
         private:
             bool checkExtention(const std::filesystem::path &path) const noexcept;

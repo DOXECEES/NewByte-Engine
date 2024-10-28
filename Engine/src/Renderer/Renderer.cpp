@@ -1,17 +1,17 @@
 #include "Renderer.hpp"
 
-nb::Renderer::Renderer::Renderer(HWND hwnd,GraphicsAPI apiType) noexcept
+nb::Renderer::Renderer::Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept
 {
     switch (apiType)
     {
-    case GraphicsAPI::OPENGL:
+    case nb::Core::GraphicsAPI::OPENGL:
         api = nb::OpenGl::OpenGLRender::create(hwnd);
         if(!api)
             std::abort();
         break;
-    case GraphicsAPI::DIRECTX:
+    case nb::Core::GraphicsAPI::DIRECTX:
         NB_FALLTHROUGH;
-    case GraphicsAPI::VULKAN:
+    case nb::Core::GraphicsAPI::VULKAN:
         break;
     }
 }

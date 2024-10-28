@@ -21,7 +21,9 @@ namespace nb
          */
         class JsonParser
         {
-            public:
+        public:
+            JsonParser() = default;
+
             /**
              * @brief Конструктор для парсинга JSON файла по пути.
              * @param path Путь к JSON файлу.
@@ -39,8 +41,29 @@ namespace nb
                 : lexer(json)
                 , token(getTokenNoWhiteSpaces())
             {}
-            
+
+
+            inline void setPath(const std::filesystem::path &path)
+            {
+                lexer.setPath(path);
+                token = getTokenNoWhiteSpaces();
+            }
+
+            inline void setJson(const std::string& json)
+            {
+                lexer.setJson(json);
+                token = getTokenNoWhiteSpaces();
+            }
+
             /**
+             * @brief Основной метод для парсинга JSON.
+             * @return Корневой элемент JSON как Node.
+             */
+            Node parse();
+
+        private:
+
+             /**
              * @brief Разбирает строковое значение токена.
              * @param curToken Текущий токен.
              * @return Строковое значение токена.
@@ -49,12 +72,6 @@ namespace nb
             {
                 return curToken.value;
             }
-
-            /**
-             * @brief Основной метод для парсинга JSON.
-             * @return Корневой элемент JSON как Node.
-             */
-            Node parse();
 
             /**
              * @brief Разбирает JSON объект.

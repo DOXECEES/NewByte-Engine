@@ -3,6 +3,8 @@
 
 #include <filesystem>
 
+#include "../ILoader.hpp"
+
 #include "Node.hpp"
 #include "JsonParser.hpp"
 #include "JsonWriter.hpp"
@@ -15,7 +17,7 @@ namespace nb
         * @brief Класс для работы с данными в формате json
         */
 
-        class Json
+        class Json : public IReadable, public IWriteable
         {
         public:
 
@@ -27,27 +29,40 @@ namespace nb
             Json& operator=(Json&&) noexcept = default;
 
             inline explicit Json(const std::filesystem::path& path)
-                : parser(path)
+                : parser()
                 , writer()
             {
-                parse();
+                readFromFile(path);
             }
 
             inline explicit Json(const std::string &json)
-                : parser(json)
+                : parser()
                 , writer()
             {
-                parse();
+                readFromMemory(json);
+            }
+
+            void readFromFile(const std::filesystem::path& path) override
+            {
+                parser.setPath(path);
+                root = parser.parse();
+            }
+
+            void writeToFile(const std::filesystem::path& path) override
+            {
+                //parser.setJson()
+                writer.write(root);
+            }
+
+            void readFromMemory(const std::string &json)
+            {
+                parser.setJson(json);
+                root = parser.parse();
             }
 
             inline void write()
             {
                 writer.write(root);
-            }
-
-            inline void parse()
-            {
-                root = parser.parse();
             }
 
             template<typename T>

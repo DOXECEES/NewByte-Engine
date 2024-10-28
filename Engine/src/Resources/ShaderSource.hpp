@@ -5,8 +5,6 @@
 
 #include "IResource.hpp"
 
-
-
 namespace nb
 {
     namespace Resource
@@ -16,6 +14,7 @@ namespace nb
         public:
             ShaderSource() noexcept = default;
             ShaderSource(const std::string &str) noexcept;
+            virtual ~ShaderSource() = default;
 
         private:
             std::string source;

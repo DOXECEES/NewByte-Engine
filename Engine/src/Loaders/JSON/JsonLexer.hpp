@@ -20,7 +20,7 @@ namespace nb
         {
 
         public:
-            JsonLexer() = delete;
+            JsonLexer() = default;
 
             /**
              * @brief Конструктор, принимающий путь к JSON-файлу.
@@ -80,8 +80,10 @@ namespace nb
              */
             Token nextToken();
 
-        private:
+            void setPath(const std::filesystem::path &path);
+            void setJson(const std::string &json);
 
+        private:
             inline bool isInRange() const noexcept
             {
                 return (pos < size);
