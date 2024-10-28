@@ -11,6 +11,19 @@ constexpr Ref<T> createRef(Args&& ... args)
     return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
+namespace nb
+{
+    namespace Core
+    {
+        enum class GraphicsAPI
+        {
+            OPENGL,
+            DIRECTX,
+            VULKAN
+        };
+    };
+};
+
 #if defined(__has_cpp_attribute)
     #if __has_cpp_attribute(nodiscard)
         #define NB_NODISCARD [[nodiscard]]

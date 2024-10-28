@@ -1,5 +1,9 @@
 #include "Window.hpp"
 
+#include "Core/EngineSettings.hpp"
+
+#include "Core.hpp"
+
 Window::Window(HINSTANCE inst, WNDPROC handler)
 {
     wc.style = CS_OWNDC;
@@ -15,10 +19,12 @@ Window::Window(HINSTANCE inst, WNDPROC handler)
 
     RegisterClass(&wc);
     hwnd = CreateWindow(L"class", L"Direct2D init",
-                        WS_OVERLAPPEDWINDOW, 100, 100, 600, 600, NULL, NULL,
+                        WS_OVERLAPPEDWINDOW, 100, 100, nb::Core::EngineSettings::getWidth(),
+                        nb::Core::EngineSettings::getHeight(), 
+                        NULL, NULL,
                         inst, NULL);
 						
-	renderer = new nb::Renderer::Renderer(hwnd, nb::Renderer::Renderer::GraphicsAPI::OPENGL);
+	renderer = new nb::Renderer::Renderer(hwnd, nb::Core::EngineSettings::getGraphicsAPI());
 
 	ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);

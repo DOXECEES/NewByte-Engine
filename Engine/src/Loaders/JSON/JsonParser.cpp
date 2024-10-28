@@ -23,7 +23,8 @@ namespace nb
             case jst::NILL:
                 return parseLogicExpr();
             default:
-                break;
+                throw std::runtime_error("Invalid token");
+                return nullptr;
             }
         }
 

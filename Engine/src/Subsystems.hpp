@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer/Renderer2D.hpp"
+#include "Core/EngineSettings.hpp"
 #include "Window.hpp"
 
 class Subsystems

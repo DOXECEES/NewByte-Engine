@@ -13,15 +13,10 @@ namespace nb
         class Renderer 
         {
         public:
-            enum class GraphicsAPI
-            {
-                OPENGL,
-                DIRECTX,
-                VULKAN
-            };
+            
 
             Renderer() = delete;
-            Renderer(HWND hwnd, GraphicsAPI apiType) noexcept;
+            Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept;
 
             inline void render() noexcept { api->render(); };
 

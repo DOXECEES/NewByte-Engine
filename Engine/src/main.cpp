@@ -56,6 +56,7 @@
 
 #include "Fatal.hpp"
 
+#include "Core/EngineSettings.hpp"
 
 #include "Loaders/JSON/Json.hpp"
 
@@ -111,6 +112,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     nb::Loaders::Json j2(std::filesystem::path("C:\\rep\\GIMS\\2.json"));
     Debug::debug(j2["address"]["zipcode"].get<int>());
 
+    nb::Core::EngineSettings::deserialize();
+        Debug::debug(nb::Core::EngineSettings::getHeight());
+Debug::debug(nb::Core::EngineSettings::getWidth());
 
     std::deque<Example> a = {Example(), Example()};
     // std::vector<int32_t> vec{129};

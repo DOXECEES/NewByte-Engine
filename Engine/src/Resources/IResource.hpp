@@ -8,7 +8,8 @@ namespace nb
         class IResource
         {
         public:
-            virtual ~IResource() = default;
+
+        //    virtual ~IResource() = default;
         };
     };
 };
