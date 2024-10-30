@@ -43,7 +43,9 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/Renderer.cpp
         src/Renderer/IRenderAPI.hpp
         src/Renderer/IRenderAPI.cpp     
-        
+        src/Renderer/Shader.cpp
+        src/Renderer/Shader.hpp
+
         src/Renderer/OpenGL/OpenGLRender.cpp        
         src/Renderer/OpenGL/OpenGLRender.hpp        
         src/Renderer/OpenGL/IBuffer.cpp
@@ -56,8 +58,8 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/OpenGL/VertexArray.hpp
         src/Renderer/OpenGL/UBO.cpp
         src/Renderer/OpenGL/UBO.hpp
-        src/Renderer/OpenGL/Shader.cpp
-        src/Renderer/OpenGL/Shader.hpp
+        src/Renderer/OpenGL/OpenGlShader.cpp
+        src/Renderer/OpenGL/OpenGlShader.hpp
 
         
         src/Math/Vector2.cpp
@@ -75,6 +77,10 @@ add_executable(${PROJECT_NAME} WIN32
         src/Math/Matrix/Mat.cpp
         src/Math/Matrix/Mat.hpp
 
+        src/Loaders/Factory/IFactoryLoader.cpp
+        src/Loaders/Factory/IFactoryLoader.hpp
+        src/Loaders/Factory/ShaderFactory.cpp
+        src/Loaders/Factory/ShaderFactory.hpp
 
         src/Loaders/BitmapLoader.cpp
         src/Loaders/BitmapLoader.hpp

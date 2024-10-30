@@ -52,13 +52,15 @@
 
 #include "Utils/BitReader.hpp"
 
-#include "Loaders/ShaderLoader.hpp"
+#include "Renderer/Shader.hpp"
 
 #include "Fatal.hpp"
 
 #include "Core/EngineSettings.hpp"
 
 #include "Loaders/JSON/Json.hpp"
+
+#include "Manager/ResourceManager.hpp"
 
 #pragma comment(lib, "d2d1.lib")
 
@@ -103,6 +105,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     Window *w = new Window(hInstance, WndProc);
     nb::Fatal::init(w);
+    
 
 #ifdef _DEBUG
 
@@ -113,9 +116,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Debug::debug(j2["address"]["zipcode"].get<int>());
 
     nb::Core::EngineSettings::deserialize();
-        Debug::debug(nb::Core::EngineSettings::getHeight());
-Debug::debug(nb::Core::EngineSettings::getWidth());
+        //Debug::debug(nb::Core::EngineSettings::getHeight());
+//Debug::debug(nb::Core::EngineSettings::getWidth());
 
+    auto rm = nb::ResMan::ResourceManager::getInstance();
+    {
+        auto i = rm->getResource<nb::Loaders::Json>("C:\\rep\\GIMS\\1.json");
+        
+        //Ref<nb::Renderer::Shader> s = rm->getResource<nb::Renderer::Shader>("shad.vs");
+        
+
+        Debug::debug((*i)["lastName"].get<std::string>().c_str());
+    
+    }
     std::deque<Example> a = {Example(), Example()};
     // std::vector<int32_t> vec{129};
     // nb::Utils::BitReader<int32_t> br(vec);

@@ -3,7 +3,10 @@
 
 #include <filesystem>
 
-#include "../ILoader.hpp"
+#include "../../Resources/IResource.hpp"
+#include "../Factory/IFactoryLoader.hpp"
+
+#include "../../Core.hpp"
 
 #include "Node.hpp"
 #include "JsonParser.hpp"
@@ -13,11 +16,24 @@ namespace nb
 {
     namespace Loaders
     {
+        class Json;
+
         /**
         * @brief Класс для работы с данными в формате json
         */
+        class JsonFactory : public Factory::IFactoryLoader
+        {
+        public:
+            JsonFactory() = default;
+            Ref<Resource::IResource> create(const std::filesystem::path& path) const override;
 
-        class Json : public IReadable, public IWriteable
+        private:
+
+
+        };
+
+
+        class Json : public nb::Resource::IResource, public IReadableWriteable
         {
         public:
 

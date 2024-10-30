@@ -1,11 +1,11 @@
-#include "Shader.hpp"
+#include "OpenGlShader.hpp"
 
-nb::OpenGl::Shader::Shader(const std::filesystem::path &pathToShader) noexcept
+nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader) noexcept
 {
     link(pathToShader);
 }
 
-nb::OpenGl::Shader::Shader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
+nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
 {
     for (const auto &shaderPath : vecOfShaders)
     {
@@ -13,7 +13,7 @@ nb::OpenGl::Shader::Shader(const std::vector<std::filesystem::path> &vecOfShader
     }
 }
 
-nb::OpenGl::Shader::~Shader() noexcept
+nb::OpenGl::OpenGlShader::~OpenGlShader() noexcept
 {
     for (auto &i : shaders)
     {
@@ -22,7 +22,7 @@ nb::OpenGl::Shader::~Shader() noexcept
 }
 
 
-void nb::OpenGl::Shader::link(const std::filesystem::path &pathToShader) noexcept
+void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
 {
     if (auto shaderType = getShaderType(pathToShader); shaderType != ShaderType::UNKNOWN)
     {
@@ -35,7 +35,7 @@ void nb::OpenGl::Shader::link(const std::filesystem::path &pathToShader) noexcep
     }
 }
 
-void nb::OpenGl::Shader::use() noexcept
+void nb::OpenGl::OpenGlShader::use() noexcept
 {
     if (program == 0)
     {
@@ -80,7 +80,7 @@ void nb::OpenGl::Shader::use() noexcept
         return glUseProgram(program);
 }
 
-void nb::OpenGl::Shader::load(const std::filesystem::path &pathToShader) noexcept
+void nb::OpenGl::OpenGlShader::load(const std::filesystem::path &pathToShader) noexcept
 {
     const char *shaderSource = loadFromFile(pathToShader).c_str();
     glShaderSource(shaders.back(), 1, &shaderSource, NULL);
@@ -91,7 +91,7 @@ void nb::OpenGl::Shader::load(const std::filesystem::path &pathToShader) noexcep
     }
 }
 
-bool nb::OpenGl::Shader::isCompiled() const noexcept
+bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
 {
     GLint isCompiled = 0;
     auto currentShader = shaders.back();
@@ -122,27 +122,27 @@ bool nb::OpenGl::Shader::isCompiled() const noexcept
     return true;
 }
 
-nb::OpenGl::Shader::ShaderType nb::OpenGl::Shader::getShaderType(const std::filesystem::path &path) const noexcept
+nb::OpenGl::OpenGlShader::ShaderType nb::OpenGl::OpenGlShader::getShaderType(const std::filesystem::path &path) const noexcept
 {
     auto extention = path.extension();
 
-    if (extention == "vs")
+    if (extention == ".vs")
         return ShaderType::VERTEX;
-    else if (extention == "fs")
+    else if (extention == ".fs")
         return ShaderType::FRAGMENT;
-    else if (extention == "gs")
+    else if (extention == ".gs")
         return ShaderType::GEOMETRY;
-    else if (extention == "tcs")
+    else if (extention == ".tcs")
         return ShaderType::TESSELLATION_CONTROLL;
-    else if (extention == "tes")
+    else if (extention == ".tes")
         return ShaderType::TESSELLATION_EVALUATION;
-    else if (extention == "cs")
+    else if (extention == ".cs")
         return ShaderType::COMPUTE;
     else
         return ShaderType::UNKNOWN;
 }
 
-std::string nb::OpenGl::Shader::loadFromFile(const std::filesystem::path &path) noexcept
+std::string nb::OpenGl::OpenGlShader::loadFromFile(const std::filesystem::path &path) noexcept
 {
     std::ifstream file;
     file.open(path, std::ios::in);

@@ -10,6 +10,9 @@
 #include <string>
 #include <sstream>
 
+#include "../../Resources/IResource.hpp"
+#include "../Shader.hpp"
+
 // TODO 2: (after) delete
 #include "../../Debug.hpp"
 #include "../../Fatal.hpp"
@@ -19,7 +22,7 @@ namespace nb
 {
     namespace OpenGl
     {
-        class Shader
+        class OpenGlShader : public Renderer::Shader
         {
 
         public:
@@ -35,13 +38,13 @@ namespace nb
 
             };
 
-            Shader() noexcept = default;
-            explicit Shader(const std::filesystem::path &pathToShader) noexcept;
-            explicit Shader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept;
-            ~Shader() noexcept;
+            OpenGlShader() noexcept = default;
+            explicit OpenGlShader(const std::filesystem::path &pathToShader) noexcept;
+            explicit OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept;
+            ~OpenGlShader() noexcept;
 
             void link(const std::filesystem::path &pathToShader) noexcept;
-            void use() noexcept;
+            void use() noexcept override;
             void setUniform(const std::string &name, const float value) const noexcept;
 
 

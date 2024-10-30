@@ -2,6 +2,7 @@
 #define SRC_CORE_HPP
 
 #include <memory>
+#include <cassert>
 
 template<typename T>
 using Ref = std::shared_ptr<T>;

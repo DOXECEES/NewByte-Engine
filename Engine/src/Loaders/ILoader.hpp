@@ -3,12 +3,20 @@
 
 #include <filesystem>
 
+#include "../Resources/IResource.hpp"
+
+#include "../Core.hpp"
+
+
+
 namespace nb
 {
     /// @todo Все лоадеры должны наследовать ILoader  
 
     namespace Loaders
     {
+
+
 
         /// @brief Представляет собой интерфейс для чтения файлов
         class IReadable 
@@ -32,6 +40,12 @@ namespace nb
 
         };
 
+        class IReadableWriteable : public IReadable, public IWriteable
+        {
+            
+        };
+
+      
     };
 };
 

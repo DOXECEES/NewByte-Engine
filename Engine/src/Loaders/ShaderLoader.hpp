@@ -10,6 +10,9 @@
 
 #include "../Fatal.hpp"
 #include "../Resources/ShaderSource.hpp"
+#include "Factory/IFactoryLoader.hpp"
+
+#include "../Renderer/OpenGL/OpenGlShader.hpp"
 
 // future pch
 #include "../Core.hpp"
