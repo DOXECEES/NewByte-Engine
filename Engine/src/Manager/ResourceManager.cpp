@@ -3,15 +3,25 @@
 // "/assets/terrain/tree.png" - абсолютный
 // "tree.png" - относительный
 
+nb::ResMan::ResourceManager::ResourceManager()
+{
+    // make pool of loaders
+    loaders[".json"] = createRef<nb::Loaders::JsonFactory>();
+    loaders[".vs"] = createRef<nb::Loaders::Factory::ShaderFactory>();
+    loaders[".fs"] = loaders[".vs"];
+}
+
+
 nb::ResMan::ResourceManager *nb::ResMan::ResourceManager::getInstance() noexcept
 {
     static ResourceManager rm;
     return &rm;
 }
 
-void nb::ResMan::ResourceManager::load(const std::string& path) const noexcept
+void nb::ResMan::ResourceManager::load(const std::filesystem::path& path) noexcept
 {
-    //if(path.ends_with(".vs"))
+    auto j = loaders.at(path.extension().string())->create(path);
+    pool[path.string()] = j;
 }
 
 bool nb::ResMan::ResourceManager::isAbsolutePath( std::string_view path) const noexcept {
@@ -27,6 +37,8 @@ bool nb::ResMan::ResourceManager::isResourceLoaded(std::string_view path) const 
 {
     return false;
 }
+
+
 
 // bool nb::ResMan::ResourceManager::isAbsolutePath(std::string_view path) const noexcept
 // {

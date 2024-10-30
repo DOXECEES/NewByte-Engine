@@ -1,6 +1,8 @@
 #ifndef SRC_RESOURCES_IRESOURCE_HPP
 #define SRC_RESOURCES_IRESOURCE_HPP
 
+#include "../Loaders/ILoader.hpp"
+
 namespace nb
 {
     namespace Resource
@@ -8,8 +10,7 @@ namespace nb
         class IResource
         {
         public:
-
-        //    virtual ~IResource() = default;
+            virtual ~IResource() = default;
         };
     };
 };

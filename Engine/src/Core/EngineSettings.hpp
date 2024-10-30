@@ -31,6 +31,7 @@ namespace nb
             inline static Core::GraphicsAPI getGraphicsAPI() noexcept { return graphicsApi; };
 
         private:
+        
             static int width;
             static int height;
             static Core::GraphicsAPI graphicsApi;

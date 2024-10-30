@@ -7,8 +7,11 @@
 #include <unordered_map>
 
 #include "../Resources/IResource.hpp"
+#include "../Loaders/Factory/IFactoryLoader.hpp"
+#include "../Loaders/Factory/ShaderFactory.hpp"
 
 #include "../Loaders/ShaderLoader.hpp"
+#include "../Loaders/JSON/Json.hpp"
 #include "../Loaders/ILoader.hpp"
 
 #include "../Core.hpp"
@@ -34,29 +37,26 @@ namespace nb
 
             // если путь не начинается с /, то будет использована стандартная директория ассетов
             template <typename T>
-            Ref<T> getResource(std::string_view resName) const noexcept
+            Ref<T> getResource(std::string_view resName) noexcept
             {
                 std::string path = resName.data();
 
-                if (isRelativePath(resName))
-                {
-                    path = "/assets/" + path;
-                }
+                //if (isRelativePath(resName))
+                //{
+                //    path = "/assets/" + path;
+                //}
 
                 if (!isResourceLoaded(path))
                 {
                     /// return placeholder
-                    // if(!load(path))
-                    // {
-                    //     return Ref<nb::Resource::IResource>();
-                    // }
+                    load(path);
                 }
 
-                return pool.at(path);
+                return std::dynamic_pointer_cast<T>(pool.at(path));
             }
 
         private:
-            void load(const std::string &path) const noexcept;
+            void load(const std::filesystem::path &path) noexcept;
             void unload() noexcept;
 
             bool isAbsolutePath(std::string_view path) const noexcept;
@@ -64,12 +64,12 @@ namespace nb
 
             bool isResourceLoaded(std::string_view path) const noexcept;
 
-            ResourceManager() = default;
+            ResourceManager();
             ~ResourceManager() = default;
 
         private:
             std::unordered_map<std::string, Ref<nb::Resource::IResource>> pool;
-            std::unordered_map<std::string, Ref<nb::Loaders::IReadable>> loaders;
+            std::unordered_map<std::string, Ref<nb::Loaders::Factory::IFactoryLoader>> loaders;
         };
     };
 };
