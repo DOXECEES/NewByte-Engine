@@ -36,7 +36,7 @@ public:
 
         addHeader(location, oss);
 
-        if constexpr (std::is_same_v<T, nb::Math::Vector2>)
+        if constexpr (std::is_same_v<T, nb::Math::Vector2<float>>)
         {
             oss << val.x << " " << val.y << '\n';
         }

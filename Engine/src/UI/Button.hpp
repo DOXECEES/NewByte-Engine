@@ -80,11 +80,11 @@ class Ui
 {
 
 public:
-    explicit Ui(nb::Math::Vector2 begin, const int32_t width, const int32_t height, std::string_view _text);
+    explicit Ui(nb::Math::Vector2<float> begin, const int32_t width, const int32_t height, std::string_view _text);
 
     virtual void handler() = 0;
 
-    bool onClick(const nb::Math::Vector2 pos) noexcept;
+    bool onClick(const nb::Math::Vector2<float> pos) noexcept;
     inline void setStyle(const Style &newStyle) noexcept { style = newStyle; };
 
     // void setHandler();
@@ -103,7 +103,7 @@ class Button : public Ui
 {
 
 public:
-    explicit Button(nb::Math::Vector2 begin, const int32_t width, const int32_t height, std::string_view _text);
+    explicit Button(nb::Math::Vector2<float> begin, const int32_t width, const int32_t height, std::string_view _text);
 
     void handler() override;
 

@@ -62,6 +62,9 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/OpenGL/OpenGlShader.hpp
 
         
+        src/Math/Constants.hpp
+
+        
         src/Math/Vector2.cpp
         src/Math/Vector2.hpp
 
@@ -74,8 +77,11 @@ add_executable(${PROJECT_NAME} WIN32
         src/Math/AABB.cpp
         src/Math/AABB.hpp
 
-        src/Math/Matrix/Mat.cpp
-        src/Math/Matrix/Mat.hpp
+        src/Math/Matrix/Matrix.cpp
+        src/Math/Matrix/Matrix.hpp
+
+        src/Math/Matrix/Transformation.cpp
+        src/Math/Matrix/Transformation.hpp
 
         src/Loaders/Factory/IFactoryLoader.cpp
         src/Loaders/Factory/IFactoryLoader.hpp

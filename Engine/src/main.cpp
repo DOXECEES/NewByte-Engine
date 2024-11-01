@@ -62,10 +62,12 @@
 
 #include "Manager/ResourceManager.hpp"
 
+#include "Math/Constants.hpp"
+
 #pragma comment(lib, "d2d1.lib")
 
-Button *b = new Button(nb::Math::Vector2{100, 100}, 200, 200, "hello");
-Button *b1 = new Button(nb::Math::Vector2{0, 0}, 50, 50, "hello");
+Button *b = new Button(nb::Math::Vector2<float>(100.0f, 100.0f), 200, 200, "hello");
+Button *b1 = new Button(nb::Math::Vector2<float>{0.f, 0.f}, 50, 50, "hello");
 
 LRESULT _stdcall WndProc(HWND hWnd, UINT message,
                          WPARAM wParam, LPARAM lParam);
@@ -115,9 +117,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     nb::Loaders::Json j2(std::filesystem::path("C:\\rep\\GIMS\\2.json"));
     Debug::debug(j2["address"]["zipcode"].get<int>());
 
-    nb::Core::EngineSettings::deserialize();
-        //Debug::debug(nb::Core::EngineSettings::getHeight());
-//Debug::debug(nb::Core::EngineSettings::getWidth());
+
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
     {
@@ -130,6 +130,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     
     }
     std::deque<Example> a = {Example(), Example()};
+
+    Debug::debug(nb::Math::Constants::PI);
     // std::vector<int32_t> vec{129};
     // nb::Utils::BitReader<int32_t> br(vec);
     // int ind = 0;

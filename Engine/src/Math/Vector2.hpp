@@ -4,59 +4,155 @@
 
 #include <cmath>
 
+#include "Constants.hpp"
+
+#include "../Core.hpp"
+
+
 namespace nb
 {
     namespace Math
-    {   
-        class Vector2
+    {
+        template <typename T, typename Enable = void>
+        class Vector2;
+
+        template<typename T>
+        class Vector2<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
         {
 
         public:
             constexpr Vector2() noexcept = default;
 
-            constexpr Vector2(const float x, const float y) noexcept
-                : x(x), y(y)
+            constexpr Vector2(const T x, const T y) noexcept
+                : x(x), y(y) {}
+
+
+            T& operator[](const size_t index)
             {
+                assert(!(index >= 2) && "Index out of range");
+                return (index == 0) ? x : y;
             }
 
-            constexpr Vector2(const Vector2 &oth) noexcept = default;
-
-            constexpr Vector2 operator+(const Vector2 &oth) noexcept
+            const T& operator[](const size_t index) const
             {
-                return {this->x + oth.x, this->y + oth.y};
-            }
-            constexpr Vector2 operator-(const Vector2 &oth) noexcept
-            {
-                return {this->x - oth.x, this->y - oth.y};
-            }
-            constexpr Vector2 operator*(const float scalar) noexcept
-            {
-                return {this->x * scalar, this->y * scalar};
+                assert(!(index >= 2) && "Index out of range");
+                return (index == 0) ? x : y;
             }
 
-            // if division by zero occure return same vector
-            constexpr Vector2 operator/(const float scalar) noexcept
+            friend constexpr Vector2<T> operator+(Vector2<T> a, const Vector2<T>& oth) noexcept
             {
-                return static_cast<bool>(scalar) ? Vector2(this->x / scalar, this->y / scalar) : *this;
+                a.x += oth.x;
+                a.y += oth.y;
+                return a;
             }
 
-            constexpr float dot(const Vector2 &oth) noexcept
+            constexpr Vector2<T>& operator+=(const Vector2<T>& oth) noexcept
             {
-                return {this->x * oth.x + this->y * oth.y};
+                this->x += oth.x;
+                this->y += oth.y;
+                return *this;
             }
-            constexpr float cross(const Vector2 &oth) noexcept
+            //
+            
+            //
+            friend constexpr Vector2<T> operator-(Vector2<T> a, const Vector2<T>& oth) noexcept
             {
-                return {this->x * oth.y - this->y * oth.x};
+                a.x -= oth.x;
+                a.y -= oth.y;
+                return a;
             }
 
-            void normalize() noexcept;
-            float length() noexcept;
+            constexpr Vector2<T>& operator-=(const Vector2<T>& oth) noexcept
+            {
+                this->x -= oth.x;
+                this->y -= oth.y;
+                return *this;
+            }
+            //
+            
+            //
+            friend constexpr Vector2<T> operator*(Vector2<T> a, const T scalar) noexcept
+            {
+                a.x *= scalar;
+                a.y *= scalar;
+                return a;
+            }
 
-            float x = 0.0f;
-            float y = 0.0f;
+            constexpr Vector2<T>& operator*=(const T scalar) noexcept
+            {
+                this->x *= scalar;
+                this->y *= scalar;
+                return *this;
+            }
+            //
+            
+            //
+            friend constexpr Vector2<T> operator/(Vector2<T> a, const T scalar) noexcept
+            {
+                assert(scalar == T(0));
+                a.x /= scalar;
+                a.y /= scalar;
+                return *this;
+            }
+
+            constexpr Vector2<T>& operator/=(const T scalar) noexcept
+            {
+                assert(scalar != T(0));
+                this->x /= scalar;
+                this->y /= scalar;
+                return *this;
+            }
+            //
+
+            constexpr T dot(const Vector2<T>& oth) const noexcept 
+            {
+                return { this->x * oth.x + this->y * oth.y };
+            }
+
+            constexpr T cross(const Vector2<T>& oth) const noexcept
+            {
+                return { this->x * oth.y - this->y * oth.x };
+            }
+
+            constexpr bool isOrtogonal(const Vector2<T>& oth) const noexcept
+            {
+                return (this->dot(oth) == 0);
+            }
+
+            constexpr bool isColleniar(const Vector2<T>& oth) const noexcept
+            {
+                return (this->cross(oth) == 0);
+            }
+
+            float getAngleInRadians(const Vector2<T>& b) const noexcept
+            {
+                return std::acos((this->dot(b)) / (this->length() * b.length()));
+            }
+
+            float getAngleInDegrees(const Vector2<T>& b)
+            {
+                return getAngleInRadians(b) * (180 / Constants::PI);
+            }
+
+            void normalize() noexcept
+            {
+                const float length = this->length();
+                if (length != 0)
+                {
+                    *this /= length;
+                }
+            }
+
+            float length() const noexcept
+            {
+                return std::sqrt(dot(*this));
+            }
+
+            T x = { };
+            T y = { };
+           
         };
 
     };
 };
-
 #endif
