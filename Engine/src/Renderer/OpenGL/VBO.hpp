@@ -21,10 +21,10 @@ namespace nb
 
             struct Vertex
             {
-                Math::Vector3 position;
-                Math::Vector3 normal;
-                Math::Vector3 color;
-                Math::Vector2 texCoords;
+                Math::Vector3<float> position;
+                Math::Vector3<float> normal;
+                Math::Vector3<float> color;
+                Math::Vector2<float> texCoords;
             };
 
             VBO() noexcept;

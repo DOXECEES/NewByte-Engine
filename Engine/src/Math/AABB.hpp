@@ -16,12 +16,12 @@ namespace nb
                 : minPoint(x1, y1), maxPoint(x2, y2)
             {}
             
-            constexpr AABB(nb::Math::Vector2 start, nb::Math::Vector2 end) noexcept
+            constexpr AABB(nb::Math::Vector2<float> start, nb::Math::Vector2<float> end) noexcept
                 : minPoint(start)
                 , maxPoint(end)
             {}
 
-            constexpr bool isPointInside(nb::Math::Vector2 pos) const noexcept  
+            constexpr bool isPointInside(nb::Math::Vector2<float> pos) const noexcept  
             {
                 return (pos.x >= minPoint.x && pos.y >= minPoint.y) && (pos.x <= maxPoint.x && pos.y <= maxPoint.y);
             }
@@ -64,7 +64,7 @@ namespace nb
                 return (width() * height());
             }
 
-            constexpr nb::Math::Vector2 center() const noexcept
+            constexpr nb::Math::Vector2<float> center() const noexcept
             {
                 return {width() / 2, height() / 2};
             }
@@ -80,8 +80,8 @@ namespace nb
             }
 
 
-            nb::Math::Vector2 minPoint;
-            nb::Math::Vector2 maxPoint;
+            nb::Math::Vector2<float> minPoint;
+            nb::Math::Vector2<float> maxPoint;
         };
     };
 };

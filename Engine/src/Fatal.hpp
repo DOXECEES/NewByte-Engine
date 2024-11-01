@@ -4,6 +4,11 @@
 #include <Windows.h>
 
 #include "Window.hpp"
+/**
+ *  @todo Добавить глобальную обработку исключений в main 
+ */
+
+
 
 namespace nb
 {
@@ -18,6 +23,7 @@ namespace nb
 
         inline static void exit(LPCWSTR text) noexcept
         {
+            std::terminate();
             if(wind != nullptr)
                 wind->exit(text);
         }
