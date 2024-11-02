@@ -31,7 +31,7 @@ void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) n
     }
     else
     {
-        nb::Fatal::exit(L"Shader type not supported");
+        assert(L"Shader type not supported");
     }
 }
 
@@ -68,26 +68,29 @@ void nb::OpenGl::OpenGlShader::use() noexcept
                 glDeleteShader(i);
             }
             Debug::debug(infoLog);
-            nb::Fatal::exit(L"Cannot link shader");
+            assert(L"Cannot link shader");
         }
 
         for (const auto &i : shaders)
         {
             glDetachShader(program, i);
         }
+
     }
-    else
-        return glUseProgram(program);
+    
+    return glUseProgram(program);
 }
 
 void nb::OpenGl::OpenGlShader::load(const std::filesystem::path &pathToShader) noexcept
 {
-    const char *shaderSource = loadFromFile(pathToShader).c_str();
+    auto s = loadFromFile(pathToShader);
+    const char *shaderSource = s.c_str();
     glShaderSource(shaders.back(), 1, &shaderSource, NULL);
+    glCompileShader(shaders.back());
 
     if (!isCompiled())
     {
-        nb::Fatal::exit(L"Cannot compile shader");
+        assert(L"Cannot compile shader");
     }
 }
 
@@ -109,9 +112,9 @@ bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
 
         // The maxLength includes the NULL character
         std::string errorLog;
-        glGetShaderInfoLog(currentShader, maxLength, &maxLength, &errorLog[0]);
+        //char *errorLog = new char[maxLength];
+        glGetShaderInfoLog(currentShader, maxLength, &maxLength, errorLog.data());
 
-        //
         // TODO 2: add message box about error
         Debug::debug(errorLog);
 
@@ -148,12 +151,12 @@ std::string nb::OpenGl::OpenGlShader::loadFromFile(const std::filesystem::path &
     file.open(path, std::ios::in);
     if (!file.is_open())
     {
-        nb::Fatal::exit(L"Cannot open shader");
+        assert(L"Cannot open shader");
         return nullptr;
     }
 
     std::stringstream buffer;
     buffer << file.rdbuf();
 
-    return std::string(buffer.str());
+    return buffer.str();
 }

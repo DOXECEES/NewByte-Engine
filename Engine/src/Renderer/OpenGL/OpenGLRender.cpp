@@ -13,6 +13,20 @@ nb::OpenGl::OpenGLRender::~OpenGLRender() noexcept
     ReleaseDC(hwnd, hdc);
 }
 
+ void GLAPIENTRY
+    MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
 bool nb::OpenGl::OpenGLRender::init() noexcept
 {
     PIXELFORMATDESCRIPTOR pfd = {};
@@ -68,8 +82,18 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
         return false;
     }
 
+   
+
+    // During init, enable debug output
+    glEnable              ( GL_DEBUG_OUTPUT );
+    glDebugMessageCallback( MessageCallback, 0 );
+
+
+
     return true;
 }
+
+
 
 void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context) noexcept
 {
@@ -83,6 +107,33 @@ void nb::OpenGl::OpenGLRender::render()
 {
     glClearColor(0.45f, 0.12f, 0.75f, 1.0f); 
     glClear(GL_COLOR_BUFFER_BIT); 
+
+    std::vector<nb::OpenGl::VBO::Vertex> vert = {
+        Math::Vector3<float>(-0.5f, -0.5f, 0.0f),
+        Math::Vector3<float>(0.5f, -0.5f, 0.0f),
+        Math::Vector3<float>(0.0f,  0.5f, 0.0f)
+    };
+
+    VertexArray vao;
+
+    vao.linkData(vert, {0, 1, 2});
+    
+    auto rm = nb::ResMan::ResourceManager::getInstance();
+    auto shader = rm->getResource<nb::Renderer::Shader>("vert.shader");
+
+
+    shader->use();
+    vao.bind();
+    vao.draw();
+
+
+    // for(const auto& obj : scene)
+    // {
+    //     obj->render();
+    // }
+
+
+
     SwapBuffers(hdc); 
 }
 

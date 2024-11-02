@@ -24,5 +24,5 @@ void nb::OpenGl::VBO::unBind() const noexcept
 void nb::OpenGl::VBO::setData(const std::vector<Vertex> &data) const noexcept
 {
     bind();
-    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(GLfloat), data.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(nb::Math::Vector3<float>), data.data(), GL_STATIC_DRAW);
 }

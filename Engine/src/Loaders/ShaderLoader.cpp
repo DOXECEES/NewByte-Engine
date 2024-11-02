@@ -10,7 +10,7 @@ Ref<nb::Resource::ShaderSource> nb::Loaders::ShaderLoader::getRawShader(const st
     file.open(path, std::ios::in);
     if (!file.is_open())
     {
-        nb::Fatal::exit(L"Cannot open shader");
+        assert(L"Cannot open shader");
         return nullptr;
     }
 

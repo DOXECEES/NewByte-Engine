@@ -1,3 +1,3 @@
-#include "Fatal.hpp"
+// #include "Fatal.hpp"
 
-Window* nb::Fatal::wind = {};
+// Window* nb::Fatal::wind = {};

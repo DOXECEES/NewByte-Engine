@@ -74,6 +74,9 @@ LRESULT _stdcall WndProc(HWND hWnd, UINT message,
 
 Renderer2D *renderer2D = nullptr;
 
+
+
+
 class Example
 {
 public:
@@ -106,7 +109,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     renderer2D = systems->GetRenderer2D();
 
     Window *w = new Window(hInstance, WndProc);
-    nb::Fatal::init(w);
+    //nb::Fatal::init(w);
     
 
 #ifdef _DEBUG
@@ -132,6 +135,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     std::deque<Example> a = {Example(), Example()};
 
     Debug::debug(nb::Math::Constants::PI);
+
+     //auto rm = nb::ResMan::ResourceManager::getInstance();
+
+    auto res = rm->getResource<nb::Renderer::Shader>("vert.shader");
+
+    
+
     // std::vector<int32_t> vec{129};
     // nb::Utils::BitReader<int32_t> br(vec);
     // int ind = 0;

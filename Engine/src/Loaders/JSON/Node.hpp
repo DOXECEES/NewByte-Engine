@@ -6,7 +6,7 @@
 #include <vector>
 #include <variant>
 #include <sstream>
-
+#include <filesystem>
 
 namespace nb
 {
@@ -109,6 +109,51 @@ namespace nb
                 {
                     throw std::runtime_error("This node isnt map");
                 }
+            }
+
+            template<typename T>
+            std::vector<T> getArray() const
+            {
+                std::vector<T> result;
+
+                if(isArray())
+                {
+                    for(const auto& node : get<Array>())
+                    {
+                        if(node.isValue())
+                        {
+                            result.push_back(node.get<T>());
+                        }
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error("This node isnt array");
+                }
+                return result;
+            }
+
+            template<>
+            std::vector<std::filesystem::path> getArray() const
+            {
+                std::vector<std::filesystem::path> result;
+
+                if(isArray())
+                {
+                    for(const auto& node : get<Array>())
+                    {
+                        if(node.isValue())
+                        {
+                            result.push_back(std::filesystem::path(node.get<std::string>()));
+                        }
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error("This node isnt array");
+                }
+                return result;
+
             }
 
             /**

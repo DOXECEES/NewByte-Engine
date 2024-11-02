@@ -7,9 +7,16 @@
 #include <GL/GL.h>
 #include <gl/GLU.h>
 
+#include "VBO.hpp"
+#include "VertexArray.hpp"
+
+
 #include "../IRenderAPI.hpp"
 
+
 #include "../../Debug.hpp"
+
+#include "../../Manager/ResourceManager.hpp"
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
