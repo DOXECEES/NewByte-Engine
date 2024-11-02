@@ -15,7 +15,6 @@
 
 // TODO 2: (after) delete
 #include "../../Debug.hpp"
-#include "../../Fatal.hpp"
 // TODO 3: make pch for NbCommon (also rename NbCommon to Core.hpp (CMAke));
 
 namespace nb

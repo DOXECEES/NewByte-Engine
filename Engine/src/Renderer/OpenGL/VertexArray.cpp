@@ -22,22 +22,26 @@ void nb::OpenGl::VertexArray::unBind() const noexcept
 
 void nb::OpenGl::VertexArray::linkData(const std::vector<nb::OpenGl::VBO::Vertex> &vert, const std::vector<GLuint> &ind)
 {
-    vbo.bind();
+    bind();
+    //vbo.bind();
     vbo.setData(vert);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, position)));
-    
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, normal)));
-    
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, color)));
-        
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, texCoords)));
 
-    ebo.bind();
+    //ebo.bind();
     ebo.setData(ind);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, position)));
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, normal)));
+    
+    // glEnableVertexAttribArray(2);
+    // glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, color)));
+        
+    // glEnableVertexAttribArray(3);
+    // glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, texCoords)));
+
+    vbo.unBind();
 
     glBindVertexArray(0);
 }

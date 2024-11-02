@@ -45,6 +45,8 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/IRenderAPI.cpp     
         src/Renderer/Shader.cpp
         src/Renderer/Shader.hpp
+        src/Renderer/SceneGraph.cpp
+        src/Renderer/SceneGraph.hpp
 
         src/Renderer/OpenGL/OpenGLRender.cpp        
         src/Renderer/OpenGL/OpenGLRender.hpp        
@@ -60,6 +62,7 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/OpenGL/UBO.hpp
         src/Renderer/OpenGL/OpenGlShader.cpp
         src/Renderer/OpenGL/OpenGlShader.hpp
+        
 
         
         src/Math/Constants.hpp

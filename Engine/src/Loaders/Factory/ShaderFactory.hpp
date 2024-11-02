@@ -4,6 +4,9 @@
 #include "IFactoryLoader.hpp"
 #include "../../Resources/IResource.hpp"
 
+#include "../../Renderer/OpenGL/OpenGlShader.hpp"
+#include "../../Manager/ResourceManager.hpp"
+
 #include "../../Core/EngineSettings.hpp"
 #include "../../Core.hpp"
 

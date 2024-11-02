@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SRC_WINDOW_HPP
+#define SRC_WINDOW_HPP
 
 #include <Windows.h>
 
@@ -25,3 +26,5 @@ private:
     WNDCLASS wc = {};
     nb::Renderer::Renderer* renderer;
 };
+
+#endif

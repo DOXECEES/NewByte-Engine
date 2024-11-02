@@ -7,8 +7,8 @@ nb::ResMan::ResourceManager::ResourceManager()
 {
     // make pool of loaders
     loaders[".json"] = createRef<nb::Loaders::JsonFactory>();
-    loaders[".vs"] = createRef<nb::Loaders::Factory::ShaderFactory>();
-    loaders[".fs"] = loaders[".vs"];
+    loaders[".nbsd"] = loaders[".json"];
+    loaders[".shader"] = createRef<nb::Loaders::Factory::ShaderFactory>();
 }
 
 
@@ -35,7 +35,7 @@ bool nb::ResMan::ResourceManager::isRelativePath(std::string_view path) const no
 
 bool nb::ResMan::ResourceManager::isResourceLoaded(std::string_view path) const noexcept
 {
-    return false;
+    return pool.contains(path.data());
 }
 
 

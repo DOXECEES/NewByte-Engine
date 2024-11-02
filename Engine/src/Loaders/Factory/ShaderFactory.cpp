@@ -1,5 +1,4 @@
 #include "ShaderFactory.hpp"
-#include "../../Renderer/OpenGL/OpenGlShader.hpp"
 
 namespace nb
 {
@@ -12,7 +11,13 @@ namespace nb
                 switch (Core::EngineSettings::getGraphicsAPI())
                 {
                 case Core::GraphicsAPI::OPENGL:
-                    return createRef<nb::OpenGl::OpenGlShader>(path);
+                {
+                    auto rm = nb::ResMan::ResourceManager::getInstance();
+                    auto shaders = rm->getResource<Json>("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\shaders\\config.nbsd");
+                    auto str = path.string();
+                    std::vector<std::filesystem::path> s = (*shaders)[str]["sources"].getArray<std::filesystem::path>();
+                    return createRef<nb::OpenGl::OpenGlShader>(s);
+                }
                 case Core::GraphicsAPI::DIRECTX:
                     assert("Not availiable now");
                     return createRef<nb::OpenGl::OpenGlShader>(path);
