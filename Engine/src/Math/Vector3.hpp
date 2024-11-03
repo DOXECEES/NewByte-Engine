@@ -21,6 +21,9 @@ namespace nb
         public:
             constexpr Vector3() noexcept = default;
 
+            constexpr Vector3(const T value) noexcept
+                :x(value), y(value), z(value) {}
+
             constexpr Vector3(const T x, const T y, const T z) noexcept
                 : x(x), y(y), z(z) {}
 

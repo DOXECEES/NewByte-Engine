@@ -20,6 +20,9 @@ namespace nb
         public:
             constexpr Vector4() noexcept = default;
 
+            constexpr Vector4(const T value) noexcept
+                :x(value), y(value), z(value), w(value) {}
+
             constexpr Vector4(const T x, const T y, const T z, const T w) noexcept
                 : x(x), y(y), z(z), w(w) {}
 

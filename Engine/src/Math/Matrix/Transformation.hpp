@@ -13,56 +13,56 @@ namespace nb
         template<typename T>
         constexpr Matrix<T,4, 4> scale(Matrix<T, 4, 4> mat, const Vector3<T>& vec)
         {
-            mat *=  {
+            mat *=  Matrix<T,4, 4>({
                         {vec.x, 0, 0, 0},
                         {0, vec.y, 0, 0},
                         {0, 0, vec.z, 0},
                         {0, 0, 0, 1}
-                    };
+                    });
             return mat;
         }
 
         template<typename T>
         constexpr Matrix<T,3, 3> scale(Matrix<T, 3, 3> mat, const Vector2<T>& vec)
         {
-            mat *=  {
+            mat *=  Matrix<T,3, 3>({
                        {vec.x, 0, 0},
                        {0, vec.y, 0},
                        {0, 0, 1}
-                    };
+                    });
             return mat;
         }
 
         template<typename T>
         constexpr Matrix<T,4, 4> translate(Matrix<T, 4, 4> mat, const Vector3<T>& vec)
         {
-            mat *=  {
+            mat *=  Matrix<T,4, 4>({
                         {1, 0, 0, vec.x},
                         {0, 1, 0, vec.y},
                         {0, 0, 1, vec.z},
                         {0, 0, 0, 1}
-                    };
+                    });
             return mat;
         }
 
         template<typename T>
-        constexpr Matrix<T,3, 3> translate(Matrix<T, 3, 3>, const Vector2<T>& vec)
+        constexpr Matrix<T,3, 3> translate(Matrix<T, 3, 3> mat, const Vector2<T>& vec)
         {
-            mat *=  {
+            mat *=  Matrix<T,3, 3>({
                         {1, 0, vec.x},
                         {0, 1, vec.y},
                         {0, 0, 1}
-                    };
+                    });
             return mat;
         }
 
         template<typename T>
-        constexpr Matrix<T, 4, 4> rotate(Matrix<T, 4, 4>, const Vector3<T>& vec, const float angle)
+        constexpr Matrix<T, 4, 4> rotate(Matrix<T, 4, 4> mat, const Vector3<T>& vec, const float angle)
         {
-            constexpr T cos = std::cos(angle);
-            constexpr T sin = std::sin(angle);
+            const T cos = std::cos(angle);
+            const T sin = std::sin(angle);
           
-            mat *=  {
+            mat *=  Matrix<T,4,4>({
                         {// first row
                             cos + (1 - cos) * vec.x * vec.x, 
                             (1 - cos) * vec.x * vec.y - sin * vec.z,
@@ -88,7 +88,7 @@ namespace nb
                             1
                         }
 
-                    };
+                    });
             return mat;
         }
 

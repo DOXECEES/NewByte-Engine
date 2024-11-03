@@ -22,6 +22,9 @@ namespace nb
 
         public:
             constexpr Vector2() noexcept = default;
+            
+            constexpr Vector2(const T value) noexcept
+                : x(value), y(value) {}
 
             constexpr Vector2(const T x, const T y) noexcept
                 : x(x), y(y) {}

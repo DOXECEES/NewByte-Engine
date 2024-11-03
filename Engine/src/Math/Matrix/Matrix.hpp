@@ -29,8 +29,7 @@ namespace nb
         template <typename T, size_t Rows, size_t Cols>
         class Matrix
         {
-            static_assert((Rows >= 2 && Rows <= 4) 
-                        && (Cols >= 2 && Cols <= 4), "Matrix size must be between 2x2 and 4x4.");
+            static_assert((Rows >= 2 && Rows <= 4) && (Cols >= 2 && Cols <= 4), "Matrix size must be between 2x2 and 4x4.");
 
         public:
             using VecType = std::conditional_t<Cols == 2, Vector2<T>, std::conditional_t<Cols == 3, Vector3<T>, Vector4<T>>>;
@@ -42,6 +41,14 @@ namespace nb
                 for (auto &row : data)
                 {
                     row = VecType();
+                }
+            }
+
+            Matrix(const T &value)
+            {
+                for (auto &row : data)
+                {
+                    row = VecType(value);
                 }
             }
 
@@ -64,7 +71,7 @@ namespace nb
                 return data[row];
             }
 
-            const T* valuePtr() const
+            const T *valuePtr() const
             {
                 return &data[0][0];
             }
@@ -167,6 +174,27 @@ namespace nb
                     }
                 }
                 return result;
+            }
+
+            template <size_t OtherCols>
+            constexpr Matrix<T, Rows, OtherCols> operator*=(const Matrix<T, Cols, OtherCols> &rhs) noexcept
+            {
+                Matrix<T, Rows, OtherCols> result;
+                for (size_t i = 0; i < Rows; ++i)
+                {
+                    for (size_t j = 0; j < OtherCols; ++j)
+                    {
+                        T sum = 0;
+                        for (size_t k = 0; k < Cols; ++k)
+                        {
+                            sum += data[i][k] * rhs[k][j];
+                        }
+                        result[i][j] = sum;
+                    }
+                }
+
+                *this = std::move(result); 
+                return *this;              
             }
 
             // Оператор умножения на вектор
