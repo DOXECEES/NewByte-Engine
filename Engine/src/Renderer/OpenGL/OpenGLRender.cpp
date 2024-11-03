@@ -120,6 +120,7 @@ void nb::OpenGl::OpenGLRender::render()
     
     auto rm = nb::ResMan::ResourceManager::getInstance();
     auto shader = rm->getResource<nb::Renderer::Shader>("vert.shader");
+    shader->setUniformVec4("ourColor", {1.0f, 0.4f, 0.4f, 1.0f});
 
 
     shader->use();
