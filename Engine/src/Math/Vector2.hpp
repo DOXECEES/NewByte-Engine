@@ -92,7 +92,7 @@ namespace nb
                 assert(scalar == T(0));
                 a.x /= scalar;
                 a.y /= scalar;
-                return *this;
+                return a;
             }
 
             constexpr Vector2<T>& operator/=(const T scalar) noexcept
