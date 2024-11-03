@@ -15,6 +15,18 @@ namespace nb
     namespace Math
     {
         template <typename T, size_t Rows, size_t Cols>
+        class Matrix;
+
+        template <typename T>
+        using Mat2 = Matrix<T, 2, 2>;
+
+        template <typename T>
+        using Mat3 = Matrix<T, 3, 3>;
+
+        template <typename T>
+        using Mat4 = Matrix<T, 4, 4>;
+
+        template <typename T, size_t Rows, size_t Cols>
         class Matrix
         {
             static_assert((Rows >= 2 && Rows <= 4) 
@@ -50,6 +62,11 @@ namespace nb
             {
                 assert(row < Rows && "Row index out of bounds.");
                 return data[row];
+            }
+
+            const T* valuePtr() const
+            {
+                return &data[0][0];
             }
 
             // Операторы сложения
