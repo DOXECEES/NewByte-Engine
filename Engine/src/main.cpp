@@ -64,6 +64,8 @@
 
 #include "Math/Constants.hpp"
 
+#include "Core/Engine.hpp"
+
 #pragma comment(lib, "d2d1.lib")
 
 Button *b = new Button(nb::Math::Vector2<float>(100.0f, 100.0f), 200, 200, "hello");
@@ -103,42 +105,37 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     AllocConsole();
 
-    auto systems = new Subsystems();
-    systems->Init();
-
-    renderer2D = systems->GetRenderer2D();
-
     Window *w = new Window(hInstance, WndProc);
-    //nb::Fatal::init(w);
-    
+    nb::Core::Engine engine(w->getHandle());
+
 
 #ifdef _DEBUG
 
-    nb::Loaders::Json j(std::filesystem::path("C:\\rep\\GIMS\\1.json"));
-    Debug::debug(j["lastName"].get<std::string>().c_str());
+    // nb::Loaders::Json j(std::filesystem::path("C:\\rep\\GIMS\\1.json"));
+    // Debug::debug(j["lastName"].get<std::string>().c_str());
 
-    nb::Loaders::Json j2(std::filesystem::path("C:\\rep\\GIMS\\2.json"));
-    Debug::debug(j2["address"]["zipcode"].get<int>());
+    // nb::Loaders::Json j2(std::filesystem::path("C:\\rep\\GIMS\\2.json"));
+    // Debug::debug(j2["address"]["zipcode"].get<int>());
 
 
 
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-    {
-        auto i = rm->getResource<nb::Loaders::Json>("C:\\rep\\GIMS\\1.json");
+    // auto rm = nb::ResMan::ResourceManager::getInstance();
+    // {
+    //     auto i = rm->getResource<nb::Loaders::Json>("C:\\rep\\GIMS\\1.json");
         
-        //Ref<nb::Renderer::Shader> s = rm->getResource<nb::Renderer::Shader>("shad.vs");
+    //     //Ref<nb::Renderer::Shader> s = rm->getResource<nb::Renderer::Shader>("shad.vs");
         
 
-        Debug::debug((*i)["lastName"].get<std::string>().c_str());
+    //     Debug::debug((*i)["lastName"].get<std::string>().c_str());
     
-    }
-    std::deque<Example> a = {Example(), Example()};
+    // }
+    // std::deque<Example> a = {Example(), Example()};
 
-    Debug::debug(nb::Math::Constants::PI);
+    // Debug::debug(nb::Math::Constants::PI);
 
      //auto rm = nb::ResMan::ResourceManager::getInstance();
 
-    auto res = rm->getResource<nb::Renderer::Shader>("vert.shader");
+    //auto res = rm->getResource<nb::Renderer::Shader>("vert.shader");
 
     
 
@@ -184,14 +181,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Debug::debug(scal);
 
 #endif // _DEBUG
-        //nb::Fatal::exit(L"Rend");
-
+    
     while (w->render())
     {
-        
+        engine.run();
     }
 
-    delete systems;
     delete w;
 
     return 0;

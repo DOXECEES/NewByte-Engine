@@ -59,6 +59,4 @@ void nb::OpenGl::VertexArray::draw() const noexcept
     {
         glDisableVertexAttribArray(i);
     }
-    
-
 }

@@ -5,6 +5,7 @@ project(NewByte_Engine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+
 add_subdirectory(dependencies/glad)
 
 
@@ -23,6 +24,8 @@ add_executable(${PROJECT_NAME} WIN32
         src/Window.cpp
         src/Window.hpp
 
+        src/Core/Engine.cpp
+        src/Core/Engine.hpp
         src/Core/EngineSettings.cpp
         src/Core/EngineSettings.hpp
 

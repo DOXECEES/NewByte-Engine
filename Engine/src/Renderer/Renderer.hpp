@@ -20,7 +20,7 @@ namespace nb
 
             inline void render() noexcept { api->render(); };
 
-            ~Renderer();
+            ~Renderer() = default;
 
 
 
