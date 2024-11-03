@@ -21,6 +21,11 @@ public:
         PostQuitMessage(0);
     }
 
+    inline HWND getHandle() const noexcept
+    {
+        return hwnd;
+    }
+
 private:
     HWND hwnd = {};
     WNDCLASS wc = {};

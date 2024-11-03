@@ -24,7 +24,7 @@ Window::Window(HINSTANCE inst, WNDPROC handler)
                         NULL, NULL,
                         inst, NULL);
 						
-	renderer = new nb::Renderer::Renderer(hwnd, nb::Core::EngineSettings::getGraphicsAPI());
+	//renderer = new nb::Renderer::Renderer(hwnd, nb::Core::EngineSettings::getGraphicsAPI());
 
 	ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
@@ -41,8 +41,6 @@ bool Window::render()
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-
-	renderer->render();
 
 	return true;
 }
