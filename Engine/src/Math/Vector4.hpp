@@ -103,7 +103,7 @@ namespace nb
                 a.y /= scalar;
                 a.z /= scalar;
                 a.w /= scalar;
-                return *this;
+                return a;
             }
 
             constexpr Vector4<T>& operator/=(const T scalar) noexcept
