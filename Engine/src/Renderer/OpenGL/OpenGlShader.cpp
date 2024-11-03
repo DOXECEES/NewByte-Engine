@@ -3,6 +3,7 @@
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader) noexcept
 {
     link(pathToShader);
+    createProgram();
 }
 
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
@@ -11,6 +12,8 @@ nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> 
     {
         link(shaderPath);
     }
+
+    createProgram();
 }
 
 nb::OpenGl::OpenGlShader::~OpenGlShader() noexcept
@@ -20,7 +23,6 @@ nb::OpenGl::OpenGlShader::~OpenGlShader() noexcept
         glDeleteShader(i);
     }
 }
-
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
 {
@@ -37,48 +39,95 @@ void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) n
 
 void nb::OpenGl::OpenGlShader::use() noexcept
 {
-    if (program == 0)
-    {
-        program = glCreateProgram();
-
-        for (const auto &i : shaders)
-        {
-            glAttachShader(program, i);
-        }
-
-        glLinkProgram(program);
-
-        GLint isLinked = 0;
-        glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
-
-        if (isLinked == GL_FALSE)
-        {
-            GLint maxLength = 0;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
-
-            // The maxLength includes the NULL character
-            std::vector<GLchar> infoLog(maxLength);
-            glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
-
-            // We don't need the program anymore.
-            glDeleteProgram(program);
-            // Don't leak shaders either.
-            for(auto &i : shaders)
-            {
-                glDeleteShader(i);
-            }
-            Debug::debug(infoLog);
-            assert(L"Cannot link shader");
-        }
-
-        for (const auto &i : shaders)
-        {
-            glDetachShader(program, i);
-        }
-
-    }
-    
     return glUseProgram(program);
+}
+
+void nb::OpenGl::OpenGlShader::setUniformFloat(std::string_view name, const float value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniform1f(program, loc, value);
+}
+
+void nb::OpenGl::OpenGlShader::setUniformInt(std::string_view name, const int value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniform1i(program, loc, value);
+}
+
+void nb::OpenGl::OpenGlShader::setUniformVec2(std::string_view name, const Math::Vector2<float> value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniform2f(program, loc, value.x, value.y);
+}
+
+void nb::OpenGl::OpenGlShader::setUniformVec3(std::string_view name, const Math::Vector3<float> value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniform3f(program, loc, value.x, value.y, value.z);
+}
+
+void nb::OpenGl::OpenGlShader::setUniformVec4(std::string_view name, const Math::Vector4<float> value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniform4f(program, loc, value.x, value.y, value.z, value.w);
+}
+
+void nb::OpenGl::OpenGlShader::setUniformMat2(std::string_view name, const Math::Mat2<float> &value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniformMatrix2fv(program, loc, 1, GL_FALSE, value.valuePtr());
+}
+
+void nb::OpenGl::OpenGlShader::setUniformMat3(std::string_view name, const Math::Mat3<float> &value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, value.valuePtr());
+}
+
+void nb::OpenGl::OpenGlShader::setUniformMat4(std::string_view name, const Math::Mat4<float> &value) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value.valuePtr());
+}
+
+void nb::OpenGl::OpenGlShader::createProgram() noexcept
+{
+    program = glCreateProgram();
+
+    for (const auto &i : shaders)
+    {
+        glAttachShader(program, i);
+    }
+
+    glLinkProgram(program);
+
+    GLint isLinked = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
+
+    if (isLinked == GL_FALSE)
+    {
+        GLint maxLength = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+
+        // The maxLength includes the NULL character
+        std::vector<GLchar> infoLog(maxLength);
+        glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
+
+        // We don't need the program anymore.
+        glDeleteProgram(program);
+        // Don't leak shaders either.
+        for (auto &i : shaders)
+        {
+            glDeleteShader(i);
+        }
+        Debug::debug(infoLog);
+        assert(L"Cannot link shader");
+    }
+
+    for (const auto &i : shaders)
+    {
+        glDetachShader(program, i);
+    }
 }
 
 void nb::OpenGl::OpenGlShader::load(const std::filesystem::path &pathToShader) noexcept
@@ -112,13 +161,13 @@ bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
 
         // The maxLength includes the NULL character
         std::string errorLog;
-        //char *errorLog = new char[maxLength];
+        // char *errorLog = new char[maxLength];
         glGetShaderInfoLog(currentShader, maxLength, &maxLength, errorLog.data());
 
         // TODO 2: add message box about error
         Debug::debug(errorLog);
 
-        glDeleteShader(currentShader); 
+        glDeleteShader(currentShader);
         return false;
     }
 

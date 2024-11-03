@@ -44,12 +44,21 @@ namespace nb
 
             void link(const std::filesystem::path &pathToShader) noexcept;
             void use() noexcept override;
-            void setUniform(const std::string &name, const float value) const noexcept;
+
+            virtual void setUniformFloat(std::string_view name, const float value) const noexcept override final;
+            virtual void setUniformInt(std::string_view name, const int value) const noexcept override final;
+
+            virtual void setUniformVec2(std::string_view name, const Math::Vector2<float> value) const noexcept override final;
+            virtual void setUniformVec3(std::string_view name, const Math::Vector3<float> value) const noexcept override final;
+            virtual void setUniformVec4(std::string_view name, const Math::Vector4<float> value) const noexcept override final;
+
+            virtual void setUniformMat2(std::string_view name, const Math::Mat2<float>& value) const noexcept override final;
+            virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept override final;
+            virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept override final;
 
 
         private:
-
-            // bool isValid() const noexcept;
+            void createProgram() noexcept;
             void load(const std::filesystem::path &pathToShader) noexcept;
             bool isCompiled() const noexcept;
             ShaderType getShaderType(const std::filesystem::path& path) const noexcept;
