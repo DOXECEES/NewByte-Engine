@@ -5,6 +5,7 @@ project(NewByte_Engine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(-DCMAKE_GENERATOR_PLATFORM x64)
 
 add_subdirectory(dependencies/glad)
 
@@ -12,8 +13,6 @@ add_subdirectory(dependencies/glad)
 add_executable(${PROJECT_NAME} WIN32 
         src/main.cpp
         
-
-
         src/Fatal.cpp
         src/Fatal.hpp
 

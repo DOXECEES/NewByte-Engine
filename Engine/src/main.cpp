@@ -104,6 +104,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 
     AllocConsole();
+    nb::Core::EngineSettings::deserialize();
 
     Window *w = new Window(hInstance, WndProc);
     nb::Core::Engine engine(w->getHandle());
@@ -207,8 +208,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg,
 
     case WM_LBUTTONDOWN:
     {
-
-        InvalidateRect(hWnd, NULL, FALSE);
+        //InvalidateRect(hWnd, NULL, FALSE);
+        
 
         return 0;
     }
