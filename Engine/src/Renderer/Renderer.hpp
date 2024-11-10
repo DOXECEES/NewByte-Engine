@@ -6,6 +6,8 @@
 #include "IRenderAPI.hpp"
 #include "OpenGL/OpenGLRender.hpp"
 
+#include "Camera.hpp"
+
 namespace nb
 {
     namespace Renderer
@@ -22,10 +24,11 @@ namespace nb
 
             ~Renderer() = default;
 
-
+            void setCamera(Camera *cam) { api->setCamera(cam); };
 
         private:
             IRenderAPI * api;
+            //Camera* camera;
         };
     };
 };

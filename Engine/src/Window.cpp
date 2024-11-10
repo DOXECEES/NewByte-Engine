@@ -30,6 +30,7 @@ Window::Window(HINSTANCE inst, WNDPROC handler)
     UpdateWindow(hwnd);
 }
 
+// no longer used
 bool Window::render()
 {
     MSG msg;
@@ -38,6 +39,7 @@ bool Window::render()
     {
         if (msg.message == WM_QUIT)
             return false;
+      
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }

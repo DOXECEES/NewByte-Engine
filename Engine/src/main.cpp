@@ -183,12 +183,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 #endif // _DEBUG
     
-    while (w->render())
+    while (true)
     {
         engine.run();
     }
 
-    delete w;
+    // delete w;
 
     return 0;
 }
@@ -205,11 +205,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg,
 
         return 0;
     case WM_SIZE:
-
+        return 0;
     case WM_LBUTTONDOWN:
     {
-        //InvalidateRect(hWnd, NULL, FALSE);
-        
 
         return 0;
     }

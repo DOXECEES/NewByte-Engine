@@ -16,6 +16,13 @@ add_executable(${PROJECT_NAME} WIN32
         src/Fatal.cpp
         src/Fatal.hpp
 
+        src/Input/Input.cpp
+        src/Input/Input.hpp
+        src/Input/Keyboard.cpp
+        src/Input/Keyboard.hpp
+        src/Input/Mouse.cpp
+        src/Input/Mouse.hpp
+
         src/Debug.cpp
         src/Debug.hpp
         src/Subsystems.cpp
@@ -49,6 +56,8 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/Shader.hpp
         src/Renderer/SceneGraph.cpp
         src/Renderer/SceneGraph.hpp
+        src/Renderer/Camera.cpp
+        src/Renderer/Camera.hpp
 
         src/Renderer/OpenGL/OpenGLRender.cpp        
         src/Renderer/OpenGL/OpenGLRender.hpp        

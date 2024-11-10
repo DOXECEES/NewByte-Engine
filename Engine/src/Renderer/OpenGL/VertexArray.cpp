@@ -53,7 +53,7 @@ void nb::OpenGl::VertexArray::draw() const noexcept
         glEnableVertexAttribArray(i);
     }
 
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     for (size_t i = 0; i < 4; i++)
     {

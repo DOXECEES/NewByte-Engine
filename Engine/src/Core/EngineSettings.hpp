@@ -22,6 +22,7 @@ namespace nb
             static constexpr int DEFAULT_HEIGHT = 480;
             static constexpr Core::GraphicsAPI DEFAULT_GRAPHICS_API = Core::GraphicsAPI::OPENGL;
 
+
         public:
             static void serialize();
             static void deserialize();
