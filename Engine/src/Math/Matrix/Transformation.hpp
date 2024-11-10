@@ -92,6 +92,33 @@ namespace nb
             return mat;
         }
 
+        template<typename T>
+        constexpr Matrix<T, 4, 4> projection(const T& fov, const T& aspectRatio, const T& nearPlane, const T& farPlane)
+        {
+            return Matrix<T, 4, 4>({
+                { (1.0f / (std::tan(fov / 2.0f) * aspectRatio)), 0, 0, 0},
+                {0, (1.0f / std::tan(fov / 2.0f)), 0, 0},
+                {0, 0, -1.0f * ((farPlane + nearPlane) / (farPlane - nearPlane)), ((-2 * farPlane * nearPlane) / (farPlane - nearPlane))},
+                {0, 0, -1.0f, 0}
+            });
+        }
+
+        template<typename T>
+        constexpr Matrix<T, 4, 4> lookAt(Vector3<T> eye, Vector3<T> center, Vector3<T> up) {
+            Vector3<T> z = (center - eye);
+            z.normalize();
+            Vector3<T> x = up.cross(z);   
+            z.normalize();
+            Vector3<T> y = z.cross(x); 
+
+            return Matrix<T, 4, 4>({
+                {x.x, y.x, z.x, 0.0f},
+                {x.y, y.y, z.y, 0.0f},
+                {x.z, y.z, z.z, 0.0f},
+                {-x.dot(eye), -y.dot(eye), -z.dot(eye), 1.0f}
+        });
+}
+
     };
 };
 

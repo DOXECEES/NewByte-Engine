@@ -14,8 +14,8 @@ namespace nb
 
             static constexpr size_t PRECISION = 10;
             static constexpr double PI = 3.141592;
-        
-        
+            inline static constexpr float HALF_OF_CIRCLE_IN_DEG = 180.0f;
+
         private:
 
             static constexpr double calculatePi(const size_t precision)

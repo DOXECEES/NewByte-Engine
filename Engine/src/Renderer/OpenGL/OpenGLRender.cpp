@@ -84,10 +84,9 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
    
 
-    // During init, enable debug output
+    //glEnable(GL_DEPTH_TEST);
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
-
 
 
     return true;
@@ -105,23 +104,108 @@ void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context)
 
 void nb::OpenGl::OpenGLRender::render()
 {
+    glViewport(0, 0, 1920, 1080);
     glClearColor(0.45f, 0.12f, 0.75f, 1.0f); 
     glClear(GL_COLOR_BUFFER_BIT); 
 
     std::vector<nb::OpenGl::VBO::Vertex> vert = {
-        Math::Vector3<float>(-0.5f, -0.5f, 0.0f),
-        Math::Vector3<float>(0.5f, -0.5f, 0.0f),
-        Math::Vector3<float>(0.0f,  0.5f, 0.0f)
+
+        Math::Vector3<float>(-1, -1,  0.5), //0
+        Math::Vector3<float>( 1, -1,  0.5), //1
+        Math::Vector3<float>(-1,  1,  0.5), //2
+        Math::Vector3<float>( 1,  1,  0.5), //3
+        Math::Vector3<float>(-1, -1, -0.5), //4
+        Math::Vector3<float>( 1, -1, -0.5), //5
+        Math::Vector3<float>(-1,  1, -0.5), //6
+        Math::Vector3<float>( 1,  1, -0.5)  //7
+        // Math::Vector3<float>(-0.5f, -0.5f, 0.0f),
+        // Math::Vector3<float>(0.5f, -0.5f, 0.0f),
+        // Math::Vector3<float>(0.0f,  0.5f, 0.0f)
     };
 
     VertexArray vao;
 
-    vao.linkData(vert, {0, 1, 2});
+    vao.linkData(vert, {//Top
+        2, 6, 7,
+        2, 3, 7,
+
+        //Bottom
+        0, 4, 5,
+        0, 1, 5,
+
+        //Left
+        0, 2, 6,
+        0, 4, 6,
+
+        //Right
+        1, 3, 7,
+        1, 5, 7,
+
+        //Front
+        0, 2, 3,
+        0, 1, 3,
+
+        //Back
+        4, 6, 7,
+        4, 5, 7});
     
     auto rm = nb::ResMan::ResourceManager::getInstance();
     auto shader = rm->getResource<nb::Renderer::Shader>("vert.shader");
-    shader->setUniformVec4("ourColor", {1.0f, 0.4f, 0.4f, 1.0f});
 
+    static Math::Vector4<float> color = { 0.60f, 0.750f, 0.10f, 0.0f};
+    //static nb::Renderer::Camera cam;
+
+    
+
+
+
+    shader->setUniformVec4("ourColor", color);
+    Math::Mat4<float> model({
+        {1.0f, 0.f,0.f,0.f},
+        {0.f, 1.0f,0.f,0.f},
+        {0.f, 0.f,1.0f,0.f},
+        {0.f, 0.f,0.f,1.0f}
+    });
+
+    // Math::Mat4<float> view({
+    //     {1.0f, 0.f,0.f,0.f},
+    //     {0.f, 1.0f,0.f,0.f},
+    //     {0.f, 0.f,1.0f,0.f},
+    //     {0.f, 0.f,0.f,1.0f}
+    // });
+
+    //static Math::Vector3<float> eye = {0.0f, 0.0f, -0.330001};       // Camera position
+    //Math::Vector3<float> center = {0.0f, 0.0f, 0.0f};    // Target position (looking at origin)
+    //Math::Vector3<float> up = {0.0f, 1.0f, 0.0f};
+
+    // if(GetAsyncKeyState(VK_F2) & 0x01)
+    // {
+    //     eye += {0.0f, -0.01f, 0.0f};
+    //     Debug::debug(eye.y);
+    // }
+
+
+    //auto view = Math::lookAt(eye, center, up);
+    auto view = this->cam->getLookAt();
+    
+
+    static float vel = 0.001f;
+    vel += 0.001f;
+    //model = Math::rotate(model, {0.0f, 1.0f , 0.0f}, vel);
+    auto proj = Math::projection(0.5f, 
+        (float)nb::Core::EngineSettings::getWidth() / (float)nb::Core::EngineSettings::getHeight(),
+        //1920.0f/ 1080.0f,
+        1.0f,
+        100.0f);
+
+    shader->setUniformMat4("model", model);
+    shader->setUniformMat4("view", view);
+    shader->setUniformMat4("proj", proj);
+
+    // for (int i = 0; i < 16; i++)
+    // {
+    //     float a = *(model.valuePtr() + i);
+    // }
 
     shader->use();
     vao.bind();
