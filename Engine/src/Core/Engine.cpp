@@ -62,10 +62,10 @@ namespace nb
                 Debug::debug("click f10");
             }
 
-            if (keyboard->isKeyPressed(0x39))
+            if (keyboard->isKeyHeld(0x53))
             {
                 auto camPos = cam.getPosition();
-                cam.moveTo({camPos.x + 0.1f, camPos.y, camPos.z});
+                cam.moveTo({camPos.x, camPos.y, camPos.z-0.1f});
             }
 
             renderer->render();

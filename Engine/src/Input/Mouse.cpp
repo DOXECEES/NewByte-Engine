@@ -43,14 +43,14 @@ namespace nb
             prevButtonsFlag = buttonFlags;
             buttonFlags = flags;
 
-            const int deltaX = this->x - x;
-            const int deltaY = this->y - y;
+            const int deltaX = x - this->x;
+            const int deltaY = y - this->y;
 
             this->x = x;
             this->y = y;
 
-            yaw += deltaX * 0.01f;
-            pitch += deltaY * 0.01f;
+            yaw += deltaX * 0.1f;
+            pitch += deltaY * 0.1f;
 
             if(pitch >  89.0f)
                 pitch = 89.0f;

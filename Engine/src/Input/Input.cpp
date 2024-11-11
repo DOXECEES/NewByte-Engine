@@ -38,7 +38,7 @@ namespace nb
 
         void Input::update(const MSG& msg) noexcept
         {
-            keyboard->update();
+            keyboard->update();// should allways be first
 
             if(msg.message == WM_INPUT)
             {
