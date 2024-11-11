@@ -38,6 +38,8 @@ namespace nb
 
         void Input::update(const MSG& msg) noexcept
         {
+            keyboard->update();
+
             if(msg.message == WM_INPUT)
             {
                 uint32_t size = sizeof(RAWINPUT);
@@ -51,7 +53,7 @@ namespace nb
                     if(rawInput.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
                     {
                         /** 
-                        *   @todo Обработка мыши при абсолючтной позиции
+                        *   @todo Обработка мыши при абсолютной позиции
                         */
 
 
@@ -92,9 +94,18 @@ namespace nb
                     break;
                 }
                 case RIM_TYPEKEYBOARD:
-                
-                    //rawInput.data.keyboard
+                {
+                    if(rawInput.data.keyboard.Flags == RI_KEY_MAKE)
+                    {
+                        keyboard->setKeyDown(rawInput.data.keyboard.VKey);
+                    }
+                    else if(rawInput.data.keyboard.Flags == RI_KEY_BREAK)
+                    {
+                        keyboard->setKeyUp(rawInput.data.keyboard.VKey);
+                    }
+
                     break;
+                }
                 case RIM_TYPEHID:
                     //rawInput.data.hid
                     break;
@@ -108,7 +119,6 @@ namespace nb
             }
 
             mouse->update(prevMouseX, prevMouseY, prevScrollData, deviceFlags);
-
         }
 
         void Input::reset() noexcept
