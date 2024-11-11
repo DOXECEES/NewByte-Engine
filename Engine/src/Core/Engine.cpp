@@ -30,14 +30,14 @@ namespace nb
 
             if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
             {
-                if (msg.message == WM_KEYDOWN)
-                {
-                    keyboard->setKeyDown(msg.wParam);
-                }
-                if (msg.message == WM_KEYUP)
-                {
-                    keyboard->setKeyUp(msg.wParam);
-                }
+                // if (msg.message == WM_KEYDOWN)
+                // {
+                //     keyboard->setKeyDown(msg.wParam);
+                // }
+                // if (msg.message == WM_KEYUP)
+                // {
+                //     keyboard->setKeyUp(msg.wParam);
+                // }
 
                
                 input->update(msg);
@@ -57,7 +57,7 @@ namespace nb
                 Debug::debug(mouse->getScrollDelta());
             }
 
-            if (keyboard->isKeyHeld(VK_ESCAPE) && keyboard->isKeyHeld(0x38))
+            if (keyboard->isKeyPressed(VK_ESCAPE))
             {
                 Debug::debug("click f10");
             }
@@ -67,8 +67,6 @@ namespace nb
                 auto camPos = cam.getPosition();
                 cam.moveTo({camPos.x + 0.1f, camPos.y, camPos.z});
             }
-
-
 
             renderer->render();
         }

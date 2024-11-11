@@ -23,6 +23,7 @@ namespace nb
 
             
             void update(const MSG& msg) noexcept;
+        
         private:
             void reset() noexcept;
 
