@@ -25,8 +25,9 @@ Window::Window(HINSTANCE inst, WNDPROC handler)
                         inst, NULL);
 						
 	//renderer = new nb::Renderer::Renderer(hwnd, nb::Core::EngineSettings::getGraphicsAPI());
+    ShowCursor(NULL);
 
-	ShowWindow(hwnd, SW_SHOW);
+    ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
 }
 

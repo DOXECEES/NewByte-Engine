@@ -3,9 +3,12 @@
 
 #include <memory>
 #include <unordered_map>
+#include <map>
 
 #include "../Templates/BinaryTree.hpp"
 #include "../Utils/BitReader.hpp"
+
+#include "../Debug.hpp"
 
 namespace nb
 {
@@ -37,7 +40,7 @@ namespace nb
 
             }
 
-            std::unordered_map<uint16_t,uint16_t> buildCanonicalCodesByLength(std::vector<std::pair<uint16_t, uint16_t>> &commandAlphabet)
+            std::map<uint16_t,uint16_t> buildCanonicalCodesByLength(std::vector<std::pair<uint16_t, uint16_t>> &commandAlphabet)
             {
                 commandAlphabet.erase(std::remove_if(
                               commandAlphabet.begin(), commandAlphabet.end(),
@@ -50,7 +53,7 @@ namespace nb
                 std::sort(commandAlphabet.begin(), commandAlphabet.end(), [](const std::pair<uint16_t, uint16_t> &a, const std::pair<uint16_t, uint16_t> &b) -> bool
                         { return a.second < b.second; });
 
-                std::unordered_map<uint16_t, uint16_t> codes;
+                std::map<uint16_t, uint16_t> codes;
                 uint16_t code = 0;
                 uint16_t prevLength = 0;
 
@@ -63,6 +66,9 @@ namespace nb
                     }
 
                     codes[code] = i.first;
+
+                    std::string binaryCode = std::bitset<16>(code).to_string();
+                    Debug::debug(binaryCode.c_str());
                     code += 1;
                 }
 
@@ -86,24 +92,39 @@ namespace nb
             // The maximum length of a Huffman code in PNG is 15 bits.
             // 0xFFFF - returns while no code find
             uint16_t decodeCanonical(Utils::BitReader<char>& br 
-                , const std::unordered_map<uint16_t, uint16_t>& codes
-                , const std::vector<std::pair<uint16_t, uint16_t>> c)
+                , const std::map<uint16_t, uint16_t>& codes
+                , const std::vector<std::pair<uint16_t, uint16_t>>& c)
             {
                 uint16_t len = 0;
                 uint16_t code = 0; 
                 uint16_t prevCode = 0;
 
+                std::map<uint16_t, uint16_t> l;
+
+                for(const auto& i : c)
+                {
+                    l[i.first] = i.second;
+                }
+
                 // FUCK THIS CODES
 
                 for (int length = 1; length <= 15; ++length)
                 {
-                    code = (code << 1) | br.readRightToLeft(1); 
+                            //code = (code << 1) | br.getBitLs().value();
 
-                    if (codes.contains(code))
-                    {
-                        //if(std::find(c.begin(), c.end(), codes.at(code)) == )
-                        return codes.at(code);
-                    }
+                    //code |= (br.getBitMs().value() << length -1 );
+                    code = (code << 1) | br.getBitMs().value();
+
+                    //uint16_t nextCode = code | (static_cast<uint16_t>(br.peekBitMs().value()) << length );
+                    
+                   
+                  
+                        if (codes.contains(code) && l[codes.at(code)] == length)
+                        {
+                            //if(std::find(c.begin(), c.end(), codes.at(code)) == )
+                            return codes.at(code);
+                        }
+                    
                 }
                 return NO_CODE;
             }

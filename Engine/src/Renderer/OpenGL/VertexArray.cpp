@@ -20,7 +20,7 @@ void nb::OpenGl::VertexArray::unBind() const noexcept
     glBindVertexArray(0);
 }
 
-void nb::OpenGl::VertexArray::linkData(const std::vector<nb::OpenGl::VBO::Vertex> &vert, const std::vector<GLuint> &ind)
+void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &vert, const std::vector<GLuint> &ind)
 {
     bind();
     //vbo.bind();
@@ -29,7 +29,7 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::OpenGl::VBO::Vertex
     //ebo.bind();
     ebo.setData(ind);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(nb::OpenGl::VBO::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::OpenGl::VBO::Vertex, position)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, position)));
     //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // glEnableVertexAttribArray(1);
@@ -46,14 +46,14 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::OpenGl::VBO::Vertex
     glBindVertexArray(0);
 }
 
-void nb::OpenGl::VertexArray::draw() const noexcept
+void nb::OpenGl::VertexArray::draw(const size_t count) const noexcept
 {
     for (size_t i = 0; i < 4; i++)
     {
         glEnableVertexAttribArray(i);
     }
 
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
     for (size_t i = 0; i < 4; i++)
     {

@@ -3,9 +3,12 @@
 
 #include <glad/glad.h>
 
+#include "../RendererStructures.hpp"
 
 #include "VBO.hpp"
 #include "EBO.hpp"
+
+#include <vector>
 
 namespace nb
 {
@@ -22,9 +25,9 @@ namespace nb
             void bind() const noexcept;
             void unBind() const noexcept;
 
-            void linkData(const std::vector<VBO::Vertex> &vert, const std::vector<GLuint> &ind);
+            void linkData(const std::vector<nb::Renderer::Vertex> &vert, const std::vector<GLuint> &ind);
 
-            void draw() const noexcept;
+            void draw(const size_t count) const noexcept;
             
             
 

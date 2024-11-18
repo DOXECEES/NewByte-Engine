@@ -10,7 +10,7 @@ set(-DCMAKE_GENERATOR_PLATFORM x64)
 add_subdirectory(dependencies/glad)
 
 
-add_executable(${PROJECT_NAME} WIN32 
+add_library(${PROJECT_NAME} STATIC 
         src/main.cpp
         
         src/Fatal.cpp
@@ -58,6 +58,10 @@ add_executable(${PROJECT_NAME} WIN32
         src/Renderer/SceneGraph.hpp
         src/Renderer/Camera.cpp
         src/Renderer/Camera.hpp
+        src/Renderer/Mesh.cpp
+        src/Renderer/Mesh.hpp
+
+        src/Renderer/RendererStructures.hpp
 
         src/Renderer/OpenGL/OpenGLRender.cpp        
         src/Renderer/OpenGL/OpenGLRender.hpp        

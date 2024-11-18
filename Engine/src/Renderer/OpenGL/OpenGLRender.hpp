@@ -7,9 +7,8 @@
 #include <GL/GL.h>
 #include <gl/GLU.h>
 
-#include "VBO.hpp"
-#include "VertexArray.hpp"
-
+#include "../RendererStructures.hpp"
+#include "../Mesh.hpp"
 
 #include "../IRenderAPI.hpp"
 #include "../../Math/Matrix/Transformation.hpp"

@@ -17,10 +17,10 @@ public:
 
     void Init(const HWND& hwnd);
 
-    inline Renderer2D *GetRenderer2D() const noexcept
-    {
-        return renderer2d;
-    }
+//    inline Renderer2D *GetRenderer2D() const noexcept
+//    {
+//        return renderer2d;
+//    }
 
     inline Ref<nb::Renderer::Renderer> getRenderer() const noexcept
     {
@@ -41,7 +41,7 @@ public:
 
 private:
     // subsystems list
-    Renderer2D *renderer2d               = nullptr;
+    //Renderer2D *renderer2d               = nullptr;
     Ref<nb::Renderer::Renderer> renderer = nullptr;
     Ref<nb::Input::Keyboard> keyboard    = nullptr;
     Ref<nb::Input::Mouse> mouse          = nullptr;

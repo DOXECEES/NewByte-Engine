@@ -16,9 +16,10 @@ namespace nb
             input->linkMouse(mouse);
         }
 
-        void Engine::run()
+
+        bool Engine::run(const MSG& msg)
         {
-            MSG msg;
+            //MSG msg;
 
             // input->update();
             //       keyboard->update();
@@ -26,10 +27,14 @@ namespace nb
             // keyboard->update();
             static nb::Renderer::Camera cam;
             renderer->setCamera(&cam);
+
+            static float yaw;
+            static float pitch;
+
             cam.update(mouse->getYaw(), mouse->getPitch());
 
-            if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-            {
+            //if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
+            //{
                 // if (msg.message == WM_KEYDOWN)
                 // {
                 //     keyboard->setKeyDown(msg.wParam);
@@ -38,13 +43,23 @@ namespace nb
                 // {
                 //     keyboard->setKeyUp(msg.wParam);
                 // }
-
-               
-                input->update(msg);
+                // if(msg.message == WM_SETFOCUS)
+                // {
+                //     input->registerInput();
+                // }
+                // if (msg.message == WM_KILLFOCUS)
+                // {
+                //     input->unRegisterInput();
+                // }
+                if(msg.message == WM_QUIT)
+                    return false;
+                
+                if(handleInput)
+                    input->update(msg);
 
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
-            }
+            //}
 
             // if(mouse->isLeftClick())
             //     Debug::debug("click");
@@ -69,6 +84,7 @@ namespace nb
             }
 
             renderer->render();
+            return true;
         }
 
         HWND Engine::hwnd = nullptr;
