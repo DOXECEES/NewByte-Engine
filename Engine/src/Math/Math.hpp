@@ -2,6 +2,7 @@
 #define SRC_MATH_MATH_HPP
 
 #include "Constants.hpp"
+#include "Vector3.hpp"
 
 namespace nb
 {
@@ -16,6 +17,25 @@ namespace nb
         {
             return radians * (Constants::HALF_OF_CIRCLE_IN_DEG / Constants::PI);
         }
+
+        inline Vector3<float> toFloatColor(const Vector3<uint8_t>& color)
+        {
+            return {
+                static_cast<float>(color.x) / 255.0f,
+                static_cast<float>(color.y) / 255.0f,
+                static_cast<float>(color.z) / 255.0f
+            };
+        }
+
+        inline Vector3<uint8_t> toLinearColor(const Vector3<float>& color)
+        {
+            return {
+                static_cast<uint8_t>(color.x * 255.0f),
+                static_cast<uint8_t>(color.y * 255.0f),
+                static_cast<uint8_t>(color.z * 255.0f)
+            };
+        }
+
     };
 };
 

@@ -3,6 +3,8 @@
 
 #include <glad/glad.h>
 
+#include "../RendererStructures.hpp"
+
 #include "../../Math/Vector2.hpp"
 #include "../../Math/Vector3.hpp"
 
@@ -18,20 +20,7 @@ namespace nb
         {
 
         public:
-
-            struct Vertex
-            {
-                Vertex(Math::Vector3<float> pos)
-                    :position(pos)
-                    {
-                        
-                    }
-                Math::Vector3<float> position;
-                //Math::Vector3<float> normal;
-                //Math::Vector3<float> color;
-                //Math::Vector2<float> texCoords;
-            };
-
+            
             VBO() noexcept;
             ~VBO() noexcept;
 
@@ -44,7 +33,7 @@ namespace nb
             virtual void bind() const noexcept override;
             virtual void unBind() const noexcept override;
 
-            void setData(const std::vector<Vertex>& data) const noexcept;
+            void setData(const std::vector<nb::Renderer::Vertex>& data) const noexcept;
 
 
 

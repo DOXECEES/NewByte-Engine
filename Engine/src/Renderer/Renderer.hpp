@@ -3,6 +3,9 @@
 
 #include "../Core.hpp"
 
+#include "../Math/Vector3.hpp"
+#include "../Math/Vector2.hpp"
+
 #include "IRenderAPI.hpp"
 #include "OpenGL/OpenGLRender.hpp"
 

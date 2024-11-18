@@ -42,6 +42,7 @@ namespace nb
 
             if(msg.message == WM_INPUT)
             {
+
                 uint32_t size = sizeof(RAWINPUT);
                 static RAWINPUT rawInput;
                 auto i = GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER));
@@ -64,6 +65,7 @@ namespace nb
                     {
                         prevMouseX += rawInput.data.mouse.lLastX;
                         prevMouseY += rawInput.data.mouse.lLastY;
+                        Debug::debug(prevMouseY);
                     }
 
                     if((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL) 
@@ -114,7 +116,8 @@ namespace nb
                 }
             }
             else
-            {
+            {                        //Debug::debug(msg.message);
+
                 reset();
             }
 

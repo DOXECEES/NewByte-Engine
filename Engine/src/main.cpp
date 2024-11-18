@@ -68,13 +68,13 @@
 
 #pragma comment(lib, "d2d1.lib")
 
-Button *b = new Button(nb::Math::Vector2<float>(100.0f, 100.0f), 200, 200, "hello");
-Button *b1 = new Button(nb::Math::Vector2<float>{0.f, 0.f}, 50, 50, "hello");
+// Button *b = new Button(nb::Math::Vector2<float>(100.0f, 100.0f), 200, 200, "hello");
+// Button *b1 = new Button(nb::Math::Vector2<float>{0.f, 0.f}, 50, 50, "hello");
 
 LRESULT _stdcall WndProc(HWND hWnd, UINT message,
                          WPARAM wParam, LPARAM lParam);
 
-Renderer2D *renderer2D = nullptr;
+// Renderer2D *renderer2D = nullptr;
 
 
 
@@ -155,7 +155,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //Debug::debug(s.getRawShader("C:\\rep\\Shooter\\Engine\\res\\Shaders\\frag.fs"));
 
     // nb::Loaders::BitmapLoader("C:\\Install Programms\\sample1.bmp");
-    // nb::Loaders::PngLoader p("C:\\Install Programms\\a.png");
+    //nb::Loaders::PngLoader p("C:\\Install Programms\\a.png");
     // Debug::debug(p.good());
     // nb::Shared::HuffmanTree tr();
     // nb::Templates::BinaryTree<int> tree;
@@ -185,7 +185,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     
     while (true)
     {
-        engine.run();
+        //engine.run();
     }
 
     // delete w;
