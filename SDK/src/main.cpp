@@ -362,8 +362,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     MSG msg;
 
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (true)
     {
+        PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE);
+
 
         if (msg.message == WM_QUIT)
             break;
@@ -371,14 +373,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         // {
         //     continue;  // Handle MDI accelerators
         // }
-        // if (msg.hwnd == hChild)
-        engine->run(msg);
+        if (msg.hwnd == hChild)
+            engine->run(msg);
 
-        // if (msg.hwnd != hChild)
-        // {
-        // TranslateMessage(&msg);
-        // DispatchMessage(&msg);
-        //}
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+        
     }
     auto i = GetLastError();
 
@@ -451,6 +451,10 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         break;
     }
+    case WM_TIMER:
+    //std::cout << "WM_TIMER received\n";
+    // Ensure no unexpected actions occur here
+    break;
 
     case WM_SIZE:
         // Resize the MDI client area to fill the parent window
@@ -475,12 +479,12 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         if ((HWND)lParam == hChild && engine != nullptr)
         {
             engine->setHandleInput(true);
-            while (ShowCursor(false) > 0);
+            //while (ShowCursor(false) > 0);
         }
         else if ((HWND)wParam == hChild && engine != nullptr)
         {
             engine->setHandleInput(false);
-            while (ShowCursor(true) < 0);
+            //while (ShowCursor(true) < 0);
         }
 
         activeWindow = (HWND)lParam;
@@ -495,6 +499,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         break;
     }
+    case WM_TIMER:
+    // Ensure no unexpected actions occur here
+    break;
     case WM_CREATE:
         // SetWindowText(hwnd, L"MDI Child");
         return 0;

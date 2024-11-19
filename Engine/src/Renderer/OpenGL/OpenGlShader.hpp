@@ -17,6 +17,7 @@
 #include "../../Debug.hpp"
 // TODO 3: make pch for NbCommon (also rename NbCommon to Core.hpp (CMAke));
 
+
 namespace nb
 {
     namespace OpenGl
@@ -55,6 +56,7 @@ namespace nb
             virtual void setUniformMat2(std::string_view name, const Math::Mat2<float>& value) const noexcept override final;
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept override final;
             virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept override final;
+
 
 
         private:

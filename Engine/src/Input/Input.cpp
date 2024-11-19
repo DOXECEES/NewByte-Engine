@@ -39,14 +39,15 @@ namespace nb
         void Input::update(const MSG& msg) noexcept
         {
             keyboard->update();// should allways be first
-
             if(msg.message == WM_INPUT)
             {
-
                 uint32_t size = sizeof(RAWINPUT);
                 static RAWINPUT rawInput;
-                auto i = GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER));
-
+                MSG nMsg;
+            
+                if(GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER)) == 0)
+                    return;
+                    
                 switch (rawInput.header.dwType)
                 {
                 case RIM_TYPEMOUSE:
@@ -61,11 +62,14 @@ namespace nb
                         prevMouseX = rawInput.data.mouse.lLastX;
                         prevMouseY = rawInput.data.mouse.lLastY;
                     }
-                    else if(rawInput.data.mouse.lLastX != 0 || rawInput.data.mouse.lLastY != 0)
+                    else 
                     {
+                        //Debug::debug(rawInput.data.mouse.lLastX);
+                        //Debug::debug(rawInput.data.mouse.lLastY);
                         prevMouseX += rawInput.data.mouse.lLastX;
                         prevMouseY += rawInput.data.mouse.lLastY;
-                        Debug::debug(prevMouseY);
+                        //Debug::debug(prevMouseX);
+                        //Debug::debug(prevMouseY);
                     }
 
                     if((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL) 
@@ -97,11 +101,12 @@ namespace nb
                 }
                 case RIM_TYPEKEYBOARD:
                 {
+
                     if(rawInput.data.keyboard.Flags == RI_KEY_MAKE)
-                    {
+                    {   
                         keyboard->setKeyDown(rawInput.data.keyboard.VKey);
                     }
-                    else if(rawInput.data.keyboard.Flags == RI_KEY_BREAK)
+                    else
                     {
                         keyboard->setKeyUp(rawInput.data.keyboard.VKey);
                     }
