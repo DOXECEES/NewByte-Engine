@@ -1,4 +1,5 @@
 #include "Camera.hpp"
+#include "../Debug.hpp"
 
 namespace nb
 {
@@ -15,9 +16,11 @@ namespace nb
             direction.z = std::sin(Math::toRadians(yaw)) * std::cos(Math::toRadians(pitch));
 
             direction.normalize();
-            direction = position + direction;
+            Debug::debug(direction.x);
+            Debug::debug(direction.y);
+            Debug::debug(direction.z);
 
-            lookAt = Math::lookAt(position, direction, up);
+            lookAt = Math::lookAt(position, position + direction, up);
         }
     };
 };

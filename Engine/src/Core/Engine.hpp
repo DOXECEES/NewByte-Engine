@@ -39,6 +39,8 @@ namespace nb
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };
 
         private:
+            bool isEditorMode = true;
+
             std::unique_ptr<Subsystems> subSystems = std::make_unique<Subsystems>();
             Ref<nb::Renderer::Renderer> renderer = nullptr;
             Ref<nb::Input::Keyboard> keyboard    = nullptr;

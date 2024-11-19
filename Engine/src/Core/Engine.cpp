@@ -19,6 +19,7 @@ namespace nb
 
         bool Engine::run(const MSG& msg)
         {
+          
             //MSG msg;
 
             // input->update();
@@ -30,8 +31,9 @@ namespace nb
 
             static float yaw;
             static float pitch;
-
-            cam.update(mouse->getYaw(), mouse->getPitch());
+            
+            if(!isEditorMode)
+                cam.update(mouse->getYaw(), mouse->getPitch());
 
             //if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
             //{
@@ -51,14 +53,29 @@ namespace nb
                 // {
                 //     input->unRegisterInput();
                 // }
+
+                if(!isEditorMode)
+                {
+                    RECT r;
+                    GetClientRect(hwnd, &r);
+                    MapWindowPoints(hwnd, nullptr, reinterpret_cast<POINT *>(&r), 2);
+                    ClipCursor(&r);
+                }
+                else
+                {
+                    ClipCursor(nullptr);
+
+                }
+
                 if(msg.message == WM_QUIT)
                     return false;
                 
-                if(handleInput)
+                //if(isEditorMode)
+               //if(msg.message == WM_INPUT)
                     input->update(msg);
 
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
+                //TranslateMessage(&msg);
+                //DispatchMessage(&msg);
             //}
 
             // if(mouse->isLeftClick())
@@ -66,7 +83,8 @@ namespace nb
 
             // if(mouse->isRightHeld())
             //     Debug::debug("held");
-
+            auto camPos = cam.getPosition();
+            auto camDir = cam.getDirection();
             if(mouse->getScrollDelta())
             {
                 Debug::debug(mouse->getScrollDelta());
@@ -79,9 +97,33 @@ namespace nb
 
             if (keyboard->isKeyHeld(0x53))
             {
-                auto camPos = cam.getPosition();
-                cam.moveTo({camPos.x, camPos.y, camPos.z-0.1f});
+                cam.moveTo(camPos + camDir * 0.1f);
             }
+            if(keyboard->isKeyHeld(0x57))
+            {
+                cam.moveTo(camPos - camDir * 0.1f);
+            }
+            if(keyboard->isKeyHeld(0x41))
+            {
+                auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
+                rightVec.normalize();
+                cam.moveTo(camPos + rightVec * 0.1f);
+            }
+            if(keyboard->isKeyHeld(0x44))
+            {
+                auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
+                rightVec.normalize();
+                cam.moveTo(camPos - rightVec * 0.1f);
+            }
+
+            if(keyboard->isKeyPressed(VK_ESCAPE))
+            {
+                isEditorMode = !isEditorMode;
+                if(isEditorMode) while (ShowCursor(true) < 0);
+                else while(ShowCursor(false) > 0);
+            }
+            
+
 
             renderer->render();
             return true;

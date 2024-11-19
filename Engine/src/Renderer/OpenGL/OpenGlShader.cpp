@@ -90,6 +90,8 @@ void nb::OpenGl::OpenGlShader::setUniformMat4(std::string_view name, const Math:
     glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value.valuePtr());
 }
 
+
+
 void nb::OpenGl::OpenGlShader::createProgram() noexcept
 {
     program = glCreateProgram();

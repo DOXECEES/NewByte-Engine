@@ -84,9 +84,11 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
    
 
-    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
+    //glShadeModel(GL_SMOOTH);
 
 
     return true;
@@ -106,51 +108,104 @@ void nb::OpenGl::OpenGLRender::render()
 {
     glViewport(0, 0, 1920, 1080);
     glClearColor(0.45f, 0.12f, 0.75f, 1.0f); 
-    glClear(GL_COLOR_BUFFER_BIT); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
     std::vector<nb::Renderer::Vertex> vert = {
 
-        Math::Vector3<float>(-1, -1,  0.5), //0
-        Math::Vector3<float>( 1, -1,  0.5), //1
-        Math::Vector3<float>(-1,  1,  0.5), //2
-        Math::Vector3<float>( 1,  1,  0.5), //3
-        Math::Vector3<float>(-1, -1, -0.5), //4
-        Math::Vector3<float>( 1, -1, -0.5), //5
-        Math::Vector3<float>(-1,  1, -0.5), //6
-        Math::Vector3<float>( 1,  1, -0.5)  //7
-        // Math::Vector3<float>(-0.5f, -0.5f, 0.0f),
-        // Math::Vector3<float>(0.5f, -0.5f, 0.0f),
-        // Math::Vector3<float>(0.0f,  0.5f, 0.0f)
+    Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+    Math::Vector3<float>{1.0f, 1.0f, -1.0f},
+    Math::Vector3<float>{1.0f, -1.0f, 1.0f},
+    Math::Vector3<float>{1.0f, -1.0f, -1.0f},
+    Math::Vector3<float>{-1.0f, 1.0f, 1.0f},
+    Math::Vector3<float>{-1.0f, 1.0f, -1.0f},
+    Math::Vector3<float>{-1.0f, -1.0f, 1.0f},
+    Math::Vector3<float>{-1.0f, -1.0f, -1.0f},
+    Math::Vector3<float>{0.0f, 1.618f, 1.0f},    
+    Math::Vector3<float>{0.0f, 1.618f, -1.0f},
+    Math::Vector3<float>{0.0f, -1.618f, 1.0f},
+    Math::Vector3<float>{0.0f, -1.618f, -1.0f},
+    Math::Vector3<float>{1.618f, 0.0f, 1.0f},
+    Math::Vector3<float>{1.618f, 0.0f, -1.0f},
+    Math::Vector3<float>{-1.618f, 0.0f, 1.0f},
+    Math::Vector3<float>{-1.618f, 0.0f, -1.0f},
+    Math::Vector3<float>{1.0f, 0.0f, 1.618f},
+    Math::Vector3<float>{1.0f, 0.0f, -1.618f},
+    Math::Vector3<float>{-1.0f, 0.0f, 1.618f},
+    Math::Vector3<float>{-1.0f, 0.0f, -1.618f}
+
+
     };
 
-    Renderer::Mesh m(vert, {// Top
-                            2, 6, 7,
-                            2, 3, 7,
+        std::vector<unsigned int> indices;
 
-                            // Bottom
-                            0, 4, 5,
-                            0, 1, 5,
 
-                            // Left
-                            0, 2, 6,
-                            0, 4, 6,
+    // Renderer::Mesh m(vert, {
+    //         0, 8, 4, 9, 1,
+    //         0, 1, 9, 5, 8,
+    //         0, 8, 5, 6, 4,
+    //         1, 0, 4, 7, 9,
+    //         1, 9, 7, 10, 5,
+    //         2, 3, 11, 10, 6,
+    //         2, 6, 10, 7, 3,
+    //         2, 3, 7, 8, 6,
+    //         3, 7, 10, 11, 4,
+    //         4, 11, 3, 2, 5,
+    //         5, 2, 10, 11, 6,
+    //         8, 5, 6, 10, 9
+    // });
 
-                            // Right
-                            1, 3, 7,
-                            1, 5, 7,
+    vert.clear();
+    indices.clear();
 
-                            // Front
-                            0, 2, 3,
-                            0, 1, 3,
+    const float PI = 3.14159265358979323846f;
 
-                            // Back
-                            4, 6, 7,
-                            4, 5, 7});
+    // Шаги углов
+    float deltaU = 2.0f * PI / 32;
+    float deltaV = 2.0f * PI / 16;
+    float R = 2.0f;
+    float r = 1.0f;
+
+    // Генерация вершин
+    for (int i = 0; i <= 32; ++i) {
+        float u = i * deltaU;
+        float cosU = cos(u);
+        float sinU = sin(u);
+
+        for (int j = 0; j <= 16; ++j) {
+            float v = j * deltaV;
+            float cosV = cos(v);
+            float sinV = sin(v);
+
+            Renderer::Vertex vertex({(R + r * cosV) * cosU,(R + r * cosV) * sinU,r * sinV});
+
+            vert.push_back(vertex);
+        }
+    }
+
+    // Генерация индексов
+    for (int i = 0; i < 32; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            int current = i * (16 + 1) + j;
+            int next = (i + 1) * (16 + 1) + j;
+
+            // Первый треугольник
+            indices.push_back(current);
+            indices.push_back(next);
+            indices.push_back(current + 1);
+
+            // Второй треугольник
+            indices.push_back(current + 1);
+            indices.push_back(next);
+            indices.push_back(next + 1);
+        }
+    }
+
+    Renderer::Mesh m(vert, indices);
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
     auto shader = rm->getResource<nb::Renderer::Shader>("vert.shader");
 
-    static Math::Vector4<float> color = { 0.10f, 0.10f, 0.10f, 0.0f};
+    static Math::Vector4<float> color = { 0.70f, 0.10f, 0.62f, 0.0f};
 
 
     shader->setUniformVec4("ourColor", color);
@@ -172,10 +227,11 @@ void nb::OpenGl::OpenGLRender::render()
 
     static float vel = 0.001f;
     vel += 0.001f;
-    //model = Math::rotate(model, {0.0f, 1.0f , 0.0f}, vel);
-    auto proj = Math::projection(Math::toRadians(nb::Core::EngineSettings::getFov()), 
-        (float)nb::Core::EngineSettings::getWidth() / (float)nb::Core::EngineSettings::getHeight(),
-        //1920.0f/ 1080.0f,
+    model = Math::scale(model, {5.0f, 5.0f , 5.0f});
+    
+    auto proj = Math::projection(Math::toRadians(45.0f), 
+        //(float)nb::Core::EngineSettings::getWidth() / (float)nb::Core::EngineSettings::getHeight(),
+        1920.0f/1080.0f,
         1.0f,
         100.0f);
 
