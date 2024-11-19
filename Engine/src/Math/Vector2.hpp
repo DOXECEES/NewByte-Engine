@@ -107,6 +107,11 @@ namespace nb
             }
             //
 
+            constexpr bool operator!=(const Vector2<T>& other) const
+            {
+                return x != other.x || y != other.y;
+            }
+
             constexpr T dot(const Vector2<T>& oth) const noexcept 
             {
                 return { this->x * oth.x + this->y * oth.y };

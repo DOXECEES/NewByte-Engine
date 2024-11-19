@@ -120,6 +120,11 @@ namespace nb
             }
             //
 
+            constexpr bool operator!=(const Vector4<T>& other) const
+            {
+                return x != other.x || y != other.y || z != other.z || w != other.w;
+            }
+
             constexpr T dot(const Vector4<T>& oth) const noexcept
             {
                 return { this->x * oth.x + this->y * oth.y + this->z * z + this->w * oth.w};
