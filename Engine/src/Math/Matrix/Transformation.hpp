@@ -104,20 +104,29 @@ namespace nb
         }
 
         template<typename T>
-        constexpr Matrix<T, 4, 4> lookAt(Vector3<T> eye, Vector3<T> center, Vector3<T> up) {
+        constexpr Matrix<T, 4, 4> lookAt(Vector3<T> eye, Vector3<T> center, Vector3<T> up)
+        {
             Vector3<T> z = (center - eye);
-            z.normalize();
-            Vector3<T> x = up.cross(z);   
-            z.normalize();
-            Vector3<T> y = z.cross(x); 
+            z.normalize();  
+
+            // Проверяем на коллинеарность
+            Vector3<T> x = up.cross(z);
+            if (x.length() < std::numeric_limits<T>::epsilon())
+            {
+                up = (up != Vector3<T>(0, 0, 1)) ? Vector3<T>(0, 0, 1) : Vector3<T>(0, 1, 0);
+                x = up.cross(z);
+            }
+            x.normalize(); 
+
+            Vector3<T> y = z.cross(x);  
 
             return Matrix<T, 4, 4>({
                 {x.x, y.x, z.x, 0.0f},
                 {x.y, y.y, z.y, 0.0f},
                 {x.z, y.z, z.z, 0.0f},
                 {-x.dot(eye), -y.dot(eye), -z.dot(eye), 1.0f}
-        });
-}
+            });
+        }
 
     };
 };
