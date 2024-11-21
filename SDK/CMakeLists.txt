@@ -12,6 +12,14 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/SceneWindow.cpp
     src/SceneWindow.hpp
+    src/HierarchyWindow.cpp
+    src/HierarchyWindow.hpp
+    src/PropertiesWindow.cpp
+    src/PropertiesWindow.hpp
+
+    src/Ui/Slider.cpp
+    src/Ui/Slider.hpp
+
     src/UiStore.cpp
     src/UiStore.hpp
 )
