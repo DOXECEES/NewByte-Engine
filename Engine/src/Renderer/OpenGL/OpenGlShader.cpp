@@ -162,12 +162,12 @@ bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
         Debug::debug(shader);
 
         // The maxLength includes the NULL character
-        std::string errorLog;
+        char *arr = new char[maxLength];
         // char *errorLog = new char[maxLength];
-        glGetShaderInfoLog(currentShader, maxLength, &maxLength, errorLog.data());
+        glGetShaderInfoLog(currentShader, maxLength, &maxLength, arr);
 
         // TODO 2: add message box about error
-        Debug::debug(errorLog);
+        Debug::debug(arr);
 
         glDeleteShader(currentShader);
         return false;

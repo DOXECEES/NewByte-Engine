@@ -22,7 +22,7 @@ namespace nb
           
             //MSG msg;
 
-            // input->update();
+              // input->update();
             //       keyboard->update();
             //       mouse->update();
             // keyboard->update();
@@ -32,8 +32,15 @@ namespace nb
             static float yaw;
             static float pitch;
             
+            cam.update(mouse->getYaw(), mouse->getPitch());
             if(!isEditorMode)
-                cam.update(mouse->getYaw(), mouse->getPitch());
+            {
+                input->startHandlingPosition();
+            }
+            else
+            {
+                input->stopHandlingPosition();
+            }
 
             //if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
             //{
@@ -64,15 +71,14 @@ namespace nb
                 else
                 {
                     ClipCursor(nullptr);
-
                 }
 
                 if(msg.message == WM_QUIT)
                     return false;
                 
-                //if(isEditorMode)
+                input->update(msg);
+                
                //if(msg.message == WM_INPUT)
-                    input->update(msg);
 
                 //TranslateMessage(&msg);
                 //DispatchMessage(&msg);
@@ -123,8 +129,6 @@ namespace nb
                 else while(ShowCursor(false) > 0);
             }
             
-
-
             renderer->render();
             return true;
         }

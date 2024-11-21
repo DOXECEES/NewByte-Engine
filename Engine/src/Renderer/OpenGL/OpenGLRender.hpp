@@ -44,13 +44,20 @@ namespace nb
                 void initFail(std::string_view message, HGLRC context) noexcept;
 
             public:
-                
+                Ref<Renderer::Mesh> m = nullptr;
+
                 void render() override;
 
                 static OpenGLRender *create(HWND hwnd);
 
+                static void setAmbientLight(const Math::Vector3<uint8_t>& color) noexcept
+                {
+                    ambientColor = Math::toFloatColor(color);
+                }
+
             private:
                 HDC hdc = {};
+                static Math::Vector3<float> ambientColor;
         };
     };
 };
