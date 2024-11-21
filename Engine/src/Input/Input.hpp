@@ -21,7 +21,9 @@ namespace nb
             void linkMouse(Ref<Mouse> mouse) noexcept;
             void linkKeyboard(Ref<Keyboard> keyboard) noexcept;
 
-            
+            inline void stopHandlingPosition() noexcept { shouldHandlePosition = false; };
+            inline void startHandlingPosition() noexcept { shouldHandlePosition = true; };
+
             void update(const MSG& msg) noexcept;
 
 
@@ -29,6 +31,8 @@ namespace nb
             void reset() noexcept;
 
         private:
+            bool shouldHandlePosition = false;
+
             uint16_t deviceFlags;
 
             float prevScrollData = 0.0f;
