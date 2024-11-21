@@ -4,13 +4,15 @@
 #include "RendererStructures.hpp"
 #include "OpenGL/VertexArray.hpp"
 
+#include "../Resources/IResource.hpp"
+
 #include <vector>
 
 namespace nb
 {
     namespace Renderer
     {
-        class Mesh
+        class Mesh : public Resource::IResource
         {
 
         public:

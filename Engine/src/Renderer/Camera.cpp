@@ -1,5 +1,4 @@
 #include "Camera.hpp"
-#include "../Debug.hpp"
 
 namespace nb
 {
@@ -16,11 +15,15 @@ namespace nb
             direction.z = std::sin(Math::toRadians(yaw)) * std::cos(Math::toRadians(pitch));
 
             direction.normalize();
-            Debug::debug(direction.x);
-            Debug::debug(direction.y);
-            Debug::debug(direction.z);
 
             lookAt = Math::lookAt(position, position + direction, up);
+
+            projection = Math::projection(
+                Math::toRadians(Core::EngineSettings::getFov()),
+                Core::EngineSettings::getAspectRatio(),
+                1.0f,
+                100.0f
+            );
         }
     };
 };

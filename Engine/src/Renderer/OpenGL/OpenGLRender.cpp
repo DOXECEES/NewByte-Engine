@@ -1,5 +1,7 @@
 #include "OpenGLRender.hpp"
 
+#include "../Objects/Objects.hpp"
+
 nb::OpenGl::OpenGLRender::OpenGLRender(HWND _hwnd) noexcept
     : IRenderAPI(_hwnd)
     , hdc(GetDC(hwnd))
@@ -82,8 +84,6 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
         return false;
     }
 
-   
-
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable              ( GL_DEBUG_OUTPUT );
@@ -106,109 +106,21 @@ void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context)
 
 void nb::OpenGl::OpenGLRender::render()
 {
-    glViewport(0, 0, 1920, 1080);
+    glViewport(0, 0, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight());
     glClearColor(0.45f, 0.12f, 0.75f, 1.0f); 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-
-    std::vector<nb::Renderer::Vertex> vert = {
-
-    Math::Vector3<float>{1.0f, 1.0f, 1.0f},
-    Math::Vector3<float>{1.0f, 1.0f, -1.0f},
-    Math::Vector3<float>{1.0f, -1.0f, 1.0f},
-    Math::Vector3<float>{1.0f, -1.0f, -1.0f},
-    Math::Vector3<float>{-1.0f, 1.0f, 1.0f},
-    Math::Vector3<float>{-1.0f, 1.0f, -1.0f},
-    Math::Vector3<float>{-1.0f, -1.0f, 1.0f},
-    Math::Vector3<float>{-1.0f, -1.0f, -1.0f},
-    Math::Vector3<float>{0.0f, 1.618f, 1.0f},    
-    Math::Vector3<float>{0.0f, 1.618f, -1.0f},
-    Math::Vector3<float>{0.0f, -1.618f, 1.0f},
-    Math::Vector3<float>{0.0f, -1.618f, -1.0f},
-    Math::Vector3<float>{1.618f, 0.0f, 1.0f},
-    Math::Vector3<float>{1.618f, 0.0f, -1.0f},
-    Math::Vector3<float>{-1.618f, 0.0f, 1.0f},
-    Math::Vector3<float>{-1.618f, 0.0f, -1.0f},
-    Math::Vector3<float>{1.0f, 0.0f, 1.618f},
-    Math::Vector3<float>{1.0f, 0.0f, -1.618f},
-    Math::Vector3<float>{-1.0f, 0.0f, 1.618f},
-    Math::Vector3<float>{-1.0f, 0.0f, -1.618f}
-
-
-    };
-
-        std::vector<unsigned int> indices;
-
-
-    // Renderer::Mesh m(vert, {
-    //         0, 8, 4, 9, 1,
-    //         0, 1, 9, 5, 8,
-    //         0, 8, 5, 6, 4,
-    //         1, 0, 4, 7, 9,
-    //         1, 9, 7, 10, 5,
-    //         2, 3, 11, 10, 6,
-    //         2, 6, 10, 7, 3,
-    //         2, 3, 7, 8, 6,
-    //         3, 7, 10, 11, 4,
-    //         4, 11, 3, 2, 5,
-    //         5, 2, 10, 11, 6,
-    //         8, 5, 6, 10, 9
-    // });
-
-    vert.clear();
-    indices.clear();
-
-    const float PI = 3.14159265358979323846f;
-
-    // Шаги углов
-    float deltaU = 2.0f * PI / 32;
-    float deltaV = 2.0f * PI / 16;
-    float R = 2.0f;
-    float r = 1.0f;
-
-    // Генерация вершин
-    for (int i = 0; i <= 32; ++i) {
-        float u = i * deltaU;
-        float cosU = cos(u);
-        float sinU = sin(u);
-
-        for (int j = 0; j <= 16; ++j) {
-            float v = j * deltaV;
-            float cosV = cos(v);
-            float sinV = sin(v);
-
-            Renderer::Vertex vertex({(R + r * cosV) * cosU,(R + r * cosV) * sinU,r * sinV});
-
-            vert.push_back(vertex);
-        }
-    }
-
-    // Генерация индексов
-    for (int i = 0; i < 32; ++i) {
-        for (int j = 0; j < 16; ++j) {
-            int current = i * (16 + 1) + j;
-            int next = (i + 1) * (16 + 1) + j;
-
-            // Первый треугольник
-            indices.push_back(current);
-            indices.push_back(next);
-            indices.push_back(current + 1);
-
-            // Второй треугольник
-            indices.push_back(current + 1);
-            indices.push_back(next);
-            indices.push_back(next + 1);
-        }
-    }
-
-    Renderer::Mesh m(vert, indices);
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
     auto shader = rm->getResource<nb::Renderer::Shader>("vert.shader");
 
-    static Math::Vector4<float> color = { 0.70f, 0.10f, 0.62f, 0.0f};
+    static Math::Vector3<float> color = { 1.0f, 0.5f, 0.31f};
 
+    shader->setUniformVec3("lightPos", {1.0f, 0.0f, 0.0f});
+    shader->setUniformVec3("viewPos", cam->getPosition());
 
-    shader->setUniformVec4("ourColor", color);
+    shader->setUniformVec3("objectColor", color);
+    shader->setUniformVec3("lightColor", ambientColor);
+
     Math::Mat4<float> model({
         {1.0f, 0.f,0.f,0.f},
         {0.f, 1.0f,0.f,0.f},
@@ -216,36 +128,24 @@ void nb::OpenGl::OpenGLRender::render()
         {0.f, 0.f,0.f,1.0f}
     });
 
-    // Math::Mat4<float> view({
-    //     {1.0f, 0.f,0.f,0.f},
-    //     {0.f, 1.0f,0.f,0.f},
-    //     {0.f, 0.f,1.0f,0.f},
-    //     {0.f, 0.f,0.f,1.0f}
-    // });
-    auto view = this->cam->getLookAt();
-    
+    auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
+    //auto mesh = nb::Renderer::Mesh(vert, cubeIndices);
+    // if(m == nullptr)
+    // m = createRef<nb::Renderer::Mesh>(vert, cubeIndices);
+
+    auto view = cam->getLookAt();
+    auto proj = cam->getProjection();
 
     static float vel = 0.001f;
     vel += 0.001f;
-    model = Math::scale(model, {5.0f, 5.0f , 5.0f});
-    
-    auto proj = Math::projection(Math::toRadians(45.0f), 
-        //(float)nb::Core::EngineSettings::getWidth() / (float)nb::Core::EngineSettings::getHeight(),
-        1920.0f/1080.0f,
-        1.0f,
-        100.0f);
+    model = Math::translate(model, {0.0f, 10.0f , 0.0f});
 
     shader->setUniformMat4("model", model);
     shader->setUniformMat4("view", view);
-    shader->setUniformMat4("proj", proj);
-
-    // for (int i = 0; i < 16; i++)
-    // {
-    //     float a = *(model.valuePtr() + i);
-    // }
+    shader->setUniformMat4("projection", proj);
 
     shader->use();
-    m.draw();
+    mesh->draw();
     
 
 
@@ -270,3 +170,6 @@ nb::OpenGl::OpenGLRender *nb::OpenGl::OpenGLRender::create(HWND hwnd)
 
     return render;
 }
+
+
+nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::ambientColor = { 0.0f, 0.0f, 0.0f};

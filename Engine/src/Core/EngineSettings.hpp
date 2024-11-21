@@ -31,6 +31,7 @@ namespace nb
             inline static int getWidth() noexcept { return width; };
             inline static int getHeight() noexcept { return height; };
             inline static float getFov() noexcept { return fov; };
+            inline static float getAspectRatio() noexcept { return (static_cast<float>(width) / static_cast<float>(height)); };
             inline static Core::GraphicsAPI getGraphicsAPI() noexcept { return graphicsApi; };
 
             inline static void setWidth(const int newWidth) noexcept { width = newWidth; };
