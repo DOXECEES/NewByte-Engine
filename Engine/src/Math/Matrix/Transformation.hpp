@@ -37,10 +37,10 @@ namespace nb
         constexpr Matrix<T,4, 4> translate(Matrix<T, 4, 4> mat, const Vector3<T>& vec)
         {
             mat *=  Matrix<T,4, 4>({
-                        {1, 0, 0, vec.x},
-                        {0, 1, 0, vec.y},
-                        {0, 0, 1, vec.z},
-                        {0, 0, 0, 1}
+                        {1, 0, 0, 0},
+                        {0, 1, 0, 0},
+                        {0, 0, 1, 0},
+                        {vec.x, vec.y, vec.z, 1}
                     });
             return mat;
         }
@@ -49,9 +49,9 @@ namespace nb
         constexpr Matrix<T,3, 3> translate(Matrix<T, 3, 3> mat, const Vector2<T>& vec)
         {
             mat *=  Matrix<T,3, 3>({
-                        {1, 0, vec.x},
-                        {0, 1, vec.y},
-                        {0, 0, 1}
+                        {1, 0, 0},
+                        {0, 1, 0},
+                        {vec.x, vec.y, 1}
                     });
             return mat;
         }

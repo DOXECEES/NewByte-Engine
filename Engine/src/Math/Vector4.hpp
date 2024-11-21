@@ -119,6 +119,10 @@ namespace nb
                 return *this;
             }
             //
+            constexpr bool operator==(const Vector4<T>& other) const
+            {
+                return x == other.x && y == other.y && z == other.z && w == other.w;
+            }
 
             constexpr bool operator!=(const Vector4<T>& other) const
             {

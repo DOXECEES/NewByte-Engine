@@ -107,6 +107,11 @@ namespace nb
             }
             //
 
+            constexpr bool operator==(const Vector2<T>& other) const
+            {
+                return x == other.x && y == other.y;
+            }
+
             constexpr bool operator!=(const Vector2<T>& other) const
             {
                 return x != other.x || y != other.y;
