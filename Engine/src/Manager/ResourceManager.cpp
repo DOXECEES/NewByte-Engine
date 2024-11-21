@@ -9,6 +9,7 @@ nb::ResMan::ResourceManager::ResourceManager()
     loaders[".json"] = createRef<nb::Loaders::JsonFactory>();
     loaders[".nbsd"] = loaders[".json"];
     loaders[".shader"] = createRef<nb::Loaders::Factory::ShaderFactory>();
+    loaders[".obj"] = createRef<nb::Loaders::Factory::ObjFactory>();
 }
 
 
