@@ -63,6 +63,9 @@ add_library(${PROJECT_NAME} STATIC
 
         src/Renderer/RendererStructures.hpp
 
+        src/Renderer/Objects/Objects.cpp
+        src/Renderer/Objects/Objects.hpp
+
         src/Renderer/OpenGL/OpenGLRender.cpp        
         src/Renderer/OpenGL/OpenGLRender.hpp        
         src/Renderer/OpenGL/IBuffer.cpp
@@ -105,6 +108,8 @@ add_library(${PROJECT_NAME} STATIC
         src/Loaders/Factory/IFactoryLoader.hpp
         src/Loaders/Factory/ShaderFactory.cpp
         src/Loaders/Factory/ShaderFactory.hpp
+        src/Loaders/Factory/ObjFactory.cpp
+        src/Loaders/Factory/ObjFactory.hpp
 
         src/Loaders/BitmapLoader.cpp
         src/Loaders/BitmapLoader.hpp
@@ -112,6 +117,9 @@ add_library(${PROJECT_NAME} STATIC
         src/Loaders/PngLoader.hpp
         src/Loaders/ShaderLoader.cpp
         src/Loaders/ShaderLoader.hpp
+
+        src/Loaders/ObjLoader.cpp
+        src/Loaders/ObjLoader.hpp
 
         src/Loaders/JSON/Json.cpp
         src/Loaders/JSON/Json.hpp
