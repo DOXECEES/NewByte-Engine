@@ -9,6 +9,7 @@
 #include "../Resources/IResource.hpp"
 #include "../Loaders/Factory/IFactoryLoader.hpp"
 #include "../Loaders/Factory/ShaderFactory.hpp"
+#include "../Loaders/Factory/ObjFactory.hpp"
 
 #include "../Loaders/ShaderLoader.hpp"
 #include "../Loaders/JSON/Json.hpp"
