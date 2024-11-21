@@ -6,18 +6,16 @@ namespace nb
     {
         void Keyboard::update() noexcept
         {
-            //prevFrameCodes = codes;
+            prevFrameCodes = codes;
         }
 
         void Keyboard::setKeyUp(const uint8_t key) noexcept
         {
-            prevFrameCodes[key] = codes[key];
             codes[key] = false;
         }
 
         void Keyboard::setKeyDown(const uint8_t key) noexcept
         {
-            prevFrameCodes[key] = codes[key];
             codes[key] = true;
         }
 
