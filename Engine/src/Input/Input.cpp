@@ -52,6 +52,9 @@ namespace nb
                 {
                 case RIM_TYPEMOUSE:
                 {
+                    if(!shouldHandlePosition)
+                        break;
+
                     if(rawInput.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
                     {
                         /** 
@@ -64,12 +67,9 @@ namespace nb
                     }
                     else 
                     {
-                        //Debug::debug(rawInput.data.mouse.lLastX);
-                        //Debug::debug(rawInput.data.mouse.lLastY);
                         prevMouseX += rawInput.data.mouse.lLastX;
                         prevMouseY += rawInput.data.mouse.lLastY;
-                        //Debug::debug(prevMouseX);
-                        //Debug::debug(prevMouseY);
+                        
                     }
 
                     if((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL) 
@@ -94,6 +94,7 @@ namespace nb
                             
                         }
                     }
+
                     
                     deviceFlags = rawInput.data.mouse.usButtonFlags;
 
