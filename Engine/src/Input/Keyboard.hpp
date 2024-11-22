@@ -27,6 +27,8 @@ namespace nb
             bool isKeyHeld(const uint8_t key) const noexcept;
             
 
+            
+
 
         private:
             std::bitset<MAX_COUNT_OF_VK> codes;

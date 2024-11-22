@@ -29,12 +29,18 @@ namespace Editor
         private:
             
             HWND hwnd;
+            static nb::Math::Vector3<float> pos;
 
             static Ui::Slider *slider;
 
             static Ui::Slider *rAmbient;
             static Ui::Slider *gAmbient;
             static Ui::Slider *bAmbient;
+
+            static Ui::Slider *xPos;
+            static Ui::Slider *yPos;
+            static Ui::Slider *zPos;
+
 
     };
 };

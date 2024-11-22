@@ -65,6 +65,29 @@ namespace Editor
             // activeWindow = (HWND)lParam;
             // return 0;
         }
+        case WM_LBUTTONDOWN:
+        {
+            if(!isPrevClick)
+            {
+                isPrevClick = true;
+                Debug::debug(LOWORD(lParam));
+                Debug::debug(HIWORD(lParam));
+
+                int xw = LOWORD(lParam);
+                int yw = HIWORD(lParam);
+
+                float xn = float((2.0f * (float)xw) / (float)nb::Core::EngineSettings::getWidth()) - 1.0f;
+                float yn = float((2.0f * (float)yw) / (float)nb::Core::EngineSettings::getHeight()) - 1.0f;
+                Debug::debug(xn);
+                Debug::debug(yn);
+            }
+            break;
+        }
+        case WM_LBUTTONUP:
+        {
+            isPrevClick = false;
+            break;
+        }
         case WM_SIZE:
         {
             Debug::debug(HIWORD(lParam));
@@ -129,4 +152,6 @@ namespace Editor
 
         MoveWindow(hwnd, 0, 0, width, height, TRUE);
     }
+
+    bool SceneWindow::isPrevClick = false;
 };

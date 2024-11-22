@@ -28,6 +28,8 @@ namespace Editor
     private:
         std::shared_ptr<nb::Core::Engine> engine;
         HWND hwnd;
+
+        static bool isPrevClick;
     };
 };
 

@@ -102,6 +102,10 @@ namespace nb
                 }
                 case RIM_TYPEKEYBOARD:
                 {
+                    
+                    if(!shouldHandleKeyboardEvents)
+                        break;
+                    
 
                     if(rawInput.data.keyboard.Flags == RI_KEY_MAKE)
                     {   

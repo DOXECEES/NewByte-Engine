@@ -55,9 +55,15 @@ namespace nb
                     ambientColor = Math::toFloatColor(color);
                 }
 
+                static void setLightPos(const Math::Vector3<float>& pos) noexcept
+                {
+                    lightPos = pos;
+                }
+
             private:
                 HDC hdc = {};
                 static Math::Vector3<float> ambientColor;
+                static Math::Vector3<float> lightPos;
         };
     };
 };
