@@ -75,6 +75,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hChild = scene->getHandle();
     engine = std::make_shared<nb::Core::Engine>(hChild);
 
+    /// TODO:
+    /// resize func incorrect 
+    /// > 4 windows
+    /// save position after resizing 
     RECT rect;
     GetClientRect(hMDIClient, &rect);
 
@@ -83,10 +87,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     propertiesWindow = new Editor::PropertiesWindow(hMDIClient);
     propertiesWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
-
-    //SendMessage(hierarchyWindow->getHandle(), WM_SIZE, 0, MAKELPARAM());
-    //SendMessage(propertiesWindow->getHandle(), WM_SIZE, 0, MAKELPARAM(nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight()));
-    
 
     MSG msg;
 

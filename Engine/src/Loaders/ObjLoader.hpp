@@ -29,6 +29,11 @@ namespace nb
             static Ref<Renderer::Mesh> loadMesh(const std::filesystem::path &path) noexcept;
 
         private:
+            static Math::Vector3<float> parseVertex(std::string_view str) noexcept;
+            static Math::Vector3<float> parseNormals(std::string_view str) noexcept;
+            static Math::Vector2<float> parseTextureCoords(std::string_view str) noexcept;
+
+
         };
     };
 };
