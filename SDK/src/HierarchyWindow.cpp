@@ -18,10 +18,10 @@ namespace Editor
 
         MDICREATESTRUCT mcs = {};
 
-        mcs.x = 437;
+        mcs.x = 0;
         mcs.y = 0;
-        mcs.cx = 187;
-        mcs.cy = 295;
+        mcs.cx = 0;
+        mcs.cy = 0;
         mcs.szTitle = L"HIERARCHY";
         mcs.szClass = CLASS_NAME;
         mcs.hOwner = GetModuleHandle(nullptr);

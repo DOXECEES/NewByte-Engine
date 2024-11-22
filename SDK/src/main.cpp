@@ -75,9 +75,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hChild = scene->getHandle();
     engine = std::make_shared<nb::Core::Engine>(hChild);
 
+    RECT rect;
+    GetClientRect(hMDIClient, &rect);
+
     hierarchyWindow = new Editor::HierarchyWindow(hMDIClient);
+    hierarchyWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
 
     propertiesWindow = new Editor::PropertiesWindow(hMDIClient);
+    propertiesWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
+
+    //SendMessage(hierarchyWindow->getHandle(), WM_SIZE, 0, MAKELPARAM());
+    //SendMessage(propertiesWindow->getHandle(), WM_SIZE, 0, MAKELPARAM(nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight()));
+    
 
     MSG msg;
 
