@@ -1,151 +1,172 @@
 #include "ObjLoader.hpp"
 
-Ref<nb::Renderer::Mesh> nb::Loaders::ObjLoader::loadMesh(const std::filesystem::path& path) noexcept
+namespace nb
 {
-    std::ifstream file;
-    file.open(path);
-    if(!file.is_open())
+    namespace Loaders
     {
-        return nullptr;
-    }
-
-    std::vector<Renderer::Vertex> vert;
-    std::vector<nb::Math::Vector3<float>> verticies;
-    std::vector<nb::Math::Vector3<float>> textureCoords;
-    std::vector<nb::Math::Vector3<float>> normals;
-    std::vector<uint32_t> indicies;
-
-    std::unordered_map<Renderer::Vertex, uint32_t> uniqueVertices;
-
-    while(!file.eof())
-    {
-        std::string str;
-        std::getline(file, str);
-
-        switch (str[0])
+        Ref<Renderer::Mesh> ObjLoader::loadMesh(const std::filesystem::path &path) noexcept
         {
-        case '#':
-            //std::cout << "Comment : " + str << std::endl;
-            break;
-        case 'v':
-            switch (str[1])
+            std::ifstream file;
+            file.open(path);
+            if (!file.is_open())
             {
-            case ' ':
+                return nullptr;
+            }
+
+            std::vector<Renderer::Vertex> vert;
+            std::vector<nb::Math::Vector3<float>> verticies;
+            std::vector<nb::Math::Vector2<float>> textureCoords;
+            std::vector<nb::Math::Vector3<float>> normals;
+            std::vector<uint32_t> indicies;
+
+            std::unordered_map<Renderer::Vertex, uint32_t> uniqueVertices;
+
+            while (!file.eof())
             {
-                //std::cout << "vertex : " + str << std::endl;
-                std::istringstream ss(str);
-                std::string s;
-             
-                while(ss >> s)
+                std::string str;
+                std::getline(file, str);
+
+                switch (str[0])
                 {
-                    if(!std::isalpha(s[0]))
-                    {
-                        auto x = std::stof(s);
-
-                        ss >> s;
-                        auto y = std::stof(s);
-
-                        ss >> s;
-                        auto z = std::stof(s);
-                        
-                        verticies.push_back({x,y,z});
-                    }
-                }
-
-                break;
-            }
-            case 't':
-            {
-                //std::cout << "texture : " + str << std::endl;
-                std::istringstream ss(str);
-                std::string s;
-             
-                while(ss >> s)
+                case '#':
+                    // comment section
+                    break;
+                case 'v':
                 {
-                    if(!std::isalpha(s[0]))
+                    std::istringstream ss(str);
+                    std::string s;
+
+                    switch (str[1])
                     {
-                        auto x = std::stof(s);
-
-                        ss >> s;
-                        auto y = std::stof(s);
-
-                        ss >> s;
-                        auto z = std::stof(s);
-                        textureCoords.push_back({x,y,z});
+                    case ' ':
+                    {
+                        verticies.emplace_back(parseVertex(str.substr(2)));   
+                        break;
                     }
+                    case 't':
+                    {    
+                        textureCoords.emplace_back(parseTextureCoords(str.substr(2)));
+                        break;
+                    }
+                    case 'n':
+                    {
+                        normals.emplace_back(parseNormals(str.substr(2)));
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                    break;
                 }
-                break;
-            }
-            case 'n':
-            {
-                //std::cout << "normal : " + str << std::endl;
-                std::istringstream ss(str);
-                std::string s;
-             
-                while(ss >> s)
+                case 'f':
                 {
-                    if(!std::isalpha(s[0]))
+                    std::istringstream ss(str);
+                    std::string s;
+
+                    // vert index
+                    while (ss >> s)
                     {
-                        auto x = std::stof(s);
+                        if (!std::isalpha(s[0]))
+                        {
+                            /// TODO: reimplement + add not only triangles + polygons + oth
 
-                        ss >> s;
-                        auto y = std::stof(s);
+                            size_t pos1 = s.find('/');
+                            size_t pos2 = s.find('/', pos1 + 1);
 
-                        ss >> s;
-                        auto z = std::stof(s);
-                        normals.push_back({x,y,z});
+                            uint32_t vertId = ~0L;
+                            uint32_t texId = ~0L;
+                            uint32_t normId = ~0L;
+
+                            if (pos1 == std::string::npos)
+                            {
+                                // just vert
+                                vertId = std::stoi(s) - 1;
+                            }
+                            else if (pos2 == std::string::npos)
+                            {
+                                // vert + texture
+                                vertId = std::stoi(s.substr(0, pos1)) - 1;
+                                texId = std::stoi(s.substr(pos1 + 1, pos2)) - 1;
+                            }
+                            else if (int diff = pos2 - pos1; diff == 1)
+                            {
+                                // vert + normales
+                                vertId = std::stoi(s.substr(0, pos1)) - 1;
+                                normId = std::stoi(s.substr(pos2 + 1)) - 1;
+                            }
+                            else
+                            {
+                                vertId = std::stoi(s.substr(0, pos1)) - 1;
+                                texId = std::stoi(s.substr(pos1 + 1, pos2)) - 1;
+                                normId = std::stoi(s.substr(pos2 + 1)) - 1;
+                            }
+
+                            Renderer::Vertex vertex = {
+                                verticies[vertId],
+                                //texId != ~0L ? texCoords[texIdx] : glm::vec2(0.0f, 0.0f),
+                                normId != ~0L ? normals[normId] : Math::Vector3<float>(0.0f,0.0f,0.0f)
+                            };
+
+                            if (uniqueVertices.count(vertex) == 0)
+                            {
+                                uniqueVertices[vertex] = static_cast<uint32_t>(vert.size());
+                                vert.push_back(vertex);
+                            }
+
+                            indicies.push_back(uniqueVertices[vertex]);
+                        }
                     }
+                    break;
                 }
-                break;
+                default:
+                    break;
+                }
             }
-            default:
-                break;
-            }
-            break;
-        
-        case 'f':
+
+            return createRef<Renderer::Mesh>(std::move(vert), std::move(indicies));
+        }
+
+        Math::Vector3<float> ObjLoader::parseVertex(std::string_view str) noexcept
         {
-            //std::cout << "Face : " + str << std::endl;
-            std::istringstream ss(str);
-            std::string s;
-            
-            // vert index
-            while(ss >> s)
+            if (str.empty())
             {
-                if(!std::isalpha(s[0]))
-                {
-                    size_t pos1 = s.find('/');
-                    size_t pos2 = s.find('/', pos1 + 1);
-
-                    uint32_t vertIdx = std::stoi(s.substr(0, pos1)) - 1;
-                    //texture index
-                    uint32_t textureIdx = std::stoi(s.substr(pos1 + 1, pos2 - pos1 - 1)) - 1;
-                    //normal index
-                    uint32_t normIdx = std::stoi(s.substr(pos2 + 1)) - 1;
-
-                    
-
-                    Renderer::Vertex vertex = {
-                        verticies[vertIdx],
-                        //texCoords.size() > texIdx ? texCoords[texIdx] : glm::vec2(0.0f, 0.0f),
-                        normals[normIdx]
-                    };
-
-                    if (uniqueVertices.count(vertex) == 0) {
-                        uniqueVertices[vertex] = static_cast<uint32_t>(vert.size());
-                        vert.push_back(vertex);
-                    }
-
-                    indicies.push_back(uniqueVertices[vertex]);
-                }
-                
+                return Math::Vector3<float>();
             }
-            break;
-        }
-        default:
-            break;
-        }
-    }
 
-    return createRef<Renderer::Mesh>(std::move(vert), std::move(indicies));
-}
+            std::istringstream iss(str.data());
+            std::string value;
+
+            iss >> value;
+            float x = std::stof(value);
+            iss >> value;
+            float y = std::stof(value);
+            iss >> value;
+            float z = std::stof(value);
+
+            return {x, y, z};
+        }
+
+        Math::Vector3<float> ObjLoader::parseNormals(std::string_view str) noexcept
+        {
+            return parseVertex(str);
+        }
+
+        Math::Vector2<float> ObjLoader::parseTextureCoords(std::string_view str) noexcept
+        {
+            if (str.empty())
+            {
+                return Math::Vector2<float>();
+            }
+
+            std::istringstream iss(str.data());
+            std::string value;
+
+            iss >> value;
+            float x = std::stof(value);
+            iss >> value;
+            float y = std::stof(value);
+
+            return {x, y};
+        }
+    };
+};
