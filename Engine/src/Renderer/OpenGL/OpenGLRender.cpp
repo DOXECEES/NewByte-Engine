@@ -115,7 +115,7 @@ void nb::OpenGl::OpenGLRender::render()
 
     static Math::Vector3<float> color = { 1.0f, 0.5f, 0.31f};
 
-    shader->setUniformVec3("lightPos", {1.0f, 0.0f, 0.0f});
+    shader->setUniformVec3("lightPos", lightPos);
     shader->setUniformVec3("viewPos", cam->getPosition());
 
     shader->setUniformVec3("objectColor", color);
@@ -129,16 +129,13 @@ void nb::OpenGl::OpenGLRender::render()
     });
 
     auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
-    //auto mesh = nb::Renderer::Mesh(vert, cubeIndices);
-    // if(m == nullptr)
-    // m = createRef<nb::Renderer::Mesh>(vert, cubeIndices);
 
     auto view = cam->getLookAt();
     auto proj = cam->getProjection();
 
     static float vel = 0.001f;
     vel += 0.001f;
-    model = Math::translate(model, {0.0f, 10.0f , 0.0f});
+    model = Math::translate(model, {0.0f, 0.0f , 0.0f});
 
     shader->setUniformMat4("model", model);
     shader->setUniformMat4("view", view);
@@ -146,15 +143,6 @@ void nb::OpenGl::OpenGLRender::render()
 
     shader->use();
     mesh->draw();
-    
-
-
-    // for(const auto& obj : scene)
-    // {
-    //     obj->render();
-    // }
-
-
 
     SwapBuffers(hdc); 
 }
@@ -173,3 +161,4 @@ nb::OpenGl::OpenGLRender *nb::OpenGl::OpenGLRender::create(HWND hwnd)
 
 
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::ambientColor = { 0.0f, 0.0f, 0.0f};
+nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::lightPos = {0.0f, 0.0f, 0.0f};

@@ -39,7 +39,10 @@ namespace Editor
         rAmbient = new Ui::Slider(hwnd, 50, 100, 300, 30, 0, 255, 0, 2);
         gAmbient = new Ui::Slider(hwnd, 50, 150, 300, 30, 0, 255, 0, 3);
         bAmbient = new Ui::Slider(hwnd, 50, 200, 300, 30, 0, 255, 0, 4);
-
+   
+        xPos = new Ui::Slider(hwnd, 50, 250, 300, 30, -10, 10, 0, 5);
+        yPos = new Ui::Slider(hwnd, 50, 300, 300, 30, -10, 10, 0, 6);
+        zPos = new Ui::Slider(hwnd, 50, 350, 300, 30, -10, 10, 0, 7);
         //LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
         //style &= ~WS_CAPTION;
         //SetWindowLongPtr(hwnd, GWL_STYLE, style);
@@ -94,8 +97,32 @@ namespace Editor
                 int value = slider->GetValue();
                 nb::OpenGl::OpenGLRender::setAmbientLight(nb::Math::Vector3<uint8_t>(rAmbient->GetValue(), gAmbient->GetValue(), bAmbient->GetValue()));
             }
+
+
+            if ((HWND)lParam == xPos->GetHandle())
+            {
+                int value = xPos->GetValue();
+                nb::OpenGl::OpenGLRender::setLightPos({float(value),pos.y,pos.z});
+            }
+            if ((HWND)lParam == yPos->GetHandle())
+            {
+                int value = yPos->GetValue();
+                nb::OpenGl::OpenGLRender::setLightPos({pos.x,(float)value,pos.z});
+            }
+            if ((HWND)lParam == zPos->GetHandle())
+            {
+                int value = zPos->GetValue();
+                nb::OpenGl::OpenGLRender::setLightPos({pos.x,pos.y,(float)value});
+            }
             return 0;
         }
+
+        case WM_SIZE:
+        {
+            Debug::debug("RESIZE");
+            break;
+        }
+
 
         case WM_DESTROY:
             return 0;
@@ -109,4 +136,9 @@ namespace Editor
     Ui::Slider *PropertiesWindow::rAmbient = nullptr;
     Ui::Slider *PropertiesWindow::gAmbient = nullptr;
     Ui::Slider *PropertiesWindow::bAmbient = nullptr;
+
+    Ui::Slider *PropertiesWindow::xPos = nullptr;
+    Ui::Slider *PropertiesWindow::yPos = nullptr;
+    Ui::Slider *PropertiesWindow::zPos = nullptr;
+    nb::Math::Vector3<float> PropertiesWindow::pos = {0.0f, 0.0f, 0.0f};
 };

@@ -84,8 +84,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     while (true)
     {
-        PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE);
-
+        if(!PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+            continue;
 
         if (msg.message == WM_QUIT)
             break;

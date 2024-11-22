@@ -23,8 +23,10 @@ namespace nb
 
             inline void stopHandlingPosition() noexcept { shouldHandlePosition = false; };
             inline void startHandlingPosition() noexcept { shouldHandlePosition = true; };
-
+            inline void stopHandlingKeyboardEvents() noexcept { shouldHandleKeyboardEvents = false; };
+            inline void startHandlingKeyboardEvents() noexcept { shouldHandleKeyboardEvents = true; };
             void update(const MSG& msg) noexcept;
+
 
 
         private:
@@ -32,6 +34,7 @@ namespace nb
 
         private:
             bool shouldHandlePosition = false;
+            bool shouldHandleKeyboardEvents = true;
 
             uint16_t deviceFlags;
 
