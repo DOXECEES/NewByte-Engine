@@ -80,6 +80,9 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/OpenGL/UBO.hpp
         src/Renderer/OpenGL/OpenGlShader.cpp
         src/Renderer/OpenGL/OpenGlShader.hpp
+        src/Renderer/OpenGL/FBO.cpp
+        src/Renderer/OpenGL/FBO.hpp
+
         
 
         

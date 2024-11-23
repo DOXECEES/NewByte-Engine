@@ -31,6 +31,22 @@ nb::OpenGl::OpenGLRender::~OpenGLRender() noexcept
 
 bool nb::OpenGl::OpenGLRender::init() noexcept
 {
+    // thats looks wierd, but works)
+    WNDCLASS wc = {};
+    wc.style = CS_OWNDC;
+    wc.lpfnWndProc = DefWindowProc;
+    wc.hInstance = GetModuleHandle(nullptr);
+    wc.lpszClassName = L"DummyWGLWindow";
+
+    RegisterClass(&wc);
+
+    HWND dummyWindow = CreateWindow(
+        L"DummyWGLWindow", L"Dummy", WS_OVERLAPPEDWINDOW,
+        0, 0, 1, 1, nullptr, nullptr, wc.hInstance, nullptr
+    );
+
+    HDC dummyHDC = GetDC(dummyWindow);
+
     PIXELFORMATDESCRIPTOR pfd = {};
     pfd.nSize = sizeof(pfd);
     pfd.nVersion = 1;
@@ -38,12 +54,45 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 32;
     pfd.cDepthBits = 24;
+    
+    int pixelFormat = ChoosePixelFormat(dummyHDC, &pfd);
+    SetPixelFormat(dummyHDC, pixelFormat, &pfd);
 
-    int pixelFormat = ChoosePixelFormat(hdc, &pfd);
-    SetPixelFormat(hdc, pixelFormat, &pfd);
+    HGLRC tempContext = wglCreateContext(dummyHDC);
+    wglMakeCurrent(dummyHDC, tempContext);
 
-    HGLRC tempContext = wglCreateContext(hdc);
-    wglMakeCurrent(hdc, tempContext);
+    PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB = nullptr;
+    wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
+    
+    UINT numFormats;
+    float fAttributes[] = {0, 0};
+
+    int attributes[] = {
+        WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB, 32,
+        WGL_DEPTH_BITS_ARB, 24,
+        WGL_SAMPLE_BUFFERS_ARB, GL_TRUE, 
+        WGL_SAMPLES_ARB, 4,             
+        0 
+    };
+
+    int pixelFormatN = 0;
+
+    if (!wglChoosePixelFormatARB(hdc, attributes, fAttributes, 1, &pixelFormatN, &numFormats) || numFormats == 0) {
+        initFail("Failed to choose a multisample pixel format", nullptr);
+        return false;
+    }
+
+    PIXELFORMATDESCRIPTOR pfdN;
+    DescribePixelFormat(hdc, pixelFormatN, sizeof(pfdN), &pfdN);
+    if (!SetPixelFormat(hdc, pixelFormatN, &pfdN))
+    {
+        initFail("Failed to set the pixel format", nullptr);
+        return false;
+    }
 
     PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB =
         (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
@@ -54,11 +103,10 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
         return false;
     }
 
-
-     int contextAttribs[] = {
+    int contextAttribs[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
         WGL_CONTEXT_MINOR_VERSION_ARB, 5,
-        WGL_CONTEXT_PROFILE_MASK_ARB, 0x0001, 
+        WGL_CONTEXT_PROFILE_MASK_ARB, 0x0001,
         0 
     };
 
@@ -84,12 +132,15 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
         return false;
     }
 
+    glEnable(GL_MULTISAMPLE);  
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
-    //glShadeModel(GL_SMOOTH);
-
+    
+    ReleaseDC(dummyWindow, dummyHDC);
+    DestroyWindow(dummyWindow);
+    UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
 
     return true;
 }

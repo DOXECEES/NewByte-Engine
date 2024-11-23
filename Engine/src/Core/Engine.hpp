@@ -47,6 +47,9 @@ namespace nb
             Ref<nb::Input::Mouse> mouse          = nullptr;
             bool isRunning = true;
             bool handleInput = true;
+            
+            bool isSampling = true;
+
             // temp
             Ref<nb::Input::Input> input          = nullptr;
 
