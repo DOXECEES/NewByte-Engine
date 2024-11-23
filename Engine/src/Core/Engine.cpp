@@ -140,6 +140,20 @@ namespace nb
                 if(isEditorMode) while (ShowCursor(true) < 0);
                 else while(ShowCursor(false) > 0);
             }
+
+            if(keyboard->isKeyPressed(VK_F10))
+            {
+                if(isSampling)
+                {
+                    glDisable(GL_MULTISAMPLE);  
+                    isSampling = false;
+                }
+                else
+                {
+                    glEnable(GL_MULTISAMPLE);
+                    isSampling = true;
+                }
+            }
             
             renderer->render();
             return true;
