@@ -1,6 +1,8 @@
 
 #include <windows.h>
-#include <../../Engine/src/Core/Engine.hpp> =
+#include <../../Engine/src/Core/Engine.hpp>
+#include <../../Engine/src/Math/Quaternion.hpp>
+
 #include <../../Engine/src/Core/EngineSettings.hpp>
 
 #include "SceneWindow.hpp"
@@ -19,10 +21,12 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 void RegisterMDIChildClass(HINSTANCE hInstance);
 HWND hChild;
 std::shared_ptr<nb::Core::Engine> engine = nullptr;
+HWND hwndMain;
 
 Editor::SceneWindow *scene;
 Editor::HierarchyWindow *hierarchyWindow;
 Editor::PropertiesWindow *propertiesWindow;
+
 
 // Entry point
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -44,7 +48,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterMDIChildClass(hInstance);
 
     // Create the main (parent) window
-    HWND hwndMain = CreateWindowEx(
+    hwndMain = CreateWindowEx(
         0, mainClassName, L"Basic MDI Application",
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
         nullptr, nullptr, hInstance, nullptr);
@@ -74,22 +78,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     scene = new Editor::SceneWindow(hMDIClient, engine);
     hChild = scene->getHandle();
     engine = std::make_shared<nb::Core::Engine>(hChild);
-
+    scene->setEngine(engine);
+    
     /// TODO:
     /// resize func incorrect 
     /// > 4 windows
     /// save position after resizing 
+    
     RECT rect;
     GetClientRect(hMDIClient, &rect);
 
-    hierarchyWindow = new Editor::HierarchyWindow(hMDIClient);
+    hierarchyWindow = new Editor::HierarchyWindow(hMDIClient, engine);
     hierarchyWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
 
     propertiesWindow = new Editor::PropertiesWindow(hMDIClient);
     propertiesWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
 
-    MSG msg;
+    //auto q = nb::Math::Quaternion<float>(23, 11, 5, 5);
+    //auto nq = q.normalize();
+    
 
+    MSG msg;
 
     while (true)
     {
@@ -185,6 +194,79 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     // Ensure no unexpected actions occur here
     break;
 
+    // case WM_NCPAINT:
+    // {
+    //     // Get the device context for the non-client area
+    //     HDC hdc = GetWindowDC(hwndMain);
+        
+    //     // Define the color for the non-client area
+    //     COLORREF borderColor = RGB(53,56,57); // Custom border color
+
+    //     // Create a brush for the border color
+    //     HBRUSH hBrush = CreateSolidBrush(borderColor);
+        
+    //     // Get the dimensions of the window
+    //     RECT rc;
+    //     GetWindowRect(hwndMain, &rc);
+    //     OffsetRect(&rc, -rc.left, -rc.top); // Convert to client coordinates
+        
+    //     // Draw the top border
+    //     RECT topBorder = { rc.left, rc.top, rc.right, rc.top + 30 }; // Example size
+    //     FillRect(hdc, &topBorder, hBrush);
+        
+    //     // Draw the left border
+    //     RECT leftBorder = { rc.left, rc.top + 30, rc.left + 10, rc.bottom };
+    //     FillRect(hdc, &leftBorder, hBrush);
+        
+    //     // Draw the right border
+    //     RECT rightBorder = { rc.right - 10, rc.top + 30, rc.right, rc.bottom };
+    //     FillRect(hdc, &rightBorder, hBrush);
+
+    //     RECT botBorder; //= { rc.left, rc.top, rc.right, rc.bottom-30 }; // Example size
+    //     botBorder.bottom = rc.bottom;
+    //     botBorder.left = rc.left;
+    //     botBorder.right = rc.right;
+    //     botBorder.top = rc.bottom - 10;
+    //     FillRect(hdc, &botBorder, hBrush);
+        
+    //     // Clean up
+    //     DeleteObject(hBrush);
+    //     ReleaseDC(hwndMain, hdc);
+    //     return 0; // Message handled
+    // }
+
+
+
+    case WM_DRAWITEM:
+    {
+        DRAWITEMSTRUCT* dis = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
+        if (dis->CtlType == ODT_LISTBOX) {
+            // Draw the item based on its state
+            RECT rect = dis->rcItem;
+            HDC hdc = dis->hDC;
+            
+            // Background color
+            if (dis->itemState & ODS_SELECTED) {
+                SetBkColor(hdc, RGB(0, 120, 215)); // Selected color
+                SetTextColor(hdc, RGB(255, 255, 255)); // Text color
+            } else {
+                SetBkColor(hdc, RGB(255, 255, 255)); // Default background
+                SetTextColor(hdc, RGB(0, 0, 0)); // Default text color
+            }
+            
+            // Fill the background
+            FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
+            
+            // Draw the text
+            int index = dis->itemID;
+            wchar_t buffer[256];
+            SendMessage(dis->hwndItem, LB_GETTEXT, index, (LPARAM)buffer);
+            DrawText(hdc, buffer, -1, &rect, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+        }
+        return TRUE; // Indicate we handled the message
+
+        break;
+    }
     case WM_SIZE:
         // Resize the MDI client area to fill the parent window
         if (hMDIClient)

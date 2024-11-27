@@ -11,6 +11,139 @@ namespace nb
     namespace Math
     {
         template<typename T>
+        constexpr T det3(const Matrix<T, 3, 3>& mat)
+        {
+             return mat[0][0] * (mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1]) +
+                    mat[0][1] * (mat[1][2] * mat[2][0] - mat[1][0] * mat[2][2]) +
+                    mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
+        }
+
+        template<typename T>
+        constexpr T det(const Matrix<T, 4, 4>& mat)
+        {
+            return mat[0][0] * det3<T>({
+                {mat[1][1], mat[1][2], mat[1][3]},
+                {mat[2][1], mat[2][2], mat[2][3]},
+                {mat[3][1], mat[3][2], mat[3][3]}
+            }) -
+            mat[0][1] * det3<T>({
+                {mat[1][0], mat[1][2], mat[1][3]},
+                {mat[2][0], mat[2][2], mat[2][3]},
+                {mat[3][0], mat[3][2], mat[3][3]}
+            }) +
+            mat[0][2] * det3<T>({
+                {mat[1][0], mat[1][1], mat[1][3]},
+                {mat[2][0], mat[2][1], mat[2][3]},
+                {mat[3][0], mat[3][1], mat[3][3]}
+            }) -
+            mat[0][3] * det3<T>({
+                {mat[1][0], mat[1][1], mat[1][2]},
+                {mat[2][0], mat[2][1], mat[2][2]},
+                {mat[3][0], mat[3][1], mat[3][2]}
+            });
+        }
+
+
+        template<typename T>
+        Matrix<T, 4, 4> inverse(const Matrix<T, 4, 4>& mat) {
+            T d = det(mat);
+            if (d == 0) {
+                //throw std::runtime_error("Matrix is singular and cannot be inverted.");
+            }
+
+            Matrix<T, 4, 4> inv;
+            T invDet = 1 / d;
+
+            // Заполнение матрицы обратных элементов (матрица алгебраических дополнений)
+            inv[0][0] = invDet * det3<T>({
+                {mat[1][1], mat[1][2], mat[1][3]},
+                {mat[2][1], mat[2][2], mat[2][3]},
+                {mat[3][1], mat[3][2], mat[3][3]}
+            });
+            inv[0][1] = -invDet * det3<T>({
+                {mat[1][0], mat[1][2], mat[1][3]},
+                {mat[2][0], mat[2][2], mat[2][3]},
+                {mat[3][0], mat[3][2], mat[3][3]}
+            });
+            inv[0][2] = invDet * det3<T>({
+                {mat[1][0], mat[1][1], mat[1][3]},
+                {mat[2][0], mat[2][1], mat[2][3]},
+                {mat[3][0], mat[3][1], mat[3][3]}
+            });
+            inv[0][3] = -invDet * det3<T>({
+                {mat[1][0], mat[1][1], mat[1][2]},
+                {mat[2][0], mat[2][1], mat[2][2]},
+                {mat[3][0], mat[3][1], mat[3][2]}
+            });
+
+            inv[1][0] = -invDet * det3<T>({
+                {mat[0][1], mat[0][2], mat[0][3]},
+                {mat[2][1], mat[2][2], mat[2][3]},
+                {mat[3][1], mat[3][2], mat[3][3]}
+            });
+            inv[1][1] = invDet * det3<T>({
+                {mat[0][0], mat[0][2], mat[0][3]},
+                {mat[2][0], mat[2][2], mat[2][3]},
+                {mat[3][0], mat[3][2], mat[3][3]}
+            });
+            inv[1][2] = -invDet * det3<T>({
+                {mat[0][0], mat[0][1], mat[0][3]},
+                {mat[2][0], mat[2][1], mat[2][3]},
+                {mat[3][0], mat[3][1], mat[3][3]}
+            });
+            inv[1][3] = invDet * det3<T>({
+                {mat[0][0], mat[0][1], mat[0][2]},
+                {mat[2][0], mat[2][1], mat[2][2]},
+                {mat[3][0], mat[3][1], mat[3][2]}
+            });
+
+            inv[2][0] = invDet * det3<T>({
+                {mat[0][1], mat[0][2], mat[0][3]},
+                {mat[1][1], mat[1][2], mat[1][3]},
+                {mat[3][1], mat[3][2], mat[3][3]}
+            });
+            inv[2][1] = -invDet * det3<T>({
+                {mat[0][0], mat[0][2], mat[0][3]},
+                {mat[1][0], mat[1][2], mat[1][3]},
+                {mat[3][0], mat[3][2], mat[3][3]}
+            });
+            inv[2][2] = invDet * det3<T>({
+                {mat[0][0], mat[0][1], mat[0][3]},
+                {mat[1][0], mat[1][1], mat[1][3]},
+                {mat[3][0], mat[3][1], mat[3][3]}
+            });
+            inv[2][3] = -invDet * det3<T>({
+                {mat[0][0], mat[0][1], mat[0][2]},
+                {mat[1][0], mat[1][1], mat[1][2]},
+                {mat[3][0], mat[3][1], mat[3][2]}
+            });
+
+            inv[3][0] = -invDet * det3<T>({
+                {mat[0][1], mat[0][2], mat[0][3]},
+                {mat[1][1], mat[1][2], mat[1][3]},
+                {mat[2][1], mat[2][2], mat[2][3]}
+            });
+            inv[3][1] = invDet * det3<T>({
+                {mat[0][0], mat[0][2], mat[0][3]},
+                {mat[1][0], mat[1][2], mat[1][3]},
+                {mat[2][0], mat[2][2], mat[2][3]}
+            });
+            inv[3][2] = -invDet * det3<T>({
+                {mat[0][0], mat[0][1], mat[0][3]},
+                {mat[1][0], mat[1][1], mat[1][3]},
+                {mat[2][0], mat[2][1], mat[2][3]}
+            });
+            inv[3][3] = invDet * det3<T>({
+                {mat[0][0], mat[0][1], mat[0][2]},
+                {mat[1][0], mat[1][1], mat[1][2]},
+                {mat[2][0], mat[2][1], mat[2][2]}
+            });
+
+            return inv;
+        }
+
+
+        template<typename T>
         constexpr Matrix<T,4, 4> scale(Matrix<T, 4, 4> mat, const Vector3<T>& vec)
         {
             mat *=  Matrix<T,4, 4>({
@@ -90,6 +223,13 @@ namespace nb
 
                     });
             return mat;
+        }
+
+        template<typename T>
+        constexpr Vector3<T> rotate(const Quaternion<T>& q, const Vector3<T>& v)
+        {
+            return q * v;
+
         }
 
         template<typename T>

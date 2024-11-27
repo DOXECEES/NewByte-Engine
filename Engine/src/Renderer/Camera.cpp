@@ -1,20 +1,51 @@
 #include "Camera.hpp"
 
+#include "../Debug.hpp"
+
+
 namespace nb
 {
     namespace Renderer
     {
         void Camera::update(const float newYaw, const float newPitch) noexcept
         {
+            float deltaYaw = (yaw - newYaw) * 0.003f;
+            float deltaPitch = (pitch - newPitch) * 0.003f;
 
             yaw = newYaw;
             pitch = newPitch;
 
-            direction.x = std::cos(Math::toRadians(yaw)) * std::cos(Math::toRadians(pitch));
-            direction.y = std::sin(Math::toRadians(pitch));
-            direction.z = std::sin(Math::toRadians(yaw)) * std::cos(Math::toRadians(pitch));
+            auto rightDirection = direction.cross(up);
 
-            direction.normalize();
+            if(deltaYaw != 0.0f || deltaPitch != 0.0f)
+            {
+                auto pitchQuat = Math::Quaternion<float>::axisAngleToQuaternion(-deltaPitch, rightDirection);
+                auto yawQuat = Math::Quaternion<float>::axisAngleToQuaternion(deltaYaw, up);
+
+                auto q = pitchQuat.cross(yawQuat);
+            
+                q.normalize();
+
+                direction = Math::rotate(q, direction);
+            }
+
+            //direction.normalize();
+
+            // if (alignByX)
+            // {
+            //     direction.y = 0.f;
+            //     direction.z = 0.f;
+            // }
+            // else if (alignByY)
+            // {
+            //     direction.x = 0.f;
+            //     direction.z = 0.f;
+            // }
+            // else if (alignByZ)
+            // {
+            //     direction.x = 0.f;
+            //     direction.y = 0.f;
+            // }
 
             lookAt = Math::lookAt(position, position + direction, up);
 
@@ -22,8 +53,7 @@ namespace nb
                 Math::toRadians(Core::EngineSettings::getFov()),
                 Core::EngineSettings::getAspectRatio(),
                 1.0f,
-                100.0f
-            );
+                100.0f);
         }
     };
 };

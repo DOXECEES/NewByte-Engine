@@ -207,7 +207,7 @@ namespace nb
                               "Vector type must be Vector2, Vector3, or Vector4.");
 
                 Vec result;
-                assert(Cols == vec.size() && "Matrix column count must match vector size.");
+                //assert(Cols == vec.size() && "Matrix column count must match vector size.");
 
                 for (size_t i = 0; i < Rows; ++i)
                 {

@@ -28,6 +28,7 @@ namespace nb
             ~Renderer() = default;
 
             void setCamera(Camera *cam) { api->setCamera(cam); };
+            inline Camera *getCamera() const noexcept { return api->getCamera(); };
 
         private:
             IRenderAPI * api;

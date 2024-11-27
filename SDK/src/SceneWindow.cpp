@@ -1,11 +1,12 @@
 #include "SceneWindow.hpp"
-
+#include <../../Engine/src/Math/RayCast/RayPicker.hpp>
 namespace Editor
 {
 
     SceneWindow::SceneWindow(const HWND &parentHwnd, std::shared_ptr<nb::Core::Engine> engine)
         :engine(engine)
     {
+        Sengine = engine;
         WNDCLASS wc = {};
         wc.lpfnWndProc = WndProc;
         wc.hInstance = GetModuleHandle(nullptr);
@@ -76,10 +77,12 @@ namespace Editor
                 int xw = LOWORD(lParam);
                 int yw = HIWORD(lParam);
 
-                float xn = float((2.0f * (float)xw) / (float)nb::Core::EngineSettings::getWidth()) - 1.0f;
-                float yn = float((2.0f * (float)yw) / (float)nb::Core::EngineSettings::getHeight()) - 1.0f;
-                Debug::debug(xn);
-                Debug::debug(yn);
+                //float xn = float((2.0f * (float)xw) / (float)nb::Core::EngineSettings::getWidth()) - 1.0f;
+                //float yn = float((2.0f * (float)yw) / (float)nb::Core::EngineSettings::getHeight()) - 1.0f;
+                //Debug::debug(xn);
+                //Debug::debug(yn);
+                if(Sengine != nullptr)
+                    Sengine->rayPick(xw, yw);
             }
             break;
         }
@@ -154,4 +157,5 @@ namespace Editor
     }
 
     bool SceneWindow::isPrevClick = false;
+    std::shared_ptr<nb::Core::Engine> SceneWindow::Sengine = nullptr;
 };

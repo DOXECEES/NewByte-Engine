@@ -19,7 +19,7 @@ namespace nb
 
 
         public:
-
+            inline Camera *getCamera() const noexcept { return cam; };
             void setCamera(Camera *c) { cam = c; };
             virtual void render() = 0;
 

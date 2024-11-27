@@ -10,6 +10,7 @@ set(-DCMAKE_GENERATOR_PLATFORM x64)
 add_subdirectory(dependencies/glad)
 
 
+
 add_library(${PROJECT_NAME} STATIC 
         src/main.cpp
         
@@ -87,25 +88,27 @@ add_library(${PROJECT_NAME} STATIC
 
         
         src/Math/Constants.hpp
-
-        
         src/Math/Vector2.cpp
         src/Math/Vector2.hpp
-
         src/Math/Vector3.cpp
         src/Math/Vector3.hpp
-
         src/Math/Vector4.cpp
         src/Math/Vector4.hpp
-
         src/Math/AABB.cpp
         src/Math/AABB.hpp
+        src/Math/AABB3D.cpp
+        src/Math/AABB3D.hpp
+        src/Math/Quaternion.cpp
+        src/Math/Quaternion.hpp
+
 
         src/Math/Matrix/Matrix.cpp
         src/Math/Matrix/Matrix.hpp
-
         src/Math/Matrix/Transformation.cpp
         src/Math/Matrix/Transformation.hpp
+
+        src/Math/RayCast/RayPicker.cpp
+        src/Math/RayCast/RayPicker.hpp
 
         src/Loaders/Factory/IFactoryLoader.cpp
         src/Loaders/Factory/IFactoryLoader.hpp
@@ -154,6 +157,7 @@ find_package(OpenGL REQUIRED)
 target_include_directories(${PROJECT_NAME} 
     PUBLIC OpenGL:GL
     PUBLIC dependencies/glad/include
+
 )
         
         
@@ -162,8 +166,6 @@ target_link_directories(${PROJECT_NAME}
     PRIVATE dependencies/glad/src
 )
         
-
-
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
     target_link_libraries(${PROJECT_NAME} PRIVATE user32 opengl32 glad)

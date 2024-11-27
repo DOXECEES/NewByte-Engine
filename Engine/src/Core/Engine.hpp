@@ -21,6 +21,8 @@
 
 #include "../Renderer/Camera.hpp"
 
+#include "../Math/RayCast/RayPicker.hpp"
+
 #include <memory>
 
 namespace nb
@@ -37,6 +39,10 @@ namespace nb
             void setHandleInput(bool var) { handleInput = var; };
 
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };
+            void rayPick(const uint32_t x, const uint32_t y) noexcept;
+
+            inline Math::Vector3<float> getCameraPos() { return renderer->getCamera()->getPosition(); };
+            inline Math::Vector3<float> getCameraDirection() { return renderer->getCamera()->getDirection(); };
 
         private:
             bool isEditorMode = true;
@@ -49,7 +55,7 @@ namespace nb
             bool handleInput = true;
             
             bool isSampling = true;
-
+            nb::Renderer::Camera cam;
             // temp
             Ref<nb::Input::Input> input          = nullptr;
 

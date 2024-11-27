@@ -23,11 +23,18 @@ namespace Editor
         void resize(const int newWidth, const int newHeigth) noexcept;
 
         static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-
+        void setEngine(std::shared_ptr<nb::Core::Engine> e)
+        {
+            engine = e;
+            Sengine = e;
+        }
     
     private:
         std::shared_ptr<nb::Core::Engine> engine;
         HWND hwnd;
+
+          static      std::shared_ptr<nb::Core::Engine> Sengine;
+
 
         static bool isPrevClick;
     };

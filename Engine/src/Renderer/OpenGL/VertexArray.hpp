@@ -27,7 +27,7 @@ namespace nb
 
             void linkData(const std::vector<nb::Renderer::Vertex> &vert, const std::vector<GLuint> &ind);
 
-            void draw(const size_t count) const noexcept;
+            void draw(const size_t count, GLenum mode) const noexcept;
             
             
 
