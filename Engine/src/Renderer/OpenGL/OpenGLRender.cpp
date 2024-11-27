@@ -134,6 +134,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
     glEnable(GL_MULTISAMPLE);  
     glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
     glEnable              ( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( MessageCallback, 0 );
@@ -184,16 +185,28 @@ void nb::OpenGl::OpenGLRender::render()
     auto view = cam->getLookAt();
     auto proj = cam->getProjection();
 
+
+
     static float vel = 0.001f;
     vel += 0.001f;
-    model = Math::translate(model, {0.0f, 0.0f , 0.0f});
+    //model = Math::rotate(model, {1.0f,0.0f,1.0f}, vel);
 
     shader->setUniformMat4("model", model);
     shader->setUniformMat4("view", view);
     shader->setUniformMat4("projection", proj);
 
     shader->use();
-    mesh->draw();
+    mesh->draw(GL_TRIANGLES);
+
+
+    auto aabbShader = rm->getResource<nb::Renderer::Shader>("aabb.shader");
+
+    aabbShader->setUniformMat4("model", model);
+    aabbShader->setUniformMat4("view", view);
+    aabbShader->setUniformMat4("projection", proj);
+    
+    aabbShader->use();
+    mesh->drawAabb();
 
     SwapBuffers(hdc); 
 }
@@ -213,3 +226,4 @@ nb::OpenGl::OpenGLRender *nb::OpenGl::OpenGLRender::create(HWND hwnd)
 
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::ambientColor = { 0.0f, 0.0f, 0.0f};
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::lightPos = {0.0f, 0.0f, 0.0f};
+nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::pos = {0.0f, 0.0f, 0.0f};

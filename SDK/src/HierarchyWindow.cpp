@@ -1,9 +1,13 @@
 #include "HierarchyWindow.hpp"
 
+#include <string>
+
 namespace Editor
 {
-    HierarchyWindow::HierarchyWindow(const HWND &parentHwnd)
+    HierarchyWindow::HierarchyWindow(const HWND &parentHwnd, std::shared_ptr<nb::Core::Engine> engine)
+        :engine(engine)
     {
+        sEngine = engine;
         WNDCLASS wc = {};
         wc.lpfnWndProc = WndProc;
         wc.hInstance = GetModuleHandle(nullptr);
@@ -34,7 +38,6 @@ namespace Editor
             wchar_t errorMsg[256];
             MessageBox(NULL, errorMsg, L"Error", MB_ICONERROR);
         }
-
         //LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
         //style &= ~WS_CAPTION;
         //style &= ~WS_BORDER;
@@ -53,8 +56,52 @@ namespace Editor
     {
         switch (message)
         {
+
         case WM_CREATE:
+            SetTimer(hwnd, 1, 20, NULL); 
+        break;
+
+        case WM_TIMER:
+            InvalidateRect(hwnd, NULL, FALSE);
+            break;
+
+
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            //
+            RECT rect1;
+            rect1.left = 100;
+            rect1.top = 0;
+            rect1.right = 500;
+            rect1.bottom = 30;
+
+            RECT rect2;
+            rect2.left = 100;
+            rect2.top = 0;
+            rect2.right = 500;
+            rect2.bottom = 60;
+            //GetClientRect(hwnd, &rect);
+            if(sEngine != nullptr)
+                pos = sEngine->getCameraPos();
+            
+            std::wstring camPos = std::to_wstring(pos.x) + L" " + std::to_wstring(pos.y) + L" " + std::to_wstring(pos.z);
+
+            nb::Math::Vector3<float> camDir;
+            if(sEngine != nullptr)
+                camDir = sEngine->getCameraDirection();
+            
+            std::wstring camDirStr = std::to_wstring(camDir.x) + L" " + std::to_wstring(camDir.y) + L" " + std::to_wstring(camDir.z);
+
+            DrawText(hdc, camPos.c_str(), -1, &rect1, 
+            DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
+
+            DrawText(hdc, camDirStr.c_str(), -1, &rect2, 
+            DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
+            EndPaint(hwnd, &ps);
             return 0;
+        }
 
         case WM_DESTROY:
             return 0;
@@ -63,4 +110,8 @@ namespace Editor
             return DefMDIChildProc(hwnd, message, wParam, lParam);
         }
     }
+
+    nb::Math::Vector3<float> HierarchyWindow::pos = {0.0f, 0.0f, 0.0f};
+    std::shared_ptr<nb::Core::Engine> HierarchyWindow::sEngine = nullptr;
+
 };

@@ -26,7 +26,7 @@ namespace nb
             //       keyboard->update();
             //       mouse->update();
             // keyboard->update();
-            static nb::Renderer::Camera cam;
+            //static nb::Renderer::Camera cam;
             renderer->setCamera(&cam);
 
             static float yaw;
@@ -41,7 +41,7 @@ namespace nb
             }
 
             
-            cam.update(mouse->getYaw(), mouse->getPitch());
+            cam.update(mouse->getX(), mouse->getY());
             if(!isEditorMode)
             {
                 input->startHandlingPosition();
@@ -134,6 +134,23 @@ namespace nb
                     cam.moveTo(camPos - rightVec * 0.1f);
                 }
             }
+            else
+            {
+                if(keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x5A))
+                {
+                    cam.toggleAlignByZ();
+                }
+                if(keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x59))
+                {
+                    cam.toggleAlignByY();
+                }
+                if(keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x58))
+                {
+                    cam.toggleAlignByX();
+                }
+            }
+
+
             if(keyboard->isKeyPressed(VK_ESCAPE))
             {
                 isEditorMode = !isEditorMode;
@@ -155,8 +172,22 @@ namespace nb
                 }
             }
             
+
+
+
             renderer->render();
             return true;
+        }
+
+        void Engine::rayPick(const uint32_t x, const uint32_t y) noexcept
+        {
+            nb::Math::RayPicker rp;
+            auto a = rp.cast(renderer->getCamera(), x, y, EngineSettings::getWidth(), EngineSettings::getHeight());
+            Debug::debug(a.x);
+            Debug::debug(a.y);
+            Debug::debug(a.z);
+            Debug::debug("__________");
+            OpenGl::OpenGLRender::add(a);
         }
 
         HWND Engine::hwnd = nullptr;

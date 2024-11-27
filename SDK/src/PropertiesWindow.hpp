@@ -14,7 +14,7 @@ namespace Editor
     {
         static constexpr auto CLASS_NAME = L"MDI_PROPERTIES_CLASS";
         static constexpr auto WIDTH_PROPORTION = 0.3f;
-        static constexpr auto HEIGHT_PROPORTION = 0.3f;
+        static constexpr auto HEIGHT_PROPORTION = 0.5f;
 
         public:
             PropertiesWindow(const HWND& parentHwnd);

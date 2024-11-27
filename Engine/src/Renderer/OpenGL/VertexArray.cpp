@@ -47,14 +47,14 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
     glBindVertexArray(0);
 }
 
-void nb::OpenGl::VertexArray::draw(const size_t count) const noexcept
+void nb::OpenGl::VertexArray::draw(const size_t count, GLenum mode) const noexcept
 {
     for (size_t i = 0; i < 4; i++)
     {
         glEnableVertexAttribArray(i);
     }
 
-    glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+    glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
 
     for (size_t i = 0; i < 4; i++)
     {

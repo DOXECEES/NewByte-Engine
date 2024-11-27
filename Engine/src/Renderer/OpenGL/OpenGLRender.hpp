@@ -61,6 +61,11 @@ namespace nb
 
                 static OpenGLRender *create(HWND hwnd);
 
+                static void add(const Math::Vector4<float>& poss)
+                {
+                    pos = {poss.x, poss.y, poss.z};
+                }
+
                 static void setAmbientLight(const Math::Vector3<uint8_t>& color) noexcept
                 {
                     ambientColor = Math::toFloatColor(color);
@@ -75,6 +80,7 @@ namespace nb
                 HDC hdc = {};
                 static Math::Vector3<float> ambientColor;
                 static Math::Vector3<float> lightPos;
+                static Math::Vector3<float> pos;
         };
     };
 };

@@ -15,7 +15,7 @@ namespace nb
         {
             Vertex() = default;
 
-            Vertex(const Math::Vector3<float> &pos, const Math::Vector3<float> &norm)
+            Vertex(const Math::Vector3<float> &pos, const Math::Vector3<float> &norm = 0)
                 : position(pos), normal(norm)
             {
             }

@@ -119,7 +119,7 @@ namespace Editor
 
         case WM_SIZE:
         {
-            Debug::debug("RESIZE");
+            //Debug::debug("RESIZE");
             break;
         }
 
