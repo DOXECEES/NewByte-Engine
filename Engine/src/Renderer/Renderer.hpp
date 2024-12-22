@@ -6,8 +6,12 @@
 #include "../Math/Vector3.hpp"
 #include "../Math/Vector2.hpp"
 
+#include "SceneGraph.hpp"
+
 #include "IRenderAPI.hpp"
 #include "OpenGL/OpenGLRender.hpp"
+
+#include "Mesh.hpp"
 
 #include "Camera.hpp"
 
@@ -29,6 +33,8 @@ namespace nb
 
             void setCamera(Camera *cam) { api->setCamera(cam); };
             inline Camera *getCamera() const noexcept { return api->getCamera(); };
+            inline const std::shared_ptr<SceneGraph> getScene() const noexcept { return api->getScene(); };
+            inline void setScenes(std::shared_ptr<SceneGraph> &s) { api->setScene(s); };
 
         private:
             IRenderAPI * api;

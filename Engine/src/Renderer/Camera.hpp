@@ -31,6 +31,7 @@ namespace nb
 
             inline const Math::Mat4<float> &getLookAt() const noexcept { return lookAt; };
             inline const Math::Mat4<float> &getProjection() const noexcept { return projection; };
+            inline const Math::Mat4<float> &getOrtho() const noexcept { return Math::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); };
             void update(const float newYaw, const float newPitch) noexcept;
 
 
@@ -54,7 +55,7 @@ namespace nb
             bool alignByZ = false;
 
             Math::Vector3<float> position   = { 0.0f, 0.0f, 0.0f };
-            Math::Vector3<float> direction  = { 0.0f, 0.0f, -1.0f };
+            Math::Vector3<float> direction  = { 0.0f, 0.0f, 1.0f };
             Math::Vector3<float> up         = { 0.0f, 1.0f, 0.0f };
             float yaw                       =   0.0f;
             float pitch                     =   0.0f;

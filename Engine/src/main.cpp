@@ -75,10 +75,6 @@ LRESULT _stdcall WndProc(HWND hWnd, UINT message,
                          WPARAM wParam, LPARAM lParam);
 
 // Renderer2D *renderer2D = nullptr;
-
-
-
-
 class Example
 {
 public:

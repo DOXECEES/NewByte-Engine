@@ -15,7 +15,7 @@ namespace nb
         public:
             RayPicker() = default;
 
-            Math::Vector4<float> cast(Renderer::Camera* cam, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) noexcept;
+            Math::Vector3<float> cast(Renderer::Camera* cam, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) noexcept;
 
         private:
 

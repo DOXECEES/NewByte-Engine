@@ -96,6 +96,18 @@ namespace nb
                 this->w *= scalar;
                 return *this;
             }
+
+
+            constexpr Vector4<T> operator*(const Vector4<T>& other) const noexcept
+            {
+                return {x * other.x, y * other.y, z * other.z, w * other.w};
+            }
+
+            // friend constexpr Vector4<T> operator*(Vector4<T> a, const Vector4<T>& other) noexcept
+            // {
+            //     return {a.x * other.x, a.y * other.y, a.z * other.z, a.w * other.w};                
+            // }
+
             //
 
             //
@@ -131,7 +143,7 @@ namespace nb
 
             constexpr T dot(const Vector4<T>& oth) const noexcept
             {
-                return { this->x * oth.x + this->y * oth.y + this->z * z + this->w * oth.w};
+                return { this->x * oth.x + this->y * oth.y + this->z * oth.z + this->w * oth.w};
             }
 
             /*constexpr Vector4<T> cross(const Vector4<T>& oth) const noexcept

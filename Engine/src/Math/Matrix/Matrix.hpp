@@ -52,7 +52,6 @@ namespace nb
                 }
             }
 
-            // Конструктор с параметрами
             Matrix(const std::initializer_list<VecType> &init)
             {
                 assert(init.size() == Rows && "Initializer list size must match number of rows.");
@@ -76,7 +75,6 @@ namespace nb
                 return &data[0][0];
             }
 
-            // Операторы сложения
             friend constexpr Matrix<T, Rows, Cols> operator+(Matrix<T, Rows, Cols> a, const Matrix<T, Rows, Cols> &oth) noexcept
             {
                 for (size_t i = 0; i < Rows; ++i)
@@ -95,7 +93,6 @@ namespace nb
                 return *this;
             }
 
-            // Операторы вычитания
             friend constexpr Matrix<T, Rows, Cols> operator-(Matrix<T, Rows, Cols> a, const Matrix<T, Rows, Cols> &oth) noexcept
             {
                 for (size_t i = 0; i < Rows; ++i)
@@ -114,7 +111,6 @@ namespace nb
                 return *this;
             }
 
-            // Операторы умножения на скаляр
             friend constexpr Matrix<T, Rows, Cols> operator*(Matrix<T, Rows, Cols> a, const T scalar) noexcept
             {
                 for (size_t i = 0; i < Rows; ++i)
@@ -133,7 +129,6 @@ namespace nb
                 return *this;
             }
 
-            // Операторы деления на скаляр
             friend constexpr Matrix<T, Rows, Cols> operator/(Matrix<T, Rows, Cols> a, const T scalar) noexcept
             {
                 assert(scalar != T(0) && "Division by zero");
@@ -154,7 +149,6 @@ namespace nb
                 return *this;
             }
 
-            // Оператор умножения матриц
             template <size_t OtherCols>
             friend constexpr Matrix<T, Rows, OtherCols> operator*(const Matrix<T, Rows, Cols> &lhs, const Matrix<T, Cols, OtherCols> &rhs) noexcept
             {
@@ -193,11 +187,10 @@ namespace nb
                     }
                 }
 
-                *this = std::move(result); 
-                return *this;              
+                *this = std::move(result);
+                return *this;
             }
 
-            // Оператор умножения на вектор
             template <typename Vec>
             friend constexpr Vec operator*(const Matrix<T, Rows, Cols> &mat, const Vec &vec) noexcept
             {
@@ -207,12 +200,28 @@ namespace nb
                               "Vector type must be Vector2, Vector3, or Vector4.");
 
                 Vec result;
-                //assert(Cols == vec.size() && "Matrix column count must match vector size.");
 
+                for (size_t i = 0; i < Cols; ++i)
+                {
+                    result[i] = T{0};
+
+                    for (size_t j = 0; j < Rows; ++j)
+                    {
+                        result[i] += vec[j] * mat[j][i];
+                    }
+                }
+
+                return result;
+            }
+
+            static Matrix<T, Rows, Cols> identity() noexcept
+            {
+                Matrix<T, Rows, Cols> result;
                 for (size_t i = 0; i < Rows; ++i)
                 {
-                    result[i] = mat[i].dot(vec);
+                    result[i][i] = static_cast<T>(1);
                 }
+
                 return result;
             }
         };

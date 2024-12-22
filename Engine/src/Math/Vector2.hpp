@@ -137,6 +137,11 @@ namespace nb
                 return (this->cross(oth) == 0);
             }
 
+            constexpr float distance(const Vector2<T>& oth) const noexcept
+            {
+                return std::sqrtf((this->x - oth.x) * (this->x - oth.x) +  (this->y - oth.y) * (this->y - oth.y));
+            }
+
             float getAngleInRadians(const Vector2<T>& b) const noexcept
             {
                 return std::acos((this->dot(b)) / (this->length() * b.length()));
@@ -146,6 +151,8 @@ namespace nb
             {
                 return getAngleInRadians(b) * (180 / Constants::PI);
             }
+
+
 
             void normalize() noexcept
             {

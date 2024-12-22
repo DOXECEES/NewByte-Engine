@@ -18,10 +18,37 @@ namespace nb
                 : minPoint(x1, y1, z1), maxPoint(x2, y2, z2)
             {}
             
-            constexpr AABB3D(nb::Math::Vector3<float> start, nb::Math::Vector3<float> end) noexcept
+            constexpr AABB3D(const nb::Math::Vector3<float>& start, const nb::Math::Vector3<float>& end) noexcept
                 : minPoint(start)
                 , maxPoint(end)
             {}
+
+
+            constexpr bool isPointInside(const nb::Math::Vector3<float>& pos)
+            {
+                return (pos.x >= minPoint.x && pos.y >= minPoint.y && pos.z >= minPoint.z) &&
+                        (pos.x <= maxPoint.x && pos.y <= maxPoint.y && pos.z <= maxPoint.z);
+            }
+
+            constexpr nb::Math::Vector3<float> center() const noexcept
+            {
+                return {width() / 2, heigth() / 2, depth() / 2};
+            }
+
+            constexpr float width() const noexcept
+            {
+                return (maxPoint.x + minPoint.x);
+            }
+
+            constexpr float heigth() const noexcept
+            {
+                return (maxPoint.y + minPoint.y);
+            }
+
+            constexpr float depth() const noexcept
+            {
+                return (maxPoint.z + minPoint.z);
+            }
 
 
 
