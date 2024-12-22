@@ -61,6 +61,10 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/Camera.hpp
         src/Renderer/Mesh.cpp
         src/Renderer/Mesh.hpp
+        src/Renderer/Skybox.cpp
+        src/Renderer/Skybox.hpp
+        src/Renderer/Texture.cpp
+        src/Renderer/Texture.hpp
 
         src/Renderer/RendererStructures.hpp
 
@@ -83,6 +87,10 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/OpenGL/OpenGlShader.hpp
         src/Renderer/OpenGL/FBO.cpp
         src/Renderer/OpenGL/FBO.hpp
+        src/Renderer/OpenGL/OpenGLTexture.cpp
+        src/Renderer/OpenGL/OpenGLTexture.hpp
+
+
 
         
 
@@ -148,6 +156,8 @@ add_library(${PROJECT_NAME} STATIC
         src/Utils/DeflateDecoder.cpp
         src/Utils/DeflateDecoder.hpp
 
+        dependencies/lodepng/lodepng.cpp
+
 
         )
 
@@ -157,7 +167,6 @@ find_package(OpenGL REQUIRED)
 target_include_directories(${PROJECT_NAME} 
     PUBLIC OpenGL:GL
     PUBLIC dependencies/glad/include
-
 )
         
         

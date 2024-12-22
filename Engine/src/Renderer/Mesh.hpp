@@ -21,6 +21,8 @@ namespace nb
             Mesh() = delete;
             Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices) noexcept;
 
+            inline const Math::AABB3D &getAABB() const noexcept { return aabb; };
+
             void draw(const GLenum mode) const noexcept;
             void drawAabb() noexcept;
 
@@ -31,7 +33,6 @@ namespace nb
 
             nb::OpenGl::VertexArray VAO;
 
-            // texture
         };
 
     };

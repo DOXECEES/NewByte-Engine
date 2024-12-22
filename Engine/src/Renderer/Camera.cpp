@@ -15,45 +15,41 @@ namespace nb
             yaw = newYaw;
             pitch = newPitch;
 
+            if (alignByX)
+            {
+                deltaYaw = 0.0f;
+                direction.x = 0.0f;
+            }
+            if (alignByY)
+            {
+                deltaPitch = 0.0f;
+                direction.y = 0.0f;
+                ///position.y = -position.y;
+            }
+
             auto rightDirection = direction.cross(up);
 
             if(deltaYaw != 0.0f || deltaPitch != 0.0f)
             {
-                auto pitchQuat = Math::Quaternion<float>::axisAngleToQuaternion(-deltaPitch, rightDirection);
                 auto yawQuat = Math::Quaternion<float>::axisAngleToQuaternion(deltaYaw, up);
+                auto pitchQuat = Math::Quaternion<float>::axisAngleToQuaternion(-deltaPitch, rightDirection);
 
-                auto q = pitchQuat.cross(yawQuat);
+                auto q = yawQuat.cross(pitchQuat);
             
                 q.normalize();
 
                 direction = Math::rotate(q, direction);
             }
 
-            //direction.normalize();
-
-            // if (alignByX)
-            // {
-            //     direction.y = 0.f;
-            //     direction.z = 0.f;
-            // }
-            // else if (alignByY)
-            // {
-            //     direction.x = 0.f;
-            //     direction.z = 0.f;
-            // }
-            // else if (alignByZ)
-            // {
-            //     direction.x = 0.f;
-            //     direction.y = 0.f;
-            // }
+           
 
             lookAt = Math::lookAt(position, position + direction, up);
 
             projection = Math::projection(
-                Math::toRadians(Core::EngineSettings::getFov()),
+                Math::toRadians(45.0f),
                 Core::EngineSettings::getAspectRatio(),
                 1.0f,
-                100.0f);
+                1000.0f);
         }
     };
 };

@@ -17,6 +17,9 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/Ui/Slider.cpp
     src/Ui/Slider.hpp
+    src/Ui/ComboBox.hpp
+    src/Ui/ComboBox.cpp
+
 
     src/UiStore.cpp
     src/UiStore.hpp

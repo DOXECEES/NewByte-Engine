@@ -2,8 +2,11 @@
 #define SRC_RENDERER_IRENDERAPI_HPP
 
 #include <Windows.h>
+#include <vector>
 
 #include "Camera.hpp"
+#include "Mesh.hpp"
+#include "SceneGraph.hpp"
 
 namespace nb
 {
@@ -22,10 +25,14 @@ namespace nb
             inline Camera *getCamera() const noexcept { return cam; };
             void setCamera(Camera *c) { cam = c; };
             virtual void render() = 0;
+            inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return sceneGraph; };
+            inline void setScene(const std::shared_ptr<Renderer::SceneGraph>&s) { sceneGraph = s; };
 
         protected:
             HWND hwnd = {};
             Camera *cam;
+
+            std::shared_ptr<Renderer::SceneGraph> sceneGraph;
         };
     };
 };

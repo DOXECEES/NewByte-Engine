@@ -16,6 +16,7 @@ namespace nb
         class Shader : public Resource::IResource
         {
         public:
+            Shader() noexcept;
             virtual ~Shader() noexcept = default;
 
             virtual void use() noexcept = 0;
@@ -31,9 +32,12 @@ namespace nb
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept = 0;
             virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept = 0;
 
+            inline int getId() const noexcept { return id; };
+
         private:
+            int id;
 
-
+            static int globalId;
         };
     };
 };

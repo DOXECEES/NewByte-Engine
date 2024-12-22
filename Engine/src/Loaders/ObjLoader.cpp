@@ -103,8 +103,9 @@ namespace nb
 
                             Renderer::Vertex vertex = {
                                 verticies[vertId],
-                                //texId != ~0L ? texCoords[texIdx] : glm::vec2(0.0f, 0.0f),
-                                normId != ~0L ? normals[normId] : Math::Vector3<float>(0.0f,0.0f,0.0f)
+                                normId != ~0L ? normals[normId] : Math::Vector3<float>(0.0f,0.0f,0.0f),
+                                {0.0f,0.0f,0.0f},
+                                texId != ~0L ? textureCoords[texId] : Math::Vector2<float>(0.0f, 0.0f)
                             };
 
                             if (uniqueVertices.count(vertex) == 0)
@@ -122,6 +123,7 @@ namespace nb
                     break;
                 }
             }
+
 
             return createRef<Renderer::Mesh>(std::move(vert), std::move(indicies));
         }

@@ -22,8 +22,8 @@ namespace Editor
 
         mcs.x = 0;
         mcs.y = 0;
-        mcs.cx = 437;
-        mcs.cy = 295;
+        mcs.cx = 0;
+        mcs.cy = 0;
         mcs.szTitle = L"Child Window";
         mcs.szClass = CLASS_NAME;
         mcs.hOwner = GetModuleHandle(nullptr);
@@ -66,26 +66,41 @@ namespace Editor
             // activeWindow = (HWND)lParam;
             // return 0;
         }
-        case WM_LBUTTONDOWN:
-        {
-            if(!isPrevClick)
-            {
-                isPrevClick = true;
-                Debug::debug(LOWORD(lParam));
-                Debug::debug(HIWORD(lParam));
+//         case WM_MOUSEMOVE:
+//         {
+//                             if(Sengine != nullptr)
+// {
+//                 isPrevClick = true;
+//                 //Debug::debug(LOWORD(lParam));
+//                 //Debug::debug(HIWORD(lParam));
 
+//                 int xw = LOWORD(lParam);
+//                 int yw = HIWORD(lParam);
+
+//                 //float xn = float((2.0f * (float)xw) / (float)nb::Core::EngineSettings::getWidth()) - 1.0f;
+//                 //float yn = float((2.0f * (float)yw) / (float)nb::Core::EngineSettings::getHeight()) - 1.0f;
+//                 //Debug::debug(xn);
+//                 //Debug::debug(yn);
+//                 if(Sengine != nullptr)
+//                     Sengine->rayPick(xw, yw);
+// }           
+//             break;
+//         }
+        case WM_MOUSEMOVE:
+        {
+            if(Sengine != nullptr)
+            {
                 int xw = LOWORD(lParam);
                 int yw = HIWORD(lParam);
-
-                //float xn = float((2.0f * (float)xw) / (float)nb::Core::EngineSettings::getWidth()) - 1.0f;
-                //float yn = float((2.0f * (float)yw) / (float)nb::Core::EngineSettings::getHeight()) - 1.0f;
-                //Debug::debug(xn);
-                //Debug::debug(yn);
-                if(Sengine != nullptr)
                     Sengine->rayPick(xw, yw);
+
             }
-            break;
+
+                
+                ///Debug::debug(LOWORD(lParam));
+                //Debug::debug(HIWORD(lParam));
         }
+        break;
         case WM_LBUTTONUP:
         {
             isPrevClick = false;
@@ -154,6 +169,10 @@ namespace Editor
         //Debug::debug(height);
 
         MoveWindow(hwnd, 0, 0, width, height, TRUE);
+        RECT r;
+        GetClientRect(hwnd, &r);
+        nb::Core::EngineSettings::setHeight(r.bottom - r.top);
+        nb::Core::EngineSettings::setWidth(r.right - r.left);
     }
 
     bool SceneWindow::isPrevClick = false;

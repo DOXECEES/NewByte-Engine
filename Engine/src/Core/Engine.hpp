@@ -43,6 +43,7 @@ namespace nb
 
             inline Math::Vector3<float> getCameraPos() { return renderer->getCamera()->getPosition(); };
             inline Math::Vector3<float> getCameraDirection() { return renderer->getCamera()->getDirection(); };
+            inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); };
 
         private:
             bool isEditorMode = true;
