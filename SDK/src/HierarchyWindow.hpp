@@ -9,7 +9,7 @@
 namespace Editor
 {
     class WinAPITreeView
-    {
+    { 
     public:
         WinAPITreeView(HWND parent, int x, int y, int width, int height)
             : parentWindow(parent), treeViewHandle(nullptr), draggingItem(nullptr)
