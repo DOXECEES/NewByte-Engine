@@ -44,10 +44,13 @@ namespace nb
 
         struct Material
         {
+            std::string name;
             Math::Vector3<float> ambient;
             Math::Vector3<float> diffuse;
             Math::Vector3<float> specular;
             float shininess;
+            float dissolve;
+            uint8_t illuminationModel;
 
             void lerp(const Material& target, float alpha)
             {

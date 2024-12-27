@@ -40,11 +40,11 @@ namespace nb
                     {
                     case ' ':
                     {
-                        verticies.emplace_back(parseVertex(str.substr(2)));   
+                        verticies.emplace_back(parseVertex(str.substr(2)));
                         break;
                     }
                     case 't':
-                    {    
+                    {
                         textureCoords.emplace_back(parseTextureCoords(str.substr(2)));
                         break;
                     }
@@ -103,10 +103,9 @@ namespace nb
 
                             Renderer::Vertex vertex = {
                                 verticies[vertId],
-                                normId != ~0L ? normals[normId] : Math::Vector3<float>(0.0f,0.0f,0.0f),
-                                {0.0f,0.0f,0.0f},
-                                texId != ~0L ? textureCoords[texId] : Math::Vector2<float>(0.0f, 0.0f)
-                            };
+                                normId != ~0L ? normals[normId] : Math::Vector3<float>(0.0f, 0.0f, 0.0f),
+                                {0.0f, 0.0f, 0.0f},
+                                texId != ~0L ? textureCoords[texId] : Math::Vector2<float>(0.0f, 0.0f)};
 
                             if (uniqueVertices.count(vertex) == 0)
                             {
@@ -124,8 +123,75 @@ namespace nb
                 }
             }
 
+            std::filesystem::path pathToMtl = path;
+            pathToMtl.replace_extension(".mtl");
 
-            return createRef<Renderer::Mesh>(std::move(vert), std::move(indicies));
+            std::vector<Renderer::Material> materials = loadMaterial(pathToMtl.string());
+
+            return createRef<Renderer::Mesh>(std::move(vert), std::move(indicies), std::move(materials));
+        }
+
+        std::vector<Renderer::Material> ObjLoader::loadMaterial(const std::string &path) noexcept
+        {
+            std::ifstream mtlFile;
+            mtlFile.open(path);
+            if (!mtlFile.is_open())
+            {
+                assert("Failed to open mtl file");
+                return {};
+            }
+
+            std::vector<Renderer::Material> materials;
+            std::stringstream iss;
+            iss << mtlFile.rdbuf();
+            
+            std::string token;
+
+            while (iss >> token)
+            {
+                if(token == "newmtl")
+                {
+                    materials.emplace_back(Renderer::Material());
+                }
+                else if(token == "Ka")
+                {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    materials.back().ambient = Math::Vector3<float>(r, g, b);
+                }
+                else if(token == "Kd")
+                {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    materials.back().diffuse = Math::Vector3<float>(r, g, b);
+                }
+                else if(token == "Ks")
+                {
+                    float r, g, b;
+                    iss >> r >> g >> b;
+                    materials.back().specular = Math::Vector3<float>(r, g, b);
+                }
+                else if(token == "Ns")
+                {
+                    float n;
+                    iss >> n;
+                    materials.back().shininess = n;
+                }
+                else if(token == "d")
+                {
+                    float d;
+                    iss >> d;
+                    materials.back().dissolve = d;
+                }
+                else if(token == "illum")
+                {
+                    uint8_t illum;
+                    iss >> illum;
+                    materials.back().illuminationModel = illum;
+                }
+            }
+
+            return materials;
         }
 
         Math::Vector3<float> ObjLoader::parseVertex(std::string_view str) noexcept
