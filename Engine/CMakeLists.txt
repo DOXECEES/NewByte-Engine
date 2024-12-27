@@ -65,6 +65,8 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/Skybox.hpp
         src/Renderer/Texture.cpp
         src/Renderer/Texture.hpp
+        src/Renderer/Light.hpp
+        src/Renderer/Light.cpp
 
         src/Renderer/RendererStructures.hpp
 

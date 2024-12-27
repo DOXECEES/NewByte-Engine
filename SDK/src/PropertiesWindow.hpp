@@ -8,6 +8,8 @@
 #include "Ui/Slider.hpp"
 #include "Ui/ComboBox.hpp"
 
+#include "Ui/RadioGroup.hpp"
+
 namespace Editor
 {
     class CoordinateEditor
@@ -137,6 +139,7 @@ namespace Editor
     public:
         PropertiesWindow(const HWND &parentHwnd, std::shared_ptr<nb::Core::Engine> engine);
         ~PropertiesWindow();
+        
 
         void resize(const int newWidth, const int newHeigth) noexcept;
 
@@ -154,6 +157,7 @@ namespace Editor
         static Editor::CoordinateEditor *rotateEdit;
         static Editor::CoordinateEditor *scaleEdit;
 
+        static Ui::RadioGroup *radioShadingModel;
 
         static nb::Math::Vector3<float> pos;
         static std::shared_ptr<nb::Core::Engine> sEngine;

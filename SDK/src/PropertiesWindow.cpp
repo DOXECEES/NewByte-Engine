@@ -96,6 +96,10 @@ namespace Editor
         rotateEdit = new CoordinateEditor(hwnd, 0, 0, 0, 150);
         scaleEdit = new CoordinateEditor(hwnd, 0, 0, 0, 300);
 
+        radioShadingModel = new Ui::RadioGroup(hwnd, L"Lights Model", {
+            {L"Default", []() { nb::OpenGl::OpenGLRender::applyDefaultModel(); }},
+            {L"Diffuse Reflection", []() { nb::OpenGl::OpenGLRender::applyDiffuseReflectionModel(); }}
+        });
 
         // LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
         // style &= ~WS_CAPTION;
@@ -123,6 +127,9 @@ namespace Editor
 
     LRESULT PropertiesWindow::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
+        if(radioShadingModel != nullptr)
+            radioShadingModel->handle(message, wParam, lParam);
+
         switch (message)
         {
         case WM_CREATE:
@@ -277,6 +284,9 @@ namespace Editor
     Editor::CoordinateEditor *PropertiesWindow::coordsEdit = nullptr;
     Editor::CoordinateEditor *PropertiesWindow::rotateEdit = nullptr;
     Editor::CoordinateEditor *PropertiesWindow::scaleEdit = nullptr;
+
+    Ui::RadioGroup *PropertiesWindow::radioShadingModel = nullptr;
+
 
 
     std::shared_ptr<nb::Renderer::BaseNode> PropertiesWindow::currentObject = nullptr;
