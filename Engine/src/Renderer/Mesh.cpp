@@ -5,9 +5,10 @@ namespace nb
     namespace Renderer
     {
 
-        Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices) noexcept
+        Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, const std::vector<Renderer::Material>& mat) noexcept
             : verticies(std::move(vertices))
             , indices(std::move(indices))
+            , materials(std::move(mat))
         {
             Math::Vector3<float> minPoint;
             Math::Vector3<float> maxPoint;

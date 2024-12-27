@@ -160,7 +160,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
     Renderer::Transform t;
     t.translate = {0.0f, -10.0f, 0.0f};
-    auto n2 = std::make_shared<Renderer::ObjectNode>("docehedron", t , mesh2, shader);
+    //auto n2 = std::make_shared<Renderer::ObjectNode>("docehedron", t , mesh2, shader);
     //auto t2 = Math::translate(Math::Mat4<float>::identity(), {0.0f, 10.0f, 0.0f});
     //t2 = Math::rotate(Math::Mat4<float>::identity(), {1.0f, 0.0f, 0.0f}, 90);
     //t2 = Math::translate(t2, {0.0f, 20.0f, 0.0f});
@@ -173,8 +173,8 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
 
     scene->addChildren(n);
-    scene->addChildren(n2);
-    scene->getChildren(1)->addChildren(n3);
+    //scene->addChildren(n2);
+    scene->getChildren(0)->addChildren(n3);
 
 
     return true;
@@ -264,10 +264,16 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
-        n->shader->setUniformMat4("model", n->getWorldTransform());
-        n->shader->setUniformMat4("view", cam->getLookAt());
-        n->shader->setUniformMat4("proj", cam->getProjection());
-        n->shader->use();
+        n->mt[0]->shader->setUniformMat4("model", n->getWorldTransform());
+        n->mt[0]->shader->setUniformMat4("view", cam->getLookAt());
+        n->mt[0]->shader->setUniformMat4("proj", cam->getProjection());
+
+        n->mt[0]->shader->setUniformVec3("lightPos", {1.0f, 1.0f, 1.0f});
+        n->mt[0]->shader->setUniformVec3("Kd", {1.0f,1.0f,1.0f});
+        n->mt[0]->shader->setUniformVec3("Ld", {1.0f,1.0f,1.0f});
+        
+        n->mt[0]->applyMaterial();
+        n->mt[0]->shader->use();
         n->mesh->draw(GL_TRIANGLES);
         n->mesh->drawAabb();
     }
@@ -326,38 +332,40 @@ void nb::OpenGl::OpenGLRender::applyDefaultModelFlat() noexcept
 
 void nb::OpenGl::OpenGLRender::lerpMaterial() noexcept
 {
-    Renderer::Material materials[] = {
-        {{0.0215, 0.1745, 0.0215}, {0.07568, 0.61424, 0.07568}, {0.633, 0.727811, 0.633}, 0.6},  // emerald
-        {{0.135, 0.2225, 0.1575}, {0.54, 0.89, 0.63}, {0.316228, 0.316228, 0.316228}, 0.1},        // jade
-        {{0.05375, 0.05, 0.06625}, {0.18275, 0.17, 0.22525}, {0.332741, 0.328634, 0.346435}, 0.3}, // obsidian
-        {{0.25, 0.20725, 0.20725}, {1, 0.829, 0.829}, {0.296648, 0.296648, 0.296648}, 0.088},     // pearl
-        {{0.1745, 0.01175, 0.01175}, {0.61424, 0.04136, 0.04136}, {0.727811, 0.626959, 0.626959}, 0.6} // ruby
-    };
+    // Renderer::Material materials[] = {
+    //     {{0.0215, 0.1745, 0.0215}, {0.07568, 0.61424, 0.07568}, {0.633, 0.727811, 0.633}, 0.6},  // emerald
+    //     {{0.135, 0.2225, 0.1575}, {0.54, 0.89, 0.63}, {0.316228, 0.316228, 0.316228}, 0.1},        // jade
+    //     {{0.05375, 0.05, 0.06625}, {0.18275, 0.17, 0.22525}, {0.332741, 0.328634, 0.346435}, 0.3}, // obsidian
+    //     {{0.25, 0.20725, 0.20725}, {1, 0.829, 0.829}, {0.296648, 0.296648, 0.296648}, 0.088},     // pearl
+    //     {{0.1745, 0.01175, 0.01175}, {0.61424, 0.04136, 0.04136}, {0.727811, 0.626959, 0.626959}, 0.6} // ruby
+    // };
 
-    static float lerpAlpha = 0.0f;   
-    static int currentMaterial = 0;  
-    static auto lastTime = std::chrono::steady_clock::now();
-    int nextMaterialIndex = (currentMaterial + 1) % (sizeof(materials) / sizeof(materials[0]));
-    Renderer::Material nextMat = materials[nextMaterialIndex];
+
+
+    // static float lerpAlpha = 0.0f;   
+    // static int currentMaterial = 0;  
+    // static auto lastTime = std::chrono::steady_clock::now();
+    // int nextMaterialIndex = (currentMaterial + 1) % (sizeof(materials) / sizeof(materials[0]));
+    // Renderer::Material nextMat = materials[nextMaterialIndex];
     
-    auto now = std::chrono::steady_clock::now();
-    std::chrono::duration<float> elapsedTime = now - lastTime;
+    // auto now = std::chrono::steady_clock::now();
+    // std::chrono::duration<float> elapsedTime = now - lastTime;
     
-    if (elapsedTime.count() >= 1.0f) 
-    {
-        lastTime = now;
+    // if (elapsedTime.count() >= 1.0f) 
+    // {
+    //     lastTime = now;
 
-        lerpAlpha += 0.1f; 
+    //     lerpAlpha += 0.1f; 
 
-        if (lerpAlpha >= 1.0f)
-        {
-                currentMaterial = (currentMaterial + 1) % (sizeof(materials) / sizeof(materials[0]));
-                    mat = materials[currentMaterial];
+    //     if (lerpAlpha >= 1.0f)
+    //     {
+    //             currentMaterial = (currentMaterial + 1) % (sizeof(materials) / sizeof(materials[0]));
+    //                 mat = materials[currentMaterial];
 
-                lerpAlpha = 0.0f;  
-        }
-        mat.lerp(nextMat, lerpAlpha);
-    }
+    //             lerpAlpha = 0.0f;  
+    //     }
+    //     mat.lerp(nextMat, lerpAlpha);
+    // }
 
 }
 
