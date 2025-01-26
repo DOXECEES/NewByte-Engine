@@ -27,7 +27,7 @@ namespace nb
             // ObjLoader& operator=(ObjLoader&&) = delete;
 
             static Ref<Renderer::Mesh> loadMesh(const std::filesystem::path &path) noexcept;
-            static std::vector<Renderer::Material> loadMaterial(const std::string &path) noexcept;
+            static std::map<std::string, Renderer::Material> loadMaterial(const std::string &path) noexcept;
 
         private:
             static Math::Vector3<float> parseVertex(std::string_view str) noexcept;

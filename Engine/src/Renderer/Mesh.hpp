@@ -8,35 +8,87 @@
 
 #include "../Math/AABB3D.hpp"
 
+//
+//
 #include <vector>
+#include <memory>
+
 
 namespace nb
 {
     namespace Renderer
     {
-        class Mesh : public Resource::IResource
+
+
+        class SubMesh
         {
+            friend class Mesh;
 
         public:
-            Mesh() = delete;
-            Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, const std::vector<Renderer::Material>& mat = {}) noexcept;
+            //SubMesh() = default;
+            SubMesh(const std::vector<uint32_t> &indices, const Material& mat = {}) noexcept;
+            SubMesh(const SubMesh&) = delete;
+            SubMesh& operator=(const SubMesh&) = delete;
 
-            inline const Math::AABB3D &getAABB() const noexcept { return aabb; };
-            inline const std::vector<Renderer::Material> &getMaterials() const noexcept { return materials; };
-            void draw(const GLenum mode) const noexcept;
-            void drawAabb() noexcept;
+            SubMesh(SubMesh&& other) noexcept = default;
+            SubMesh& operator=(SubMesh&& other) noexcept = default;
 
-        private:
-            std::vector<Vertex> verticies;
+            ~SubMesh() = default;
+
+            // SubMesh &operator=(const SubMesh &other) = default;
+            // SubMesh &operator=(SubMesh &&other) noexcept = default;
+
+            // SubMesh(const SubMesh &other) = default;
+            // SubMesh(SubMesh&& other) noexcept = default;
+
+            void attachShader(const Ref<Shader> &shader) noexcept;
+
+            //inline const Math::AABB3D &getAABB() const noexcept { return aabb; };
+            inline const Material &getMaterial() const noexcept { return material; };
+           // void draw(const GLenum mode) const noexcept;
+           // void drawAabb() noexcept;
+
+       // private:
+            //std::unique_ptr<std::vector<Vertex>> verticies;
             std::vector<uint32_t> indices;
-            std::vector<Renderer::Material> materials;
+            Material material;
+            std::shared_ptr<ShaderUniforms> shader;
 
-            Math::AABB3D aabb;
-
-            nb::OpenGl::VertexArray VAO;
+            //Math::AABB3D aabb;
+            //nb::OpenGl::VertexArray VAO;
 
         };
 
+
+        class Mesh : public Resource::IResource
+        {
+            public:
+            
+                //Mesh(const std::vector<SubMesh> &meshes);
+                explicit Mesh(std::vector<std::unique_ptr<SubMesh>> &&meshes, std::vector<Vertex>&& vertex)
+                    : meshes(std::move(meshes))
+                    , verticies(std::move(vertex))
+                {
+                    std::vector<uint32_t> ind = uniteIndicies();
+                    VAO.linkData(verticies, ind);
+                };
+
+                std::vector<Material> getMaterials() const noexcept;
+
+                void draw(GLenum mode, const Ref<Shader>& shader) const noexcept;
+            
+            private:
+                std::vector<uint32_t> uniteIndicies() noexcept;
+                void applyMaterial(const SubMesh& mesh) const noexcept;
+
+                // private:
+
+                nb::OpenGl::VertexArray VAO;
+
+                std::vector<Vertex> verticies;
+                std::vector<std::unique_ptr<SubMesh>> meshes;
+                size_t indiciesCount = 0;
+        };
     };
 };
 

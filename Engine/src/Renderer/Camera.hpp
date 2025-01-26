@@ -19,6 +19,9 @@ namespace nb
     {
         class Camera
         {
+            static constexpr float NEAR_PLANE = 0.1f;
+            static constexpr float FAR_PLANE = 1000.0f;
+
         public:
             Camera() = default;
             ~Camera() = default;
@@ -31,21 +34,13 @@ namespace nb
 
             inline const Math::Mat4<float> &getLookAt() const noexcept { return lookAt; };
             inline const Math::Mat4<float> &getProjection() const noexcept { return projection; };
-            inline const Math::Mat4<float> &getOrtho() const noexcept { return Math::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); };
+            inline const Math::Mat4<float> getOrtho() const noexcept { return Math::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); };
             void update(const float newYaw, const float newPitch) noexcept;
-
-
 
             inline Math::Vector3<float> getPosition() const noexcept { return position; };
             inline Math::Vector3<float> getDirection() const noexcept { return direction; };
-            
-
-            //Math::Mat4<T> getViewMatrix() const {
-               
-            //}
 
         private:
-
 
             Math::Mat4<float> lookAt;
             Math::Mat4<float> projection;

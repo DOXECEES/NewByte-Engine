@@ -132,7 +132,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEPTH_CLAMP);
-    // glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
@@ -146,7 +146,8 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
     auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
     auto mesh2 = rm->getResource<Renderer::Mesh>("dode.obj");
-
+    auto meshCube = rm->getResource<Renderer::Mesh>("cube.obj");
+    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine.obj");
     //Renderer::SceneGraph::SceneNode n;
     //n.mesh = mesh;  
     //sceneGraph.addChild(n);
@@ -169,12 +170,17 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     t2.rotateX = 90.0f;
     //t.translate = {0.0f, -10.0f, 0.0f};
 
-    auto n3 = std::make_shared<Renderer::ObjectNode>("Weapon 2", t2, mesh, shader);
+    //auto n3 = std::make_shared<Renderer::ObjectNode>("Weapon 2", t2, mesh, shader);
+    //auto n4 = std::make_shared<Renderer::ObjectNode>("Cube", t2, meshCube, shader);
+    auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
 
 
     scene->addChildren(n);
+    //scene->addChildren(n4);
+    scene->addChildren(n5);
+
     //scene->addChildren(n2);
-    scene->getChildren(0)->addChildren(n3);
+    //scene->getChildren(0)->addChildren(n3);
 
 
     return true;
@@ -244,7 +250,8 @@ void nb::OpenGl::OpenGLRender::render()
     std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
     stk.push(sceneGraph->getScene());
 
-    while (!stk.empty()) {
+    while (!stk.empty())
+    {
 
         std::shared_ptr<Renderer::BaseNode> top = stk.top();
         stk.pop();
@@ -264,18 +271,42 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
-        n->mt[0]->shader->setUniformMat4("model", n->getWorldTransform());
-        n->mt[0]->shader->setUniformMat4("view", cam->getLookAt());
-        n->mt[0]->shader->setUniformMat4("proj", cam->getProjection());
-
-        n->mt[0]->shader->setUniformVec3("lightPos", {1.0f, 1.0f, 1.0f});
-        n->mt[0]->shader->setUniformVec3("Kd", {1.0f,1.0f,1.0f});
-        n->mt[0]->shader->setUniformVec3("Ld", {1.0f,1.0f,1.0f});
+        for(auto& i : n->mt)
+        {
+            i->shader->setUniformMat4("view", cam->getLookAt());
+            i->shader->setUniformMat4("proj", cam->getProjection());
+            i->shader->setUniformMat4("model", n->getWorldTransform());
+            i->shader->setUniformVec3("lightPos", {1.0f, 1.0f, 1.0f});
+            i->shader->setUniformVec3("Kd", {1.0f,1.0f,1.0f});
+            i->shader->setUniformVec3("Ld", {1.0f,1.0f,1.0f});
+        }
         
-        n->mt[0]->applyMaterial();
-        n->mt[0]->shader->use();
-        n->mesh->draw(GL_TRIANGLES);
-        n->mesh->drawAabb();
+        
+        //n->mt[0]->applyMaterial();
+       // n->mt[0]->shader->use();
+        n->mesh->draw(GL_TRIANGLES, shader);
+
+        // size_t indiciesOffset = 0;
+        // size_t matIndex = 0;
+        // for(const auto& i : n->mesh->meshes)
+        // {
+        //     n->mesh->VAO.bind();
+        //     n->mesh->VAO.draw(i->indices.size(), GL_TRIANGLES, indiciesOffset);
+        //     indiciesOffset += i->indices.size();
+
+        //         // activate material
+        //         if(i->material == Renderer::Material())
+        //         {   
+        //             n->mt[0]->applyMaterial();
+        //             n->mt[0]->shader->use();
+        //         }
+        //         else
+        //         {
+        //             n->mt[1]->applyMaterial();
+        //             n->mt[1]->shader->use();
+        //         }
+        // }
+        //n->mesh->drawAabb();
     }
 }
 
@@ -298,24 +329,24 @@ void nb::OpenGl::OpenGLRender::rotate(float angle, const nb::Math::Vector3<float
 
 void nb::OpenGl::OpenGLRender::drawTransformationElements(const Ref<Renderer::Mesh> mesh) noexcept
 {
-    Math::AABB3D aabb = mesh->getAABB();
-    Math::Vector3<float> center = aabb.center();
+    //Math::AABB3D aabb = mesh->getAABB();
+    //Math::Vector3<float> center = aabb.center();
 
-    Renderer::Mesh m({center, // Bottom-left
-                      center + Math::Vector3<float>{10.0f,0.0f,0.0f},  // Bottom-right
-                      center + Math::Vector3<float>{0.0f,10.0f,0.0f},  // Top-left
-                      center + Math::Vector3<float>{0.0f,0.0f,10.0f}},
+    // Renderer::Mesh m({center, // Bottom-left
+    //                   center + Math::Vector3<float>{10.0f,0.0f,0.0f},  // Bottom-right
+    //                   center + Math::Vector3<float>{0.0f,10.0f,0.0f},  // Top-left
+    //                   center + Math::Vector3<float>{0.0f,0.0f,10.0f}},
                      
                      
-                     {0, 1, 
-                      0, 2,
-                      0, 3 });
+    //                  {0, 1, 
+    //                   0, 2,
+    //                   0, 3 });
 
     auto rm = ResMan::ResourceManager::getInstance();
     auto arrowShader = rm->getResource<nb::Renderer::Shader>("arrow.shader");
 
     arrowShader->use();
-    m.draw(GL_LINES);
+   // m.draw(GL_LINES);
 }
 
 void nb::OpenGl::OpenGLRender::applyDefaultModel() noexcept

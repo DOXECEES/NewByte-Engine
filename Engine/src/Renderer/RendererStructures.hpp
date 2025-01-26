@@ -44,13 +44,18 @@ namespace nb
 
         struct Material
         {
-            std::string name;
-            Math::Vector3<float> ambient;
-            Math::Vector3<float> diffuse;
-            Math::Vector3<float> specular;
-            float shininess;
-            float dissolve;
-            uint8_t illuminationModel;
+            Material() = default;
+
+            std::string name = "";
+            Math::Vector3<float> ambient = {};
+            Math::Vector3<float> diffuse = {};
+            Math::Vector3<float> specular = {};
+            float shininess = 0.0f;
+            float dissolve = 0.0f;
+            uint8_t illuminationModel = 0;
+
+            auto operator<=>(const Material&) const = default;
+
 
             void lerp(const Material& target, float alpha)
             {
@@ -76,6 +81,38 @@ namespace nb
             std::map<std::string, Math::Mat4<float>> mat4Uniforms;
 
             void applyMaterial() 
+            {
+                for(const auto&i : floatUniforms)
+                {
+                    shader->setUniformFloat(i.first, i.second);
+                }
+
+                for(const auto&i : vec3Uniforms)
+                {
+                    shader->setUniformVec3(i.first, i.second);
+                }
+
+                for(const auto&i : vec4Uniforms)
+                {
+                    shader->setUniformVec4(i.first, i.second);
+                }
+
+                for(const auto&i : mat4Uniforms)
+                {
+                    shader->setUniformMat4(i.first, i.second);
+                }
+            }
+        };
+
+        struct ShaderUniforms
+        {
+            Ref<Shader> shader;
+            std::map<std::string, float> floatUniforms;
+            std::map<std::string, Math::Vector3<float>> vec3Uniforms;
+            std::map<std::string, Math::Vector4<float>> vec4Uniforms;
+            std::map<std::string, Math::Mat4<float>> mat4Uniforms;
+
+            void applyUniforms() 
             {
                 for(const auto&i : floatUniforms)
                 {

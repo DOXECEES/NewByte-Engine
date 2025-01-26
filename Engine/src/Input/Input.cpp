@@ -81,14 +81,14 @@ namespace nb
                         if (rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) 
                         {
                             uint64_t scrollChars = 1; // 1 is the default
-                            SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
+                            //SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
                             prevScrollData *= scrollChars;
                             
                         }
                         else 
                         {
                             uint64_t scrollLines = 3; 
-                            SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
+                            //SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
                             if (scrollLines != WHEEL_PAGESCROLL)
                                 prevScrollData *= scrollLines;
                             
@@ -126,8 +126,7 @@ namespace nb
                 }
             }
             else
-            {                        //Debug::debug(msg.message);
-
+            {                        
                 reset();
             }
 
