@@ -22,7 +22,7 @@
 #include "../Renderer/Camera.hpp"
 
 #include "../Math/RayCast/RayPicker.hpp"
-
+#include "../Utils/Timer.hpp"
 #include <memory>
 
 namespace nb
@@ -35,7 +35,8 @@ namespace nb
             Engine(const HWND& hwnd);
             ~Engine() = default;
             
-            bool run(const MSG& msg);
+            void processInput(const MSG& msg) noexcept;
+            bool run();
             void setHandleInput(bool var) { handleInput = var; };
 
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };

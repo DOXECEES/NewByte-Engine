@@ -157,6 +157,8 @@ add_library(${PROJECT_NAME} STATIC
         src/Utils/BitReader.hpp
         src/Utils/DeflateDecoder.cpp
         src/Utils/DeflateDecoder.hpp
+        src/Utils/Timer.cpp
+        src/Utils/Timer.hpp
 
         dependencies/lodepng/lodepng.cpp
 

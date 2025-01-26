@@ -82,8 +82,10 @@ namespace nb
                 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
                 glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
                 textureData.clear();
-
-                mesh = new Mesh(skyboxVertices, skyboxIndices);
+                std::vector<std::unique_ptr<Renderer::SubMesh>> m;
+                auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
+                m.push_back(std::move(p));
+                mesh = new Mesh(std::move(m), std::move(skyboxVertices));
             }
 
             Skybox::~Skybox()
@@ -99,7 +101,7 @@ namespace nb
                 shader->use();
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-                mesh->draw(GL_TRIANGLES);
+                mesh->draw(GL_TRIANGLES, shader);
                 glDepthFunc(GL_LESS);
                 glDepthMask(GL_TRUE);
                 glEnable(GL_DEPTH_TEST);

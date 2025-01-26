@@ -17,7 +17,8 @@ namespace nb
             std::vector<nb::Math::Vector3<float>> verticies;
             std::vector<nb::Math::Vector2<float>> textureCoords;
             std::vector<nb::Math::Vector3<float>> normals;
-            std::vector<uint32_t> indicies;
+            std::vector<std::vector<uint32_t>> indicies;
+            std::vector<std::string> materialOrder; 
 
             std::unordered_map<Renderer::Vertex, uint32_t> uniqueVertices;
 
@@ -55,6 +56,21 @@ namespace nb
                     }
                     default:
                         break;
+                    }
+                    break;
+                }
+                case 'u':
+                {
+                    auto position = str.find("usemtl");
+                    if (position != std::string::npos)
+                    {
+                        std::string materialName = str.substr(position + 7);
+                        materialOrder.push_back(materialName);
+                        indicies.push_back({});
+                    }
+                    else 
+                    {
+                        abort();
                     }
                     break;
                 }
@@ -112,8 +128,10 @@ namespace nb
                                 uniqueVertices[vertex] = static_cast<uint32_t>(vert.size());
                                 vert.push_back(vertex);
                             }
+                            if(indicies.empty())
+                                indicies.push_back({});
 
-                            indicies.push_back(uniqueVertices[vertex]);
+                            indicies.back().push_back(uniqueVertices[vertex]);
                         }
                     }
                     break;
@@ -126,12 +144,24 @@ namespace nb
             std::filesystem::path pathToMtl = path;
             pathToMtl.replace_extension(".mtl");
 
-            std::vector<Renderer::Material> materials = loadMaterial(pathToMtl.string());
+            std::map<std::string, Renderer::Material> materials = loadMaterial(pathToMtl.string());
+            std::vector<std::unique_ptr<Renderer::SubMesh>> subs;
 
-            return createRef<Renderer::Mesh>(std::move(vert), std::move(indicies), std::move(materials));
+            int index = 0;
+            for (const auto& ind : indicies)
+            {
+                if(materialOrder.empty())
+                    materialOrder.push_back("");
+
+                std::unique_ptr<Renderer::SubMesh> subMesh = std::make_unique<Renderer::SubMesh>(ind, !materials.contains(materialOrder[index]) ? Renderer::Material() : materials[materialOrder[index]]);
+                subs.push_back(std::move(subMesh));
+                index++;
+            }
+            
+            return createRef<Renderer::Mesh>(std::move(subs), std::move(vert));
         }
 
-        std::vector<Renderer::Material> ObjLoader::loadMaterial(const std::string &path) noexcept
+        std::map<std::string, Renderer::Material> ObjLoader::loadMaterial(const std::string &path) noexcept
         {
             std::ifstream mtlFile;
             mtlFile.open(path);
@@ -141,6 +171,7 @@ namespace nb
                 return {};
             }
 
+            std::map<std::string, Renderer::Material> materialStore;
             std::vector<Renderer::Material> materials;
             std::stringstream iss;
             iss << mtlFile.rdbuf();
@@ -152,6 +183,8 @@ namespace nb
                 if(token == "newmtl")
                 {
                     materials.emplace_back(Renderer::Material());
+                    iss >> token;
+                    materials.back().name = token;
                 }
                 else if(token == "Ka")
                 {
@@ -191,7 +224,12 @@ namespace nb
                 }
             }
 
-            return materials;
+            for(const auto& i : materials)
+            {
+                materialStore[i.name] = i;
+            }
+
+            return materialStore;
         }
 
         Math::Vector3<float> ObjLoader::parseVertex(std::string_view str) noexcept

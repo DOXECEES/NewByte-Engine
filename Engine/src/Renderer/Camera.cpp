@@ -24,7 +24,6 @@ namespace nb
             {
                 deltaPitch = 0.0f;
                 direction.y = 0.0f;
-                ///position.y = -position.y;
             }
 
             auto rightDirection = direction.cross(up);
@@ -46,10 +45,10 @@ namespace nb
             lookAt = Math::lookAt(position, position + direction, up);
 
             projection = Math::projection(
-                Math::toRadians(45.0f),
+                Math::toRadians(Core::EngineSettings::getFov()),
                 Core::EngineSettings::getAspectRatio(),
-                1.0f,
-                1000.0f);
+                NEAR_PLANE,
+                FAR_PLANE);
         }
     };
 };

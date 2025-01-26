@@ -52,8 +52,8 @@ namespace nb
 
 
 
-            Math::Vector3<float> minPoint;
-            Math::Vector3<float> maxPoint;
+            Math::Vector3<float> minPoint = { };
+            Math::Vector3<float> maxPoint = { };
         };
     };
 };

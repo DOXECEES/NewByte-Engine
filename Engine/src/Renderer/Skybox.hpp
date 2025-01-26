@@ -49,7 +49,7 @@ namespace nb
                     Vertex({-1.0f, 1.0f, 1.0f}, {0, 0, 1}, {1, 1, 1}, {0, 0})     // 7
                 };
 
-                std::vector<unsigned int> skyboxIndices = {
+                std::vector<uint32_t> skyboxIndices = {
                     // Передняя сторона
                     0, 1, 2, 0, 2, 3,
                     // Задняя сторона

@@ -9,8 +9,8 @@
 #include "HierarchyWindow.hpp"
 #include "PropertiesWindow.hpp"
 
-HWND hMDIClient = nullptr; 
-HMENU hMainMenu = nullptr; 
+HWND hMDIClient = nullptr;
+HMENU hMainMenu = nullptr;
 
 HWND activeWindow = nullptr;
 
@@ -24,7 +24,6 @@ HWND hwndMain;
 Editor::SceneWindow *scene;
 Editor::HierarchyWindow *hierarchyWindow;
 Editor::PropertiesWindow *propertiesWindow;
-
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -59,7 +58,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ShowWindow(hwndMain, nCmdShow);
     UpdateWindow(hwndMain);
 
-
     MDICREATESTRUCT mcs = {};
 
     mcs.x = 0;
@@ -73,15 +71,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RECT rect;
     GetClientRect(hMDIClient, &rect);
 
-
     scene = new Editor::SceneWindow(hMDIClient, engine);
     hChild = scene->getHandle();
     engine = std::make_shared<nb::Core::Engine>(hChild);
     scene->setEngine(engine);
     scene->resize(rect.right - rect.left, rect.bottom - rect.top);
-
-
-    
 
     hierarchyWindow = new Editor::HierarchyWindow(hMDIClient, engine);
     hierarchyWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
@@ -91,22 +85,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     propertiesWindow = new Editor::PropertiesWindow(hMDIClient, engine);
     propertiesWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
 
-
     MSG msg;
 
-    while (true)
+    bool running = true;
+    while (running)
     {
-        if(!PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-            continue;
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                running = false;
+                break;
+            }
 
-        if (msg.message == WM_QUIT)
+            if (msg.message == WM_INPUT)
+            {
+                engine->processInput(msg);
+            }
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        if (!running)
             break;
-        
-            engine->run(msg);
 
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-        
+        engine->run();
     }
     auto i = GetLastError();
 
@@ -150,7 +154,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         switch (LOWORD(wParam))
         {
         case 1:
-        { 
+        {
             MDICREATESTRUCT mcs = {};
             mcs.szTitle = L"Child Window";
             mcs.szClass = L"MDIChildClass";
@@ -167,53 +171,56 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             return 0;
         }
 
-        case 2: 
+        case 2:
             PostMessage(hwnd, WM_CLOSE, 0, 0);
             return 0;
         }
         break;
     }
     case WM_TIMER:
-    
-    break;
 
+        break;
 
     case WM_DRAWITEM:
     {
-        DRAWITEMSTRUCT* dis = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
-        if (dis->CtlType == ODT_LISTBOX) {
+        DRAWITEMSTRUCT *dis = reinterpret_cast<DRAWITEMSTRUCT *>(lParam);
+        if (dis->CtlType == ODT_LISTBOX)
+        {
             RECT rect = dis->rcItem;
             HDC hdc = dis->hDC;
-            
-            if (dis->itemState & ODS_SELECTED) {
-                SetBkColor(hdc, RGB(0, 120, 215)); 
+
+            if (dis->itemState & ODS_SELECTED)
+            {
+                SetBkColor(hdc, RGB(0, 120, 215));
                 SetTextColor(hdc, RGB(255, 255, 255));
-            } else {
-                SetBkColor(hdc, RGB(255, 255, 255));
-                SetTextColor(hdc, RGB(0, 0, 0)); 
             }
-            
+            else
+            {
+                SetBkColor(hdc, RGB(255, 255, 255));
+                SetTextColor(hdc, RGB(0, 0, 0));
+            }
+
             FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
-            
+
             int index = dis->itemID;
             wchar_t buffer[256];
             SendMessage(dis->hwndItem, LB_GETTEXT, index, (LPARAM)buffer);
             DrawText(hdc, buffer, -1, &rect, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
         }
-        return TRUE; 
+        return TRUE;
         break;
     }
     case WM_SIZE:
         if (hMDIClient)
             MoveWindow(hMDIClient, 0, 0, LOWORD(lParam), HIWORD(lParam), TRUE);
 
-        if(scene != nullptr)
+        if (scene != nullptr)
             scene->resize(LOWORD(lParam), HIWORD(lParam));
 
-        if(hierarchyWindow != nullptr)
+        if (hierarchyWindow != nullptr)
             hierarchyWindow->resize(LOWORD(lParam), HIWORD(lParam));
 
-        if(propertiesWindow != nullptr)
+        if (propertiesWindow != nullptr)
             propertiesWindow->resize(LOWORD(lParam), HIWORD(lParam));
 
         return 0;
@@ -245,11 +252,11 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     }
     case WM_SIZE:
     {
-       
+
         break;
     }
     case WM_TIMER:
-    break;
+        break;
     case WM_CREATE:
         return 0;
 

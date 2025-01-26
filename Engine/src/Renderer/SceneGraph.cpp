@@ -23,6 +23,7 @@ namespace nb
             node->parent = shared_from_this();
             this->children.push_back(node);
             SceneGraph::treeMap[node->getName()] = node;
+            dirtyFlag = true;
         }
 
         void BaseNode::setTranslate(const Math::Vector3<float> &translate) noexcept

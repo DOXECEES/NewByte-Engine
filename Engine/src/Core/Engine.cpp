@@ -118,14 +118,19 @@ namespace nb
             input->linkMouse(mouse);
             renderer = subSystems->getRenderer();
             renderer->setCamera(&cam);
+            Utils::Timer::init();
+
         }
 
-        bool Engine::run(const MSG &msg)
+        void Engine::processInput(const MSG &msg) noexcept
         {
+            input->update(msg);
+        }
 
-            nb::Math::Mat4<float> m = 
-                {{32, 3, 44, 2}, {3, 1, 32, 41}, {14, 51, 42, 12}, {9, 6, 15, 26}};
-
+        bool Engine::run()
+        {
+            //Debug::debug(Utils::Timer::timeElapsed());
+            
             //auto n  =  Math::inverse(m);
 
             renderer->setCamera(&cam);
@@ -166,10 +171,8 @@ namespace nb
                 ClipCursor(nullptr);
             }
 
-            if (msg.message == WM_QUIT)
-                return false;
+            
 
-            input->update(msg);
 
 
             std::vector<Renderer::Vertex> vert{
@@ -357,27 +360,27 @@ namespace nb
 
                 if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(top); n != nullptr)
                 {
-                    auto aabb = n->mesh->getAABB();
+                    // auto aabb = n->mesh->getAABB();
 
-                    auto camPos = renderer->getCamera()->getPosition();
-                    Ray ray;
-                    ray.direction = a;
-                    ray.origin = camPos;
+                    // auto camPos = renderer->getCamera()->getPosition();
+                    // Ray ray;
+                    // ray.direction = a;
+                    // ray.origin = camPos;
 
-                    if (rayIntersectsAABB(ray, aabb.minPoint, aabb.maxPoint))
-                    {
-                        OpenGl::OpenGLRender::setAmbientLight({255, 120, 100});
-                        //if (mouse->isLeftHeld())
-                        {
-                            // auto p = OpenGl::OpenGLRender::getAdd();
-                            // OpenGl::OpenGLRender::drawTransformationElements(i);
-                            Debug::debug("Inter");
-                        }
-                    }
-                    else
-                    {
-                        OpenGl::OpenGLRender::setAmbientLight({0, 0, 0});
-                    }
+                    // if (rayIntersectsAABB(ray, aabb.minPoint, aabb.maxPoint))
+                    // {
+                    //     OpenGl::OpenGLRender::setAmbientLight({255, 120, 100});
+                    //     //if (mouse->isLeftHeld())
+                    //     {
+                    //         // auto p = OpenGl::OpenGLRender::getAdd();
+                    //         // OpenGl::OpenGLRender::drawTransformationElements(i);
+                    //         //Debug::debug("Inter");
+                    //     }
+                    // }
+                    // else
+                    // {
+                    //     OpenGl::OpenGLRender::setAmbientLight({0, 0, 0});
+                    // }
 
                     // auto xx = std::to_string(a.x) + "---" + std::to_string(cam.getDirection().x);
                     // auto yy = std::to_string(a.y) + "---" + std::to_string(cam.getDirection().y);
