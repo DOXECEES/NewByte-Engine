@@ -196,6 +196,7 @@ void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context)
 
 void nb::OpenGl::OpenGLRender::render()
 {
+
     glViewport(0, 0, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight());
     glClearColor(0.45f, 0.12f, 0.75f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -271,42 +272,22 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
+        /// bullshit rewrite 
         for(auto& i : n->mt)
         {
-            i->shader->setUniformMat4("view", cam->getLookAt());
-            i->shader->setUniformMat4("proj", cam->getProjection());
-            i->shader->setUniformMat4("model", n->getWorldTransform());
-            i->shader->setUniformVec3("lightPos", {1.0f, 1.0f, 1.0f});
-            i->shader->setUniformVec3("Kd", {1.0f,1.0f,1.0f});
-            i->shader->setUniformVec3("Ld", {1.0f,1.0f,1.0f});
+            i->shader = shader;
+            i->mat4Uniforms["view"] = cam->getLookAt();
+            i->mat4Uniforms["proj"] = cam->getProjection();
+            i->mat4Uniforms["model"] = n->getWorldTransform();
+            i->vec3Uniforms["lightPos"] = {1.0f, 1.0f, 1.0f};
+            i->vec3Uniforms["Kd"] = {1.0f, 1.0f, 1.0f};
+            i->vec3Uniforms["Ld"] = {1.0f, 1.0f, 1.0f};
         }
         
+        n->mt[0]->applyMaterial();
+        ///
         
-        //n->mt[0]->applyMaterial();
-       // n->mt[0]->shader->use();
         n->mesh->draw(GL_TRIANGLES, shader);
-
-        // size_t indiciesOffset = 0;
-        // size_t matIndex = 0;
-        // for(const auto& i : n->mesh->meshes)
-        // {
-        //     n->mesh->VAO.bind();
-        //     n->mesh->VAO.draw(i->indices.size(), GL_TRIANGLES, indiciesOffset);
-        //     indiciesOffset += i->indices.size();
-
-        //         // activate material
-        //         if(i->material == Renderer::Material())
-        //         {   
-        //             n->mt[0]->applyMaterial();
-        //             n->mt[0]->shader->use();
-        //         }
-        //         else
-        //         {
-        //             n->mt[1]->applyMaterial();
-        //             n->mt[1]->shader->use();
-        //         }
-        // }
-        //n->mesh->drawAabb();
     }
 }
 
@@ -352,7 +333,7 @@ void nb::OpenGl::OpenGLRender::drawTransformationElements(const Ref<Renderer::Me
 void nb::OpenGl::OpenGLRender::applyDefaultModel() noexcept
 {
     auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("vert.shader");
+    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
 }
 
 void nb::OpenGl::OpenGLRender::applyDefaultModelFlat() noexcept

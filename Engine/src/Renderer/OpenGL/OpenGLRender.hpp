@@ -26,6 +26,8 @@
 
 #include "OpenGLTexture.hpp"
 
+#include "../../Utils/Timer.hpp"
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB             0x2093

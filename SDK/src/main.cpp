@@ -90,6 +90,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     bool running = true;
     while (running)
     {
+        // don't pick 
+        // processInput should be first to update state from prev frame 
+        engine->processInput();
+
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT)
@@ -100,7 +104,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
             if (msg.message == WM_INPUT)
             {
-                engine->processInput(msg);
+                engine->bufferizeInput(msg);
             }
 
             TranslateMessage(&msg);
