@@ -7,6 +7,7 @@ namespace nb
         void Keyboard::update() noexcept
         {
             prevFrameCodes = codes;
+            Debug::debug("KEYBOARD_UPDATE");
         }
 
         void Keyboard::setKeyUp(const uint8_t key) noexcept

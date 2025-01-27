@@ -29,7 +29,7 @@ namespace nb
 
         private:
             std::bitset<MAX_COUNT_OF_VK> codes;
-            std::bitset<MAX_COUNT_OF_VK> prevFrameCodes;
+            std::bitset<MAX_COUNT_OF_VK> prevFrameCodes = codes;
         };
     };
 };

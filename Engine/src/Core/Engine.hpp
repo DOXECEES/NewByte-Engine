@@ -34,8 +34,9 @@ namespace nb
         public:
             Engine(const HWND& hwnd);
             ~Engine() = default;
-            
-            void processInput(const MSG& msg) noexcept;
+
+            void bufferizeInput(const MSG& msg) noexcept;
+            void processInput() noexcept;
             bool run();
             void setHandleInput(bool var) { handleInput = var; };
 

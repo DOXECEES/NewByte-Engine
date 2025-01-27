@@ -25,8 +25,9 @@ namespace nb
             inline void startHandlingPosition() noexcept { shouldHandlePosition = true; };
             inline void stopHandlingKeyboardEvents() noexcept { shouldHandleKeyboardEvents = false; };
             inline void startHandlingKeyboardEvents() noexcept { shouldHandleKeyboardEvents = true; };
+            
             void update(const MSG& msg) noexcept;
-
+            void updateAll() const noexcept;
 
 
         private:
