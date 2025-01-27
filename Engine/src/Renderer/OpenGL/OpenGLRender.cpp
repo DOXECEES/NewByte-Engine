@@ -167,7 +167,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     //t2 = Math::translate(t2, {0.0f, 20.0f, 0.0f});
     Renderer::Transform t2;
     t2.translate = {0.0f, 20.0f, 0.0f};
-    t2.rotateX = 90.0f;
+    t2.rotateX = Math::toRadians(90.0f);
     //t.translate = {0.0f, -10.0f, 0.0f};
 
     //auto n3 = std::make_shared<Renderer::ObjectNode>("Weapon 2", t2, mesh, shader);
