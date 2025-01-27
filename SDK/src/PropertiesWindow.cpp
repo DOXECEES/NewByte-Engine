@@ -263,7 +263,7 @@ namespace Editor
         currentObject = obj;
         auto transform = obj->getTransform();
         coordsEdit->setCoordinates(transform.translate);
-        rotateEdit->setCoordinates({transform.rotateX, transform.rotateY, transform.rotateZ});
+        rotateEdit->setCoordinates({nb::Math::toDegrees(transform.rotateX), nb::Math::toDegrees(transform.rotateY), nb::Math::toDegrees(transform.rotateZ)});
         scaleEdit->setCoordinates(transform.scale);
     }
 
