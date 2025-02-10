@@ -32,6 +32,8 @@ namespace nb
             void toggleAlignByY() noexcept { alignByY = !alignByY; };
             void toggleAlignByZ() noexcept { alignByZ = !alignByZ; };
 
+            inline const Math::Vector3<float> &getUpVector() const noexcept { return up; };
+
             inline const Math::Mat4<float> &getLookAt() const noexcept { return lookAt; };
             inline const Math::Mat4<float> &getProjection() const noexcept { return projection; };
             inline const Math::Mat4<float> getOrtho() const noexcept { return Math::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); };

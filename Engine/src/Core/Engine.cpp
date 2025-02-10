@@ -131,7 +131,6 @@ namespace nb
         {
             //bufferizeInput();
             input->updateAll();// should allways be first
-
         }
 
         bool Engine::run()
@@ -213,6 +212,14 @@ namespace nb
                     rightVec.normalize();
                     cam.moveTo(camPos - rightVec * 2.0f * deltaTime);
                 }
+                if(keyboard->isKeyHeld(VK_SPACE))
+                {
+                    cam.moveTo(camPos + cam.getUpVector() * 2.0f * deltaTime);
+                }
+                if(keyboard->isKeyHeld(VK_SHIFT))
+                {
+                    cam.moveTo(camPos - cam.getUpVector() * 2.0f * deltaTime);
+                }
             }
             else
             {
@@ -256,7 +263,6 @@ namespace nb
                 {
                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                 }
-
                 if (keyboard->isKeyPressed(VK_CONTROL))
                 {
                     SetCursorPos(EngineSettings::getWidth() / 2, EngineSettings::getHeight() / 2);
