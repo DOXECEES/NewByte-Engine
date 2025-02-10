@@ -141,48 +141,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     DestroyWindow(dummyWindow);
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
 
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
-
-    auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
-    auto mesh2 = rm->getResource<Renderer::Mesh>("dode.obj");
-    auto meshCube = rm->getResource<Renderer::Mesh>("cube.obj");
-    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine.obj");
-    //Renderer::SceneGraph::SceneNode n;
-    //n.mesh = mesh;  
-    //sceneGraph.addChild(n);
-    sceneGraph = Renderer::SceneGraph::getInstance();
-    auto scene = sceneGraph->getScene();
-    auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.f, 0.0f, 0.0f});
-    //scene->setTransform(wtr);
-
-    Renderer::Transform at;
-
-    auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
-    Renderer::Transform t;
-    t.translate = {0.0f, -10.0f, 0.0f};
-    //auto n2 = std::make_shared<Renderer::ObjectNode>("docehedron", t , mesh2, shader);
-    //auto t2 = Math::translate(Math::Mat4<float>::identity(), {0.0f, 10.0f, 0.0f});
-    //t2 = Math::rotate(Math::Mat4<float>::identity(), {1.0f, 0.0f, 0.0f}, 90);
-    //t2 = Math::translate(t2, {0.0f, 20.0f, 0.0f});
-    Renderer::Transform t2;
-    t2.translate = {0.0f, 20.0f, 0.0f};
-    t2.rotateX = Math::toRadians(90.0f);
-    //t.translate = {0.0f, -10.0f, 0.0f};
-
-    //auto n3 = std::make_shared<Renderer::ObjectNode>("Weapon 2", t2, mesh, shader);
-    //auto n4 = std::make_shared<Renderer::ObjectNode>("Cube", t2, meshCube, shader);
-    auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
-
-
-    scene->addChildren(n);
-    //scene->addChildren(n4);
-    scene->addChildren(n5);
-
-    //scene->addChildren(n2);
-    //scene->getChildren(0)->addChildren(n3);
-
-
+    loadScene();
     return true;
 }
 
@@ -192,6 +151,39 @@ void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context)
     wglMakeCurrent(nullptr, nullptr);
     wglDeleteContext(context);
     ReleaseDC(hwnd, hdc);
+}
+
+void nb::OpenGl::OpenGLRender::loadScene() noexcept
+{
+    auto rm = nb::ResMan::ResourceManager::getInstance();
+    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
+
+    auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
+    auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
+    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine.obj");
+    
+    sceneGraph = Renderer::SceneGraph::getInstance();
+    
+    auto scene = sceneGraph->getScene();
+    auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.f, 0.0f, 0.0f});
+
+    Renderer::Transform at;
+
+    auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
+    auto g = std::make_shared<Renderer::ObjectNode>("Gizmo", at, gizmo, shader);
+
+    Renderer::Transform t;
+    t.translate = {0.0f, -10.0f, 0.0f};
+    
+    Renderer::Transform t2;
+    t2.translate = {0.0f, 20.0f, 0.0f};
+    t2.rotateX = Math::toRadians(90.0f);
+
+    auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
+
+    scene->addChildren(n);
+    scene->addChildren(g);
+    scene->addChildren(n5);
 }
 
 void nb::OpenGl::OpenGLRender::render()
@@ -204,22 +196,13 @@ void nb::OpenGl::OpenGLRender::render()
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
 
-    static Math::Vector3<float> color = {1.0f, 0.5f, 0.31f};
-
-  
-    // TEMP
-    auto mesh = rm->getResource<Renderer::Mesh>("doce.obj");
     auto view = cam->getLookAt();
-    
     auto proj = cam->getProjection();
 
     static Renderer::Skybox sky;
     auto skyboxShader = rm->getResource<nb::Renderer::Shader>("skybox.shader");
 
-    if(isOrtho)
-        proj = cam->getOrtho();
-    else
-        proj = cam->getProjection();
+    proj = cam->getProjection();
 
     skyboxShader->setUniformInt("skybox", 0);
     skyboxShader->setUniformMat4("view", view);
@@ -229,24 +212,76 @@ void nb::OpenGl::OpenGLRender::render()
     //
 
     //
-    static OpenGl::OpenGlTexture t("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\2.png");
-    static float vel = 0.001f;
-    vel += 0.001f;
-    
-    if(isLerp)
-    {
-        lerpMaterial();
-        applyAmbientDiffuseSpecularModel(cam);
-    }
+
     shader->setUniformMat4("model", model);
     shader->setUniformMat4("view", view);
     shader->setUniformMat4("proj", proj);
 
-   
     MVP = model * view * proj;
-    t.bind(0);
 
     sceneGraph->getScene()->updateWorldTransform();
+
+
+    // GLuint fbo;
+    // glGenFramebuffers(1, &fbo);
+    // glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // //
+    // GLuint bufferPositions;
+    // GLuint bufferNormals;
+    // GLuint bufferColor;
+
+    // glGenTextures(1, &bufferPositions);
+    // glBindTexture(GL_TEXTURE_2D, bufferPositions);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bufferPositions, 0);
+
+
+    // glGenTextures(1, &bufferNormals);
+    // glBindTexture(GL_TEXTURE_2D, bufferNormals);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, bufferNormals, 0);
+
+    // glGenTextures(1, &bufferColor);
+    // glBindTexture(GL_TEXTURE_2D, bufferColor);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, bufferColor, 0);
+
+    // unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+    // glDrawBuffers(3, attachments);
+
+    // unsigned int rboDepth;
+    // glGenRenderbuffers(1, &rboDepth);
+    // glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight());
+    // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    // // finally check if framebuffer is complete
+    // if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    //     //std::cout << "Framebuffer not complete!" << std::endl;
+    //     {
+
+    //     }
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // auto lightShader = rm->getResource<nb::Renderer::Shader>("lightShader.shader");
+
+    // lightShader->setUniformInt("gPosition", 0);
+    // lightShader->setUniformInt("gNormal", 1);
+    // lightShader->setUniformInt("gAlbedoSpec", 2);
+
+
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, bufferPositions);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, bufferNormals);
+    // glActiveTexture(GL_TEXTURE2);
+    // glBindTexture(GL_TEXTURE_2D, bufferColor);
 
     std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
     stk.push(sceneGraph->getScene());
@@ -266,6 +301,96 @@ void nb::OpenGl::OpenGLRender::render()
     SwapBuffers(hdc);
 }
 
+
+Ref<nb::Renderer::Mesh> generateTranslateGizmo()
+{
+    const float height = 5;
+    const float radius = 2.0f;
+    const int segmentsCount = 32;
+    // bottom + surface + caps
+    std::vector<nb::Renderer::Vertex> vert((segmentsCount + 1) *2 + 1);
+
+//     // cylinder
+    float thetaStep = 2.0f * nb::Math::Constants::PI / segmentsCount;
+
+    for (int i = 0; i <= segmentsCount; i++)
+    {
+        float theta = i * thetaStep;
+        const float sinU = sin(theta);
+        const float cosU = cos(theta);
+
+        nb::Renderer::Vertex v1 = {{radius * cosU, radius * sinU, height / 2}};
+        nb::Renderer::Vertex v2 = {{radius * cosU, radius * sinU, -height / 2}};
+        vert[i] = (v1);
+        vert[segmentsCount + 1 + i] = (v2);
+    }
+
+    int k1 = 0;                        
+    int k2 = segmentsCount + 1;  
+    std::vector<GLuint> ind; 
+
+    for(int i = 0; i < segmentsCount * 6; i += 6, ++k1, ++k2)
+    {
+
+        ind.push_back(k1);
+        ind.push_back(k1 + 1);
+        ind.push_back(k2);
+
+        ind.push_back(k2);
+        ind.push_back(k1 + 1);
+        ind.push_back(k2 + 1);
+    }
+
+    vert.push_back({{0.0f, 0.0f, -height / 2}});
+    GLuint bottomCenterIndex = vert.size() - 1;
+
+    for (int i = segmentsCount + 1; i < (segmentsCount+1)*2; i++)
+    {
+        ind.push_back(i);
+        ind.push_back(bottomCenterIndex);
+        ind.push_back(i + 1);
+    }
+
+    // caps
+    const float capRadius = radius + 1;
+    const float capOffset = height / 2.0f;
+    const float capHeight = 2.0f;
+    const int capSegmentCount = 32;
+
+    float capThetaStep = 2.0f * nb::Math::Constants::PI / capSegmentCount;
+
+    for (int i = 0; i <= capSegmentCount; i++)
+    {
+        float theta = capThetaStep * i;
+        const float sinU = sin(theta);
+        const float cosU = cos(theta);
+
+        nb::Renderer::Vertex v = {{capRadius * cosU, capRadius * sinU, capOffset}};
+        vert.push_back(v);
+    }
+
+    vert.push_back({{0.0f, 0.0f, capOffset}});
+    GLuint bottomCenterCapIndex = vert.size() - 1;
+    
+    // for (int i = 0; i < (capSegmentCount + 1) * 2; i++)
+    // {
+    //     ind.push_back(i);
+    //     ind.push_back(bottomCenterCapIndex);
+    //     ind.push_back(i + 1);
+    // }
+
+
+    vert.push_back({{0.0f, 0.0f, capOffset + capHeight}});
+    GLuint topCenterCapIndex = vert.size() - 1;
+
+
+
+
+    return createRef<nb::Renderer::Mesh>(vert, ind);
+
+}
+
+
 void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node) noexcept 
 {
     if (node == nullptr) return;
@@ -279,14 +404,17 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
             i->mat4Uniforms["view"] = cam->getLookAt();
             i->mat4Uniforms["proj"] = cam->getProjection();
             i->mat4Uniforms["model"] = n->getWorldTransform();
-            i->vec3Uniforms["lightPos"] = {1.0f, 1.0f, 1.0f};
-            i->vec3Uniforms["Kd"] = {1.0f, 1.0f, 1.0f};
-            i->vec3Uniforms["Ld"] = {1.0f, 1.0f, 1.0f};
+            i->vec3Uniforms["light[0].LightPos"] = {1.0f, 1.0f, 1.0f};
+            //i->vec3Uniforms["light[0].La"] = {0.0f, 0.0f, 1.0f};
+            i->vec3Uniforms["light[0].Ld"] = {1.0f, 1.0f, 1.0f};
+            i->vec3Uniforms["light[1].LightPos"] = {-1.00f, 10.0f, -10.0f};
+            i->vec3Uniforms["light[1].La"] = {0.1f, 0.1f, 0.1f};
+            i->vec3Uniforms["light[1].Ld"] = {1.0f, 1.0f, 1.0f};
         }
-        
+        //auto m = generateTranslateGizmo();
+        //m->draw(GL_TRIANGLES, shader);
+
         n->mt[0]->applyMaterial();
-        ///
-        
         n->mesh->draw(GL_TRIANGLES, shader);
     }
 }
@@ -301,11 +429,6 @@ nb::OpenGl::OpenGLRender *nb::OpenGl::OpenGLRender::create(HWND hwnd)
     }
 
     return render;
-}
-
-void nb::OpenGl::OpenGLRender::rotate(float angle, const nb::Math::Vector3<float> &axis) noexcept
-{
-    model = Math::rotate(model, axis, Math::toRadians(angle));
 }
 
 void nb::OpenGl::OpenGLRender::drawTransformationElements(const Ref<Renderer::Mesh> mesh) noexcept
@@ -342,45 +465,6 @@ void nb::OpenGl::OpenGLRender::applyDefaultModelFlat() noexcept
     shader = rm->getResource<nb::Renderer::Shader>("vertFlat.shader");
 }
 
-void nb::OpenGl::OpenGLRender::lerpMaterial() noexcept
-{
-    // Renderer::Material materials[] = {
-    //     {{0.0215, 0.1745, 0.0215}, {0.07568, 0.61424, 0.07568}, {0.633, 0.727811, 0.633}, 0.6},  // emerald
-    //     {{0.135, 0.2225, 0.1575}, {0.54, 0.89, 0.63}, {0.316228, 0.316228, 0.316228}, 0.1},        // jade
-    //     {{0.05375, 0.05, 0.06625}, {0.18275, 0.17, 0.22525}, {0.332741, 0.328634, 0.346435}, 0.3}, // obsidian
-    //     {{0.25, 0.20725, 0.20725}, {1, 0.829, 0.829}, {0.296648, 0.296648, 0.296648}, 0.088},     // pearl
-    //     {{0.1745, 0.01175, 0.01175}, {0.61424, 0.04136, 0.04136}, {0.727811, 0.626959, 0.626959}, 0.6} // ruby
-    // };
-
-
-
-    // static float lerpAlpha = 0.0f;   
-    // static int currentMaterial = 0;  
-    // static auto lastTime = std::chrono::steady_clock::now();
-    // int nextMaterialIndex = (currentMaterial + 1) % (sizeof(materials) / sizeof(materials[0]));
-    // Renderer::Material nextMat = materials[nextMaterialIndex];
-    
-    // auto now = std::chrono::steady_clock::now();
-    // std::chrono::duration<float> elapsedTime = now - lastTime;
-    
-    // if (elapsedTime.count() >= 1.0f) 
-    // {
-    //     lastTime = now;
-
-    //     lerpAlpha += 0.1f; 
-
-    //     if (lerpAlpha >= 1.0f)
-    //     {
-    //             currentMaterial = (currentMaterial + 1) % (sizeof(materials) / sizeof(materials[0]));
-    //                 mat = materials[currentMaterial];
-
-    //             lerpAlpha = 0.0f;  
-    //     }
-    //     mat.lerp(nextMat, lerpAlpha);
-    // }
-
-}
-
 void nb::OpenGl::OpenGLRender::applyDiffuseReflectionModel() noexcept
 {
     auto rm = nb::ResMan::ResourceManager::getInstance();
@@ -412,7 +496,6 @@ void nb::OpenGl::OpenGLRender::applyAmbientDiffuseSpecularModel(Renderer::Camera
 
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::ambientColor = {0.0f, 0.0f, 0.0f};
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::lightPos = {0.0f, 0.0f, 0.0f};
-nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::pos = {0.0f, 0.0f, 0.0f};
 nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::MVP = {};
 Ref<nb::Renderer::Shader> nb::OpenGl::OpenGLRender::shader = nullptr;
 nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::model({{1.0f, 0.f, 0.f, 0.f},
@@ -420,7 +503,5 @@ nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::model({{1.0f, 0.f, 0.f, 0.f},
                              {0.f, 0.f, 1.0f, 0.f},
                              {0.f, 0.f, 0.f, 1.0f}});
 
-bool nb::OpenGl::OpenGLRender::isOrtho = false;
-bool nb::OpenGl::OpenGLRender::isLerp = false;
 
 nb::Renderer::Material nb::OpenGl::OpenGLRender::mat;

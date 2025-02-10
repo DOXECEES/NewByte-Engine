@@ -14,13 +14,11 @@ namespace Editor
         WinAPITreeView(HWND parent, int x, int y, int width, int height)
             : parentWindow(parent), treeViewHandle(nullptr), draggingItem(nullptr)
         {
-            // Инициализация общего элемента управления
             INITCOMMONCONTROLSEX icex;
             icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
             icex.dwICC = ICC_TREEVIEW_CLASSES;
             InitCommonControlsEx(&icex);
 
-            // Создание TreeView
             treeViewHandle = CreateWindowEx(
                 0, WC_TREEVIEW, TEXT(""),
                 WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES | TVS_LINESATROOT | TVS_HASBUTTONS,

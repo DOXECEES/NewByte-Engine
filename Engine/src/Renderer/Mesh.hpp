@@ -64,7 +64,7 @@ namespace nb
         {
             public:
             
-                //Mesh(const std::vector<SubMesh> &meshes);
+                Mesh(const std::vector<Vertex>& vert, const std::vector<uint32_t>& ind);
                 explicit Mesh(std::vector<std::unique_ptr<SubMesh>> &&meshes, std::vector<Vertex>&& vertex)
                     : meshes(std::move(meshes))
                     , verticies(std::move(vertex))

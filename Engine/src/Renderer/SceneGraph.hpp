@@ -119,13 +119,13 @@ namespace nb
                 }
             }
 
-
-            //private:
+        //private:
             std::shared_ptr<Mesh> mesh;
             std::vector<std::shared_ptr<MaterialNode>> mt;
             
-        
         };
+
+
 
         class SceneGraph
         {

@@ -90,6 +90,13 @@ namespace nb
 
         // }
 
+        Mesh::Mesh(const std::vector<Vertex> &vert, const std::vector<uint32_t> &ind)
+            : verticies(vert)
+        {
+            meshes.push_back(std::make_unique<SubMesh>(ind));
+            VAO.linkData(verticies, ind);
+        }
+
         std::vector<Renderer::Material> Mesh::getMaterials() const noexcept
         {
             std::vector<Renderer::Material> mats;

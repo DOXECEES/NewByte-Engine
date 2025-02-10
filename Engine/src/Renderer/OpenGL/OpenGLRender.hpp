@@ -61,73 +61,40 @@ namespace nb
 
                 bool init() noexcept override;
                 void initFail(std::string_view message, HGLRC context) noexcept;
+                void loadScene() noexcept;
 
             public:
-                Ref<Renderer::Mesh> m = nullptr;
 
                 void render() override;
                 void renderNode(std::shared_ptr<Renderer::BaseNode> node) noexcept;
 
                 static OpenGLRender *create(HWND hwnd);
 
-                static void add(const Math::Vector3<float>& poss)
-                {
-                    pos = {poss.x, poss.y, poss.z};
-                }
-                static  Math::Vector3<float> getAdd()
-                {
-                    return pos;
-                }
-
-
                 static void setAmbientLight(const Math::Vector3<uint8_t>& color) noexcept
                 {
                     ambientColor = Math::toFloatColor(color);
                 }
 
-                static void setLightPos(const Math::Vector3<float>& pos) noexcept
-                {
-                    lightPos = pos;
-                }
-
-                static void setModel() 
-                {
-                    model = nb::Math::Mat4<float>({{1.0f, 0.f, 0.f, 0.f},
-                             {0.f, 1.0f, 0.f, 0.f},
-                             {0.f, 0.f, 1.0f, 0.f},
-                             {0.f, 0.f, 0.f, 1.0f}});
-                }
-
-                static void rotate(float angle, const nb::Math::Vector3<float>& axis) noexcept;
-
-
                 static void drawTransformationElements(const Ref<Renderer::Mesh> mesh) noexcept;
 
                 static void applyDefaultModel() noexcept;
                 static void applyDefaultModelFlat() noexcept;
-
-                static void lerpMaterial() noexcept;
-                static void enableLerpMaterial(bool exp) noexcept { isLerp = exp; };
-
                 static void applyDiffuseReflectionModel() noexcept;
                 static void applyAmbientDiffuseSpecularModel(Renderer::Camera* cam) noexcept;
+                
                 static Math::Mat4<float> MVP;
 
-                inline static void setIsOrtho(bool exp) noexcept { isOrtho = exp; };
 
             private:
+
                 HDC hdc = {};
                 
-
                 static Math::Vector3<float> ambientColor;
                 static Math::Vector3<float> lightPos;
-                static Math::Vector3<float> pos;
                 static Math::Mat4<float> model;
                 static Ref<Renderer::Shader> shader;
 
                 static Renderer::Material mat;
-                static bool isOrtho;
-                static bool isLerp;
         };
     };
 };

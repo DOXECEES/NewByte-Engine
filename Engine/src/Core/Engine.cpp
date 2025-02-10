@@ -252,28 +252,6 @@ namespace nb
                     // temp
                     // nb::OpenGl::OpenGLRender::setIsOrtho(false);
                 }
-                if (keyboard->isKeyPressed(0x35))
-                {
-                    nb::OpenGl::OpenGLRender::rotate(15.0f, {1.0f, 0.0f, 0.0f});
-                }
-                if (keyboard->isKeyPressed(0x36))
-                {
-                    nb::OpenGl::OpenGLRender::rotate(15.0f, {0.0f, 1.0f, 0.0f});
-                }
-                if (keyboard->isKeyPressed(0x37))
-                {
-                    nb::OpenGl::OpenGLRender::rotate(15.0f, {0.0f, 0.0f, 1.0f});
-                }
-                if (keyboard->isKeyPressed(0x38))
-                {
-                    nb::OpenGl::OpenGLRender::setIsOrtho(true);
-                    cam.moveTo({0.0f, 2.0f, 4.0f});
-                    nb::OpenGl::OpenGLRender::setModel();
-                }
-                if(keyboard->isKeyPressed(VK_SHIFT))
-                {
-                    nb::OpenGl::OpenGLRender::enableLerpMaterial(true);
-                }
                 if(keyboard->isKeyPressed(0x39))
                 {
                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -354,6 +332,11 @@ namespace nb
 
                 if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(top); n != nullptr)
                 {
+                    if(n->getName() == "Gizmo")
+                    {
+
+                    } 
+                    
                     // auto aabb = n->mesh->getAABB();
 
                     // auto camPos = renderer->getCamera()->getPosition();
