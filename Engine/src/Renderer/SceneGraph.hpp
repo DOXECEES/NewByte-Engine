@@ -106,22 +106,11 @@ namespace nb
             ObjectNode(std::string_view nodeName, const Transform& nodeTransform, const std::shared_ptr<Mesh> &nodeMesh, const std::shared_ptr<Shader> nodeShader)
                 : BaseNode(nodeName, nodeTransform), mesh(nodeMesh)
             {
-                auto mat = mesh->getMaterials();
-                for (int i = 0; i < mat.size(); i++)
-                {
-                    mt.push_back(std::make_shared<MaterialNode>());
-                    mt.back()->shader = nodeShader;
-                    mt.back()->vec3Uniforms["Ka"] = mat[i].ambient;
-                    mt.back()->vec3Uniforms["Kd"] = mat[i].diffuse;
-                    mt.back()->vec3Uniforms["Ks"] = mat[i].specular;
-                    mt.back()->floatUniforms["shine"] = mat[i].shininess;
-                    mt.back()->floatUniforms["d"] = mat[i].dissolve; // add other
-                }
+            
             }
 
         //private:
             std::shared_ptr<Mesh> mesh;
-            std::vector<std::shared_ptr<MaterialNode>> mt;
             
         };
 

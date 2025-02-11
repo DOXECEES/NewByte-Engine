@@ -76,12 +76,16 @@ namespace nb
                 std::vector<Material> getMaterials() const noexcept;
 
                 void draw(GLenum mode, const Ref<Shader>& shader) const noexcept;
+                
+                
+                ShaderUniforms uniforms;
             
             private:
                 std::vector<uint32_t> uniteIndicies() noexcept;
                 void applyMaterial(const SubMesh& mesh) const noexcept;
 
-                // private:
+            //private:
+
 
                 nb::OpenGl::VertexArray VAO;
 

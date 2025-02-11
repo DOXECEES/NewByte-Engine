@@ -396,25 +396,17 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
     if (node == nullptr) return;
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
-    {
-        /// bullshit rewrite 
-        for(auto& i : n->mt)
-        {
-            i->shader = shader;
-            i->mat4Uniforms["view"] = cam->getLookAt();
-            i->mat4Uniforms["proj"] = cam->getProjection();
-            i->mat4Uniforms["model"] = n->getWorldTransform();
-            i->vec3Uniforms["light[0].LightPos"] = {1.0f, 1.0f, 1.0f};
-            //i->vec3Uniforms["light[0].La"] = {0.0f, 0.0f, 1.0f};
-            i->vec3Uniforms["light[0].Ld"] = {1.0f, 1.0f, 1.0f};
-            i->vec3Uniforms["light[1].LightPos"] = {-1.00f, 10.0f, -10.0f};
-            i->vec3Uniforms["light[1].La"] = {0.1f, 0.1f, 0.1f};
-            i->vec3Uniforms["light[1].Ld"] = {1.0f, 1.0f, 1.0f};
-        }
-        //auto m = generateTranslateGizmo();
-        //m->draw(GL_TRIANGLES, shader);
-
-        n->mt[0]->applyMaterial();
+    {        
+        n->mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
+        n->mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
+        n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
+        n->mesh->uniforms.vec3Uniforms["light[0].LightPos"] = {1.0f, 1.0f, 1.0f};
+        //n->mesh->uniforms.vec3Uniforms["light[0].La"] = {0.0f, 0.0f, 1.0f};
+        n->mesh->uniforms.vec3Uniforms["light[0].Ld"] = {1.0f, 1.0f, 1.0f};
+        n->mesh->uniforms.vec3Uniforms["light[1].LightPos"] = {-1.00f, 10.0f, -10.0f};
+        n->mesh->uniforms.vec3Uniforms["light[1].La"] = {0.1f, 0.1f, 0.1f};
+        n->mesh->uniforms.vec3Uniforms["light[1].Ld"] = {1.0f, 1.0f, 1.0f};
+        
         n->mesh->draw(GL_TRIANGLES, shader);
     }
 }
