@@ -132,6 +132,7 @@ namespace nb
         void Mesh::applyMaterial(const SubMesh& mesh) const noexcept
         {
             mesh.shader->applyUniforms();
+            mesh.shader->applyUniforms(uniforms);
             mesh.shader->shader->use();
         }
 

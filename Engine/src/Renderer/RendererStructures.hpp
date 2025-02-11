@@ -134,6 +134,30 @@ namespace nb
                     shader->setUniformMat4(i.first, i.second);
                 }
             }
+
+            void applyUniforms(const ShaderUniforms& other)
+            {
+                for(const auto&i : other.floatUniforms)
+                {
+                    shader->setUniformFloat(i.first, i.second);
+                }
+
+                for(const auto&i : other.vec3Uniforms)
+                {
+                    shader->setUniformVec3(i.first, i.second);
+                }
+
+                for(const auto&i : other.vec4Uniforms)
+                {
+                    shader->setUniformVec4(i.first, i.second);
+                }
+
+                for(const auto&i : other.mat4Uniforms)
+                {
+                    shader->setUniformMat4(i.first, i.second);
+                }
+            }
+
         };
     };
 };
