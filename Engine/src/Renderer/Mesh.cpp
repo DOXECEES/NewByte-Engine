@@ -34,7 +34,7 @@ namespace nb
             shader->vec3Uniforms["Kd"] = mat.diffuse;
             shader->vec3Uniforms["Ks"] = mat.specular;
             shader->floatUniforms["shine"] = mat.shininess;
-            shader->floatUniforms["d"] = mat.dissolve; // add other
+            //shader->floatUniforms["d"] = mat.dissolve; // add other
         }
 
         void SubMesh::attachShader(const Ref<Shader> &shader) noexcept
