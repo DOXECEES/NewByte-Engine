@@ -136,7 +136,6 @@ namespace nb
         bool Engine::run()
         {
             float deltaTime = Utils::Timer::timeElapsed();
-
             renderer->setCamera(&cam);
 
             static float yaw;
@@ -194,31 +193,31 @@ namespace nb
             {
                 if (keyboard->isKeyHeld(0x53))
                 {
-                    cam.moveTo(camPos + camDir * 2.0f* deltaTime);
+                    cam.moveAt(camDir * 2.0f * deltaTime);
                 }
                 if (keyboard->isKeyHeld(0x57))
                 {
-                    cam.moveTo(camPos - camDir * 2.0f* deltaTime);
+                    cam.moveAt(-camDir * 2.0f* deltaTime);
                 }
                 if (keyboard->isKeyHeld(0x41))
                 {
                     auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                     rightVec.normalize();
-                    cam.moveTo(camPos + rightVec * 2.0f* deltaTime);
+                    cam.moveAt(rightVec * 2.0f* deltaTime);
                 }
                 if (keyboard->isKeyHeld(0x44))
                 {
                     auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                     rightVec.normalize();
-                    cam.moveTo(camPos - rightVec * 2.0f * deltaTime);
+                    cam.moveAt(-rightVec * 2.0f * deltaTime);
                 }
                 if(keyboard->isKeyHeld(VK_SPACE))
                 {
-                    cam.moveTo(camPos + cam.getUpVector() * 2.0f * deltaTime);
+                    cam.moveAt(cam.getUpVector() * 2.0f * deltaTime);
                 }
                 if(keyboard->isKeyHeld(VK_SHIFT))
                 {
-                    cam.moveTo(camPos - cam.getUpVector() * 2.0f * deltaTime);
+                    cam.moveAt(-(cam.getUpVector() * 2.0f * deltaTime));
                 }
             }
             else
@@ -278,6 +277,10 @@ namespace nb
                 if (keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x58))
                 {
                     cam.toggleAlignByX();
+                }
+                if(keyboard->isKeyPressed(VK_TAB))
+                {
+                    std::dynamic_pointer_cast<nb::OpenGl::OpenGlShader>(nb::OpenGl::OpenGLRender::shader)->recompile();
                 }
             }
 

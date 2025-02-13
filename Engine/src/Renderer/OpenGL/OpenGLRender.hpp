@@ -63,6 +63,8 @@ namespace nb
                 void initFail(std::string_view message, HGLRC context) noexcept;
                 void loadScene() noexcept;
 
+                void visualizeLight() const noexcept;
+
             public:
 
                 void render() override;
@@ -85,6 +87,7 @@ namespace nb
                 static Math::Mat4<float> MVP;
 
 
+                static Ref<Renderer::Shader> shader;
             private:
 
                 HDC hdc = {};
@@ -92,9 +95,13 @@ namespace nb
                 static Math::Vector3<float> ambientColor;
                 static Math::Vector3<float> lightPos;
                 static Math::Mat4<float> model;
-                static Ref<Renderer::Shader> shader;
 
                 static Renderer::Material mat;
+
+                // temp
+                std::vector<Math::Vector3<float>> lightPosition;
+                bool shouldVisualizeLight = false;
+                
         };
     };
 };

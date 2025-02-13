@@ -7,6 +7,7 @@ namespace nb
         Shader::Shader() noexcept
             : id(globalId++)
         {
+            
         }
 
         int Shader::globalId = 0;

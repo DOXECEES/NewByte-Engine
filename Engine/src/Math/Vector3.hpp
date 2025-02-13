@@ -74,6 +74,12 @@ namespace nb
                 return *this;
             }
             //
+            constexpr Vector3<T> operator-() noexcept
+            {
+                return Vector3<T>(-this->x, -this->y, -this->z);
+            }
+        
+
 
             //
             friend constexpr Vector3<T> operator*(Vector3<T> a, const T scalar) noexcept

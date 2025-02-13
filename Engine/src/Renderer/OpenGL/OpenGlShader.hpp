@@ -43,6 +43,8 @@ namespace nb
             explicit OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept;
             ~OpenGlShader() noexcept;
 
+            void recompile() noexcept;
+
             void link(const std::filesystem::path &pathToShader) noexcept;
             void use() noexcept override;
 
@@ -71,6 +73,7 @@ namespace nb
         private:
 
             std::vector<GLuint> shaders;
+            std::vector<std::filesystem::path> pathsToShaderSources;
             GLuint program = 0;
 
         };

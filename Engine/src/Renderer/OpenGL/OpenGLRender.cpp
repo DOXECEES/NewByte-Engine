@@ -136,6 +136,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     glDepthFunc(GL_LESS);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
+    glEnable(GL_BLEND);  
 
     ReleaseDC(dummyWindow, dummyHDC);
     DestroyWindow(dummyWindow);
@@ -184,6 +185,31 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     scene->addChildren(n);
     scene->addChildren(g);
     scene->addChildren(n5);
+
+    lightPosition.push_back({1.0f, 1.0f, 1.0f});
+    lightPosition.push_back({-1.00f, 10.0f, -10.0f});
+
+}
+
+
+void nb::OpenGl::OpenGLRender::visualizeLight() const noexcept
+{
+    auto rm = ResMan::ResourceManager::getInstance();
+    auto mesh = rm->getResource<Renderer::Mesh>("sphere.obj");
+
+    auto lightVisulizeShader = rm->getResource<nb::Renderer::Shader>("lightVisulize.shader");
+
+    mesh->uniforms.floatUniforms["time"] = Utils::Timer::timeElapsedSinceInit();
+    mesh->uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
+    mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
+    mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
+    mesh->uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), lightPosition[0]);
+
+    mesh->draw(GL_TRIANGLES, lightVisulizeShader);
+
+    mesh->uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), lightPosition[1]);
+    mesh->draw(GL_TRIANGLES, lightVisulizeShader);
+
 }
 
 void nb::OpenGl::OpenGLRender::render()
@@ -193,6 +219,7 @@ void nb::OpenGl::OpenGLRender::render()
     glClearColor(0.45f, 0.12f, 0.75f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDepthFunc(GL_LESS);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
 
@@ -201,7 +228,7 @@ void nb::OpenGl::OpenGLRender::render()
 
     static Renderer::Skybox sky;
     auto skyboxShader = rm->getResource<nb::Renderer::Shader>("skybox.shader");
-
+    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
     proj = cam->getProjection();
 
     skyboxShader->setUniformInt("skybox", 0);
@@ -209,9 +236,6 @@ void nb::OpenGl::OpenGLRender::render()
     skyboxShader->setUniformMat4("projection", proj);
     
     sky.render(skyboxShader);
-    //
-
-    //
 
     shader->setUniformMat4("model", model);
     shader->setUniformMat4("view", view);
@@ -282,6 +306,10 @@ void nb::OpenGl::OpenGLRender::render()
     // glBindTexture(GL_TEXTURE_2D, bufferNormals);
     // glActiveTexture(GL_TEXTURE2);
     // glBindTexture(GL_TEXTURE_2D, bufferColor);
+    if(!shouldVisualizeLight)
+    {
+        visualizeLight();
+    }
 
     std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
     stk.push(sceneGraph->getScene());
@@ -383,11 +411,7 @@ Ref<nb::Renderer::Mesh> generateTranslateGizmo()
     vert.push_back({{0.0f, 0.0f, capOffset + capHeight}});
     GLuint topCenterCapIndex = vert.size() - 1;
 
-
-
-
     return createRef<nb::Renderer::Mesh>(vert, ind);
-
 }
 
 
@@ -397,14 +421,17 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {        
+        //n->mesh->uniforms.shader = shader;
+        n->mesh->uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
         n->mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
         n->mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
         n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
         n->mesh->uniforms.vec3Uniforms["light[0].LightPos"] = {1.0f, 1.0f, 1.0f};
-        //n->mesh->uniforms.vec3Uniforms["light[0].La"] = {0.0f, 0.0f, 1.0f};
+        n->mesh->uniforms.vec3Uniforms["light[0].La"] = {0.1f, 0.1f, 0.1f};
         n->mesh->uniforms.vec3Uniforms["light[0].Ld"] = {1.0f, 1.0f, 1.0f};
+        n->mesh->uniforms.vec3Uniforms["light[0].Ls"] = {0.1f, 0.1f, 0.1f};
         n->mesh->uniforms.vec3Uniforms["light[1].LightPos"] = {-1.00f, 10.0f, -10.0f};
-        n->mesh->uniforms.vec3Uniforms["light[1].La"] = {0.1f, 0.1f, 0.1f};
+        n->mesh->uniforms.vec3Uniforms["light[1].La"] = {};
         n->mesh->uniforms.vec3Uniforms["light[1].Ld"] = {1.0f, 1.0f, 1.0f};
         
         n->mesh->draw(GL_TRIANGLES, shader);

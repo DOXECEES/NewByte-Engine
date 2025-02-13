@@ -2,12 +2,14 @@
 
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader) noexcept
 {
+    pathsToShaderSources.push_back(pathToShader);
     link(pathToShader);
     createProgram();
 }
 
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
 {
+    pathsToShaderSources = std::move(vecOfShaders);
     for (const auto &shaderPath : vecOfShaders)
     {
         link(shaderPath);
@@ -22,6 +24,22 @@ nb::OpenGl::OpenGlShader::~OpenGlShader() noexcept
     {
         glDeleteShader(i);
     }
+    glDeleteProgram(program);
+}
+
+void nb::OpenGl::OpenGlShader::recompile() noexcept
+{
+    for (auto &i : shaders)
+    {
+        glDeleteShader(i);
+    }
+    glDeleteProgram(program);
+
+    for (const auto &shaderPath : pathsToShaderSources)
+    {
+        link(shaderPath);
+    }
+    createProgram();
 }
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
@@ -208,6 +226,8 @@ std::string nb::OpenGl::OpenGlShader::loadFromFile(const std::filesystem::path &
 
     std::stringstream buffer;
     buffer << file.rdbuf();
+    
+    file.close();
 
     return buffer.str();
 }
