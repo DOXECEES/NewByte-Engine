@@ -5,13 +5,12 @@ namespace nb
     namespace Renderer
     {
 
-        SubMesh::SubMesh(const std::vector<uint32_t> &indices, const Renderer::Material& mat) noexcept
+        SubMesh::SubMesh(const std::vector<uint32_t> &indices, const Renderer::Material &mat) noexcept
             //: verticies(std::move(vertices))
-            : indices(std::move(indices))
-            , material(mat)
+            : indices(std::move(indices)), material(mat)
         {
-            //Math::Vector3<float> minPoint;
-            //Math::Vector3<float> maxPoint;
+            // Math::Vector3<float> minPoint;
+            // Math::Vector3<float> maxPoint;
 
             // for (const auto& vertex : *vertices)
             // {
@@ -26,7 +25,7 @@ namespace nb
 
             // aabb = Math::AABB3D(minPoint, maxPoint);
 
-            //VAO.linkData(*vertices, indices);
+            // VAO.linkData(*vertices, indices);
 
             shader = std::make_shared<ShaderUniforms>();
 
@@ -34,7 +33,7 @@ namespace nb
             shader->vec3Uniforms["Kd"] = mat.diffuse;
             shader->vec3Uniforms["Ks"] = mat.specular;
             shader->floatUniforms["shine"] = mat.shininess;
-            //shader->floatUniforms["d"] = mat.dissolve; // add other
+            // shader->floatUniforms["d"] = mat.dissolve; // add other
         }
 
         void SubMesh::attachShader(const Ref<Shader> &shader) noexcept
@@ -95,12 +94,13 @@ namespace nb
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
             VAO.linkData(verticies, ind);
+            recalculateAabb3dForce();
         }
 
         std::vector<Renderer::Material> Mesh::getMaterials() const noexcept
         {
             std::vector<Renderer::Material> mats;
-            for(const auto& i : meshes)
+            for (const auto &i : meshes)
             {
                 mats.push_back(i->getMaterial());
             }
@@ -108,39 +108,64 @@ namespace nb
             return std::move(mats);
         }
 
+        const Math::AABB3D &Mesh::getAabb3d() const noexcept
+        {
+            return aabb;
+        }
+
+        const Math::AABB3D &Mesh::recalculateAabb3dForce() noexcept
+        {
+
+            Math::Vector3<float> minPoint;
+            Math::Vector3<float> maxPoint;
+
+            for (const auto &vertex : verticies)
+            {
+                minPoint.x = std::min(minPoint.x, vertex.position.x);
+                minPoint.y = std::min(minPoint.y, vertex.position.y);
+                minPoint.z = std::min(minPoint.z, vertex.position.z);
+
+                maxPoint.x = std::max(maxPoint.x, vertex.position.x);
+                maxPoint.y = std::max(maxPoint.y, vertex.position.y);
+                maxPoint.z = std::max(maxPoint.z, vertex.position.z);
+            }
+
+            aabb = Math::AABB3D(minPoint, maxPoint);
+            return aabb;
+        }
+
         std::vector<uint32_t> Mesh::uniteIndicies() noexcept
         {
             size_t lenght = 0;
-            for(const auto& i : meshes)
+            for (const auto &i : meshes)
                 lenght += i->indices.size();
 
             indiciesCount = lenght;
 
             std::vector<uint32_t> unitedVector(0, lenght);
-            for(const auto& i : meshes)
+            for (const auto &i : meshes)
             {
                 unitedVector.insert(
                     unitedVector.end(),
                     std::make_move_iterator(i->indices.begin()),
-                    std::make_move_iterator(i->indices.end())
-                );
-            }       
+                    std::make_move_iterator(i->indices.end()));
+            }
 
             return unitedVector;
         }
 
-        void Mesh::applyMaterial(const SubMesh& mesh) const noexcept
+        void Mesh::applyMaterial(const SubMesh &mesh) const noexcept
         {
             mesh.shader->applyUniforms();
             mesh.shader->applyUniforms(uniforms);
             mesh.shader->shader->use();
         }
 
-        void Mesh::draw(GLenum mode, const Ref<Shader>& shader) const noexcept
+        void Mesh::draw(GLenum mode, const Ref<Shader> &shader) const noexcept
         {
             size_t indiciesOffset = 0;
             size_t matIndex = 0;
-            for(const auto& i : meshes)
+            for (const auto &i : meshes)
             {
 
                 i->attachShader(shader);
@@ -149,18 +174,6 @@ namespace nb
                 VAO.bind();
                 VAO.draw(i->indices.size(), mode, indiciesOffset);
                 indiciesOffset += i->indices.size();
-
-                // // activate material
-                // if(i->material == Renderer::Material())
-                // {   
-                //     n->mt[0]->applyMaterial();
-                //     n->mt[0]->shader->use();
-                // }
-                // else
-                // {
-                //     n->mt[1]->applyMaterial();
-                //     n->mt[1]->shader->use();
-                // }
             }
         }
     };
