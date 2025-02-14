@@ -47,64 +47,44 @@ namespace nb
                 for (int j = 0; j < segmentHeight; ++j)
                 {
                     std::copy(
-                        textureData.begin() + ((currentRow * segmentHeight + j) * width + currentCol * segmentWidth) * 4,       
-                        textureData.begin() + ((currentRow * segmentHeight + j) * width + (currentCol + 1) * segmentWidth) * 4, 
-                        pl[i] + j * segmentWidth * 4                                                                    
-                    );
+                        textureData.begin() + ((currentRow * segmentHeight + j) * width + currentCol * segmentWidth) * 4,
+                        textureData.begin() + ((currentRow * segmentHeight + j) * width + (currentCol + 1) * segmentWidth) * 4,
+                        pl[i] + j * segmentWidth * 4);
                 }
 
                 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, segmentWidth, segmentHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pl[i]);
             }
 
-       
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            
+            textureData.clear();
+            std::vector<std::unique_ptr<Renderer::SubMesh>> m;
+            auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
+            m.push_back(std::move(p));
+            mesh = new Mesh(std::move(m), std::move(skyboxVertices));
+        }
 
+        Skybox::~Skybox()
+        {
+            delete mesh;
+        }
 
-                // std::vector<std::string> faces{
-                //     "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\xpos.png",
-                //     "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\xneg.png",
-                //     "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\ypos.png",
-                //     "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\yneg.png",
-                //     "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\zpos.png",
-                //     "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\zneg.png"
-                // };
-
-                // for (unsigned int i = 0; i < faces.size(); i++)
-                // {
-                //     lodepng::decode(textureData, width, height, faces[i]);
-
-                //     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData.data());
-                //     textureData.clear();
-                // }
-
-                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-                textureData.clear();
-                std::vector<std::unique_ptr<Renderer::SubMesh>> m;
-                auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
-                m.push_back(std::move(p));
-                mesh = new Mesh(std::move(m), std::move(skyboxVertices));
-            }
-
-            Skybox::~Skybox()
-            {
-                delete mesh;
-            }
-
-            void Skybox::render(Ref<Renderer::Shader> shader)
-            {
-                glDepthFunc(GL_LEQUAL);
-                glDepthMask(GL_FALSE);
-                glDisable(GL_DEPTH_TEST);
-                shader->use();
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-                mesh->draw(GL_TRIANGLES, shader);
-                glDepthFunc(GL_LESS);
-                glDepthMask(GL_TRUE);
-                glEnable(GL_DEPTH_TEST);
-            }
-        };
+        void Skybox::render(Ref<Renderer::Shader> shader)
+        {
+            glDepthFunc(GL_LEQUAL);
+            glDepthMask(GL_FALSE);
+            glDisable(GL_DEPTH_TEST);
+            shader->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+            mesh->draw(GL_TRIANGLES, shader);
+            glDepthFunc(GL_LESS);
+            glDepthMask(GL_TRUE);
+            glEnable(GL_DEPTH_TEST);
+        }
     };
+};

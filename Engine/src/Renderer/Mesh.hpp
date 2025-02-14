@@ -71,9 +71,16 @@ namespace nb
                 {
                     std::vector<uint32_t> ind = uniteIndicies();
                     VAO.linkData(verticies, ind);
+
+                    recalculateAabb3dForce();
                 };
 
+                
                 std::vector<Material> getMaterials() const noexcept;
+                
+                
+                const Math::AABB3D &getAabb3d() const noexcept;
+                const Math::AABB3D &recalculateAabb3dForce() noexcept;
 
                 void draw(GLenum mode, const Ref<Shader>& shader) const noexcept;
                 
@@ -87,6 +94,7 @@ namespace nb
             //private:
 
 
+                Math::AABB3D aabb;
                 nb::OpenGl::VertexArray VAO;
 
                 std::vector<Vertex> verticies;

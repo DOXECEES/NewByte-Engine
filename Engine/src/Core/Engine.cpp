@@ -182,7 +182,7 @@ namespace nb
             auto camDir = cam.getDirection();
 
             if (mouse->getScrollDelta())
-            {
+            { 
                 Debug::debug(mouse->getScrollDelta());
             }
             if (keyboard->isKeyPressed(VK_ESCAPE))
@@ -328,6 +328,7 @@ namespace nb
 
             std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
             stk.push(scene);
+            bool interFind = false;
 
             while (!stk.empty())
             {
@@ -341,32 +342,44 @@ namespace nb
 
                 if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(top); n != nullptr)
                 {
-                    if(n->getName() == "Gizmo")
-                    {
-
-                    } 
+                    auto aabb = n->mesh->getAabb3d();
+                    auto naabb = Math::AABB3D::recalculateAabb3dByModelMatrix(aabb, n->getWorldTransform());
                     
-                    // auto aabb = n->mesh->getAABB();
+                    auto camPos = renderer->getCamera()->getPosition();
+                    Ray ray;
+                    ray.direction = a;
+                    ray.origin = camPos;
 
-                    // auto camPos = renderer->getCamera()->getPosition();
-                    // Ray ray;
-                    // ray.direction = a;
-                    // ray.origin = camPos;
+                    // Math::Vector4<float> minP = {naabb.minPoint.x, naabb.minPoint.y, naabb.minPoint.z, 1.0f};
+                    // Math::Vector4<float> maxP = {naabb.maxPoint.x, naabb.maxPoint.y, naabb.maxPoint.z, 1.0f};
 
-                    // if (rayIntersectsAABB(ray, aabb.minPoint, aabb.maxPoint))
-                    // {
-                    //     OpenGl::OpenGLRender::setAmbientLight({255, 120, 100});
-                    //     //if (mouse->isLeftHeld())
-                    //     {
-                    //         // auto p = OpenGl::OpenGLRender::getAdd();
-                    //         // OpenGl::OpenGLRender::drawTransformationElements(i);
-                    //         //Debug::debug("Inter");
-                    //     }
-                    // }
-                    // else
-                    // {
-                    //     OpenGl::OpenGLRender::setAmbientLight({0, 0, 0});
-                    // }
+                    // minP = n->getLocalTransform() * minP;
+                    // maxP = n->getLocalTransform() * maxP;
+
+                    // naabb.minPoint = {minP.x, minP.y, minP.z};
+                    // naabb.maxPoint = {maxP.x, maxP.y, maxP.z};
+                    
+                    if(n->getName() == "Lumine")
+                    {
+                        Debug::debug("dsa");
+                    }
+
+                    if (rayIntersectsAABB(ray, naabb.minPoint, naabb.maxPoint))
+                    {
+                        OpenGl::OpenGLRender::setAmbientLight({255, 120, 100});
+                        interFind = true;
+                        //if (mouse->isLeftHeld())
+                        {
+                            // auto p = OpenGl::OpenGLRender::getAdd();
+                            // OpenGl::OpenGLRender::drawTransformationElements(i);
+                            //Debug::debug("Inter");
+                        }
+                    }
+                    else
+                    {
+                        if(interFind == false)
+                            OpenGl::OpenGLRender::setAmbientLight({0, 0, 0});
+                    }
 
                     // auto xx = std::to_string(a.x) + "---" + std::to_string(cam.getDirection().x);
                     // auto yy = std::to_string(a.y) + "---" + std::to_string(cam.getDirection().y);

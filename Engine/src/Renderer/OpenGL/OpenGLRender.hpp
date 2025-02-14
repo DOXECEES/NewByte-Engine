@@ -64,6 +64,7 @@ namespace nb
                 void loadScene() noexcept;
 
                 void visualizeLight() const noexcept;
+                void visualizeAabb(const Math::AABB3D& aabb, Math::Mat4<float> mat) const noexcept;
 
             public:
 
@@ -101,7 +102,8 @@ namespace nb
                 // temp
                 std::vector<Math::Vector3<float>> lightPosition;
                 bool shouldVisualizeLight = false;
-                
+                bool shouldVisualizeAabb = false;
+
         };
     };
 };
