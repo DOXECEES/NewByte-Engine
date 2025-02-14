@@ -9,6 +9,9 @@ set(-DCMAKE_GENERATOR_PLATFORM x64)
 
 add_subdirectory(dependencies/glad)
 
+file(GLOB RESOURCE_FILES 
+    "res/*"
+    "shaders/*")
 
 
 add_library(${PROJECT_NAME} STATIC 
@@ -162,7 +165,7 @@ add_library(${PROJECT_NAME} STATIC
 
         dependencies/lodepng/lodepng.cpp
 
-
+        ${RESOURCE_FILES}
         )
 
 

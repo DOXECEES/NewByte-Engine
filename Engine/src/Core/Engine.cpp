@@ -349,15 +349,6 @@ namespace nb
                     Ray ray;
                     ray.direction = a;
                     ray.origin = camPos;
-
-                    // Math::Vector4<float> minP = {naabb.minPoint.x, naabb.minPoint.y, naabb.minPoint.z, 1.0f};
-                    // Math::Vector4<float> maxP = {naabb.maxPoint.x, naabb.maxPoint.y, naabb.maxPoint.z, 1.0f};
-
-                    // minP = n->getLocalTransform() * minP;
-                    // maxP = n->getLocalTransform() * maxP;
-
-                    // naabb.minPoint = {minP.x, minP.y, minP.z};
-                    // naabb.maxPoint = {maxP.x, maxP.y, maxP.z};
                     
                     if(n->getName() == "Lumine")
                     {
