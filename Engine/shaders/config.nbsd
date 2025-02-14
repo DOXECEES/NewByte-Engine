@@ -1,0 +1,51 @@
+{
+    "vert.shader": {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/vert.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/vert.fs"
+        ]
+    },
+	"vertFlat.shader": {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/vertFlat.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/vertFlat.fs"
+        ]
+    },
+    "aabb.shader" : {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/aabb.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/aabb.fs"
+        ]
+    },
+	"skybox.shader" : {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/skybox.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/skybox.fs"
+        ]
+    },
+	"DiffuseReflection.shader" : {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/DiffuseReflection.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/DiffuseReflection.fs"
+        ]
+    },
+	"ADS.shader" : {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/ADS.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/ADS.fs"
+        ]
+    },
+	"arrow.shader" : {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/arrow.vs",
+			"C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/arrow.gs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/arrow.fs"
+        ]
+    },
+	"lightVisulize.shader" : {
+        "sources": [
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/lightVisulize.vs",
+            "C:/rep/Hex/NewByte-Engine/build/Engine/Debug/shaders/lightVisulize.fs"
+        ]
+    }
+}
