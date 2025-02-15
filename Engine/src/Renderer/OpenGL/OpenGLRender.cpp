@@ -255,7 +255,7 @@ void nb::OpenGl::OpenGLRender::render()
 {
 
     glViewport(0, 0, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight());
-    glClearColor(0.45f, 0.12f, 0.75f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDepthFunc(GL_LESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -347,6 +347,29 @@ void nb::OpenGl::OpenGLRender::render()
         visualizeLight();
     }
 
+    // light pass
+    std::stack<std::shared_ptr<Renderer::BaseNode>> stkl;
+    stkl.push(sceneGraph->getScene());
+
+    std::shared_ptr<Renderer::BaseNode> ltop = stkl.top();
+    stkl.pop();
+    for (auto &i : ltop->getChildrens())
+    {
+        stkl.push(i);
+    }
+
+    std::vector<Renderer::LightNode> ln;
+
+    while(!stkl.empty())
+    {
+        if (auto n = std::dynamic_pointer_cast<Renderer::LightNode>(ltop); n != nullptr)
+        {
+            ln.push_back(*n);
+        }
+        ltop = stkl.top();
+        stkl.pop();
+    }
+
     std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
     stk.push(sceneGraph->getScene());
 
@@ -359,7 +382,7 @@ void nb::OpenGl::OpenGLRender::render()
         {
             stk.push(i);
         }
-        renderNode(top);
+        renderNode(top, ln);
     }
 
     SwapBuffers(hdc);
@@ -448,7 +471,7 @@ Ref<nb::Renderer::Mesh> generateTranslateGizmo()
     return createRef<nb::Renderer::Mesh>(vert, ind);
 }
 
-void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node) noexcept
+void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node, const std::vector<Renderer::LightNode>& lightNode) noexcept
 {
     if (node == nullptr)
         return;
@@ -467,6 +490,10 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
         n->mesh->uniforms.vec3Uniforms["light[1].LightPos"] = {-1.00f, 10.0f, -10.0f};
         n->mesh->uniforms.vec3Uniforms["light[1].La"] = {};
         n->mesh->uniforms.vec3Uniforms["light[1].Ld"] = {1.0f, 1.0f, 1.0f};
+        // for (int i = 0; i < lightNode.size(); i++)
+        // {
+        //     lightNode[i].light->applyUniforms(n->mesh->uniforms.shader);
+        // }
 
         n->mesh->draw(GL_TRIANGLES, shader);
 

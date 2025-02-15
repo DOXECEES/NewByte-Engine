@@ -11,7 +11,7 @@ namespace nb
         class IShadeble
         {
         public:
-            virtual void applyUniforms() = 0;
+            virtual void applyUniforms(Ref<Renderer::Shader>& shader) = 0;
         };
 
         class Light : public IShadeble
@@ -21,11 +21,19 @@ namespace nb
             static constexpr auto AMBIENT_UNIFORM_NAME = "La";
             static constexpr auto DIFFUSE_UNIFORM_NAME = "Ld";
             static constexpr auto SPECULAR_UNIFORM_NAME = "Ls";
+            
 
             Light() = default;
             ~Light() = default;
+            explicit Light(const Math::Vector3<float>& _ambient,
+                            const Math::Vector3<float>& _diffuse,
+                            const Math::Vector3<float>& _specular)
+                : ambient(_ambient)
+                , diffuse(_diffuse)
+                , specular(_specular)
+            {}
 
-            void applyUniforms(Ref<Renderer::Shader>& shader) override
+            virtual void applyUniforms(Ref<Renderer::Shader>& shader) override
             {
                 shader->setUniformVec3(AMBIENT_UNIFORM_NAME, ambient);
                 shader->setUniformVec3(DIFFUSE_UNIFORM_NAME, diffuse);
@@ -45,23 +53,41 @@ namespace nb
         public:
         
             static constexpr auto POSITION_UNIFORM_NAME = "position";
-            static constexpr auto INTENSITY_UNIFORM_NAME = "intensity";
-            
+            static constexpr auto CONST_COEFFICIENT_UNIFORM_NAME = "point_const_coof";
+            static constexpr auto LINEAR_COEFFICIENT_UNIFORM_NAME = "point_linear_coof";
+            static constexpr auto EXP_COEFFICIENT_UNIFORM_NAME = "point_exp_coof";
+
             PointLight() = default;
             ~PointLight() = default;
-        
+            explicit PointLight(const Math::Vector3<float>& _ambient,
+                                const Math::Vector3<float>& _diffuse,
+                                const Math::Vector3<float>& _specular,
+                                const Math::Vector3<float>& _position,
+                                float _constCoefficient,
+                                float _linearCoefficient,
+                                float _expCoefficient)
+                : Light(_ambient, _diffuse, _specular)
+                , position(_position)
+                , constCoefficient(_constCoefficient)
+                , linearCoefficient(_linearCoefficient)
+                , expCoefficient(_expCoefficient)
+            {}
+
             void applyUniforms(Ref<Renderer::Shader>& shader) override
             {
                 Light::applyUniforms(shader);
                 shader->setUniformVec3(POSITION_UNIFORM_NAME, position);
-                shader->setUniformVec3(INTENSITY_UNIFORM_NAME, intensity);
+                shader->setUniformFloat(CONST_COEFFICIENT_UNIFORM_NAME, constCoefficient);
+                shader->setUniformFloat(LINEAR_COEFFICIENT_UNIFORM_NAME, linearCoefficient);
+                shader->setUniformFloat(EXP_COEFFICIENT_UNIFORM_NAME, expCoefficient);
             }
 
         private:
+            float constCoefficient;
+            float linearCoefficient;
+            float expCoefficient;
 
             Math::Vector3<float> position;
-            Math::Vector3<float> intensity;
-        
         };
 
 
@@ -72,6 +98,15 @@ namespace nb
 
             DirectionalLight() = default;
             ~DirectionalLight() = default;
+
+            explicit DirectionalLight(const Math::Vector3<float>& _ambient,
+                                        const Math::Vector3<float>& _diffuse,
+                                        const Math::Vector3<float>& _specular,
+                                        const Math::Vector3<float>& _direction)
+                : Light(_ambient, _diffuse, _specular)
+                , direction(_direction)
+            {}
+
 
             void applyUniforms(Ref<Renderer::Shader>& shader) override
             {
@@ -86,6 +121,9 @@ namespace nb
 
         class SpotLight
         {      
+        public:
+
+
         };
     };
 };
