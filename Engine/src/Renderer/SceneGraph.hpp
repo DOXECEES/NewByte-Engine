@@ -11,6 +11,7 @@
 
 #include "Shader.hpp"
 #include "Mesh.hpp"
+#include "Light.hpp"
 
 #include "../Core.hpp"
 
@@ -114,7 +115,18 @@ namespace nb
             
         };
 
+        class LightNode : public BaseNode
+        {
+            public:
+            LightNode() = delete;
+            LightNode(std::string_view nodeName, const Transform& nodeTransform, const std::shared_ptr<Light> &nodeLight)
+                : BaseNode(nodeName, nodeTransform), light(nodeLight)
+            {
+            }
 
+            //private:
+                std::shared_ptr<Light> light;
+        };
 
         class SceneGraph
         {

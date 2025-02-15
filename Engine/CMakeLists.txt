@@ -162,6 +162,8 @@ add_library(${PROJECT_NAME} STATIC
         src/Utils/DeflateDecoder.hpp
         src/Utils/Timer.cpp
         src/Utils/Timer.hpp
+        src/Utils/Indexator.cpp
+        src/Utils/Indexator.hpp
 
         dependencies/lodepng/lodepng.cpp
 
