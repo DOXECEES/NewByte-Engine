@@ -7,6 +7,8 @@
 #include <GL/GL.h>
 #include <gl/GLU.h>
 
+#include "../../Math/Matrix/Transformation.hpp"
+#include "../../Math/Math.hpp"
 
 #include "../RendererStructures.hpp"
 #include "../Mesh.hpp"
@@ -33,15 +35,15 @@
 #define WGL_CONTEXT_LAYER_PLANE_ARB             0x2093
 #define WGL_CONTEXT_FLAGS_ARB                   0x2094
 #define WGL_CONTEXT_PROFILE_MASK_ARB            0x9126
-#define WGL_DRAW_TO_WINDOW_ARB            0x2001
-#define WGL_SUPPORT_OPENGL_ARB            0x2010
-#define WGL_DOUBLE_BUFFER_ARB             0x2011
-#define WGL_PIXEL_TYPE_ARB                0x2013
-#define WGL_TYPE_RGBA_ARB                 0x202B
-#define WGL_COLOR_BITS_ARB                0x2014
-#define WGL_DEPTH_BITS_ARB                0x2022
-#define WGL_SAMPLE_BUFFERS_ARB            0x2041
-#define WGL_SAMPLES_ARB                   0x2042
+#define WGL_DRAW_TO_WINDOW_ARB                  0x2001
+#define WGL_SUPPORT_OPENGL_ARB                  0x2010
+#define WGL_DOUBLE_BUFFER_ARB                   0x2011
+#define WGL_PIXEL_TYPE_ARB                      0x2013
+#define WGL_TYPE_RGBA_ARB                       0x202B
+#define WGL_COLOR_BITS_ARB                      0x2014
+#define WGL_DEPTH_BITS_ARB                      0x2022
+#define WGL_SAMPLE_BUFFERS_ARB                  0x2041
+#define WGL_SAMPLES_ARB                         0x2042
 
 namespace nb
 {
@@ -85,10 +87,23 @@ namespace nb
                 static void applyDiffuseReflectionModel() noexcept;
                 static void applyAmbientDiffuseSpecularModel(Renderer::Camera* cam) noexcept;
                 
+                // bad movement -> refactor graph or sthl this
+                static void spawnGizmo(const Renderer::ObjectNode& node) noexcept
+                {
+                    Math::AABB3D aabb = node.mesh->getAabb3d();
+                    gizmoModelMat = Math::translate(Math::Mat4<float>::identity(), node.getPosition() + aabb.center());
+                }
+
+
                 static Math::Mat4<float> MVP;
-
-
                 static Ref<Renderer::Shader> shader;
+
+                static Math::Mat4<float> gizmoModelMat;
+
+                inline static int countOfDraws = 0;
+
+                //
+
             private:
 
                 HDC hdc = {};
@@ -103,6 +118,11 @@ namespace nb
                 std::vector<Math::Vector3<float>> lightPosition;
                 bool shouldVisualizeLight = false;
                 bool shouldVisualizeAabb = false;
+
+                //
+
+                OpenGlTexture *t = nullptr;
+                OpenGlTexture *tn = nullptr;
 
         };
     };

@@ -2,6 +2,8 @@
 #define SRC_RENDERER_LIGHT_HPP
 
 #include "../Math/Vector3.hpp"
+#include "../Utils/Indexator.hpp"
+
 #include "Shader.hpp"
 
 namespace nb
@@ -17,35 +19,62 @@ namespace nb
         class Light : public IShadeble
         {
         public:
-
-            static constexpr auto AMBIENT_UNIFORM_NAME = "La";
-            static constexpr auto DIFFUSE_UNIFORM_NAME = "Ld";
-            static constexpr auto SPECULAR_UNIFORM_NAME = "Ls";
-            
+            static constexpr std::string_view GLOABL_LIGHTS_STORE_UNIFORM_NAME = "light";
+            static constexpr std::string_view AMBIENT_UNIFORM_NAME  = "La";
+            static constexpr std::string_view DIFFUSE_UNIFORM_NAME  = "Ld";
+            static constexpr std::string_view SPECULAR_UNIFORM_NAME = "Ls";
 
             Light() = default;
-            ~Light() = default;
             explicit Light(const Math::Vector3<float>& _ambient,
                             const Math::Vector3<float>& _diffuse,
                             const Math::Vector3<float>& _specular)
                 : ambient(_ambient)
                 , diffuse(_diffuse)
                 , specular(_specular)
+                , id(indexator.index())
             {}
 
             virtual void applyUniforms(Ref<Renderer::Shader>& shader) override
             {
-                shader->setUniformVec3(AMBIENT_UNIFORM_NAME, ambient);
-                shader->setUniformVec3(DIFFUSE_UNIFORM_NAME, diffuse);
-                shader->setUniformVec3(SPECULAR_UNIFORM_NAME, specular);
+                const std::string ambientUniformName  = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, AMBIENT_UNIFORM_NAME);
+                const std::string diffuseUniformName  = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, DIFFUSE_UNIFORM_NAME);
+                const std::string specularUniformName = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, SPECULAR_UNIFORM_NAME);
+                
+                shader->setUniformVec3(ambientUniformName, ambient);
+                shader->setUniformVec3(diffuseUniformName, diffuse);
+                shader->setUniformVec3(specularUniformName, specular);
             };
 
-        private:
+            int getId() const noexcept
+            {
+                return id;
+            }
+
+            ~Light()
+            {
+                indexator.freeIndex(id);
+            }
+        
+        protected:
+
+            std::string makeUniformName(std::string_view base, int id, std::string_view property)
+            {
+                std::string result;
+                result.reserve(base.size() + property.size() + COUNT_OF_CHARS_TO_WRITE_INT);
+                result.append(base).append("[").append(std::to_string(id)).append("].").append(property);
+                return result;
+            }
     
             Math::Vector3<float> ambient;
             Math::Vector3<float> diffuse;
             Math::Vector3<float> specular;
+            int id;
 
+        private:
+            static constexpr uint8_t COUNT_OF_CHARS_TO_WRITE_INT = 10; 
+
+            static Utils::Indexator indexator;
+        
         };
 
         class PointLight : public Light
@@ -76,10 +105,16 @@ namespace nb
             void applyUniforms(Ref<Renderer::Shader>& shader) override
             {
                 Light::applyUniforms(shader);
-                shader->setUniformVec3(POSITION_UNIFORM_NAME, position);
-                shader->setUniformFloat(CONST_COEFFICIENT_UNIFORM_NAME, constCoefficient);
-                shader->setUniformFloat(LINEAR_COEFFICIENT_UNIFORM_NAME, linearCoefficient);
-                shader->setUniformFloat(EXP_COEFFICIENT_UNIFORM_NAME, expCoefficient);
+
+                const std::string positionUniformName = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, POSITION_UNIFORM_NAME);
+                const std::string constCoefficientUniformName = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, CONST_COEFFICIENT_UNIFORM_NAME);
+                const std::string linearCoefficientUniformName = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, LINEAR_COEFFICIENT_UNIFORM_NAME);
+                const std::string expCoefficientUniformName = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, EXP_COEFFICIENT_UNIFORM_NAME);
+
+                shader->setUniformVec3(positionUniformName, position);
+                shader->setUniformFloat(constCoefficientUniformName, constCoefficient);
+                shader->setUniformFloat(linearCoefficientUniformName, linearCoefficient);
+                shader->setUniformFloat(expCoefficientUniformName, expCoefficient);
             }
 
         private:
@@ -111,7 +146,9 @@ namespace nb
             void applyUniforms(Ref<Renderer::Shader>& shader) override
             {
                 Light::applyUniforms(shader);
-                shader->setUniformVec3(DIRECTION_UNIFORM_NAME, direction);
+
+                const std::string directionUniformName = makeUniformName(GLOABL_LIGHTS_STORE_UNIFORM_NAME, id, DIRECTION_UNIFORM_NAME);
+                shader->setUniformVec3(directionUniformName, direction);
             }
         
         private:

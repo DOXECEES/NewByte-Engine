@@ -4,6 +4,7 @@ out vec4 FragColor;
 
 in vec3 FragPos;
 in vec3 oNormal;
+in vec2 TexCoords;
 
 uniform vec3 Ka;
 uniform vec3 Kd;
@@ -11,6 +12,9 @@ uniform vec3 Ks;
 uniform float shine;
 
 uniform vec3 viewPos;
+
+uniform sampler2D ourTexture;
+
 
 struct DirectionalLight
 {
@@ -52,5 +56,5 @@ void main()
 		result += specular * 32;
 		}
 
-    FragColor = vec4(result, 1.0);
+    FragColor = texture(ourTexture, TexCoords);
 }

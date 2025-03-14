@@ -23,7 +23,10 @@ add_executable(${PROJECT_NAME} WIN32
     src/Ui/RadioGroup.hpp
     src/Ui/Button.cpp
     src/Ui/Button.hpp
-
+    src/Ui/IWidget.cpp
+    src/Ui/IWidget.hpp
+    src/Ui/UiMapper.cpp
+    src/Ui/UiMapper.hpp
 
     src/UiStore.cpp
     src/UiStore.hpp

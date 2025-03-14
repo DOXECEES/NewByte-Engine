@@ -1,13 +1,14 @@
 #ifndef SRC_MATH_MATRIX_TRANSFORMATION_HPP
 #define SRC_MATH_MATRIX_TRANSFORMATION_HPP
 
-#include "Matrix.hpp"
+#include <array>
 
 #include "../Vector2.hpp"
 #include "../Vector3.hpp"
 #include "../Vector4.hpp"
 
 #include "../Quaternion.hpp"
+
 
 namespace nb
 {
@@ -301,7 +302,6 @@ namespace nb
                 {-x.dot(eye), -y.dot(eye), -z.dot(eye), 1.0f}
             });
         }
-
     };
 };
 

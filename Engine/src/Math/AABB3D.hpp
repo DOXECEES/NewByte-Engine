@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "Vector3.hpp"
+#include "Plane.hpp"
 
 namespace nb
 {
@@ -90,6 +91,20 @@ namespace nb
                 }
     
                 return B;
+            }
+
+            static bool intersectAabbPlane(const AABB3D& aabb, const Plane& plane) noexcept
+            {
+                Vector3<float> center = aabb.center();
+                Vector3<float> positiveExtents = aabb.maxPoint - center;
+                
+                float radius = positiveExtents.x * std::abs(plane.normal.x)
+                             + positiveExtents.y * std::abs(plane.normal.y)
+                             + positiveExtents.z * std::abs(plane.normal.z);
+
+                float s = plane.normal.dot(center) - plane.normal.dot(plane.source);
+
+                return std::abs(s) <= radius;
             }
 
             Math::Vector3<float> minPoint = { };

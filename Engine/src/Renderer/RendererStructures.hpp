@@ -24,14 +24,15 @@ namespace nb
         {
             Vertex() = default;
 
-            Vertex(const Math::Vector3<float> &pos, const Math::Vector3<float> &norm = 0, const Math::Vector3<float>& color = 0, const Math::Vector2<float> &tex = 0)
-                : position(pos), normal(norm), color(color), textureCoodinates(tex)
+            Vertex(const Math::Vector3<float> &pos, const Math::Vector3<float> &norm = 0, const Math::Vector3<float>& color = 0, const Math::Vector2<float> &tex = 0, const Math::Vector4<float> &tang = 0)
+                : position(pos), normal(norm), color(color), textureCoodinates(tex), tangent(tang)
             {
             }
             Math::Vector3<float> position;
             Math::Vector3<float> normal;
             Math::Vector3<float> color;
             Math::Vector2<float> textureCoodinates;
+            Math::Vector4<float> tangent;
 
             bool operator==(const Vertex &other) const
             {
@@ -107,6 +108,7 @@ namespace nb
         struct ShaderUniforms
         {
             Ref<Shader> shader;
+            std::map<std::string, int> intUniforms;
             std::map<std::string, float> floatUniforms;
             std::map<std::string, Math::Vector3<float>> vec3Uniforms;
             std::map<std::string, Math::Vector4<float>> vec4Uniforms;
@@ -114,6 +116,11 @@ namespace nb
 
             void applyUniforms() 
             {
+                for(const auto&i : intUniforms)
+                {
+                    shader->setUniformInt(i.first, i.second);
+                }
+
                 for(const auto&i : floatUniforms)
                 {
                     shader->setUniformFloat(i.first, i.second);
@@ -137,6 +144,11 @@ namespace nb
 
             void applyUniforms(const ShaderUniforms& other)
             {
+                for(const auto&i : other.intUniforms)
+                {
+                    shader->setUniformInt(i.first, i.second);
+                }
+
                 for(const auto&i : other.floatUniforms)
                 {
                     shader->setUniformFloat(i.first, i.second);

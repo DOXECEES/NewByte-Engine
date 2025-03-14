@@ -23,6 +23,7 @@
 
 #include "../Math/RayCast/RayPicker.hpp"
 #include "../Utils/Timer.hpp"
+
 #include <memory>
 
 namespace nb
@@ -37,32 +38,40 @@ namespace nb
 
             void bufferizeInput(const MSG& msg) noexcept;
             void processInput() noexcept;
-            bool run();
             void setHandleInput(bool var) { handleInput = var; };
 
-            inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };
-            void rayPick(const uint32_t x, const uint32_t y) noexcept;
+            bool run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons);
+            void handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept;
+            void handleEditorMode() noexcept;
 
+
+            void rayPick(const uint32_t x, const uint32_t y) noexcept;
+            
+            inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };
             inline Math::Vector3<float> getCameraPos() { return renderer->getCamera()->getPosition(); };
             inline Math::Vector3<float> getCameraDirection() { return renderer->getCamera()->getDirection(); };
             inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); };
 
-        private:
-            bool isEditorMode = true;
 
-            std::unique_ptr<Subsystems> subSystems = std::make_unique<Subsystems>();
-            Ref<nb::Renderer::Renderer> renderer = nullptr;
-            Ref<nb::Input::Keyboard> keyboard    = nullptr;
-            Ref<nb::Input::Mouse> mouse          = nullptr;
-            bool isRunning = true;
-            bool handleInput = true;
+        private:
+            bool isEditorMode                       = true;
+
+            std::unique_ptr<Subsystems> subSystems  = std::make_unique<Subsystems>();
+            Ref<nb::Renderer::Renderer> renderer    = nullptr;
+            Ref<nb::Input::Keyboard> keyboard       = nullptr;
+            Ref<nb::Input::Mouse> mouse             = nullptr;
+            bool isRunning                          = true;
+            bool handleInput                        = true;
             
-            bool isSampling = true;
+            bool isSampling                         = true;
             nb::Renderer::Camera cam;
             // temp
-            Ref<nb::Input::Input> input          = nullptr;
+            Ref<nb::Input::Input> input             = nullptr;
 
-            static HWND hwnd;
+            Input::MouseDelta mouseDelta            = {};
+            Input::MouseButtons buttons             = {};
+
+            inline static HWND hwnd                 = nullptr;
         };
     };
 };

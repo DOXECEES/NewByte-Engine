@@ -42,6 +42,9 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, textureCoodinates)));
     glEnableVertexAttribArray(3);
 
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, tangent)));
+    glEnableVertexAttribArray(4);
+
     vbo.unBind();
 
     glBindVertexArray(0);
@@ -49,14 +52,14 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
 
 void nb::OpenGl::VertexArray::draw(const size_t count, GLenum mode, const size_t offset) const noexcept
 {
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 16; i++)
     {
         glEnableVertexAttribArray(i);
     }
 
     glDrawElements(mode, count, GL_UNSIGNED_INT, reinterpret_cast<void*>(sizeof(uint32_t) * offset));
 
-    for (size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 16; i++)
     {
         glDisableVertexAttribArray(i);
     }

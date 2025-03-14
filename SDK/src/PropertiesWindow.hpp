@@ -17,10 +17,6 @@ namespace Editor
     public:
         CoordinateEditor(HWND parent, float x, float y, float z, int blockOffset = 0)
         {
-
-                
-
-
             hEditX = CreateWindowEx(
                 0, L"EDIT", std::to_wstring(x).c_str(),
                 WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER,

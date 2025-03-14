@@ -1,27 +1,30 @@
 #include "Timer.hpp"
 
-namespace Utils
+namespace nb
 {
-    void Timer::init() noexcept
+    namespace Utils
     {
-        reset();
-    }
+        void Timer::init() noexcept
+        {
+            reset();
+        }
 
-    void Timer::reset() noexcept
-    {
-        initTime = std::chrono::high_resolution_clock::now();
-        start = std::chrono::high_resolution_clock::now();
-    }
+        void Timer::reset() noexcept
+        {
+            initTime = std::chrono::high_resolution_clock::now();
+            start = std::chrono::high_resolution_clock::now();
+        }
 
-    float Timer::timeElapsedSinceInit() noexcept
-    {
-        return std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - initTime).count();
-    }
+        float Timer::timeElapsedSinceInit() noexcept
+        {
+            return std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - initTime).count();
+        }
 
-    float Timer::timeElapsed() noexcept
-    {
-        std::chrono::time_point<std::chrono::high_resolution_clock> elapse = start;
-        start = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration<float>(start - elapse).count();
-    }
+        float Timer::timeElapsed() noexcept
+        {
+            std::chrono::time_point<std::chrono::high_resolution_clock> elapse = start;
+            start = std::chrono::high_resolution_clock::now();
+            return std::chrono::duration<float>(start - elapse).count();
+        }
+    };
 };

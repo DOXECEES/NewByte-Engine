@@ -162,6 +162,7 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
     auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
     auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine.obj");
+    auto wall = rm->getResource<Renderer::Mesh>("wall.obj");
 
     sceneGraph = Renderer::SceneGraph::getInstance();
 
@@ -182,9 +183,22 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
 
     auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
 
+    Renderer::Transform wallTransform;
+    wallTransform.translate = {0.0f, 0.0f, -15.0f};
+    wallTransform.scale = {8.0f, 1.0f, 1.0f};
+    wallTransform.rotateX = Math::toRadians(90.0f);
+
+    auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
+
+    Renderer::Transform dirLightTransform;
+    auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
+    auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
+
     scene->addChildren(n);
     scene->addChildren(g);
     scene->addChildren(n5);
+    scene->addChildren(nWall);
+    scene->addChildren(dirLightNode);
 
     lightPosition.push_back({1.0f, 1.0f, 1.0f});
     lightPosition.push_back({-1.00f, 10.0f, -10.0f});
@@ -251,6 +265,17 @@ void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat
     m.draw(GL_LINES, aabbShader);
 }
 
+
+std::vector<nb::Renderer::Vertex> quadVertices =
+{
+    // X, Y, U, V
+    {{0.0f,  0.0f, 0.0f}},
+    {{100.0f, 0.0f, 0.0f}},
+    {{100.0f, 50.0f, 0.0f}}, 
+    {{0.0f,  50.0f, 0.0f}}
+};
+
+
 void nb::OpenGl::OpenGLRender::render()
 {
 
@@ -283,6 +308,14 @@ void nb::OpenGl::OpenGLRender::render()
     MVP = model * view * proj;
 
     sceneGraph->getScene()->updateWorldTransform();
+    if(t == nullptr)
+    {
+        t = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick.png");
+        tn = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick_normal.png");
+    }
+
+
+   
 
     // GLuint fbo;
     // glGenFramebuffers(1, &fbo);
@@ -369,7 +402,7 @@ void nb::OpenGl::OpenGLRender::render()
         ltop = stkl.top();
         stkl.pop();
     }
-
+    countOfDraws = 0;
     std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
     stk.push(sceneGraph->getScene());
 
@@ -382,8 +415,21 @@ void nb::OpenGl::OpenGLRender::render()
         {
             stk.push(i);
         }
+
         renderNode(top, ln);
     }
+
+    // auto uiShader = rm->getResource<nb::Renderer::Shader>("ui.shader");
+    // glDisable(GL_DEPTH_TEST);
+    // auto projection = Math::ortho(0.0f, (float)Core::EngineSettings::getWidth(), 0.0f, (float)Core::EngineSettings::getHeight(), 0.0f, 0.0f);
+    // uiShader->use();
+    // uiShader->setUniformMat4("projection", projection);
+    // uiShader->setUniformVec2("position", {0.0f, 0.0f});
+
+    // Renderer::Mesh m(quadVertices, {0, 1, 2, // Первый треугольник
+    //                                 2, 3, 0});
+    // m.draw(GL_TRIANGLES, uiShader);
+    // glEnable(GL_DEPTH_TEST);
 
     SwapBuffers(hdc);
 }
@@ -478,26 +524,45 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
+        // // not work
+        // auto planes = Math::getFrustrumPlanes(cam->getProjection());
+        // Math::AABB3D B = Math::AABB3D::recalculateAabb3dByModelMatrix(n->mesh->getAabb3d(), n->getWorldTransform());
+
+        // for(auto &i : planes)
+        // {
+        //     if(Math::AABB3D::intersectAabbPlane(B, i))
+        //         return;
+        // }
+
+
+        //
+
+        countOfDraws++;
         // n->mesh->uniforms.shader = shader;
+        n->mesh->uniforms.intUniforms["ourTexture"] = 1;
+        n->mesh->uniforms.intUniforms["textureNormal"] = 2;
         n->mesh->uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
         n->mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
         n->mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
         n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
-        n->mesh->uniforms.vec3Uniforms["light[0].LightPos"] = {1.0f, 1.0f, 1.0f};
-        n->mesh->uniforms.vec3Uniforms["light[0].La"] = {ambientColor};
-        n->mesh->uniforms.vec3Uniforms["light[0].Ld"] = {1.0f, 1.0f, 1.0f};
-        n->mesh->uniforms.vec3Uniforms["light[0].Ls"] = {0.1f, 0.1f, 0.1f};
-        n->mesh->uniforms.vec3Uniforms["light[1].LightPos"] = {-1.00f, 10.0f, -10.0f};
-        n->mesh->uniforms.vec3Uniforms["light[1].La"] = {};
-        n->mesh->uniforms.vec3Uniforms["light[1].Ld"] = {1.0f, 1.0f, 1.0f};
-        // for (int i = 0; i < lightNode.size(); i++)
-        // {
-        //     lightNode[i].light->applyUniforms(n->mesh->uniforms.shader);
-        // }
+
+        for(const auto& i : lightNode)
+        {
+            i.light->applyUniforms(shader);
+        }
+
+        if(n->getName() == "Gizmo")
+        {
+            n->mesh->uniforms.mat4Uniforms["model"] = gizmoModelMat;
+        }
+
+        t->bind(1);
+        tn->bind(2);
+        //else
 
         n->mesh->draw(GL_TRIANGLES, shader);
 
-        if (!shouldVisualizeAabb)
+        if (shouldVisualizeAabb)
         {
             visualizeAabb(n->mesh->getAabb3d(), n->getWorldTransform());
         }
@@ -588,3 +653,6 @@ nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::model({{1.0f, 0.f, 0.f, 0.f},
                                                        {0.f, 0.f, 0.f, 1.0f}});
 
 nb::Renderer::Material nb::OpenGl::OpenGLRender::mat;
+
+//
+nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::gizmoModelMat;

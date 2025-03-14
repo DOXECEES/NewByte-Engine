@@ -16,12 +16,10 @@ namespace nb
             width = json["width"].get<int>();
             height = json["height"].get<int>();
             fov = json["fov"].get<float>();
+            mouseSensivity = json["mouse-sensivity"].get<float>();
             graphicsApi = static_cast<Core::GraphicsAPI>(json["graphics-api"].get<int>());
         }
 
-        int EngineSettings::width  = DEFAULT_WIDTH;
-        int EngineSettings::height = DEFAULT_HEIGHT;
-        float EngineSettings::fov = DEFAULT_FOV;
-        Core::GraphicsAPI EngineSettings::graphicsApi = DEFAULT_GRAPHICS_API;
+  
     };
 };

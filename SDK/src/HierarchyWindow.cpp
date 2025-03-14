@@ -97,6 +97,12 @@ namespace Editor
             rect2.top = 0;
             rect2.right = 500;
             rect2.bottom = 60;
+
+            RECT rect3;
+            rect3.left = 100;
+            rect3.top = 0;
+            rect3.right = 500;
+            rect3.bottom = 90;
             // GetClientRect(hwnd, &rect);
             if (sEngine != nullptr)
                 pos = sEngine->getCameraPos();
@@ -107,13 +113,20 @@ namespace Editor
             if (sEngine != nullptr)
                 camDir = sEngine->getCameraDirection();
 
+
             std::wstring camDirStr = std::to_wstring(camDir.x) + L" " + std::to_wstring(camDir.y) + L" " + std::to_wstring(camDir.z);
+            std::wstring countOfDraws = L"Count of draws: " + std::to_wstring(nb::OpenGl::OpenGLRender::countOfDraws);
+
 
             DrawText(hdc, camPos.c_str(), -1, &rect1,
                      DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
 
             DrawText(hdc, camDirStr.c_str(), -1, &rect2,
-                     DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
+                     DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);            
+                     
+            DrawText(hdc, countOfDraws.c_str(), -1, &rect3,
+                DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
+
             EndPaint(hwnd, &ps);
             return 0;
         }

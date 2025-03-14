@@ -93,6 +93,8 @@ namespace nb
             : verticies(vert)
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
+            calculateTagnentArray();
+            
             VAO.linkData(verticies, ind);
             recalculateAabb3dForce();
         }
@@ -121,13 +123,13 @@ namespace nb
 
             for (const auto &vertex : verticies)
             {
-                minPoint.x = std::min(minPoint.x, vertex.position.x);
-                minPoint.y = std::min(minPoint.y, vertex.position.y);
-                minPoint.z = std::min(minPoint.z, vertex.position.z);
+                minPoint.x = (std::min)(minPoint.x, vertex.position.x);
+                minPoint.y = (std::min)(minPoint.y, vertex.position.y);
+                minPoint.z = (std::min)(minPoint.z, vertex.position.z);
 
-                maxPoint.x = std::max(maxPoint.x, vertex.position.x);
-                maxPoint.y = std::max(maxPoint.y, vertex.position.y);
-                maxPoint.z = std::max(maxPoint.z, vertex.position.z);
+                maxPoint.x = (std::max)(maxPoint.x, vertex.position.x);
+                maxPoint.y = (std::max)(maxPoint.y, vertex.position.y);
+                maxPoint.z = (std::max)(maxPoint.z, vertex.position.z);
             }
 
             aabb = Math::AABB3D(minPoint, maxPoint);
