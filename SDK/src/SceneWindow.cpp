@@ -90,9 +90,15 @@ namespace Editor
         {
             if(Sengine != nullptr)
             {
-                int xw = LOWORD(lParam);
-                int yw = HIWORD(lParam);
-                    Sengine->rayPick(xw, yw);
+                static int x = 0;
+                static int y = 0;
+
+                x = LOWORD(lParam);
+                y = HIWORD(lParam);
+
+                mouseDelta.addDelta(x - mouseDelta.dx, y - mouseDelta.dy);
+
+                Sengine->rayPick(x, y);
 
             }
 
@@ -103,7 +109,13 @@ namespace Editor
         break;
         case WM_LBUTTONUP:
         {
+            mouseButtons &= 0x0002;
             isPrevClick = false;
+            break;
+        }
+        case WM_LBUTTONDOWN:
+        {
+            mouseButtons &= 0x0001;
             break;
         }
         case WM_SIZE:
@@ -155,6 +167,14 @@ namespace Editor
         default:
             return DefMDIChildProc(hwnd, message, wParam, lParam);
         }
+    }
+
+    nb::Input::MouseDelta SceneWindow::peekMouseDelta() noexcept
+    {
+        nb::Input::MouseDelta copy = mouseDelta;
+        mouseDelta.clear();
+
+        return copy;
     }
 
     void SceneWindow::resize(const int newWidth, const int newHeigth) noexcept

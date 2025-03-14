@@ -60,6 +60,8 @@ namespace nb
             }
             virtual ~BaseNode() = default;
 
+            void moveAt(const Math::Vector3<float> &direction) noexcept;
+
             // virtual void accept(BaseVisitor& visitor) const noexcept = 0;
             const std::vector<std::shared_ptr<BaseNode>> &getChildrens() const noexcept;
 
@@ -72,9 +74,12 @@ namespace nb
             void setRotationZ(const float val) noexcept;
             void setScale(const Math::Vector3<float>& scale) noexcept;
 
+
             void setTransform(const Transform &newTransform) noexcept;
             Math::Mat4<float> getLocalTransform() const noexcept;
             Math::Mat4<float> getWorldTransform() const noexcept;
+
+            const Math::Vector3<float> &getPosition() const noexcept;
 
             void setName(std::string_view str) noexcept;
             std::string getName() const noexcept;

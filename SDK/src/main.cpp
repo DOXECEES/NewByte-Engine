@@ -114,7 +114,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         if (!running)
             break;
 
-        engine->run();
+        engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
     }
     auto i = GetLastError();
 

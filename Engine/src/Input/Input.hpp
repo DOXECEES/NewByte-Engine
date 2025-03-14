@@ -34,17 +34,17 @@ namespace nb
             void reset() noexcept;
 
         private:
-            bool shouldHandlePosition = false;
+            bool shouldHandlePosition       = false;
             bool shouldHandleKeyboardEvents = true;
 
             uint16_t deviceFlags;
 
-            float prevScrollData = 0.0f;
-            int prevMouseX          = 0;
-            int prevMouseY          = 0;
+            float prevScrollData            = 0.0f;
+            int prevMouseX                  = 0;
+            int prevMouseY                  = 0;
         
-            Ref<Mouse> mouse        = nullptr;
-            Ref<Keyboard> keyboard  = nullptr;
+            Ref<Mouse> mouse                = nullptr;
+            Ref<Keyboard> keyboard          = nullptr;
 
 
         };

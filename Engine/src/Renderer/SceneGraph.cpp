@@ -7,6 +7,12 @@ namespace nb
 {
     namespace Renderer
     {
+        void BaseNode::moveAt(const Math::Vector3<float> &direction) noexcept
+        {
+            transform.translate += direction;
+            dirtyFlag = true;
+        }
+
         const std::vector<std::shared_ptr<BaseNode>> &BaseNode::getChildrens() const noexcept
         {
             return children;
@@ -69,6 +75,11 @@ namespace nb
         Math::Mat4<float> BaseNode::getWorldTransform() const noexcept
         {
             return worldTransformation;
+        }
+
+        const Math::Vector3<float> &BaseNode::getPosition() const noexcept
+        {
+            return transform.translate;
         }
 
         void BaseNode::setName(std::string_view str) noexcept

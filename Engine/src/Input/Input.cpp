@@ -38,7 +38,6 @@ namespace nb
 
         void Input::update(const MSG& msg) noexcept
         {
-            //keyboard->update();
             if(msg.message == WM_INPUT)
             {
                 uint32_t size = sizeof(RAWINPUT);
@@ -130,7 +129,6 @@ namespace nb
                 reset();
             }
 
-            //mouse->update(prevMouseX, prevMouseY, prevScrollData, deviceFlags);
         }
 
         void Input::updateAll() const noexcept
@@ -141,10 +139,7 @@ namespace nb
 
         void Input::reset() noexcept
         {
-            //prevMouseX = 0;
-            //prevMouseY = 0;
             prevScrollData = 0;
-            //deviceFlags = 0;
         }
     };
 };

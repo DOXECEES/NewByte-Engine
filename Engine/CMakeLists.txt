@@ -94,11 +94,6 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/OpenGL/FBO.hpp
         src/Renderer/OpenGL/OpenGLTexture.cpp
         src/Renderer/OpenGL/OpenGLTexture.hpp
-
-
-
-        
-
         
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
@@ -113,6 +108,7 @@ add_library(${PROJECT_NAME} STATIC
         src/Math/AABB3D.hpp
         src/Math/Quaternion.cpp
         src/Math/Quaternion.hpp
+        src/Math/Plane.hpp
 
 
         src/Math/Matrix/Matrix.cpp

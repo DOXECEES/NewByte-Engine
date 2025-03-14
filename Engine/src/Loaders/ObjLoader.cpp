@@ -117,11 +117,13 @@ namespace nb
                                 normId = std::stoi(s.substr(pos2 + 1)) - 1;
                             }
 
+
                             Renderer::Vertex vertex = {
                                 verticies[vertId],
                                 normId != ~0L ? normals[normId] : Math::Vector3<float>(0.0f, 0.0f, 0.0f),
                                 {0.0f, 0.0f, 0.0f},
-                                texId != ~0L ? textureCoords[texId] : Math::Vector2<float>(0.0f, 0.0f)};
+                                texId != ~0L ? textureCoords[texId] : Math::Vector2<float>(0.0f, 0.0f)
+                            };
 
                             if (uniqueVertices.count(vertex) == 0)
                             {

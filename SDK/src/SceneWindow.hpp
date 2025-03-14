@@ -19,6 +19,8 @@ namespace Editor
         ~SceneWindow() = default;
 
         inline const HWND &getHandle() const noexcept { return hwnd; };
+        nb::Input::MouseDelta peekMouseDelta() noexcept;
+        inline nb::Input::MouseButtons getMouseButtons() const noexcept { return mouseButtons; };
 
         void resize(const int newWidth, const int newHeigth) noexcept;
 
@@ -33,7 +35,10 @@ namespace Editor
         std::shared_ptr<nb::Core::Engine> engine;
         HWND hwnd;
 
-          static      std::shared_ptr<nb::Core::Engine> Sengine;
+        inline static nb::Input::MouseDelta mouseDelta = {};
+        inline static nb::Input::MouseButtons mouseButtons = {};
+
+        static std::shared_ptr<nb::Core::Engine> Sengine;
 
 
         static bool isPrevClick;

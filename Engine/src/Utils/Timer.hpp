@@ -2,24 +2,23 @@
 #define SRC_UTILS_TIMER_HPP
 
 #include <chrono>
-
-namespace Utils
+namespace nb
 {
-    class Timer
+    namespace Utils
     {
-    public:
-        static void init() noexcept;
-        static void reset() noexcept;
+        class Timer
+        {
+        public:
+            static void init() noexcept;
+            static void reset() noexcept;
 
-        static float timeElapsedSinceInit() noexcept;
-        static float timeElapsed() noexcept;
-        
+            static float timeElapsedSinceInit() noexcept;
+            static float timeElapsed() noexcept;
 
-    private:
-        static inline std::chrono::time_point<std::chrono::high_resolution_clock> initTime = std::chrono::high_resolution_clock::now();
-        static inline std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
-    
-    };
-}
-
+        private:
+            static inline std::chrono::time_point<std::chrono::high_resolution_clock> initTime = std::chrono::high_resolution_clock::now();
+            static inline std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+        };
+    }
+};
 #endif

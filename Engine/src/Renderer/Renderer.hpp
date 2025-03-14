@@ -36,6 +36,8 @@ namespace nb
             inline const std::shared_ptr<SceneGraph> getScene() const noexcept { return api->getScene(); };
             inline void setScenes(std::shared_ptr<SceneGraph> &s) { api->setScene(s); };
 
+
+
         private:
             IRenderAPI * api;
             //Camera* camera;
