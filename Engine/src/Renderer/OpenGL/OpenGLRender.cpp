@@ -190,15 +190,23 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
 
     auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
 
-    Renderer::Transform dirLightTransform;
-    auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
-    auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
+    // Renderer::Transform dirLightTransform;
+    // auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
+    // auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
+
+    Renderer::Transform pointLightTransform;
+    pointLightTransform.translate = {0.0f, 0.0f, 0.0f};
+    auto pointLight = std::make_shared<Renderer::PointLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, 
+                pointLightTransform.translate, 1.0f, 0.014f, 0.0007f , 1.0f);
+    auto pointLightNode = std::make_shared<Renderer::LightNode>("PointLight", pointLightTransform, pointLight);
+
 
     scene->addChildren(n);
     scene->addChildren(g);
     scene->addChildren(n5);
     scene->addChildren(nWall);
-    scene->addChildren(dirLightNode);
+    //scene->addChildren(dirLightNode);
+    scene->addChildren(pointLightNode);
 
     lightPosition.push_back({1.0f, 1.0f, 1.0f});
     lightPosition.push_back({-1.00f, 10.0f, -10.0f});
@@ -545,6 +553,7 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
         n->mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
         n->mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
         n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
+        n->mesh->uniforms.intUniforms[Renderer::ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = Renderer::DirectionalLight::getCountOfDirectionalLights();
 
         for(const auto& i : lightNode)
         {

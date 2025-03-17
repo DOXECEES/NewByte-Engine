@@ -14,6 +14,7 @@ namespace nb
         public:
             explicit Indexator(const int min, const int max);
 
+            int next() const noexcept;
             NB_NODISCARD int index() noexcept;
             void freeIndex(const int index) noexcept;
 

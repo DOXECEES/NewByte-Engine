@@ -27,6 +27,7 @@
 #include "../Skybox.hpp"
 
 #include "OpenGLTexture.hpp"
+#include "ShaderConstants.hpp"
 
 #include "../../Utils/Timer.hpp"
 

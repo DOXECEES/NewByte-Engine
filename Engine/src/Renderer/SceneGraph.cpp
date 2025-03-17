@@ -119,8 +119,8 @@ namespace nb
         {
             if (dirtyFlag == true)
             {
-                Debug::debug("dirty");
                 updateWorldTransformForce();
+                onDirtyChange();
                 return;
             }
             
