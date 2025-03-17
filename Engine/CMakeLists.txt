@@ -71,6 +71,7 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/Light.hpp
         src/Renderer/Light.cpp
 
+
         src/Renderer/RendererStructures.hpp
 
         src/Renderer/Objects/Objects.cpp
@@ -94,6 +95,7 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/OpenGL/FBO.hpp
         src/Renderer/OpenGL/OpenGLTexture.cpp
         src/Renderer/OpenGL/OpenGLTexture.hpp
+        src/Renderer/OpenGL/ShaderConstants.hpp
         
         src/Math/Constants.hpp
         src/Math/Vector2.cpp

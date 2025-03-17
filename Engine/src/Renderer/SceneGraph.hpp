@@ -91,6 +91,8 @@ namespace nb
             void updateWorldTransform() noexcept;
             void updateWorldTransformForce() noexcept;
 
+            virtual void onDirtyChange() noexcept {};
+
         protected:
 
             Transform transform;
@@ -127,6 +129,11 @@ namespace nb
             LightNode(std::string_view nodeName, const Transform& nodeTransform, const std::shared_ptr<Light> &nodeLight)
                 : BaseNode(nodeName, nodeTransform), light(nodeLight)
             {
+            }
+            
+            void onDirtyChange() noexcept override
+            {
+                light->setPosition(transform.translate);
             }
 
             //private:
