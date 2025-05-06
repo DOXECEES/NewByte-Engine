@@ -123,8 +123,8 @@ namespace nb
 
         private:
 
-            JsonLexer lexer;
-            JsonLexer::Token token;
+            JsonLexer           lexer;
+            JsonLexer::Token    token;
         
         };
     };

@@ -20,7 +20,7 @@ namespace nb
         {
         public:
 
-            using Map = std::map<std::string, Node>;
+            using Map   = std::map<std::string, Node>;
             using Value = std::variant<int, float, bool, std::string, std::nullptr_t>;
             using Array = std::vector<Node>;
 

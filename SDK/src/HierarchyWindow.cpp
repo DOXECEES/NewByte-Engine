@@ -163,6 +163,8 @@ namespace Editor
         default:
             return DefMDIChildProc(hwnd, message, wParam, lParam);
         }
+
+        return DefMDIChildProc(hwnd, message, wParam, lParam);
     }
 
     nb::Math::Vector3<float> HierarchyWindow::pos = {0.0f, 0.0f, 0.0f};

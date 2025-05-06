@@ -21,6 +21,41 @@ namespace nb
 {
     namespace Math
     {
+        class Line
+        {
+
+        };
+
+        class Ray
+        {
+        public:
+            Ray() noexcept = default;
+            Ray(const Math::Vector3<float>& origin, const Math::Vector3<float>& direction)
+                : origin(origin)
+                , direction(direction)
+            {}
+
+            Math::Vector3<float> pointByParameter(const float t) const noexcept
+            {
+                return origin + (direction * t);
+            }
+
+            const Math::Vector3<float>& getOrigin() const noexcept
+            {
+                return origin;
+            }
+
+            const Math::Vector3<float>& getDirection() const noexcept
+            {
+                return direction;
+            }
+
+        private:
+            Math::Vector3<float> origin     = {};
+            Math::Vector3<float> direction  = {};
+        };
+
+
         inline float toRadians(const float degrees) noexcept
         {
             return degrees * (Constants::PI / Constants::HALF_OF_CIRCLE_IN_DEG);
@@ -47,6 +82,77 @@ namespace nb
                 static_cast<uint8_t>(color.y * 255.0f),
                 static_cast<uint8_t>(color.z * 255.0f)
             };
+        }
+
+        
+        template<typename Vec>
+        typename Vec::value_type projectVectorToVector(const Vec& a, const Vec& b)
+        {
+            using value_type = typename Vec::value_type;
+            
+            const value_type scalar = a.dot(b);
+            const value_type length = b.length(); 
+            
+            if (length <= std::numeric_limits<value_type>::epsilon())  
+                return value_type(0);
+
+            return scalar / length;
+        }
+
+        inline float squaredDistanceFromPointToRay(const Ray& ray, const Math::Vector3<float>& point) noexcept
+        {
+            Math::Vector3<float> diff = point - ray.getOrigin();
+            float proj = projectVectorToVector(diff, ray.getDirection());
+            return (diff.squaredLength()) - (proj * proj);
+        }
+
+        inline float distanceFromPointToRay(const Ray& ray, const Math::Vector3<float>& point) noexcept
+        {
+            return std::sqrtf(squaredDistanceFromPointToRay(ray, point));
+        }
+
+        inline float squaredDistanceBetweenRays(const Ray& ray1, const Ray& ray2) noexcept
+        {
+            const Vector3<float>& dir1 = ray1.getDirection();
+            const Vector3<float>& dir2 = ray2.getDirection();
+            const Vector3<float>& origin1 = ray1.getOrigin();
+            const Vector3<float>& origin2 = ray2.getOrigin();
+        
+            const float dot12 = dir1.dot(dir2);
+            const float lenSq1 = dir1.squaredLength();
+            const float lenSq2 = dir2.squaredLength();
+        
+            float denom = dot12 * dot12 - lenSq1 * lenSq2;
+        
+            const Vector3<float> originDiff = origin2 - origin1;
+        
+            if (std::abs(denom) <= std::numeric_limits<float>::epsilon()) // если паралельны
+            {
+                return originDiff.cross(dir1).squaredLength() / lenSq1;
+            }
+        
+            denom = 1.0f / denom;
+        
+            const float a = -lenSq2;
+            const float b = dot12;
+            const float c = -dir1.dot(dir2);
+            const float d = lenSq1;
+        
+            const float e = originDiff.dot(dir1);
+            const float f = originDiff.dot(dir2);
+        
+            const float t1 = (a * e + b * f) * denom;
+            const float t2 = (c * e + d * f) * denom;
+        
+            const Vector3<float> point1 = ray1.pointByParameter(t1);
+            const Vector3<float> point2 = ray2.pointByParameter(t2);
+        
+            return (point1 - point2).squaredLength();
+        }
+        
+        inline float distanceBetweenRays(const Ray& ray1, const Ray& ray2) noexcept
+        {
+            return std::sqrtf(squaredDistanceBetweenRays(ray1, ray2));
         }
         // vec4
         template <typename T>

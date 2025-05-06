@@ -96,6 +96,8 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/OpenGL/OpenGLTexture.cpp
         src/Renderer/OpenGL/OpenGLTexture.hpp
         src/Renderer/OpenGL/ShaderConstants.hpp
+        src/Renderer/OpenGL/DepthBuffer.cpp
+        src/Renderer/OpenGL/DepthBuffer.hpp
         
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
@@ -162,6 +164,9 @@ add_library(${PROJECT_NAME} STATIC
         src/Utils/Timer.hpp
         src/Utils/Indexator.cpp
         src/Utils/Indexator.hpp
+
+        src/Ecs/Ecs.hpp
+        src/Ecs/Ecs.cpp
 
         dependencies/lodepng/lodepng.cpp
 

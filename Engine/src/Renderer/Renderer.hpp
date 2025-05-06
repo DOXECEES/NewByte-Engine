@@ -39,7 +39,7 @@ namespace nb
 
 
         private:
-            IRenderAPI * api;
+            IRenderAPI* api;
             //Camera* camera;
         };
     };

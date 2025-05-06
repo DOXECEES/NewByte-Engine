@@ -47,12 +47,65 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
     return true;
 }
 
+#include "../ECS/Ecs.hpp"
+#include "../Loaders/PngLoader.hpp"
 namespace nb
 {
     namespace Core
     {
+        struct Helth
+        {
+            int i=0;
+        };
+
+        struct Speed
+        {
+            int i = 0;
+        };
+
         Engine::Engine(const HWND &hwnd)
         {
+
+#ifdef NB_DEBUG
+
+            Math::Vector3<float> v1 = {0.0f, 0.0f, 0.0f};
+            Math::Vector3<float> v2 = {0.0f, 1.0f, 0.0f};
+
+            Math::Ray r(v1, v2);
+
+            Math::Ray r2({5.0f, 2.0f, 0.0f}, {-1.0f, 0.0f, 0.0f});
+            auto res = Math::distanceBetweenRays(r, r2);
+
+            //auto v = nb::Math::projectVectorToVector(v1, v2);
+
+
+            //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
+            
+
+            Ecs::EcsManager manager;
+            auto ent1 = manager.createEntity();
+            ent1.add<Helth>(Helth(1));
+            ent1.add<Speed>(Speed(1));
+            auto ent2 = manager.createEntity();
+            ent2.add<Helth>(Helth(2));
+
+            Debug::debug("HELTH:");
+
+            for(auto&i : manager.getEntitiesWithComponent<Helth>())
+            {
+                auto h = i.get<Helth>();
+                Debug::debug(h.i);
+            }
+            Debug::debug("Speed:");
+
+            for(auto&i : manager.getEntitiesWithComponent<Speed>())
+            {
+                auto h = i.get<Speed>();
+                Debug::debug(h.i);
+            }
+#endif            
+
+
             subSystems->Init(hwnd);
             this->hwnd = hwnd;
             keyboard = subSystems->getKeyboard();
@@ -62,8 +115,7 @@ namespace nb
             input->linkMouse(mouse);
             renderer = subSystems->getRenderer();
             renderer->setCamera(&cam);
-            Utils::Timer::init();
-
+            Utils::Timer::init();   
         }
 
         void Engine::bufferizeInput(const MSG &msg) noexcept

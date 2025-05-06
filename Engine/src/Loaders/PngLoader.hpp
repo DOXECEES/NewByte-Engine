@@ -9,6 +9,7 @@
 #include <bitset>
 
 #include "../Debug.hpp"
+#include "../Core.hpp"
 #include "../Utils/BitReader.hpp"
 
 namespace nb
@@ -24,9 +25,9 @@ namespace nb
             };
             
 
-            static constexpr uint8_t CHUNK_SIZE_IN_BYTES = 4;
-            static constexpr uint8_t CHUNK_TYPE_SIZE_IN_BYTES = 4;
-            static constexpr uint8_t CHUNK_CRC_SIZE_IN_BYTES = 4;
+            static constexpr uint8_t CHUNK_SIZE_IN_BYTES        = 4;
+            static constexpr uint8_t CHUNK_TYPE_SIZE_IN_BYTES   = 4;
+            static constexpr uint8_t CHUNK_CRC_SIZE_IN_BYTES    = 4;
 
             struct ChunkData
             {
@@ -77,16 +78,12 @@ namespace nb
             bool validateHeader();
             bool validateIhdr();
 
-
             void identifyChunk(const ChunkData &chunk);
             void readChunk();
 
             std::ifstream file;
             bool isGood = true;
         };
-    
-    
-        
     };
 
 };

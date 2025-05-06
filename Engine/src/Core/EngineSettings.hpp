@@ -16,13 +16,13 @@ namespace nb
             /**
             * @todo Создать модуль файловых путей
             */ 
-            inline static const std::filesystem::path PATH_TO_CONFIG = "config.json";
+            inline static const std::filesystem::path   PATH_TO_CONFIG          = "config.json";
 
-            static constexpr int DEFAULT_WIDTH = 640;
-            static constexpr int DEFAULT_HEIGHT = 480;
-            static constexpr float DEFAULT_FOV = 45.0f;
-            static constexpr float DEFAULT_MOUSE_SENSIVITY = 0.1f;
-            static constexpr Core::GraphicsAPI DEFAULT_GRAPHICS_API = Core::GraphicsAPI::OPENGL;
+            static constexpr int                        DEFAULT_WIDTH           = 640;
+            static constexpr int                        DEFAULT_HEIGHT          = 480;
+            static constexpr float                      DEFAULT_FOV             = 45.0f;
+            static constexpr float                      DEFAULT_MOUSE_SENSIVITY = 0.1f;
+            static constexpr Core::GraphicsAPI          DEFAULT_GRAPHICS_API    = Core::GraphicsAPI::OPENGL;
 
 
         public:
@@ -43,11 +43,11 @@ namespace nb
 
         private:
         
-            inline static int width = DEFAULT_WIDTH;
-            inline static int height = DEFAULT_HEIGHT;
-            inline static float fov = DEFAULT_FOV;
-            inline static float mouseSensivity = DEFAULT_MOUSE_SENSIVITY;
-            inline static Core::GraphicsAPI graphicsApi = DEFAULT_GRAPHICS_API;
+            inline static int               width           = DEFAULT_WIDTH;
+            inline static int               height          = DEFAULT_HEIGHT;
+            inline static float             fov             = DEFAULT_FOV;
+            inline static float             mouseSensivity  = DEFAULT_MOUSE_SENSIVITY;
+            inline static Core::GraphicsAPI graphicsApi     = DEFAULT_GRAPHICS_API;
         };
     };
 };

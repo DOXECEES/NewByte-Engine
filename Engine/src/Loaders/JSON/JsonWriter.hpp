@@ -73,8 +73,8 @@ namespace nb
 
         private:
             
-            std::ostringstream output;
-            std::stack<char> symbols;
+            std::ostringstream  output;
+            std::stack<char>    symbols;
         };
 
     };

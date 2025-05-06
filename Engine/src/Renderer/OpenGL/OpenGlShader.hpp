@@ -72,9 +72,9 @@ namespace nb
 
         private:
 
-            std::vector<GLuint> shaders;
-            std::vector<std::filesystem::path> pathsToShaderSources;
-            GLuint program = 0;
+            std::vector<GLuint>                 shaders;
+            std::vector<std::filesystem::path>  pathsToShaderSources;
+            GLuint                              program                 = 0;
 
         };
     };

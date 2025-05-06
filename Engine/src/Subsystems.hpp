@@ -42,8 +42,8 @@ public:
 private:
     // subsystems list
     //Renderer2D *renderer2d               = nullptr;
-    Ref<nb::Renderer::Renderer> renderer = nullptr;
-    Ref<nb::Input::Keyboard> keyboard    = nullptr;
-    Ref<nb::Input::Mouse> mouse          = nullptr;
+    Ref<nb::Renderer::Renderer> renderer    = nullptr;
+    Ref<nb::Input::Keyboard>    keyboard    = nullptr;
+    Ref<nb::Input::Mouse>       mouse       = nullptr;
     //
 };

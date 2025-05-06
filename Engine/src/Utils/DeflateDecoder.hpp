@@ -18,6 +18,7 @@ namespace nb
         class DeflateDecoder
         {
 
+        public:
 
             static constexpr uint8_t MAX_COMMAND_ALPHABET_SIZE = 19;
             static constexpr std::array<uint8_t, MAX_COMMAND_ALPHABET_SIZE> COMMAND_ALPHABET_SEQUENCE = {
@@ -33,12 +34,27 @@ namespace nb
                 std::bitset<2> flevel;
             };
 
-        public:
+           
+            enum class BlockCompression
+            {
+                UNCOMPRESSED    = 0b00,
+                FIXED           = 0b01,
+                DYNAMIC         = 0b10,
+                RESERVED        = 0b11
+            };
+
+            struct BlockHeader
+            {
+                bool isFinal;
+                BlockCompression type;
+            };
+
             DeflateDecoder() = delete;
             DeflateDecoder(const std::vector<char> &vec);
 
             ZlibHeader readZlibHeader();
             void processDynamicHuffman();
+            BlockHeader readBlockHeader();
 
         private:
             BitReader<char> br;

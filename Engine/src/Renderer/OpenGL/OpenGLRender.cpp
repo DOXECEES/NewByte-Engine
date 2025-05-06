@@ -132,7 +132,7 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEPTH_CLAMP);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
@@ -167,7 +167,7 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     sceneGraph = Renderer::SceneGraph::getInstance();
 
     auto scene = sceneGraph->getScene();
-    auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.f, 0.0f, 0.0f});
+    auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.0f, 0.0f, 0.0f});
 
     Renderer::Transform at;
 
@@ -190,6 +190,17 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
 
     auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
 
+
+  
+    auto box = rm->getResource<Renderer::Mesh>("box.obj");
+
+
+    Renderer::Transform boxTransform;
+    boxTransform.translate = {0.0f, 0.0f, 0.0f};
+    boxTransform.scale = {4.0f, 4.0f, 4.0f};
+
+    auto nBox = std::make_shared<Renderer::ObjectNode>("Box", boxTransform , box, shader);
+
     // Renderer::Transform dirLightTransform;
     // auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
     // auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
@@ -197,22 +208,26 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     Renderer::Transform pointLightTransform;
     pointLightTransform.translate = {0.0f, 0.0f, 0.0f};
     auto pointLight = std::make_shared<Renderer::PointLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, 
-                pointLightTransform.translate, 1.0f, 0.014f, 0.0007f , 1.0f);
+                pointLightTransform.translate, 1.0f, 0.0f, 0.0f , 1.0f);
     auto pointLightNode = std::make_shared<Renderer::LightNode>("PointLight", pointLightTransform, pointLight);
 
+    auto hand = rm->getResource<Renderer::Mesh>("Hands.obj");
+    Renderer::Transform handsTransform;
+    auto hands = std::make_shared<Renderer::ObjectNode>("hands", handsTransform , hand, shader);
 
-    scene->addChildren(n);
-    scene->addChildren(g);
-    scene->addChildren(n5);
-    scene->addChildren(nWall);
+
+    //scene->addChildren(n);
+    //scene->addChildren(g);
+    //scene->addChildren(n5);
+    //scene->addChildren(nWall);
+    scene->addChildren(hands);
+    scene->addChildren(nBox);
     //scene->addChildren(dirLightNode);
     scene->addChildren(pointLightNode);
 
-    lightPosition.push_back({1.0f, 1.0f, 1.0f});
-    lightPosition.push_back({-1.00f, 10.0f, -10.0f});
 }
 
-void nb::OpenGl::OpenGLRender::visualizeLight() const noexcept
+void nb::OpenGl::OpenGLRender::visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept
 {
     auto rm = ResMan::ResourceManager::getInstance();
     auto mesh = rm->getResource<Renderer::Mesh>("sphere.obj");
@@ -223,12 +238,10 @@ void nb::OpenGl::OpenGLRender::visualizeLight() const noexcept
     mesh->uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
     mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
     mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
-    mesh->uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), lightPosition[0]);
+    mesh->uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), node->getPosition() - Math::Vector3<float>{0.0f, 1.0f, 1.0f});
 
     mesh->draw(GL_TRIANGLES, lightVisulizeShader);
 
-    mesh->uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), lightPosition[1]);
-    mesh->draw(GL_TRIANGLES, lightVisulizeShader);
 }
 
 void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat4<float> mat) const noexcept
@@ -274,40 +287,55 @@ void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat
 }
 
 
-std::vector<nb::Renderer::Vertex> quadVertices =
-{
-    // X, Y, U, V
-    {{0.0f,  0.0f, 0.0f}},
-    {{100.0f, 0.0f, 0.0f}},
-    {{100.0f, 50.0f, 0.0f}}, 
-    {{0.0f,  50.0f, 0.0f}}
-};
 
 
 void nb::OpenGl::OpenGLRender::render()
 {
+    const int width = nb::Core::EngineSettings::getWidth();
+    const int height = nb::Core::EngineSettings::getHeight();
 
-    glViewport(0, 0, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight());
+    glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
 
+    // Получение камеры и матриц
     auto view = cam->getLookAt();
     auto proj = cam->getProjection();
 
+    // === DEPTH BUFFER ===
+    // init
+    if(!depthBuffer)
+    {
+        depthBuffer = new DepthBuffer(width, height);
+    }
+
+    if(depthBuffer->getWidth() != width || depthBuffer->getHeight() != height)
+    {
+        delete depthBuffer;
+        depthBuffer = new DepthBuffer(width, height);
+    }
+
+    depthBuffer->bind();
+    glViewport(0, 0, width, height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+
+
+    // === SKYBOX ===
     static Renderer::Skybox sky;
     auto skyboxShader = rm->getResource<nb::Renderer::Shader>("skybox.shader");
-    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
-    proj = cam->getProjection();
-
     skyboxShader->setUniformInt("skybox", 0);
     skyboxShader->setUniformMat4("view", view);
     skyboxShader->setUniformMat4("projection", proj);
-
     sky.render(skyboxShader);
+
+    // === SHADER И МАТРИЦЫ ===
+    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
 
     shader->setUniformMat4("model", model);
     shader->setUniformMat4("view", view);
@@ -315,214 +343,100 @@ void nb::OpenGl::OpenGLRender::render()
 
     MVP = model * view * proj;
 
+    // === ОБНОВЛЕНИЕ СЦЕНЫ ===
     sceneGraph->getScene()->updateWorldTransform();
-    if(t == nullptr)
-    {
+
+    // === ТЕКСТУРЫ ===
+    if (!t) {
         t = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick.png");
         tn = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick_normal.png");
     }
 
+    // === СБОР ИСТОЧНИКОВ СВЕТА ===
+    std::vector<Renderer::LightNode> lights;
+    std::stack<std::shared_ptr<Renderer::BaseNode>> nodeStack;
+    nodeStack.push(sceneGraph->getScene());
 
-   
+    while (!nodeStack.empty()) {
+        auto node = nodeStack.top();
+        nodeStack.pop();
 
-    // GLuint fbo;
-    // glGenFramebuffers(1, &fbo);
-    // glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        for (auto& child : node->getChildrens())
+            nodeStack.push(child);
 
-    // //
-    // GLuint bufferPositions;
-    // GLuint bufferNormals;
-    // GLuint bufferColor;
-
-    // glGenTextures(1, &bufferPositions);
-    // glBindTexture(GL_TEXTURE_2D, bufferPositions);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, bufferPositions, 0);
-
-    // glGenTextures(1, &bufferNormals);
-    // glBindTexture(GL_TEXTURE_2D, bufferNormals);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, bufferNormals, 0);
-
-    // glGenTextures(1, &bufferColor);
-    // glBindTexture(GL_TEXTURE_2D, bufferColor);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, bufferColor, 0);
-
-    // unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    // glDrawBuffers(3, attachments);
-
-    // unsigned int rboDepth;
-    // glGenRenderbuffers(1, &rboDepth);
-    // glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nb::Core::EngineSettings::getWidth(), nb::Core::EngineSettings::getHeight());
-    // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    // // finally check if framebuffer is complete
-    // if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    //     //std::cout << "Framebuffer not complete!" << std::endl;
-    //     {
-
-    //     }
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // auto lightShader = rm->getResource<nb::Renderer::Shader>("lightShader.shader");
-
-    // lightShader->setUniformInt("gPosition", 0);
-    // lightShader->setUniformInt("gNormal", 1);
-    // lightShader->setUniformInt("gAlbedoSpec", 2);
-
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, bufferPositions);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, bufferNormals);
-    // glActiveTexture(GL_TEXTURE2);
-    // glBindTexture(GL_TEXTURE_2D, bufferColor);
-    if (!shouldVisualizeLight)
-    {
-        visualizeLight();
+        if (auto lightNode = std::dynamic_pointer_cast<Renderer::LightNode>(node))
+            lights.push_back(*lightNode);
     }
 
-    // light pass
-    std::stack<std::shared_ptr<Renderer::BaseNode>> stkl;
-    stkl.push(sceneGraph->getScene());
-
-    std::shared_ptr<Renderer::BaseNode> ltop = stkl.top();
-    stkl.pop();
-    for (auto &i : ltop->getChildrens())
-    {
-        stkl.push(i);
-    }
-
-    std::vector<Renderer::LightNode> ln;
-
-    while(!stkl.empty())
-    {
-        if (auto n = std::dynamic_pointer_cast<Renderer::LightNode>(ltop); n != nullptr)
-        {
-            ln.push_back(*n);
-        }
-        ltop = stkl.top();
-        stkl.pop();
-    }
+    // === РЕНДЕР ===
     countOfDraws = 0;
-    std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
-    stk.push(sceneGraph->getScene());
+    nodeStack.push(sceneGraph->getScene());
 
-    while (!stk.empty())
-    {
+    while (!nodeStack.empty()) {
+        auto node = nodeStack.top();
+        nodeStack.pop();
 
-        std::shared_ptr<Renderer::BaseNode> top = stk.top();
-        stk.pop();
-        for (auto &i : top->getChildrens())
-        {
-            stk.push(i);
-        }
+        for (auto& child : node->getChildrens())
+            nodeStack.push(child);
 
-        renderNode(top, ln);
+        renderNode(node, lights);
     }
 
-    // auto uiShader = rm->getResource<nb::Renderer::Shader>("ui.shader");
-    // glDisable(GL_DEPTH_TEST);
-    // auto projection = Math::ortho(0.0f, (float)Core::EngineSettings::getWidth(), 0.0f, (float)Core::EngineSettings::getHeight(), 0.0f, 0.0f);
-    // uiShader->use();
-    // uiShader->setUniformMat4("projection", projection);
-    // uiShader->setUniformVec2("position", {0.0f, 0.0f});
+    // glActiveTexture(GL_TEXTURE0);
+    // glBindTexture(GL_TEXTURE_2D, depthBuffer.getDepthMap());
 
-    // Renderer::Mesh m(quadVertices, {0, 1, 2, // Первый треугольник
-    //                                 2, 3, 0});
-    // m.draw(GL_TRIANGLES, uiShader);
-    // glEnable(GL_DEPTH_TEST);
+    // countOfDraws = 0;
+    // nodeStack.push(sceneGraph->getScene());
 
-    SwapBuffers(hdc);
-}
+    // while (!nodeStack.empty()) {
+    //     auto node = nodeStack.top();
+    //     nodeStack.pop();
 
-Ref<nb::Renderer::Mesh> generateTranslateGizmo()
-{
-    const float height = 5;
-    const float radius = 2.0f;
-    const int segmentsCount = 32;
-    // bottom + surface + caps
-    std::vector<nb::Renderer::Vertex> vert((segmentsCount + 1) * 2 + 1);
+    //     for (auto& child : node->getChildrens())
+    //         nodeStack.push(child);
 
-    //     // cylinder
-    float thetaStep = 2.0f * nb::Math::Constants::PI / segmentsCount;
-
-    for (int i = 0; i <= segmentsCount; i++)
-    {
-        float theta = i * thetaStep;
-        const float sinU = sin(theta);
-        const float cosU = cos(theta);
-
-        nb::Renderer::Vertex v1 = {{radius * cosU, radius * sinU, height / 2}};
-        nb::Renderer::Vertex v2 = {{radius * cosU, radius * sinU, -height / 2}};
-        vert[i] = (v1);
-        vert[segmentsCount + 1 + i] = (v2);
-    }
-
-    int k1 = 0;
-    int k2 = segmentsCount + 1;
-    std::vector<GLuint> ind;
-
-    for (int i = 0; i < segmentsCount * 6; i += 6, ++k1, ++k2)
-    {
-
-        ind.push_back(k1);
-        ind.push_back(k1 + 1);
-        ind.push_back(k2);
-
-        ind.push_back(k2);
-        ind.push_back(k1 + 1);
-        ind.push_back(k2 + 1);
-    }
-
-    vert.push_back({{0.0f, 0.0f, -height / 2}});
-    GLuint bottomCenterIndex = vert.size() - 1;
-
-    for (int i = segmentsCount + 1; i < (segmentsCount + 1) * 2; i++)
-    {
-        ind.push_back(i);
-        ind.push_back(bottomCenterIndex);
-        ind.push_back(i + 1);
-    }
-
-    // caps
-    const float capRadius = radius + 1;
-    const float capOffset = height / 2.0f;
-    const float capHeight = 2.0f;
-    const int capSegmentCount = 32;
-
-    float capThetaStep = 2.0f * nb::Math::Constants::PI / capSegmentCount;
-
-    for (int i = 0; i <= capSegmentCount; i++)
-    {
-        float theta = capThetaStep * i;
-        const float sinU = sin(theta);
-        const float cosU = cos(theta);
-
-        nb::Renderer::Vertex v = {{capRadius * cosU, capRadius * sinU, capOffset}};
-        vert.push_back(v);
-    }
-
-    vert.push_back({{0.0f, 0.0f, capOffset}});
-    GLuint bottomCenterCapIndex = vert.size() - 1;
-
-    // for (int i = 0; i < (capSegmentCount + 1) * 2; i++)
-    // {
-    //     ind.push_back(i);
-    //     ind.push_back(bottomCenterCapIndex);
-    //     ind.push_back(i + 1);
+    //     renderNode(node, lights);
     // }
 
-    vert.push_back({{0.0f, 0.0f, capOffset + capHeight}});
-    GLuint topCenterCapIndex = vert.size() - 1;
+    depthBuffer->unBind();
+    //glBindFramebuffer(GL_READ_BUFFER, depthBuffer.getDepthMap());
+    // === ПОСТПРОЦЕССИНГ ===
+        glViewport(0, 0, width, height);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+    std::vector<Renderer::Vertex> quadVertices = {
+        {{-1.0f,  1.0f, 0.0f}, {}},
+        {{-1.0f, -1.0f, 0.0f}, {}},
+        {{1.0f, -1.0f,0.0f}, {}},
+        {{ -1.0f,  1.0f,0.0f}, {}},
+        {{1.0f, -1.0f, 0.0f}, {}},
+        {{1.0f,  1.0f,     0.0f }, {}}};
 
-    return createRef<nb::Renderer::Mesh>(vert, ind);
+    quadVertices[0].textureCoodinates = {0.0f, 1.0f};
+    quadVertices[1].textureCoodinates = {0.0f, 0.0f};
+    quadVertices[2].textureCoodinates = {1.0f, 0.0f};
+    quadVertices[3].textureCoodinates = {0.0f, 1.0f};
+    quadVertices[4].textureCoodinates = {1.0f, 0.0f};
+    quadVertices[5].textureCoodinates = {1.0f, 1.0f};
+
+
+    static std::vector<unsigned int> edges =
+    {
+        0, 1, 2, 3, 4, 5
+    };
+
+    auto quadShader = rm->getResource<Renderer::Shader>("quadShader.shader");
+    quadShader->setUniformInt("depthMap", 3);
+    quadShader->setUniformVec2("screenSize", {(float)width, (float)height});
+    Renderer::Mesh quad(quadVertices, edges);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, depthBuffer->getDepthMap());
+    quad.draw(GL_TRIANGLES, quadShader);
+
+    // === ПЕРЕКЛЮЧЕНИЕ БУФЕРОВ ===
+    SwapBuffers(hdc);
 }
 
 void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node, const std::vector<Renderer::LightNode>& lightNode) noexcept
@@ -533,16 +447,14 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
         // // not work
-        // auto planes = Math::getFrustrumPlanes(cam->getProjection());
-        // Math::AABB3D B = Math::AABB3D::recalculateAabb3dByModelMatrix(n->mesh->getAabb3d(), n->getWorldTransform());
+        auto planes = Math::getFrustrumPlanes(cam->getLookAt() * cam->getProjection());
+        Math::AABB3D B = Math::AABB3D::recalculateAabb3dByModelMatrix(n->mesh->getAabb3d(), n->getWorldTransform());
 
-        // for(auto &i : planes)
-        // {
-        //     if(Math::AABB3D::intersectAabbPlane(B, i))
-        //         return;
-        // }
-
-
+        for(auto &i : planes)
+        {
+            if(!Math::AABB3D::intersectAabbPlane(B, i))
+                return;
+        }
         //
 
         countOfDraws++;
@@ -571,9 +483,16 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
         n->mesh->draw(GL_TRIANGLES, shader);
 
-        if (shouldVisualizeAabb)
+        if (!shouldVisualizeAabb)
         {
             visualizeAabb(n->mesh->getAabb3d(), n->getWorldTransform());
+        }
+    }
+    else if(auto n = std::dynamic_pointer_cast<Renderer::LightNode>(node); n != nullptr)
+    {
+        if (!shouldVisualizeLight)
+        {
+            visualizeLight(n);
         }
     }
 }

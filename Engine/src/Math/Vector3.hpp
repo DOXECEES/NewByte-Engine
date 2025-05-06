@@ -19,6 +19,7 @@ namespace nb
         {
 
         public:
+            using value_type = T;
             constexpr Vector3() noexcept = default;
 
             constexpr Vector3(const T value) noexcept
@@ -87,6 +88,14 @@ namespace nb
                 a.x *= scalar;
                 a.y *= scalar;
                 a.z *= scalar;
+                return a;
+            }
+
+            friend constexpr Vector3<T> operator*(Vector3<T> a, const Vector3<T>& b) noexcept
+            {
+                a.x *= b.x;
+                a.y *= b.y;
+                a.z *= b.z;
                 return a;
             }
 
@@ -172,6 +181,11 @@ namespace nb
             float length() const noexcept
             {
                 return std::sqrt(dot(*this));
+            }
+
+            float squaredLength() const noexcept
+            {
+                return dot(*this);
             }
 
             T x = { };

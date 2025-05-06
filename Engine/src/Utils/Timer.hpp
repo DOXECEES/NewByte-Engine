@@ -16,8 +16,8 @@ namespace nb
             static float timeElapsed() noexcept;
 
         private:
-            static inline std::chrono::time_point<std::chrono::high_resolution_clock> initTime = std::chrono::high_resolution_clock::now();
-            static inline std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+            static inline std::chrono::time_point<std::chrono::high_resolution_clock> initTime  = std::chrono::high_resolution_clock::now();
+            static inline std::chrono::time_point<std::chrono::high_resolution_clock> start     = std::chrono::high_resolution_clock::now();
         };
     }
 };

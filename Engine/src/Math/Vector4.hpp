@@ -18,6 +18,8 @@ namespace nb
         {
 
         public:
+            using value_type = T;
+
             constexpr Vector4() noexcept = default;
 
             constexpr Vector4(const T value) noexcept
@@ -185,6 +187,11 @@ namespace nb
             float length() const noexcept
             {
                 return std::sqrt(dot(*this));
+            }
+
+            float squaredLength() const noexcept
+            {
+                return dot(*this);
             }
             
             T x = { };
