@@ -27,8 +27,8 @@ public:
     }
 
 private:
-    HWND hwnd = {};
-    WNDCLASS wc = {};
+    HWND                    hwnd        = {};
+    WNDCLASS                wc          = {};
     nb::Renderer::Renderer* renderer;
 };
 

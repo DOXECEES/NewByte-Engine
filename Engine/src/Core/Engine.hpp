@@ -54,24 +54,24 @@ namespace nb
 
 
         private:
-            bool isEditorMode                       = true;
+            bool                        isEditorMode    = true;
 
-            std::unique_ptr<Subsystems> subSystems  = std::make_unique<Subsystems>();
-            Ref<nb::Renderer::Renderer> renderer    = nullptr;
-            Ref<nb::Input::Keyboard> keyboard       = nullptr;
-            Ref<nb::Input::Mouse> mouse             = nullptr;
-            bool isRunning                          = true;
-            bool handleInput                        = true;
+            std::unique_ptr<Subsystems> subSystems      = std::make_unique<Subsystems>();
+            Ref<nb::Renderer::Renderer> renderer        = nullptr;
+            Ref<nb::Input::Keyboard>    keyboard        = nullptr;
+            Ref<nb::Input::Mouse>       mouse           = nullptr;
+            bool                        isRunning       = true;
+            bool                        handleInput     = true;
             
-            bool isSampling                         = true;
-            nb::Renderer::Camera cam;
+            bool                        isSampling      = true;
+            nb::Renderer::Camera        cam;
             // temp
-            Ref<nb::Input::Input> input             = nullptr;
+            Ref<nb::Input::Input>       input           = nullptr;
 
-            Input::MouseDelta mouseDelta            = {};
-            Input::MouseButtons buttons             = {};
+            Input::MouseDelta           mouseDelta      = {};
+            Input::MouseButtons         buttons         = {};
 
-            inline static HWND hwnd                 = nullptr;
+            inline static HWND          hwnd            = nullptr;
         };
     };
 };

@@ -47,13 +47,13 @@ namespace nb
         {
             Material() = default;
 
-            std::string name = "";
-            Math::Vector3<float> ambient = {};
-            Math::Vector3<float> diffuse = {};
-            Math::Vector3<float> specular = {};
-            float shininess = 0.0f;
-            float dissolve = 0.0f;
-            uint8_t illuminationModel = 0;
+            std::string             name                = "";
+            Math::Vector3<float>    ambient             = {};
+            Math::Vector3<float>    diffuse             = {};
+            Math::Vector3<float>    specular            = {};
+            float                   shininess           = 0.0f;
+            float                   dissolve            = 0.0f;
+            uint8_t                 illuminationModel   = 0;
 
             auto operator<=>(const Material&) const = default;
 
@@ -75,11 +75,11 @@ namespace nb
 
         struct MaterialNode
         {
-            Ref<Shader> shader;
-            std::map<std::string, float> floatUniforms;
-            std::map<std::string, Math::Vector3<float>> vec3Uniforms;
-            std::map<std::string, Math::Vector4<float>> vec4Uniforms;
-            std::map<std::string, Math::Mat4<float>> mat4Uniforms;
+            Ref<Shader>                                     shader;
+            std::map<std::string, float>                    floatUniforms;
+            std::map<std::string, Math::Vector3<float>>     vec3Uniforms;
+            std::map<std::string, Math::Vector4<float>>     vec4Uniforms;
+            std::map<std::string, Math::Mat4<float>>        mat4Uniforms;
 
             void applyMaterial() 
             {
@@ -107,12 +107,12 @@ namespace nb
 
         struct ShaderUniforms
         {
-            Ref<Shader> shader;
-            std::map<std::string, int> intUniforms;
-            std::map<std::string, float> floatUniforms;
-            std::map<std::string, Math::Vector3<float>> vec3Uniforms;
-            std::map<std::string, Math::Vector4<float>> vec4Uniforms;
-            std::map<std::string, Math::Mat4<float>> mat4Uniforms;
+            Ref<Shader>                                     shader;
+            std::map<std::string, int>                      intUniforms;
+            std::map<std::string, float>                    floatUniforms; 
+            std::map<std::string, Math::Vector3<float>>     vec3Uniforms;
+            std::map<std::string, Math::Vector4<float>>     vec4Uniforms;
+            std::map<std::string, Math::Mat4<float>>        mat4Uniforms;
 
             void applyUniforms() 
             {

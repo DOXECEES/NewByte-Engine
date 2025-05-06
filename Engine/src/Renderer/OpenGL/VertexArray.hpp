@@ -33,9 +33,9 @@ namespace nb
 
         private:
 
-            VBO vbo;
-            EBO ebo;
-            GLuint array = 0;
+            VBO     vbo;
+            EBO     ebo;
+            GLuint  array = 0;
         
         };
         

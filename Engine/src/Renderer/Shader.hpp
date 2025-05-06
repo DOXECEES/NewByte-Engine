@@ -35,9 +35,9 @@ namespace nb
             inline int getId() const noexcept { return id; };
 
         private:
-            int id;
+            int         id;
 
-            static int globalId;
+            static int  globalId;
         };
     };
 };

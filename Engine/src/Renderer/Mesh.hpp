@@ -37,27 +37,16 @@ namespace nb
 
             ~SubMesh() = default;
 
-            // SubMesh &operator=(const SubMesh &other) = default;
-            // SubMesh &operator=(SubMesh &&other) noexcept = default;
-
-            // SubMesh(const SubMesh &other) = default;
-            // SubMesh(SubMesh&& other) noexcept = default;
-
             void attachShader(const Ref<Shader> &shader) noexcept;
 
-            //inline const Math::AABB3D &getAABB() const noexcept { return aabb; };
             inline const Material &getMaterial() const noexcept { return material; };
-           // void draw(const GLenum mode) const noexcept;
-           // void drawAabb() noexcept;
 
-       // private:
-            //std::unique_ptr<std::vector<Vertex>> verticies;
-            std::vector<uint32_t> indices;
-            Material material;
-            std::shared_ptr<ShaderUniforms> shader;
 
-            //Math::AABB3D aabb;
-            //nb::OpenGl::VertexArray VAO;
+       //private:
+            std::vector<uint32_t>               indices;
+            Material                            material;
+            std::shared_ptr<ShaderUniforms>     shader;
+
 
         };
 
@@ -166,13 +155,13 @@ namespace nb
             //private:
 
 
-                Math::AABB3D aabb;
-                nb::OpenGl::VertexArray VAO;
+                Math::AABB3D                            aabb;
+                nb::OpenGl::VertexArray                 VAO;
 
-                std::vector<uint32_t> ind;
-                std::vector<Vertex> verticies;
-                std::vector<std::unique_ptr<SubMesh>> meshes;
-                size_t indiciesCount = 0;
+                std::vector<uint32_t>                   ind;
+                std::vector<Vertex>                     verticies;
+                std::vector<std::unique_ptr<SubMesh>>   meshes;
+                size_t                                  indiciesCount = 0;
         };
     };
 };

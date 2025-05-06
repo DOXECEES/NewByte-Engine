@@ -21,13 +21,13 @@ namespace nb
         class Light : public IShadable
         {
         public:
-            static constexpr std::string_view GLOBAL_LIGHTS_STORE_UNIFORM_NAME = "light";
-            static constexpr std::string_view GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME = "lightPoint";
+            static constexpr std::string_view GLOBAL_LIGHTS_STORE_UNIFORM_NAME          = "light";
+            static constexpr std::string_view GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME    = "lightPoint";
 
-            static constexpr auto POSITION_UNIFORM_NAME = "position";
-            static constexpr std::string_view AMBIENT_UNIFORM_NAME  = "La";
-            static constexpr std::string_view DIFFUSE_UNIFORM_NAME  = "Ld";
-            static constexpr std::string_view SPECULAR_UNIFORM_NAME = "Ls";
+            static constexpr std::string_view POSITION_UNIFORM_NAME                     = "position";
+            static constexpr std::string_view AMBIENT_UNIFORM_NAME                      = "La";
+            static constexpr std::string_view DIFFUSE_UNIFORM_NAME                      = "Ld";
+            static constexpr std::string_view SPECULAR_UNIFORM_NAME                     = "Ls";
         
             Light() = default;
             virtual ~Light() = default;
@@ -69,10 +69,6 @@ namespace nb
                 position = _position;
             }
             
-
-
-
-
         protected:
 
             std::string makeUniformName(std::string_view base, int id, std::string_view property) const
@@ -87,14 +83,14 @@ namespace nb
 
             }
 
-            Math::Vector3<float> position;
+            Math::Vector3<float>    position;
 
     
-            Math::Vector3<float> ambient;
-            Math::Vector3<float> diffuse;
-            Math::Vector3<float> specular;
+            Math::Vector3<float>    ambient;
+            Math::Vector3<float>    diffuse;
+            Math::Vector3<float>    specular;
 
-            int id = 0;
+            int                     id          = 0;
 
         private:
             static constexpr uint8_t COUNT_OF_CHARS_TO_WRITE_INT = 11; // включая минус
@@ -107,10 +103,10 @@ namespace nb
         public:
         
             //static constexpr auto POSITION_UNIFORM_NAME = "position";
-            static constexpr auto INTENSITY_UNIFORM_NAME = "intensity";
-            static constexpr auto CONST_COEFFICIENT_UNIFORM_NAME = "point_const_coof";
-            static constexpr auto LINEAR_COEFFICIENT_UNIFORM_NAME = "point_linear_coof";
-            static constexpr auto EXP_COEFFICIENT_UNIFORM_NAME = "point_exp_coof";
+            static constexpr auto INTENSITY_UNIFORM_NAME            = "intensity";
+            static constexpr auto CONST_COEFFICIENT_UNIFORM_NAME    = "point_const_coof";
+            static constexpr auto LINEAR_COEFFICIENT_UNIFORM_NAME   = "point_linear_coof";
+            static constexpr auto EXP_COEFFICIENT_UNIFORM_NAME      = "point_exp_coof";
 
 
             PointLight() = default;
@@ -160,11 +156,11 @@ namespace nb
             }
 
         private:
-            float constCoefficient;
-            float linearCoefficient;
-            float expCoefficient;
+            float                   constCoefficient;
+            float                   linearCoefficient;
+            float                   expCoefficient;
 
-            float intensity;
+            float                   intensity;
 
             static Utils::Indexator indexator;
         };
@@ -206,7 +202,7 @@ namespace nb
         
         private:
             
-            Math::Vector3<float> direction;
+            Math::Vector3<float>    direction;
 
             static Utils::Indexator indexator;
 

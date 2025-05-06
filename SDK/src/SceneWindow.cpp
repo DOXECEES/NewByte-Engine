@@ -167,6 +167,8 @@ namespace Editor
         default:
             return DefMDIChildProc(hwnd, message, wParam, lParam);
         }
+
+        return DefMDIChildProc(hwnd, message, wParam, lParam);
     }
 
     nb::Input::MouseDelta SceneWindow::peekMouseDelta() noexcept

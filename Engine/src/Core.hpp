@@ -4,6 +4,7 @@
 #include <memory>
 #include <cassert>
 
+
 template<typename T>
 using Ref = std::shared_ptr<T>;
 template<typename T, typename ... Args>
@@ -88,5 +89,11 @@ namespace nb
 #elif defined(_MSC_VER)
     #define NB_FORCEINLINE __forceinline
 #endif
+
+#define NB_DEBUG _DEBUG
+
+    
+
+
 
 #endif

@@ -19,8 +19,8 @@ namespace nb
     {
         class Camera
         {
-            static constexpr float NEAR_PLANE = 0.1f;
-            static constexpr float FAR_PLANE = 1000.0f;
+            static constexpr float NEAR_PLANE   = 0.1f;
+            static constexpr float FAR_PLANE    = 1000.0f;
 
         public:
             Camera() = default;
@@ -45,18 +45,18 @@ namespace nb
 
         private:
 
-            Math::Mat4<float> lookAt;
-            Math::Mat4<float> projection;
+            Math::Mat4<float>       lookAt;
+            Math::Mat4<float>       projection;
 
-            bool alignByX = false;
-            bool alignByY = false;
-            bool alignByZ = false;
+            bool                    alignByX    = false;
+            bool                    alignByY    = false;
+            bool                    alignByZ    = false;
 
-            Math::Vector3<float> position   = { 0.0f, 0.0f, 0.0f };
-            Math::Vector3<float> direction  = { 0.0f, 0.0f, 1.0f };
-            Math::Vector3<float> up         = { 0.0f, 1.0f, 0.0f };
-            float yaw                       =   0.0f;
-            float pitch                     =   0.0f;
+            Math::Vector3<float>    position    = { 0.0f, 0.0f, 0.0f };
+            Math::Vector3<float>    direction   = { 0.0f, 0.0f, 1.0f };
+            Math::Vector3<float>    up          = { 0.0f, 1.0f, 0.0f };
+            float                   yaw         =   0.0f;
+            float                   pitch       =   0.0f;
 
         };
     };

@@ -29,10 +29,10 @@ namespace nb
             inline void setScene(const std::shared_ptr<Renderer::SceneGraph>&s) { sceneGraph = s; };
 
         protected:
-            HWND hwnd = {};
-            Camera *cam;
+            HWND                                    hwnd        = {};
+            Camera*                                 cam;
 
-            std::shared_ptr<Renderer::SceneGraph> sceneGraph;
+            std::shared_ptr<Renderer::SceneGraph>   sceneGraph;
         };
     };
 };

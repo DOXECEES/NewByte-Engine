@@ -29,6 +29,8 @@
 #include "OpenGLTexture.hpp"
 #include "ShaderConstants.hpp"
 
+#include "DepthBuffer.hpp"
+
 #include "../../Utils/Timer.hpp"
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
@@ -66,7 +68,7 @@ namespace nb
                 void initFail(std::string_view message, HGLRC context) noexcept;
                 void loadScene() noexcept;
 
-                void visualizeLight() const noexcept;
+                void visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept;
                 void visualizeAabb(const Math::AABB3D& aabb, Math::Mat4<float> mat) const noexcept;
 
             public:
@@ -96,12 +98,12 @@ namespace nb
                 }
 
 
-                static Math::Mat4<float> MVP;
-                static Ref<Renderer::Shader> shader;
+                static Math::Mat4<float>        MVP;
+                static Ref<Renderer::Shader>    shader;
 
-                static Math::Mat4<float> gizmoModelMat;
+                static Math::Mat4<float>        gizmoModelMat;
 
-                inline static int countOfDraws = 0;
+                inline static int               countOfDraws    = 0;
 
                 //
 
@@ -109,21 +111,22 @@ namespace nb
 
                 HDC hdc = {};
                 
-                static Math::Vector3<float> ambientColor;
-                static Math::Vector3<float> lightPos;
-                static Math::Mat4<float> model;
+                static Math::Vector3<float>         ambientColor;
+                static Math::Vector3<float>         lightPos;
+                static Math::Mat4<float>            model;
 
-                static Renderer::Material mat;
+                static Renderer::Material           mat;
 
                 // temp
-                std::vector<Math::Vector3<float>> lightPosition;
-                bool shouldVisualizeLight = false;
-                bool shouldVisualizeAabb = false;
+                std::vector<Math::Vector3<float>>   lightPosition;
+                bool                                shouldVisualizeLight    = false;
+                bool                                shouldVisualizeAabb     = false;
 
                 //
 
-                OpenGlTexture *t = nullptr;
-                OpenGlTexture *tn = nullptr;
+                OpenGlTexture*                      t                       = nullptr;
+                OpenGlTexture*                      tn                      = nullptr;
+                DepthBuffer*                        depthBuffer             = nullptr;
 
         };
     };

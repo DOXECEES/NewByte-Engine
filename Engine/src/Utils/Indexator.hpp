@@ -4,7 +4,7 @@
 #include "../Core.hpp"
 
 #include <stack>
-
+#include <limits>
 namespace nb
 {
     namespace Utils
@@ -12,6 +12,7 @@ namespace nb
         class Indexator
         {
         public:
+            explicit Indexator() = default;
             explicit Indexator(const int min, const int max);
 
             int next() const noexcept;
@@ -21,9 +22,9 @@ namespace nb
         private:
             std::stack<int> freeIndexes;
 
-            int currentIndex;
-            int min;
-            int max;    
+            int             currentIndex    = 0;
+            int             min             = 0;
+            int max; //= std::numeric_limits<int>::max();
         };
     };
 };

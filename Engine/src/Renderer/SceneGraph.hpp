@@ -95,14 +95,14 @@ namespace nb
 
         protected:
 
-            Transform transform;
+            Transform                               transform;
             
-            Math::Mat4<float> localTransformation = Math::Mat4<float>::identity();
-            Math::Mat4<float> worldTransformation = Math::Mat4<float>::identity();
+            Math::Mat4<float>                       localTransformation = Math::Mat4<float>::identity();
+            Math::Mat4<float>                       worldTransformation = Math::Mat4<float>::identity();
 
-            std::shared_ptr<BaseNode> parent;
-            std::vector<std::shared_ptr<BaseNode>> children;
-            std::string name;
+            std::shared_ptr<BaseNode>               parent;
+            std::vector<std::shared_ptr<BaseNode>>  children;
+            std::string                             name;
 
             bool dirtyFlag = true;
         };
@@ -154,8 +154,8 @@ namespace nb
 
         private:
 
-            static std::shared_ptr<BaseNode> scene;
-            static std::unordered_map<std::string, std::shared_ptr<BaseNode>> treeMap;
+            static std::shared_ptr<BaseNode>                                    scene;
+            static std::unordered_map<std::string, std::shared_ptr<BaseNode>>   treeMap;
         };
     };
 };

@@ -33,11 +33,11 @@ namespace nb
                 void render(Ref<Renderer::Shader> shader);
 
             private:
-                std::vector<uint8_t> textureData;
-                GLuint cubemapTexture;
-                Renderer::Mesh *mesh;
+                std::vector<uint8_t>    textureData;
+                GLuint                  cubemapTexture;
+                Renderer::Mesh*         mesh;
 
-                std::vector<Vertex> skyboxVertices = {
+                std::vector<Vertex>     skyboxVertices  = {
                     // Координаты для 8 вершин куба
                     Vertex({-1.0f, -1.0f, -1.0f}, {0, 0, -1}, {1, 1, 1}, {0, 1}), // 0
                     Vertex({1.0f, -1.0f, -1.0f}, {0, 0, -1}, {1, 1, 1}, {1, 1}),  // 1
@@ -49,7 +49,7 @@ namespace nb
                     Vertex({-1.0f, 1.0f, 1.0f}, {0, 0, 1}, {1, 1, 1}, {0, 0})     // 7
                 };
 
-                std::vector<uint32_t> skyboxIndices = {
+                std::vector<uint32_t>   skyboxIndices   = {
                     // Передняя сторона
                     0, 1, 2, 0, 2, 3,
                     // Задняя сторона

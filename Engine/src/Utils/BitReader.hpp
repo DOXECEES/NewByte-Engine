@@ -148,7 +148,8 @@ namespace nb
                 {
                     auto bit = getBitLs(); 
                     if (bit.has_value())
-                        res |= (bit.value() << i);
+                        res <<= i;
+                        res |= ((0 << i) | bit.value());
                 }
 
                 return res;

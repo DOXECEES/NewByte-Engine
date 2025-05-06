@@ -25,24 +25,32 @@ void nb::Utils::DeflateDecoder::processDynamicHuffman()
     uint16_t HDIST = br.readRightToLeft(5) + 1;
     uint16_t HLEN = br.readRightToLeft(4) + 4;
 
-    std::vector<std::pair<uint16_t, uint16_t>> commandAlphabet(HLEN);
+    std::vector<std::pair<uint16_t, uint16_t>> idToLength(HLEN);
 
     for (size_t i = 0; i < HLEN; i++)
     {
-        commandAlphabet[i] = std::make_pair(COMMAND_ALPHABET_SEQUENCE[i], br.readRightToLeft(3));
+        idToLength[i] = std::make_pair(COMMAND_ALPHABET_SEQUENCE[i], br.readRightToLeft(3));
     }
 
-
-
     nb::Shared::HuffmanTree hTree;
-    auto codes = hTree.buildCanonicalCodesByLength(commandAlphabet);
-    
-    Debug::debug(codes);
+    auto codesToId = hTree.buildCanonicalCodesByLength(idToLength);
+
+    Debug::debug("CODES:");
+    Debug::debug(codesToId);
+    // Debug::debug(br.getBytePointer());
+    // Debug::debug(int(br.getMsBitPointer()));
+    // Debug::debug(int(br.getBitMs().value()));
+    // Debug::debug(br.readLeftToRight(3));
+
+    // Debug::debug(br.getBytePointer());
+    // Debug::debug(int(br.getMsBitPointer()));
+
+    // Debug::debug(br.readLeftToRight(8));
 
     std::vector<uint16_t> litLenAlphabet(HLIT, 0);
     for (size_t i = 0; i < HLIT; i++)
     {
-        auto code = hTree.decodeCanonical(br, codes, commandAlphabet);
+        auto code = hTree.decodeCanonical(br, codesToId, idToLength);
 
         switch(code)
         {
@@ -50,30 +58,30 @@ void nb::Utils::DeflateDecoder::processDynamicHuffman()
             {
                 uint8_t repeat = 3 + br.readRightToLeft(2);
                 std::fill(litLenAlphabet.begin() + i, litLenAlphabet.begin() + repeat, litLenAlphabet[i-1]);
-                i += repeat - 1;
+                i += repeat;
                 break;
             }
             case 17: 
             {
                 uint8_t repeat = 3 + br.readRightToLeft(3);
-                i += repeat - 1;
+                i += repeat;
                 break;
             }
             case 18: 
             {
                 uint16_t repeat = 3 + br.readRightToLeft(7);
-                i += repeat - 1;
+                i += repeat;
                 break;
             }
             default:
             {
-                litLenAlphabet[i] = code;
+                litLenAlphabet[i++] = code;
                 break;
             }
         }
 
     }
-        Debug::debug(litLenAlphabet);
+    Debug::debug(litLenAlphabet);
 
     //
     // TODO: класс для дерева Хаффмана с декодированием,
@@ -81,3 +89,10 @@ void nb::Utils::DeflateDecoder::processDynamicHuffman()
     // 
 }
 
+nb::Utils::DeflateDecoder::BlockHeader nb::Utils::DeflateDecoder::readBlockHeader()
+{
+    BlockHeader header;
+    header.isFinal = br.readRightToLeft(1);
+    header.type = static_cast<BlockCompression>(br.readRightToLeft(2));
+    return header;
+}

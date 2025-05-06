@@ -245,6 +245,20 @@ namespace Editor
                 currentObject->setRotationY(rotateEdit->getY());
                 currentObject->setRotationZ(rotateEdit->getZ());
                 currentObject->setScale({scaleEdit->getX(), scaleEdit->getY(), scaleEdit->getZ()});
+
+                nb::Renderer::LightNode *light = dynamic_cast<nb::Renderer::LightNode*>(currentObject.get());
+                if(light != nullptr)
+                {
+                    ShowWindow(rotateEdit->GetEditXHandle(), SW_HIDE);
+                }
+                else
+                {
+                    ShowWindow(rotateEdit->GetEditXHandle(), SW_SHOW);
+                }
+
+
+                //if(currentObject)
+
             }
 
             return 0;
@@ -256,6 +270,8 @@ namespace Editor
         default:
             return DefMDIChildProc(hwnd, message, wParam, lParam);
         }
+
+        return DefMDIChildProc(hwnd, message, wParam, lParam);
     }
 
     void PropertiesWindow::setCurrentObject(std::shared_ptr<nb::Renderer::BaseNode> obj) noexcept

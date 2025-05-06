@@ -28,6 +28,8 @@ bool nb::Loaders::PngLoader::validateIhdr()
 
 void nb::Loaders::PngLoader::identifyChunk(const ChunkData &chunk)
 {
+    using namespace nb::Utils;
+
     if (std::strncmp(chunk.name, "IHDR", 4) == 0)
     {
         Debug::debug("IHDR found");
@@ -37,11 +39,35 @@ void nb::Loaders::PngLoader::identifyChunk(const ChunkData &chunk)
         Debug::debug("IDAT found");
         //nb::Utils::BitReader<char> br(chunk.data);
 
-        nb::Utils::DeflateDecoder dd(chunk.data);
-
+        DeflateDecoder dd(chunk.data);
+#ifdef NB_DEBUG
+        //assertEqual(17137U, chunk.data.size());
+        assert(chunk.data.size() == 17137);
+        
         auto zlibHeader = dd.readZlibHeader();
-        dd.processDynamicHuffman();
+                
+        DeflateDecoder::BlockHeader header = dd.readBlockHeader();
+        switch (header.type)
+        {
+        case DeflateDecoder::BlockCompression::UNCOMPRESSED:
+            Debug::debug("UNCOMPRESSED");
+            break;
+        
+        case DeflateDecoder::BlockCompression::FIXED:
+            Debug::debug("FIXED");
+            break;
+        
+        case DeflateDecoder::BlockCompression::DYNAMIC:
+            Debug::debug("DYNAMIC");
+            dd.processDynamicHuffman();
+            break;
+        
+        case DeflateDecoder::BlockCompression::RESERVED:
+            Debug::debug("RESERVED");
+            break;
+        }
 
+#endif
         //     Debug::debug(codes);
         //     // uint16_t bits = br.readRightToLeft(2);
         //     // uint16_t counter = 2;
