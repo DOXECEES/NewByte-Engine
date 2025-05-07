@@ -136,15 +136,13 @@ namespace nb
             // show cursor
             ClipCursor(nullptr);
 
-
-
             if (keyboard->isKeyPressed(0x31))
             {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::LINES);
             }
             if (keyboard->isKeyPressed(0x32))
             {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::POINTS);
             }
             if (keyboard->isKeyPressed(0x33))
             {
@@ -156,7 +154,7 @@ namespace nb
             }
             if(keyboard->isKeyPressed(0x39))
             {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::FULL);
             }
             if (keyboard->isKeyPressed(VK_CONTROL))
             {

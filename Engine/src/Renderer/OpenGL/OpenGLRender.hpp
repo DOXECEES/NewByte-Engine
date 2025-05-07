@@ -97,6 +97,12 @@ namespace nb
                     gizmoModelMat = Math::translate(Math::Mat4<float>::identity(), node.getPosition() + aabb.center());
                 }
 
+                virtual void setpolygonModePoints() noexcept override;
+                virtual void setPolygonModeLines()  noexcept override;
+                virtual void setPolygonModeFull()   noexcept override;
+
+                void refreshPolygonMode() const noexcept;
+                
 
                 static Math::Mat4<float>        MVP;
                 static Ref<Renderer::Shader>    shader;
@@ -116,6 +122,10 @@ namespace nb
                 static Math::Mat4<float>            model;
 
                 static Renderer::Material           mat;
+
+                ///
+                int polygonMode = GL_FILL;
+                ///
 
                 // temp
                 std::vector<Math::Vector3<float>>   lightPosition;

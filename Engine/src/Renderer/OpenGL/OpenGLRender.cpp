@@ -352,6 +352,8 @@ void nb::OpenGl::OpenGLRender::render()
         tn = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick_normal.png");
     }
 
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     // === СБОР ИСТОЧНИКОВ СВЕТА ===
     std::vector<Renderer::LightNode> lights;
     std::stack<std::shared_ptr<Renderer::BaseNode>> nodeStack;
@@ -369,6 +371,8 @@ void nb::OpenGl::OpenGLRender::render()
     }
 
     // === РЕНДЕР ===
+    refreshPolygonMode();
+
     countOfDraws = 0;
     nodeStack.push(sceneGraph->getScene());
 
@@ -404,39 +408,39 @@ void nb::OpenGl::OpenGLRender::render()
         glViewport(0, 0, width, height);
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
         glClear(GL_COLOR_BUFFER_BIT);
-        
-    std::vector<Renderer::Vertex> quadVertices = {
-        {{-1.0f,  1.0f, 0.0f}, {}},
-        {{-1.0f, -1.0f, 0.0f}, {}},
-        {{1.0f, -1.0f,0.0f}, {}},
-        {{ -1.0f,  1.0f,0.0f}, {}},
-        {{1.0f, -1.0f, 0.0f}, {}},
-        {{1.0f,  1.0f,     0.0f }, {}}};
 
-    quadVertices[0].textureCoodinates = {0.0f, 1.0f};
-    quadVertices[1].textureCoodinates = {0.0f, 0.0f};
-    quadVertices[2].textureCoodinates = {1.0f, 0.0f};
-    quadVertices[3].textureCoodinates = {0.0f, 1.0f};
-    quadVertices[4].textureCoodinates = {1.0f, 0.0f};
-    quadVertices[5].textureCoodinates = {1.0f, 1.0f};
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+        std::vector<Renderer::Vertex> quadVertices = {
+            {{-1.0f, 1.0f, 0.0f}, {}},
+            {{-1.0f, -1.0f, 0.0f}, {}},
+            {{1.0f, -1.0f, 0.0f}, {}},
+            {{-1.0f, 1.0f, 0.0f}, {}},
+            {{1.0f, -1.0f, 0.0f}, {}},
+            {{1.0f, 1.0f, 0.0f}, {}}};
 
-    static std::vector<unsigned int> edges =
-    {
-        0, 1, 2, 3, 4, 5
-    };
+        quadVertices[0].textureCoodinates = {0.0f, 1.0f};
+        quadVertices[1].textureCoodinates = {0.0f, 0.0f};
+        quadVertices[2].textureCoodinates = {1.0f, 0.0f};
+        quadVertices[3].textureCoodinates = {0.0f, 1.0f};
+        quadVertices[4].textureCoodinates = {1.0f, 0.0f};
+        quadVertices[5].textureCoodinates = {1.0f, 1.0f};
 
-    auto quadShader = rm->getResource<Renderer::Shader>("quadShader.shader");
-    quadShader->setUniformInt("depthMap", 3);
-    quadShader->setUniformVec2("screenSize", {(float)width, (float)height});
-    Renderer::Mesh quad(quadVertices, edges);
+        static std::vector<unsigned int> edges =
+            {
+                0, 1, 2, 3, 4, 5};
 
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, depthBuffer->getDepthMap());
-    quad.draw(GL_TRIANGLES, quadShader);
+        auto quadShader = rm->getResource<Renderer::Shader>("quadShader.shader");
+        quadShader->setUniformInt("depthMap", 3);
+        quadShader->setUniformVec2("screenSize", {(float)width, (float)height});
+        Renderer::Mesh quad(quadVertices, edges);
 
-    // === ПЕРЕКЛЮЧЕНИЕ БУФЕРОВ ===
-    SwapBuffers(hdc);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, depthBuffer->getDepthMap());
+        quad.draw(GL_TRIANGLES, quadShader);
+
+        // === ПЕРЕКЛЮЧЕНИЕ БУФЕРОВ ===
+        SwapBuffers(hdc);
 }
 
 void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node, const std::vector<Renderer::LightNode>& lightNode) noexcept
@@ -569,6 +573,26 @@ void nb::OpenGl::OpenGLRender::applyAmbientDiffuseSpecularModel(Renderer::Camera
     shader->setUniformFloat("shine", mat.shininess);
 
     shader->setUniformVec3("viewPos", cam->getPosition());
+}
+
+void nb::OpenGl::OpenGLRender::setpolygonModePoints() noexcept
+{
+    polygonMode = GL_POINT;
+}
+
+void nb::OpenGl::OpenGLRender::setPolygonModeLines() noexcept
+{
+    polygonMode = GL_LINE;
+}
+
+void nb::OpenGl::OpenGLRender::setPolygonModeFull() noexcept
+{
+    polygonMode = GL_FILL;    
+}
+
+void nb::OpenGl::OpenGLRender::refreshPolygonMode() const noexcept
+{
+    glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 }
 
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::ambientColor = {0.0f, 0.0f, 0.0f};
