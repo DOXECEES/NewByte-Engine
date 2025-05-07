@@ -28,6 +28,10 @@ namespace nb
             inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return sceneGraph; };
             inline void setScene(const std::shared_ptr<Renderer::SceneGraph>&s) { sceneGraph = s; };
 
+            virtual void setpolygonModePoints() noexcept  = 0;
+            virtual void setPolygonModeLines()  noexcept  = 0;
+            virtual void setPolygonModeFull()   noexcept  = 0;
+
         protected:
             HWND                                    hwnd        = {};
             Camera*                                 cam;
