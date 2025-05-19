@@ -30,8 +30,7 @@ namespace nb
         {
             if(!checkIsSizeValid())
             {
-                Debug::debug("Framebuffer size is not valid!");
-                abort();
+                errorMessage("Framebuffer size is not valid!");
             }
 
             glBindFramebuffer(GL_FRAMEBUFFER, buffer);
@@ -46,11 +45,9 @@ namespace nb
             {
             case TextureType::COLOR:
             {
-                // temp abort 
                 if(colorTextureCount > getMaxCountOfColorAttachments())
                 {
-                    Debug::debug("Max count of color attachments reached!");
-                    abort();
+                    errorMessage("Max count of color attachments reached!");
                 }
 
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
@@ -64,8 +61,7 @@ namespace nb
             {
                 if(isDepthBufferAttached)
                 {
-                    Debug::debug("Depth buffer already attached!");
-                    abort();
+                    errorMessage("Depth buffer already attached!");
                 }
 
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
@@ -77,8 +73,7 @@ namespace nb
             {
                 if(isStencilBufferAttached)
                 {
-                    Debug::debug("Stencil buffer already attached!");
-                    abort();
+                    errorMessage("Stencil buffer already attached!");
                 }
 
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_STENCIL_INDEX, width, height, 0, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, nullptr);
@@ -90,8 +85,7 @@ namespace nb
             {
                 if(isDepthBufferAttached || isStencilBufferAttached)
                 {
-                    Debug::debug("Depth or stencil buffer already attached!");
-                    abort();
+                    errorMessage("Depth or stencil buffer already attached!");
                 }
                 
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_BYTE, nullptr);
@@ -110,14 +104,12 @@ namespace nb
         {
             if(!checkIsSizeValid())
             {
-                Debug::debug("Framebuffer size is not valid!");
-                abort();
+                errorMessage("Framebuffer size is not valid!");
             }
 
             if (isDepthBufferAttached || isStencilBufferAttached)
             {
-                Debug::debug("Depth or stencil buffer already attached!");
-                abort();
+                errorMessage("Depth or stencil buffer already attached!");
             }
 
             glGenRenderbuffers(1, &renderBuffer);
@@ -129,8 +121,7 @@ namespace nb
             {
                 if(isDepthBufferAttached)
                 {
-                    Debug::debug("Cannot attach renderbuffer. Depth buffer already attached!");
-                    abort();
+                    errorMessage("Cannot attach renderbuffer. Depth buffer already attached!");
                 }
 
                 glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
@@ -143,8 +134,7 @@ namespace nb
             {
                 if(isStencilBufferAttached)
                 {
-                    Debug::debug("Cannot attach renderbuffer. Stencil buffer already attached!");
-                    abort();
+                    errorMessage("Cannot attach renderbuffer. Stencil buffer already attached!");
                 }
                 glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX, width, height);
                 glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
@@ -154,8 +144,7 @@ namespace nb
             {
                 if(isDepthBufferAttached || isStencilBufferAttached)
                 {
-                    Debug::debug("Cannot attach renderbuffer. Depth or stencil buffer already attached!");
-                    abort();
+                    errorMessage("Cannot attach renderbuffer. Depth or stencil buffer already attached!");
                 }
                 glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_STENCIL, width, height);
                 glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
@@ -174,8 +163,9 @@ namespace nb
 
         bool FBO::checkIsSizeValid() const noexcept
         {
-            return this->width != 0xFFFFFFFF 
-                || this->height != 0xFFFFFFFF;
+            constexpr GLuint max = std::numeric_limits<GLuint>::max();
+
+            return this->width != max || this->height != max;
         }
 
         GLint FBO::getMaxCountOfColorAttachments() noexcept
@@ -195,6 +185,11 @@ namespace nb
         {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        }
+        void FBO::errorMessage(std::string_view message) const noexcept
+        {
+            Debug::debug(message);
+            abort();
         }
     };
 };
