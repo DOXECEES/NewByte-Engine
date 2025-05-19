@@ -309,18 +309,18 @@ void nb::OpenGl::OpenGLRender::render()
 
     // === DEPTH BUFFER ===
     // init
-    if(!depthBuffer)
+    if(!postProcessFbo)
     {
-        depthBuffer = new DepthBuffer(width, height);
+        postProcessFbo = new PostProcessFbo(width, height);
     }
 
-    if(depthBuffer->getWidth() != width || depthBuffer->getHeight() != height)
+    if(postProcessFbo->getWidth() != width || postProcessFbo->getHeight() != height)
     {
-        delete depthBuffer;
-        depthBuffer = new DepthBuffer(width, height);
+        delete postProcessFbo;
+        postProcessFbo = new PostProcessFbo(width, height);
     }
 
-    depthBuffer->bind();
+    postProcessFbo->bind();
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -352,7 +352,6 @@ void nb::OpenGl::OpenGLRender::render()
         tn = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick_normal.png");
     }
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // === СБОР ИСТОЧНИКОВ СВЕТА ===
     std::vector<Renderer::LightNode> lights;
@@ -371,6 +370,11 @@ void nb::OpenGl::OpenGLRender::render()
     }
 
     // === РЕНДЕР ===
+
+    // lightpass
+    auto lightView = Math::lookAt(lights[0].getPosition(), Math::Vector3<float>(0, 0, 0), Math::Vector3<float>(0, 1, 0));
+    auto lightProj = Math::projection(45.0f, 1.0f, 0.1f, 100.0f);
+
     refreshPolygonMode();
 
     countOfDraws = 0;
@@ -386,24 +390,7 @@ void nb::OpenGl::OpenGLRender::render()
         renderNode(node, lights);
     }
 
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, depthBuffer.getDepthMap());
-
-    // countOfDraws = 0;
-    // nodeStack.push(sceneGraph->getScene());
-
-    // while (!nodeStack.empty()) {
-    //     auto node = nodeStack.top();
-    //     nodeStack.pop();
-
-    //     for (auto& child : node->getChildrens())
-    //         nodeStack.push(child);
-
-    //     renderNode(node, lights);
-    // }
-
-    depthBuffer->unBind();
-    //glBindFramebuffer(GL_READ_BUFFER, depthBuffer.getDepthMap());
+    postProcessFbo->unBind();
     // === ПОСТПРОЦЕССИНГ ===
         glViewport(0, 0, width, height);
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
@@ -436,7 +423,7 @@ void nb::OpenGl::OpenGLRender::render()
         Renderer::Mesh quad(quadVertices, edges);
 
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, depthBuffer->getDepthMap());
+        glBindTexture(GL_TEXTURE_2D, postProcessFbo->getQuadTexture());
         quad.draw(GL_TRIANGLES, quadShader);
 
         // === ПЕРЕКЛЮЧЕНИЕ БУФЕРОВ ===

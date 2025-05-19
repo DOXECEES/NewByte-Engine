@@ -30,6 +30,7 @@
 #include "ShaderConstants.hpp"
 
 #include "DepthBuffer.hpp"
+#include "PostProcessFbo.hpp"
 
 #include "../../Utils/Timer.hpp"
 
@@ -136,7 +137,7 @@ namespace nb
 
                 OpenGlTexture*                      t                       = nullptr;
                 OpenGlTexture*                      tn                      = nullptr;
-                DepthBuffer*                        depthBuffer             = nullptr;
+                PostProcessFbo*                     postProcessFbo          = nullptr;
 
         };
     };

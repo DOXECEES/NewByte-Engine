@@ -98,6 +98,10 @@ add_library(${PROJECT_NAME} STATIC
         src/Renderer/OpenGL/ShaderConstants.hpp
         src/Renderer/OpenGL/DepthBuffer.cpp
         src/Renderer/OpenGL/DepthBuffer.hpp
+        src/Renderer/OpenGL/ShadowMapFbo.cpp
+        src/Renderer/OpenGL/ShadowMapFbo.hpp
+        src/Renderer/OpenGl/PostProcessFbo.cpp
+        src/Renderer/OpenGl/PostProcessFbo.hpp
         
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
