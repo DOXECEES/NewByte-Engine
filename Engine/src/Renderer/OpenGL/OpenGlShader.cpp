@@ -44,6 +44,7 @@ void nb::OpenGl::OpenGlShader::recompile() noexcept
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
 {
+    Debug::debug("Loading shader: " + pathToShader.string());
     if (auto shaderType = getShaderType(pathToShader); shaderType != ShaderType::UNKNOWN)
     {
         shaders.push_back(glCreateShader(static_cast<GLenum>(shaderType)));

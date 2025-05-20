@@ -97,6 +97,13 @@ public:
 
             oss << "\t]\n";
         }
+        else if constexpr (std::is_same_v<Container<T...>, std::string>
+                            || std::is_same_v<Container<T...>, std::wstring>
+                            || std::is_same_v<Container<T...>, std::string_view>
+                            || std::is_same_v<Container<T...>, std::wstring_view>)
+        {
+            oss << container << '\n';
+        }
         else
         {
             oss << "Type not supported" << '\n';
