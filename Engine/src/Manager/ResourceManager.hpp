@@ -5,6 +5,8 @@
 #include <string_view>
 #include <array>
 #include <unordered_map>
+#include <typeinfo>
+
 
 #include "../Resources/IResource.hpp"
 #include "../Loaders/Factory/IFactoryLoader.hpp"
@@ -26,13 +28,7 @@ namespace nb
         class ResourceManager
         {
         public:
-            enum class ResourceType
-            {
-                NONE = -1,
-                TEXTURE,
-                SHADER,
-                COUNT,
-            };
+            using ResourcePool = std::unordered_map<std::string, Ref<nb::Resource::IResource>>; 
 
             static ResourceManager *getInstance() noexcept;
 
@@ -42,10 +38,15 @@ namespace nb
             {
                 std::string path = resName.data();
 
-                //if (isRelativePath(resName))
-                //{
-                //    path = "/assets/" + path;
-                //}
+                std::string_view extention = extractExtention(resName);
+
+                if (loaders.find(extention.data()) == loaders.end())
+                {
+                    Debug::debug("File format not supported");
+                    abort();
+                }
+
+                std::type_index resourceType = loaders[extention.data()]->getResourceType();
 
                 if (!isResourceLoaded(path))
                 {
@@ -53,10 +54,17 @@ namespace nb
                     load(path);
                 }
 
-                return std::dynamic_pointer_cast<T>(pool.at(path));
+
+                return std::dynamic_pointer_cast<T>(pool.at(resourceType).at(path));
             }
 
+            void regisrterLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept;
+            void createConcretePoolIfNotExists(std::type_index resourceType) noexcept;
+
         private:
+            std::string_view extractExtention(std::string_view path) const noexcept;
+            std::string extractExtention(std::string path) const noexcept;
+
             void load(const std::filesystem::path &path) noexcept;
             void unload() noexcept;
 
@@ -69,7 +77,11 @@ namespace nb
             ~ResourceManager() = default;
 
         private:
-            std::unordered_map<std::string, Ref<nb::Resource::IResource>> pool;
+            std::unordered_map<std::type_index, ResourcePool> pool;
+
+            // pool -> concrete pools
+            // concrete pools -> resources
+            
             std::unordered_map<std::string, Ref<nb::Loaders::Factory::IFactoryLoader>> loaders;
         };
     };

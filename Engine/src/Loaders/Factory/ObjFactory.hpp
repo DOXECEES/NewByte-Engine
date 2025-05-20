@@ -17,6 +17,7 @@ namespace nb
             class ObjFactory : public IFactoryLoader
             {
                 Ref<nb::Resource::IResource> create(const std::filesystem::path& path) const override;
+                std::type_index getResourceType() const noexcept override { return std::type_index(typeid(nb::Renderer::Mesh)); };
             };
         };
     };

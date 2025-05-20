@@ -2,6 +2,7 @@
 #define SRC_LOADERS_FACTORY_IFACTORYLOADER_HPP
 
 #include <filesystem>
+#include <typeindex>
 
 #include "../../Core.hpp"
 
@@ -16,7 +17,8 @@ namespace nb
             class IFactoryLoader
             {
             public:
-                virtual Ref<nb::Resource::IResource> create(const std::filesystem::path& path) const = 0;
+                virtual Ref<nb::Resource::IResource> create(const std::filesystem::path& path) const    = 0;
+                virtual std::type_index getResourceType() const noexcept                                = 0;
             };
         };
     };

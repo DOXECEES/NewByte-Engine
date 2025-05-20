@@ -18,19 +18,7 @@ namespace nb
     {
         class Json;
 
-        /**
-        * @brief Класс для работы с данными в формате json
-        */
-        class JsonFactory : public Factory::IFactoryLoader
-        {
-        public:
-            JsonFactory() = default;
-            Ref<Resource::IResource> create(const std::filesystem::path& path) const override;
-
-        private:
-
-
-        };
+        
 
 
         class Json : public nb::Resource::IResource, public IReadableWriteable
@@ -99,6 +87,23 @@ namespace nb
             JsonParser parser;
             JsonWriter writer;
         };
+
+
+        /**
+        * @brief Класс для работы с данными в формате json
+        */
+        class JsonFactory : public Factory::IFactoryLoader
+        {
+        public:
+            JsonFactory() = default;
+            Ref<Resource::IResource> create(const std::filesystem::path& path) const override;
+            std::type_index getResourceType() const noexcept override { return std::type_index(typeid(nb::Loaders::Json)); }
+
+        private:
+
+
+        };
+
     };
 };
 
