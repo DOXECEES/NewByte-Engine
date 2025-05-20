@@ -32,38 +32,34 @@ namespace nb
 
             static ResourceManager *getInstance() noexcept;
 
-            // если путь не начинается с /, то будет использована стандартная директория ассетов
             template <typename T>
-            Ref<T> getResource(std::string_view resName) noexcept
+            Ref<T> getResource(std::string_view resourcePath) noexcept
             {
-                std::string path = resName.data();
+                std::string path(resourcePath);
+                std::string_view extension = extractExtension(path);
 
-                std::string_view extention = extractExtention(resName);
-
-                if (loaders.find(extention.data()) == loaders.end())
+                auto loaderIt = loaders.find(extension.data());
+                if (loaderIt == loaders.end())
                 {
-                    Debug::debug("File format not supported");
+                    Debug::debug("Unsupported file format: " + std::string(extension));
                     abort();
                 }
 
-                std::type_index resourceType = loaders[extention.data()]->getResourceType();
+                std::type_index type = loaderIt->second->getResourceType();
 
                 if (!isResourceLoaded(path))
                 {
-                    /// return placeholder
                     load(path);
                 }
 
-
-                return std::dynamic_pointer_cast<T>(pool.at(resourceType).at(path));
+                return std::dynamic_pointer_cast<T>(pool.at(type).at(path));
             }
 
-            void regisrterLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept;
+            void registerLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept;
             void createConcretePoolIfNotExists(std::type_index resourceType) noexcept;
 
         private:
-            std::string_view extractExtention(std::string_view path) const noexcept;
-            std::string extractExtention(std::string path) const noexcept;
+            std::string_view extractExtension(std::string_view path) const noexcept;
 
             void load(const std::filesystem::path &path) noexcept;
             void unload() noexcept;
@@ -79,9 +75,6 @@ namespace nb
         private:
             std::unordered_map<std::type_index, ResourcePool> pool;
 
-            // pool -> concrete pools
-            // concrete pools -> resources
-            
             std::unordered_map<std::string, Ref<nb::Loaders::Factory::IFactoryLoader>> loaders;
         };
     };
