@@ -55,6 +55,18 @@ namespace nb
                 return std::dynamic_pointer_cast<T>(pool.at(type).at(path));
             }
 
+            template <typename T>
+            const ResourcePool& getAllResources() noexcept
+            {
+                std::type_index type = std::type_index(typeid(T));
+                if(pool.find(type) == pool.end())
+                {
+                    Debug::debug("Resources of type: " + std::string(type.name()) + " not found in resource manager.");
+                    abort();
+                }
+                return pool.at(type);
+            }
+
             void registerLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept;
             void createConcretePoolIfNotExists(std::type_index resourceType) noexcept;
 
