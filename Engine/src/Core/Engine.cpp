@@ -174,7 +174,14 @@ namespace nb
             }
             if(keyboard->isKeyPressed(VK_TAB))
             {
-                std::dynamic_pointer_cast<nb::OpenGl::OpenGlShader>(nb::OpenGl::OpenGLRender::shader)->recompile();
+                using namespace nb::ResMan;
+                auto rm = ResourceManager::getInstance();
+                const ResourceManager::ResourcePool& res = rm->getAllResources<nb::Renderer::Shader>();
+                
+                for(auto&i : res)
+                {
+                    std::dynamic_pointer_cast<nb::OpenGl::OpenGlShader>(i.second)->recompile();
+                }
             }
         }
 
