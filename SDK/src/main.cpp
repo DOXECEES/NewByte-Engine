@@ -1,5 +1,10 @@
 
 #include <windows.h>
+
+#include <../../NewByte-UI-Lib/src/Win32Window/Win32EventLoop.hpp>
+#include <../../NewByte-UI-Lib/src/Win32Window/Win32Window.hpp>
+
+
 #include <../../Engine/src/Core/Engine.hpp>
 #include <../../Engine/src/Math/Quaternion.hpp>
 

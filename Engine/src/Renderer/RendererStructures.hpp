@@ -54,6 +54,8 @@ namespace nb
             float                   shininess           = 0.0f;
             float                   dissolve            = 0.0f;
             uint8_t                 illuminationModel   = 0;
+            uint32_t                baseColorTextureID  = 0;
+            uint32_t                normalTextureID     = 0;
 
             auto operator<=>(const Material&) const = default;
 
@@ -77,12 +79,18 @@ namespace nb
         {
             Ref<Shader>                                     shader;
             std::map<std::string, float>                    floatUniforms;
+            std::map<std::string, int>                      intUniforms;
             std::map<std::string, Math::Vector3<float>>     vec3Uniforms;
             std::map<std::string, Math::Vector4<float>>     vec4Uniforms;
             std::map<std::string, Math::Mat4<float>>        mat4Uniforms;
 
             void applyMaterial() 
             {
+                for(const auto&i : intUniforms)
+                {
+                    shader->setUniformInt(i.first, i.second);
+                }
+
                 for(const auto&i : floatUniforms)
                 {
                     shader->setUniformFloat(i.first, i.second);
