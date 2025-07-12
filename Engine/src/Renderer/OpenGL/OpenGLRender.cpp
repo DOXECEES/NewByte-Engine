@@ -161,7 +161,7 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
 
     auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
     auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
-    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine.obj");
+    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine (2).obj");
     auto wall = rm->getResource<Renderer::Mesh>("wall.obj");
 
     sceneGraph = Renderer::SceneGraph::getInstance();
@@ -218,9 +218,9 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
 
     //scene->addChildren(n);
     //scene->addChildren(g);
-    //scene->addChildren(n5);
+    scene->addChildren(n5);
     //scene->addChildren(nWall);
-    scene->addChildren(hands);
+    //scene->addChildren(hands);
     scene->addChildren(nBox);
     //scene->addChildren(dirLightNode);
     scene->addChildren(pointLightNode);
@@ -439,14 +439,14 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
         // // not work
-        auto planes = Math::getFrustrumPlanes(cam->getLookAt() * cam->getProjection());
-        Math::AABB3D B = Math::AABB3D::recalculateAabb3dByModelMatrix(n->mesh->getAabb3d(), n->getWorldTransform());
+        // auto planes = Math::getFrustrumPlanes(cam->getLookAt() * cam->getProjection());
+        // Math::AABB3D B = Math::AABB3D::recalculateAabb3dByModelMatrix(n->mesh->getAabb3d(), n->getWorldTransform());
 
-        for(auto &i : planes)
-        {
-            if(!Math::AABB3D::intersectAabbPlane(B, i))
-                return;
-        }
+        // for(auto &i : planes)
+        // {
+        //     if(!Math::AABB3D::intersectAabbPlane(B, i))
+        //         return;
+        // }
         //
 
         countOfDraws++;

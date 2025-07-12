@@ -184,7 +184,12 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC OpenGL:GL
     PUBLIC dependencies/glad/include
 )
-        
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
+    $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
+    $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wpedantic>
+)
         
         
 target_link_directories(${PROJECT_NAME} 
