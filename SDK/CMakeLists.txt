@@ -35,13 +35,15 @@ add_executable(${PROJECT_NAME} WIN32
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ../Engine/src
+    ../NewByte-UI-Lib/src
 )
 
 target_link_directories(${PROJECT_NAME} PUBLIC
     C:/rep/Hex/NewByte-Engine/build/Engine/Debug
+    C:/rep/Hex/NewByte-UI-Lib/build/NewByte-UI-Lib/Debug
 )
 
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE user32 NewByte_Engine)
+    target_link_libraries(${PROJECT_NAME} PRIVATE user32 NewByte_Engine NewByte_UI_Lib)
 endif()
