@@ -5,3 +5,4 @@ project(NewByte)
 
 add_subdirectory(SDK)
 add_subdirectory(Engine)
+add_subdirectory(NewByte-UI-Lib)

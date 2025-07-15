@@ -4,6 +4,8 @@
 #include <../../NewByte-UI-Lib/src/Win32Window/Win32EventLoop.hpp>
 #include <../../NewByte-UI-Lib/src/Win32Window/Win32Window.hpp>
 
+#include <../../NewByte-UI-Lib/src/Win32Window/Win32ChildWindow.hpp>
+#include <../../NewByte-UI-Lib/src/Layout.hpp>
 
 #include <../../Engine/src/Core/Engine.hpp>
 #include <../../Engine/src/Math/Quaternion.hpp>
@@ -13,6 +15,8 @@
 #include "SceneWindow.hpp"
 #include "HierarchyWindow.hpp"
 #include "PropertiesWindow.hpp"
+
+#include <thread>
 
 HWND hMDIClient = nullptr;
 HMENU hMainMenu = nullptr;
@@ -30,10 +34,28 @@ Editor::SceneWindow *scene;
 Editor::HierarchyWindow *hierarchyWindow;
 Editor::PropertiesWindow *propertiesWindow;
 
+
+// void EngineThread(std::shared_ptr<nb::Core::Engine> engine)
+// {
+//     while (true)
+//     {
+//         engine->processInput();
+
+//         // Запускаем движок с текущими данными сцены
+//         engine->run({}, {});
+
+//         // Небольшая пауза, чтобы не грузить CPU без нужды
+//         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+//     }
+// }
+
+
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     const wchar_t *mainClassName = L"MDIMainWindow";
     AllocConsole();
+#if 0
     INITCOMMONCONTROLSEX icex;
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
     icex.dwICC = ICC_TREEVIEW_CLASSES;
@@ -90,7 +112,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     propertiesWindow = new Editor::PropertiesWindow(hMDIClient, engine);
     propertiesWindow->resize(rect.right - rect.left, rect.bottom - rect.top);
 
+#endif
+
+    Win32Window::Window window;
+    Win32Window::Win32EventLoop eventLoop;
+
+    Win32Window::ChildWindow sceneWindow(&window);
+
+    Layout* parent = new VBoxLayout(&window);
+    Layout* sceneLayout = new VBoxLayout(&sceneWindow);
+
+    parent->addLayout(sceneLayout);
+
+    engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
+    window.show();
+    
     MSG msg;
+    //std::thread engineThread(EngineThread, engine);
 
     bool running = true;
     while (running)
@@ -115,12 +153,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        engine->run({}, {});
+        //engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
+
+        //eventLoop.run();
+
+        
+        if(sceneWindow.isSizeChanged())
+        {
+            const NbSize<int> &size = sceneWindow.getSize();
+
+            nb::Core::EngineSettings::setHeight(size.height);
+            nb::Core::EngineSettings::setWidth(size.width);
+        }
+
 
         if (!running)
             break;
 
-        engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
+        sceneWindow.resetStateDirtyFlags();
+        //engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
     }
+
     auto i = GetLastError();
 
     return (int)msg.wParam;
