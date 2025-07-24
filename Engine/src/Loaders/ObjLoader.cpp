@@ -7,7 +7,14 @@ namespace nb
         Ref<Renderer::Mesh> ObjLoader::loadMesh(const std::filesystem::path &path) noexcept
         {
             std::ifstream file;
-            file.open(path);
+            // some shit code 
+            char buffer[MAX_PATH];
+            GetModuleFileNameA(NULL, buffer, MAX_PATH);
+            std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+            auto s = std::string(buffer).substr(0, pos);
+           
+            file.open(s / path);
+
             if (!file.is_open())
             {
                 return nullptr;

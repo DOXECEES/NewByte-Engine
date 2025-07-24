@@ -6,6 +6,7 @@
 
 #include <../../NewByte-UI-Lib/src/Win32Window/Win32ChildWindow.hpp>
 #include <../../NewByte-UI-Lib/src/Layout.hpp>
+#include <../../NewByte-UI-Lib/src/DockManager.hpp>
 
 #include <../../Engine/src/Core/Engine.hpp>
 #include <../../Engine/src/Math/Quaternion.hpp>
@@ -27,7 +28,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void RegisterMDIChildClass(HINSTANCE hInstance);
 HWND hChild;
-std::shared_ptr<nb::Core::Engine> engine = nullptr;
+std::shared_ptr<nb::Core::Engine> g_engine = nullptr;
 HWND hwndMain;
 
 Editor::SceneWindow *scene;
@@ -49,6 +50,28 @@ Editor::PropertiesWindow *propertiesWindow;
 //     }
 // }
 
+#include <thread>
+#include <atomic>
+
+std::atomic<bool> running{true};
+std::atomic<bool> g_input{false};
+
+void engineThreadFunc(nb::Core::Engine* engine, HWND han) {
+    if(g_engine == nullptr)
+    {
+        g_engine = std::make_shared<nb::Core::Engine>(han);
+    }
+    while (running) {
+        if(g_input == true)
+        {
+            g_engine->processInput();
+        }
+        
+        g_engine->run({}, {});
+        // Можно sleep дать для контроля FPS:
+        // std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+}
 
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -119,23 +142,50 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     Win32Window::ChildWindow sceneWindow(&window);
 
-    Layout* parent = new VBoxLayout(&window);
-    Layout* sceneLayout = new VBoxLayout(&sceneWindow);
+    Win32Window::ChildWindow childWnd(&window);
+   // childWnd.addCaption();
+    childWnd.setTitle(L"Child window 1");
+    childWnd.setBackgroundColor({ 100, 100, 100 });
 
-    parent->addLayout(sceneLayout);
-
-    engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
-    window.show();
+    Win32Window::ChildWindow childWnd2(&window);
+    //childWnd2.addCaption();
+    childWnd2.setTitle(L"Child window 2");
+    childWnd2.setBackgroundColor({ 100, 100, 100 });
     
+
+
+    DockManager dockManager(&window);
+    dockManager.addWindow(nullptr, &sceneWindow, DockPlacement::CENTER);
+    dockManager.addWindow(nullptr, &childWnd, DockPlacement::RIGHT);
+    dockManager.addWindow(nullptr, &childWnd2, DockPlacement::LEFT);
+    //dockManager.update(dockManager.getTree()->getRoot());
+    // Layout* parent = new VBoxLayout(&window);
+    // Layout* sceneLayout = new VBoxLayout(&sceneWindow);
+    // Layout *childLayout = new VBoxLayout(&childWnd);
+
+    // parent->addLayout(sceneLayout);
+    // parent->addLayout(childLayout);
+
+    g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
+    window.show();
+
+    const NbSize<int> &size = sceneWindow.getSize();
+
+    //nb::Core::EngineSettings::setHeight(size.height);
+    //nb::Core::EngineSettings::setWidth(size.width);
+    //childWnd.show();
+    //std::thread engineThread(engineThreadFunc, g_engine.get(), sceneWindow.getHandle().as<HWND>());
+    
+
     MSG msg;
-    //std::thread engineThread(EngineThread, engine);
 
     bool running = true;
     while (running)
     {
+        //g_input = false;
         // don't pick 
         // processInput should be first to update state from prev frame 
-        engine->processInput();
+        g_engine->processInput();
 
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
@@ -147,17 +197,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
             if (msg.message == WM_INPUT)
             {
-                engine->bufferizeInput(msg);
+                g_engine->bufferizeInput(msg);
             }
 
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        engine->run({}, {});
-        //engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
+        g_input = true;
+        g_engine->run({}, {});
 
-        //eventLoop.run();
-
+        if(window.isSizeChanged())
+        {
+            dockManager.onSize(window.getClientRect());
+        }
         
         if(sceneWindow.isSizeChanged())
         {
@@ -171,6 +223,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         if (!running)
             break;
 
+        window.resetStateDirtyFlags();
         sceneWindow.resetStateDirtyFlags();
         //engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
     }
@@ -301,14 +354,14 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     {
     case WM_MDIACTIVATE:
     {
-        if ((HWND)lParam == hChild && engine != nullptr)
-        {
-            engine->setHandleInput(true);
-        }
-        else if ((HWND)wParam == hChild && engine != nullptr)
-        {
-            engine->setHandleInput(false);
-        }
+        // if ((HWND)lParam == hChild && engine != nullptr)
+        // {
+            // engine->setHandleInput(true);
+        // }
+        // else if ((HWND)wParam == hChild && engine != nullptr)
+        // {
+            // engine->setHandleInput(false);
+        // }
 
         activeWindow = (HWND)lParam;
         return 0;

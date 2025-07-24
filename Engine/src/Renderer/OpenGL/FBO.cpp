@@ -48,6 +48,7 @@ namespace nb
                 if(colorTextureCount > getMaxCountOfColorAttachments())
                 {
                     errorMessage("Max count of color attachments reached!");
+                    return;
                 }
 
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
@@ -189,7 +190,7 @@ namespace nb
         void FBO::errorMessage(std::string_view message) const noexcept
         {
             Debug::debug(message);
-            abort();
+            //abort();
         }
     };
 };

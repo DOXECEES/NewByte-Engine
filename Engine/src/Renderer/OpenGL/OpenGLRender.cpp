@@ -27,6 +27,7 @@ MessageCallback(GLenum source,
             type, severity, message);
 }
 
+
 bool nb::OpenGl::OpenGLRender::init() noexcept
 {
     // thats looks wierd, but works)

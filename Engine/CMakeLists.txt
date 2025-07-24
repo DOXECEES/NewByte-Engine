@@ -13,9 +13,8 @@ file(GLOB RESOURCE_FILES
     "res/*"
     "shaders/*")
 
-
-add_library(${PROJECT_NAME} STATIC 
-        src/main.cpp
+set (SRC 
+src/main.cpp
         
         src/Fatal.cpp
         src/Fatal.hpp
@@ -174,8 +173,10 @@ add_library(${PROJECT_NAME} STATIC
 
         dependencies/lodepng/lodepng.cpp
 
-        ${RESOURCE_FILES}
-        )
+
+)
+
+add_library(${PROJECT_NAME} STATIC ${SRC})
 
 
 find_package(OpenGL REQUIRED)
@@ -195,9 +196,17 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 target_link_directories(${PROJECT_NAME} 
     PRIVATE dependencies/glad/src
 )
+
+
+
         
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
     target_link_libraries(${PROJECT_NAME} PRIVATE user32 opengl32 glad)
 endif()
 
+foreach(source IN LISTS SRC)
+  get_filename_component(source_path "${source}" PATH)
+  string(REPLACE "/" "\\" source_path_msvc "${source_path}")
+  source_group("${source_path_msvc}" FILES "${source}")
+endforeach()

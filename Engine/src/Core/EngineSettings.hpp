@@ -7,6 +7,8 @@
 
 #include "../Core.hpp"
 
+#include <atomic>
+
 namespace nb
 {
     namespace Core
@@ -29,22 +31,22 @@ namespace nb
             static void serialize();
             static void deserialize();
 
-            inline static int getWidth() noexcept { return width; };
-            inline static int getHeight() noexcept { return height; };
+            inline static int getWidth() noexcept { return width.load(std::memory_order_relaxed); };
+            inline static int getHeight() noexcept { return height.load(std::memory_order_relaxed); };
             inline static float getFov() noexcept { return fov; };
             inline static float getMouseSensivity() noexcept { return mouseSensivity; };
             inline static float getAspectRatio() noexcept { return (static_cast<float>(width) / static_cast<float>(height)); };
             inline static Core::GraphicsAPI getGraphicsAPI() noexcept { return graphicsApi; };
 
-            inline static void setWidth(const int newWidth) noexcept { width = newWidth; };
-            inline static void setHeight(const int newHeight) noexcept { height = newHeight; };
+            inline static void setWidth(const int newWidth) noexcept { width.store(newWidth, std::memory_order_relaxed);};
+            inline static void setHeight(const int newHeight) noexcept { height.store(newHeight, std::memory_order_relaxed); };
             inline static void setFov(const float newFov) noexcept { fov = newFov; };
             inline static void setMouseSensivity(const float newSensivity) noexcept { mouseSensivity = newSensivity; };
 
         private:
         
-            inline static int               width           = DEFAULT_WIDTH;
-            inline static int               height          = DEFAULT_HEIGHT;
+            inline static std::atomic<int>  width           = DEFAULT_WIDTH;
+            inline static std::atomic<int>  height          = DEFAULT_HEIGHT;
             inline static float             fov             = DEFAULT_FOV;
             inline static float             mouseSensivity  = DEFAULT_MOUSE_SENSIVITY;
             inline static Core::GraphicsAPI graphicsApi     = DEFAULT_GRAPHICS_API;
