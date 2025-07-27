@@ -3,6 +3,8 @@
 
 #include <Windows.h>
 
+#include <queue>
+
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 
@@ -18,6 +20,8 @@ namespace nb
             Input();
             ~Input() = default;
 
+            void bufferize(const RAWINPUT& rawInput);
+
             void linkMouse(Ref<Mouse> mouse) noexcept;
             void linkKeyboard(Ref<Keyboard> keyboard) noexcept;
 
@@ -26,9 +30,9 @@ namespace nb
             inline void stopHandlingKeyboardEvents() noexcept { shouldHandleKeyboardEvents = false; };
             inline void startHandlingKeyboardEvents() noexcept { shouldHandleKeyboardEvents = true; };
             
-            void update(const MSG& msg) noexcept;
+            void update() noexcept;
             void updateAll() const noexcept;
-
+            bool isQueueEmpty() { return buffer.empty(); }
 
         private:
             void reset() noexcept;
@@ -46,6 +50,7 @@ namespace nb
             Ref<Mouse> mouse                = nullptr;
             Ref<Keyboard> keyboard          = nullptr;
 
+            std::queue<RAWINPUT>           buffer;
 
         };
     };

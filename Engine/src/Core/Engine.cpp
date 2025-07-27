@@ -120,13 +120,20 @@ namespace nb
 
         void Engine::bufferizeInput(const MSG &msg) noexcept
         {
-            input->update(msg);
+            uint32_t size = sizeof(RAWINPUT);
+            static RAWINPUT rawInput;
+            MSG nMsg;
+
+            if (GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER)) == 0)
+                return;
+
+            input->bufferize(rawInput);
         }
 
         void Engine::processInput() noexcept
         {
-            //bufferizeInput();
-            input->updateAll();// should allways be first
+            input->updateAll();
+            input->update();
         }
 
         void Engine::handleEditorMode() noexcept

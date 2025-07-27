@@ -33,5 +33,6 @@ namespace nb
         {
             return codes[key];
         }
+
     };
 };

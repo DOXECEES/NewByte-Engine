@@ -26,6 +26,11 @@ namespace nb
             RegisterRawInputDevices(rawDevice, 2, sizeof(RAWINPUTDEVICE));
         }
 
+        void Input::bufferize(const RAWINPUT& rawInput)
+        {
+            buffer.push(rawInput);
+        }
+
         void Input::linkMouse(Ref<Mouse> mouse) noexcept
         {
             this->mouse = mouse;
@@ -36,27 +41,23 @@ namespace nb
             this->keyboard = keyboard;
         }
 
-        void Input::update(const MSG& msg) noexcept
+        void Input::update() noexcept
         {
-            if(msg.message == WM_INPUT)
+            while (!buffer.empty())
             {
-                uint32_t size = sizeof(RAWINPUT);
-                static RAWINPUT rawInput;
-                MSG nMsg;
-            
-                if(GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER)) == 0)
-                    return;
-                    
+                RAWINPUT rawInput = buffer.front();
+                buffer.pop();
+
                 switch (rawInput.header.dwType)
                 {
                 case RIM_TYPEMOUSE:
                 {
-                    if(!shouldHandlePosition)
+                    if (!shouldHandlePosition)
                         break;
 
-                    if(rawInput.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+                    if (rawInput.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
                     {
-                        /** 
+                        /**
                         *   @todo Обработка мыши при абсолютной позиции
                         */
 
@@ -64,50 +65,50 @@ namespace nb
                         prevMouseX = rawInput.data.mouse.lLastX;
                         prevMouseY = rawInput.data.mouse.lLastY;
                     }
-                    else 
+                    else
                     {
                         prevMouseX += rawInput.data.mouse.lLastX;
                         prevMouseY += rawInput.data.mouse.lLastY;
-                        
+
                     }
 
-                    if((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL) 
+                    if ((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
                         || rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL)
                     {
                         int16_t wheelDelta = static_cast<int16_t>(rawInput.data.mouse.usButtonData);
                         prevScrollData = static_cast<float>(wheelDelta) / WHEEL_DELTA;
 
-                        if (rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) 
+                        if (rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL)
                         {
                             uint64_t scrollChars = 1; // 1 is the default
                             //SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
                             prevScrollData *= scrollChars;
-                            
+
                         }
-                        else 
+                        else
                         {
-                            uint64_t scrollLines = 3; 
+                            uint64_t scrollLines = 3;
                             //SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
                             if (scrollLines != WHEEL_PAGESCROLL)
                                 prevScrollData *= scrollLines;
-                            
+
                         }
                     }
 
-                    
+
                     deviceFlags = rawInput.data.mouse.usButtonFlags;
 
                     break;
                 }
                 case RIM_TYPEKEYBOARD:
                 {
-                    
-                    if(!shouldHandleKeyboardEvents)
-                        break;
-                    
 
-                    if(rawInput.data.keyboard.Flags == RI_KEY_MAKE)
-                    {   
+                    if (!shouldHandleKeyboardEvents)
+                        break;
+
+
+                    if (rawInput.data.keyboard.Flags == RI_KEY_MAKE)
+                    {
                         keyboard->setKeyDown(rawInput.data.keyboard.VKey);
                     }
                     else
@@ -123,10 +124,6 @@ namespace nb
                 default:
                     break;
                 }
-            }
-            else
-            {                        
-                reset();
             }
 
         }
