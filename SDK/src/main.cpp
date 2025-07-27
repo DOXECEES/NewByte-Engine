@@ -8,6 +8,7 @@
 #include <../../NewByte-UI-Lib/src/Layout.hpp>
 #include <../../NewByte-UI-Lib/src/DockManager.hpp>
 
+#include <../../NewByte-UI-Lib/src/Widgets/Button.hpp>
 #include <../../Engine/src/Core/Engine.hpp>
 #include <../../Engine/src/Math/Quaternion.hpp>
 
@@ -53,7 +54,7 @@ Editor::PropertiesWindow *propertiesWindow;
 #include <thread>
 #include <atomic>
 
-std::atomic<bool> running{true};
+std::atomic<bool> g_running{true};
 std::atomic<bool> g_input{false};
 
 void engineThreadFunc(nb::Core::Engine* engine, HWND han) {
@@ -61,15 +62,11 @@ void engineThreadFunc(nb::Core::Engine* engine, HWND han) {
     {
         g_engine = std::make_shared<nb::Core::Engine>(han);
     }
-    while (running) {
-        if(g_input == true)
-        {
-            g_engine->processInput();
-        }
-        
-        g_engine->run({}, {});
+    while (g_running)
+    {
+        g_engine->processInput();
+        g_engine->run({}, {});   
         // Можно sleep дать для контроля FPS:
-        // std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
@@ -152,12 +149,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     childWnd2.setTitle(L"Child window 2");
     childWnd2.setBackgroundColor({ 100, 100, 100 });
     
+    Win32Window::ChildWindow childWnd3(&window);
+    //childWnd2.addCaption();
+    childWnd3.setTitle(L"Child window 3");
+    childWnd3.setBackgroundColor({ 120, 100, 100 });
 
+
+
+    Layout* layout = new VBoxLayout(&childWnd);
+
+    Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
+    button->setText(L"hello world");
+    button->setOnClickCallback([&window]()
+        {
+            g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
+
+        });
+
+    layout->addWidget(button);
 
     DockManager dockManager(&window);
     dockManager.addWindow(nullptr, &sceneWindow, DockPlacement::CENTER);
     dockManager.addWindow(nullptr, &childWnd, DockPlacement::RIGHT);
     dockManager.addWindow(nullptr, &childWnd2, DockPlacement::LEFT);
+    dockManager.addWindow(nullptr, &childWnd3, DockPlacement::BOT);
     //dockManager.update(dockManager.getTree()->getRoot());
     // Layout* parent = new VBoxLayout(&window);
     // Layout* sceneLayout = new VBoxLayout(&sceneWindow);
@@ -166,15 +181,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // parent->addLayout(sceneLayout);
     // parent->addLayout(childLayout);
 
-    g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
+    //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
     window.show();
 
     const NbSize<int> &size = sceneWindow.getSize();
 
-    //nb::Core::EngineSettings::setHeight(size.height);
-    //nb::Core::EngineSettings::setWidth(size.width);
+    nb::Core::EngineSettings::setHeight(size.height);
+    nb::Core::EngineSettings::setWidth(size.width);
     //childWnd.show();
-    //std::thread engineThread(engineThreadFunc, g_engine.get(), sceneWindow.getHandle().as<HWND>());
+    g_running = true;
+    std::thread engineThread(engineThreadFunc, g_engine.get(), sceneWindow.getHandle().as<HWND>());
     
 
     MSG msg;
@@ -182,51 +198,55 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     bool running = true;
     while (running)
     {
-        //g_input = false;
         // don't pick 
         // processInput should be first to update state from prev frame 
-        g_engine->processInput();
+        //if(g_engine)
+          //  g_engine->processInput();
 
+        g_input = false;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT)
             {
+                g_running = false;
                 running = false;
                 break;
             }
-
             if (msg.message == WM_INPUT)
             {
                 g_engine->bufferizeInput(msg);
             }
 
+            if (sceneWindow.isSizeChanged())
+            {
+                const NbSize<int>& size = sceneWindow.getSize();
+
+                nb::Core::EngineSettings::setHeight(size.height);
+                nb::Core::EngineSettings::setWidth(size.width);
+            }
+
+            if (window.isSizeChanged())
+            {
+                dockManager.onSize(window.getClientRect());
+            }
+
+            window.resetStateDirtyFlags();
+            sceneWindow.resetStateDirtyFlags();
+
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        g_input = true;
-        g_engine->run({}, {});
-
-        if(window.isSizeChanged())
-        {
-            dockManager.onSize(window.getClientRect());
-        }
-        
-        if(sceneWindow.isSizeChanged())
-        {
-            const NbSize<int> &size = sceneWindow.getSize();
-
-            nb::Core::EngineSettings::setHeight(size.height);
-            nb::Core::EngineSettings::setWidth(size.width);
-        }
+         g_input = true;
+        //g_engine->run({}, {});
 
 
         if (!running)
             break;
 
-        window.resetStateDirtyFlags();
-        sceneWindow.resetStateDirtyFlags();
+
         //engine->run(scene->peekMouseDelta(), scene->getMouseButtons());
     }
+    engineThread.join();
 
     auto i = GetLastError();
 
