@@ -1,24 +1,28 @@
 
 #include <windows.h>
 
-#include <../../NewByte-UI-Lib/src/Win32Window/Win32EventLoop.hpp>
-#include <../../NewByte-UI-Lib/src/Win32Window/Win32Window.hpp>
+#include <Win32Window/Win32EventLoop.hpp>
+#include <Win32Window/Win32Window.hpp>
 
-#include <../../NewByte-UI-Lib/src/Win32Window/Win32ChildWindow.hpp>
-#include <../../NewByte-UI-Lib/src/Layout.hpp>
-#include <../../NewByte-UI-Lib/src/DockManager.hpp>
+#include <Win32Window/Win32ChildWindow.hpp>
+#include <Layout.hpp>
+#include <DockManager.hpp>
 
-#include <../../NewByte-UI-Lib/src/Widgets/Button.hpp>
-#include <../../Engine/src/Core/Engine.hpp>
-#include <../../Engine/src/Math/Quaternion.hpp>
 
-#include <../../Engine/src/Core/EngineSettings.hpp>
+#include <Widgets/Button.hpp>
+#include <Widgets/TreeView.hpp>
+
+#include <Core/Engine.hpp>
+#include <Math/Quaternion.hpp>
+
+#include <Core/EngineSettings.hpp>
 
 #include "SceneWindow.hpp"
 #include "HierarchyWindow.hpp"
 #include "PropertiesWindow.hpp"
 
 #include <thread>
+
 
 HWND hMDIClient = nullptr;
 HMENU hMainMenu = nullptr;
@@ -57,7 +61,8 @@ Editor::PropertiesWindow *propertiesWindow;
 std::atomic<bool> g_running{true};
 std::atomic<bool> g_input{false};
 
-void engineThreadFunc(nb::Core::Engine* engine, HWND han) {
+void engineThreadFunc(nb::Core::Engine* engine, HWND han)
+{
     if(g_engine == nullptr)
     {
         g_engine = std::make_shared<nb::Core::Engine>(han);
@@ -147,32 +152,58 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Win32Window::ChildWindow childWnd2(&window);
     //childWnd2.addCaption();
     childWnd2.setTitle(L"Child window 2");
-    childWnd2.setBackgroundColor({ 100, 100, 100 });
+    childWnd2.setBackgroundColor({ 10, 1, 1 });
     
     Win32Window::ChildWindow childWnd3(&window);
     //childWnd2.addCaption();
     childWnd3.setTitle(L"Child window 3");
     childWnd3.setBackgroundColor({ 120, 100, 100 });
 
+    Win32Window::ChildWindow childWnd4(&window);
+    //childWnd2.addCaption();
+    childWnd4.setTitle(L"Child window 4");
+    childWnd4.setBackgroundColor({ 180, 180, 100 });
 
+    Win32Window::ChildWindow childWnd5(&window);
+    //childWnd2.addCaption();
+    childWnd5.setTitle(L"Child window 5");
+    childWnd5.setBackgroundColor({ 80, 80, 255 });
 
     Layout* layout = new VBoxLayout(&childWnd);
+    //Layout* layout2 = new VBoxLayout(&childWnd2);
+
 
     Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
-    button->setText(L"hello world");
+    button->setText(L"Set Mode to points");
     button->setOnClickCallback([&window]()
         {
             g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
 
         });
 
+    Widgets::Button* button2 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
+    button2->setText(L"Set Mode to full");
+    button2->setOnClickCallback([&window]()
+        {
+            g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+
+        });
+
+    //Widgets::TreeView* treeView = new Widgets::TreeView(NbRect<int>(100, 100, 100, 100));
+    //layout2->addWidget(treeView);
+
     layout->addWidget(button);
+    layout->addWidget(button2);
 
     DockManager dockManager(&window);
     dockManager.addWindow(nullptr, &sceneWindow, DockPlacement::CENTER);
-    dockManager.addWindow(nullptr, &childWnd, DockPlacement::RIGHT);
-    dockManager.addWindow(nullptr, &childWnd2, DockPlacement::LEFT);
-    dockManager.addWindow(nullptr, &childWnd3, DockPlacement::BOT);
+    dockManager.addWindow(nullptr, &childWnd2, DockPlacement::BOT);
+    dockManager.addWindow(nullptr, &childWnd, DockPlacement::LEFT);
+    dockManager.addWindow(&childWnd, &childWnd3, DockPlacement::TOP);
+    dockManager.addWindow(&childWnd2, &childWnd5, DockPlacement::TOP);
+    dockManager.addWindow(nullptr, &childWnd4, DockPlacement::RIGHT);
+    // dockManager.addWindow(nullptr, &childWnd2, DockPlacement::RIGHT);
+
     //dockManager.update(dockManager.getTree()->getRoot());
     // Layout* parent = new VBoxLayout(&window);
     // Layout* sceneLayout = new VBoxLayout(&sceneWindow);
@@ -198,11 +229,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     bool running = true;
     while (running)
     {
-        // don't pick 
-        // processInput should be first to update state from prev frame 
-        //if(g_engine)
-          //  g_engine->processInput();
-
         g_input = false;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
@@ -217,6 +243,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 g_engine->bufferizeInput(msg);
             }
 
+            if (window.isSizeChanged())
+            {
+                dockManager.onSize(window.getClientRect());
+            }
+
             if (sceneWindow.isSizeChanged())
             {
                 const NbSize<int>& size = sceneWindow.getSize();
@@ -225,11 +256,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 nb::Core::EngineSettings::setWidth(size.width);
             }
 
-            if (window.isSizeChanged())
+            if (g_engine)
             {
-                dockManager.onSize(window.getClientRect());
+                if (g_engine->getMode() == nb::Core::Engine::Mode::EDITOR)
+                {
+                    window.showCursor();
+                }
+                else
+                {
+                    window.hideCursor();
+                }
             }
 
+           
             window.resetStateDirtyFlags();
             sceneWindow.resetStateDirtyFlags();
 
@@ -238,7 +277,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
          g_input = true;
         //g_engine->run({}, {});
-
+         
+        
 
         if (!running)
             break;
