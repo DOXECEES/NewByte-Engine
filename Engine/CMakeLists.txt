@@ -155,6 +155,7 @@ src/main.cpp
         src/Loaders/JSON/Node.hpp
 
         src/Templates/BinaryTree.hpp
+        src/Templates/NTree.hpp
 
         src/Shared/HuffmanTree.cpp
         src/Shared/HuffmanTree.hpp

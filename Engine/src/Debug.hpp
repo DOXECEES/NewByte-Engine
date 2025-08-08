@@ -98,11 +98,17 @@ public:
             oss << "\t]\n";
         }
         else if constexpr (std::is_same_v<Container<T...>, std::string>
-                            || std::is_same_v<Container<T...>, std::wstring>
-                            || std::is_same_v<Container<T...>, std::string_view>
-                            || std::is_same_v<Container<T...>, std::wstring_view>)
+                            || std::is_same_v<Container<T...>, std::string_view>)
         {
             oss << container << '\n';
+        }
+        else if constexpr (std::is_same_v<Container<T...>, std::wstring>
+                            || std::is_same_v<Container<T...>, std::wstring_view>)
+        {
+            std::wostringstream woss;
+            addHeaderUnicode(location, woss);
+            woss << container << '\n';
+            writeToConsoleUnicode(woss.str());
         }
         else
         {
@@ -110,7 +116,7 @@ public:
         }
 
         writeToConsole(oss.str());
-    }
+    } 
 
 private:
     static void writeToConsole(std::string_view message)
@@ -123,12 +129,31 @@ private:
         }
     }
 
+    static void writeToConsoleUnicode(std::wstring_view message)
+    {
+        HANDLE stdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (stdOut != NULL && stdOut != INVALID_HANDLE_VALUE)
+        {
+            DWORD written = 0;
+            WriteConsoleW(stdOut, message.data(), static_cast<DWORD>(message.size()), &written, NULL);
+        }
+    }
+
     static void addHeader(const std::source_location &location, std::ostringstream &oss)
     {
         oss << "In function: "
             << std::string(location.function_name())
             << " at line: "
             << std::to_string(location.line())
+            << " ";
+    }
+
+     static void addHeaderUnicode(const std::source_location &location, std::wostringstream &oss)
+    {
+        oss << L"In function: "
+            //<< std::wstring(location.function_name())
+            << L" at line: "
+            << std::to_wstring(location.line())
             << " ";
     }
 
@@ -163,5 +188,17 @@ private:
     {
     };
 };
+
+
+template <>
+inline void Debug::debug<std::wstring>(std::wstring val, const std::source_location location)
+{
+    std::wostringstream woss;
+    addHeaderUnicode(location, woss);
+    woss << val << L"\n";
+    writeToConsoleUnicode(woss.str());
+}
+
+
 
 #endif // _DEBUG

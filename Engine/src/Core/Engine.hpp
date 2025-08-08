@@ -33,6 +33,13 @@ namespace nb
         class Engine
         {
         public:
+
+            enum class Mode
+            {
+                EDITOR,
+                GAME
+            };
+
             Engine(const HWND& hwnd);
             ~Engine() = default;
 
@@ -47,14 +54,17 @@ namespace nb
 
             void rayPick(const uint32_t x, const uint32_t y) noexcept;
             
+            Mode getMode() const noexcept;
+
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };
             inline Math::Vector3<float> getCameraPos() { return renderer->getCamera()->getPosition(); };
             inline Math::Vector3<float> getCameraDirection() { return renderer->getCamera()->getDirection(); };
             inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); };
             inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; };
 
+
         private:
-            bool                        isEditorMode    = false;
+            Mode                        mode            = Mode::EDITOR;
 
             std::unique_ptr<Subsystems> subSystems      = std::make_unique<Subsystems>();
             Ref<nb::Renderer::Renderer> renderer        = nullptr;

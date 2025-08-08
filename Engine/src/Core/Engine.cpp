@@ -204,14 +204,14 @@ namespace nb
 
 
             cam.update(mouse->getX(), mouse->getY());
-            if (!isEditorMode)
+            if (mode == Mode::GAME)
             {
                 input->startHandlingPosition();
                 input->startHandlingKeyboardEvents();
             }
 
 
-            if (!isEditorMode)
+            if (mode == Mode::GAME)
             {
                 RECT r;
                 GetClientRect(hwnd, &r);
@@ -229,17 +229,14 @@ namespace nb
             if (keyboard->isKeyPressed(VK_ESCAPE))
             {
                 SetCursorPos(EngineSettings::getWidth() / 2, EngineSettings::getHeight() / 2);
-                isEditorMode = !isEditorMode;
 
-                if (isEditorMode)
-                    while (ShowCursor(true) < 0)
-                        ;
+                if (mode == Mode::EDITOR)
+                    mode = Mode::GAME;
                 else
-                    while (ShowCursor(false) > 0)
-                        ;
+                    mode = Mode::EDITOR;
             }
 
-            if (isEditorMode)
+            if (mode == Mode::EDITOR)
             {
                 handleEditorMode();
             }
@@ -286,7 +283,7 @@ namespace nb
 
         void Engine::rayPick(const uint32_t x, const uint32_t y) noexcept
         {
-            if (!isEditorMode)
+            if (mode == Mode::GAME)
                 return;
 
             nb::Math::RayPicker rp;
@@ -343,6 +340,12 @@ namespace nb
 
 
            
-            } 
+        }
+
+        Engine::Mode Engine::getMode() const noexcept
+        {
+            return mode;
+        }
+
     };
 };
