@@ -21,9 +21,6 @@
 
 #include "../Renderer/Camera.hpp"
 
-#include "../Math/RayCast/RayPicker.hpp"
-#include "../Utils/Timer.hpp"
-
 #include <memory>
 
 namespace nb
@@ -34,33 +31,33 @@ namespace nb
         {
         public:
 
-            enum class Mode
+            enum class Mode : uint8_t
             {
                 EDITOR,
                 GAME
             };
 
-            Engine(const HWND& hwnd);
+            Engine(const HWND& windowHwnd);
             ~Engine() = default;
 
-            void bufferizeInput(const MSG& msg) noexcept;
-            void processInput() noexcept;
-            void setHandleInput(bool var) { handleInput = var; };
+            void bufferizeInput(const MSG& msg) const noexcept;
+            void processInput() const noexcept;
+            void setHandleInput(bool var) { handleInput = var; }
 
             bool run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons);
             void handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept;
             void handleEditorMode() noexcept;
 
 
-            void rayPick(const uint32_t x, const uint32_t y) noexcept;
+            void rayPick(const uint32_t x, const uint32_t y) const noexcept;
             
             Mode getMode() const noexcept;
 
-            inline static const HWND& getLinkedHwnd() noexcept { return hwnd; };
-            inline Math::Vector3<float> getCameraPos() { return renderer->getCamera()->getPosition(); };
-            inline Math::Vector3<float> getCameraDirection() { return renderer->getCamera()->getDirection(); };
-            inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); };
-            inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; };
+            inline static const HWND& getLinkedHwnd() noexcept { return hwnd; }
+            inline Math::Vector3<float> getCameraPos() const noexcept { return renderer->getCamera()->getPosition(); }
+            inline Math::Vector3<float> getCameraDirection() const noexcept { return renderer->getCamera()->getDirection(); }
+            inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); }
+            inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; }
 
 
         private:
@@ -73,7 +70,6 @@ namespace nb
             bool                        isRunning       = true;
             bool                        handleInput     = true;
             
-            bool                        isSampling      = true;
             nb::Renderer::Camera        cam;
             // temp
             Ref<nb::Input::Input>       input           = nullptr;

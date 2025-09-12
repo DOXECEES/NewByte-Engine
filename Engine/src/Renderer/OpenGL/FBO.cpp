@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "FBO.hpp"
 
 #include "../../Debug.hpp"
@@ -14,6 +17,8 @@ namespace nb
 
         FBO::~FBO() noexcept
         {
+            for (auto& i : textures)
+                glDeleteTextures(1, &i);
             glDeleteFramebuffers(1, &buffer);
         }
 

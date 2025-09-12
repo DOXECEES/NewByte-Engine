@@ -75,7 +75,11 @@ namespace nb
             public:
 
                 void render() override;
-                void renderNode(std::shared_ptr<Renderer::BaseNode> node, const std::vector<Renderer::LightNode>& lightNode) noexcept;
+                void renderNode(std::shared_ptr<Renderer::BaseNode> node
+                    , const std::vector<Renderer::LightNode>& lightNode
+                    , const OpenGl::DepthBuffer& depthBuffer
+                    , const Math::Mat4<float>& lightSpaceMatrix
+                ) noexcept;
 
                 static OpenGLRender *create(HWND hwnd);
 

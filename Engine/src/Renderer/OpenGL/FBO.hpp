@@ -37,7 +37,7 @@ namespace nb
             };
 
             FBO() noexcept;
-            ~FBO() noexcept;
+            virtual ~FBO() noexcept;
 
             FBO(const FBO& other) noexcept = delete;
             FBO& operator=(const FBO& other) noexcept = delete;
@@ -77,7 +77,7 @@ namespace nb
 
             bool                isDepthBufferAttached   = false;
             bool                isStencilBufferAttached = false;
-            GLuint              renderBuffer;
+            GLuint              renderBuffer            = 0;
             std::vector<GLuint> textures;
             uint8_t             colorTextureCount       = 0;
             GLuint              width                   = GL_UINT_MAX;  

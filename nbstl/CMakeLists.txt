@@ -5,6 +5,8 @@ project(nbstl)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+
+
 set(-DCMAKE_GENERATOR_PLATFORM x64)
 
 
@@ -28,4 +30,5 @@ foreach(source IN LISTS SRC)
   get_filename_component(source_path "${source}" PATH)
   string(REPLACE "/" "\\" source_path_msvc "${source_path}")
   source_group("${source_path_msvc}" FILES "${source}")
+  
 endforeach()

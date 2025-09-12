@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Keyboard.hpp"
 #include "../Debug.hpp"
 namespace nb
@@ -19,19 +22,19 @@ namespace nb
             codes[key] = true;
         }
 
-        bool Keyboard::isKeyPressed(const uint8_t key) const noexcept
+        bool Keyboard::isKeyPressed(const KeyCode key) const noexcept
         {
-            return (codes[key] && !prevFrameCodes[key]);
+            return (codes[static_cast<uint8_t>(key)] && !prevFrameCodes[static_cast<uint8_t>(key)]);
         }
 
-        bool Keyboard::isKeyReleased(const uint8_t key) const noexcept
+        bool Keyboard::isKeyReleased(const KeyCode key) const noexcept
         {
-            return (!codes[key] && prevFrameCodes[key]);
+            return (!codes[static_cast<uint8_t>(key)] && prevFrameCodes[static_cast<uint8_t>(key)]);
         }
 
-        bool Keyboard::isKeyHeld(const uint8_t key) const noexcept
+        bool Keyboard::isKeyHeld(const KeyCode key) const noexcept
         {
-            return codes[key];
+            return codes[static_cast<uint8_t>(key)];
         }
 
     };

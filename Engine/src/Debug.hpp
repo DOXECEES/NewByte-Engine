@@ -30,7 +30,7 @@ public:
 
     template <typename T>
     static void debug(T val
-                    , const std::source_location location = std::source_location::current())
+                    , const std::source_location& location = std::source_location::current())
     {
 
         std::ostringstream oss;
@@ -51,7 +51,7 @@ public:
 
     template <template <typename...> class Container, class... T>
     static void debug(const Container<T...> &container
-                    , const std::source_location location = std::source_location::current())
+                    , const std::source_location& location = std::source_location::current())
     {
 
         std::ostringstream oss;
@@ -191,7 +191,7 @@ private:
 
 
 template <>
-inline void Debug::debug<std::wstring>(std::wstring val, const std::source_location location)
+inline void Debug::debug<std::wstring>(std::wstring val, const std::source_location& location)
 {
     std::wostringstream woss;
     addHeaderUnicode(location, woss);

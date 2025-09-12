@@ -49,9 +49,9 @@ namespace nbstl
 
         }
 
-        void setChilds(const std::array<std::shared_ptr<TreeNode>, CountOfChild>& childs) noexcept
+        void setChilds(const std::array<std::shared_ptr<TreeNode>, CountOfChild>& newChilds) noexcept
         {
-            this->childs = childs;
+            this->childs = newChilds;
 			for (auto& child : this->childs)
 			{
 				if (child) 

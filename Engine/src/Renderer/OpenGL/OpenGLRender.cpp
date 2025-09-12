@@ -1,6 +1,10 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "OpenGLRender.hpp"
 
 #include "../Objects/Objects.hpp"
+#include "DepthBuffer.hpp"
 
 nb::OpenGl::OpenGLRender::OpenGLRender(HWND _hwnd) noexcept
     : IRenderAPI(_hwnd), hdc(GetDC(hwnd))
@@ -9,6 +13,9 @@ nb::OpenGl::OpenGLRender::OpenGLRender(HWND _hwnd) noexcept
 
 nb::OpenGl::OpenGLRender::~OpenGLRender() noexcept
 {
+    delete t;
+    delete tn;
+    delete postProcessFbo;
     wglMakeCurrent(nullptr, nullptr);
     ReleaseDC(hwnd, hdc);
 }
@@ -179,7 +186,7 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     t.translate = {0.0f, -10.0f, 0.0f};
 
     Renderer::Transform t2;
-    t2.translate = {0.0f, 20.0f, 0.0f};
+    t2.translate = {0.0f, 3.0f, 0.0f};
     t2.rotateX = Math::toRadians(90.0f);
 
     auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
@@ -202,9 +209,9 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
 
     auto nBox = std::make_shared<Renderer::ObjectNode>("Box", boxTransform , box, shader);
 
-    // Renderer::Transform dirLightTransform;
-    // auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
-    // auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
+    Renderer::Transform dirLightTransform;
+    auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
+    auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
 
     Renderer::Transform pointLightTransform;
     pointLightTransform.translate = {0.0f, 0.0f, 0.0f};
@@ -220,11 +227,13 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     //scene->addChildren(n);
     //scene->addChildren(g);
     scene->addChildren(n5);
+    n5->addChildren(nBox);
     //scene->addChildren(nWall);
     //scene->addChildren(hands);
-    scene->addChildren(nBox);
-    //scene->addChildren(dirLightNode);
-    scene->addChildren(pointLightNode);
+    //scene->addChildren(nBox);
+    scene->addChildren(dirLightNode);
+    dirLightNode->addChildren(pointLightNode);
+    
 
 }
 
@@ -294,6 +303,13 @@ void nb::OpenGl::OpenGLRender::render()
 {
     const int width = nb::Core::EngineSettings::getWidth();
     const int height = nb::Core::EngineSettings::getHeight();
+    static bool reinit = false;
+
+    /*if (width == 0 || height == 0)
+    {
+        reinit = true;
+        return;
+    }*/
 
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -304,21 +320,39 @@ void nb::OpenGl::OpenGLRender::render()
 
     auto rm = nb::ResMan::ResourceManager::getInstance();
 
+
     // Получение камеры и матриц
     auto view = cam->getLookAt();
     auto proj = cam->getProjection();
 
-    // === DEPTH BUFFER ===
+    // === FBO BUFFER ===
     // init
-    if(!postProcessFbo)
+    if (reinit)
     {
-        postProcessFbo = new PostProcessFbo(width, height);
+		delete postProcessFbo;
+		postProcessFbo = new PostProcessFbo(width, height);
     }
 
-    if(postProcessFbo->getWidth() != width || postProcessFbo->getHeight() != height)
+    if(!postProcessFbo)
     {
-        delete postProcessFbo;
-        postProcessFbo = new PostProcessFbo(width, height);
+        if (width != 0 && height != 0)
+        {
+            postProcessFbo = new PostProcessFbo(width, height);
+        }
+    }
+
+    GLuint fboHeigth = postProcessFbo->getHeight();
+    GLuint fboWidth = postProcessFbo->getWidth();
+
+    static bool isWindowMinimizePrevFrame = false;
+
+    if(fboWidth != width || fboHeigth != height)
+    {
+        if (width != 0 && height != 0)
+        {
+			delete postProcessFbo;
+			postProcessFbo = new PostProcessFbo(width, height);
+        }
     }
 
 
@@ -374,8 +408,48 @@ void nb::OpenGl::OpenGLRender::render()
     // === РЕНДЕР ===
 
     // lightpass
-    auto lightView = Math::lookAt(lights[0].getPosition(), Math::Vector3<float>(0, 0, 0), Math::Vector3<float>(0, 1, 0));
-    auto lightProj = Math::projection(45.0f, 1.0f, 0.1f, 100.0f);
+    Math::Mat4 lightProj = Math::ortho(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
+    Math::Mat4 lightView = Math::lookAt(
+        Math::Vector3<float>{-2.0f, 4.0f, -1.0f}, 
+        Math::Vector3<float>{0.0f, 0.0f, 0.0f}, 
+        Math::Vector3<float>{0.0f, 1.0f, 0.0f}
+    );
+
+    Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
+
+    Ref<Renderer::Shader> lightPassShader = rm->getResource<Renderer::Shader>("lightPass.shader");
+    
+
+    const size_t sizeOfDepthTexture = 1024;
+    glViewport(0, 0, sizeOfDepthTexture, sizeOfDepthTexture);
+    // i dont give a fuck why it eat all the memory
+    // update: ALWAYS DELETE TEXTURE!!!
+    OpenGl::DepthBuffer depthBuffer(sizeOfDepthTexture, sizeOfDepthTexture);
+
+    depthBuffer.bind();
+
+    countOfDraws = 0;
+    nodeStack.push(sceneGraph->getScene());
+
+    while (!nodeStack.empty()) {
+        auto node = nodeStack.top();
+        nodeStack.pop();
+
+        for (auto& child : node->getChildrens())
+            nodeStack.push(child);
+
+        if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
+        {
+            n->mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
+            n->mesh->draw(GL_TRIANGLES, lightPassShader);
+        }
+    }
+
+    depthBuffer.unBind();
+
+    postProcessFbo->bind();
+    glViewport(0, 0, width, height);
 
     refreshPolygonMode();
 
@@ -389,7 +463,7 @@ void nb::OpenGl::OpenGLRender::render()
         for (auto& child : node->getChildrens())
             nodeStack.push(child);
 
-        renderNode(node, lights);
+        renderNode(node, lights, depthBuffer, lightSpaceMatrix);
     }
 
     postProcessFbo->unBind();
@@ -432,24 +506,17 @@ void nb::OpenGl::OpenGLRender::render()
         SwapBuffers(hdc);
 }
 
-void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node, const std::vector<Renderer::LightNode>& lightNode) noexcept
+void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node
+    , const std::vector<Renderer::LightNode>& lightNode
+    , const OpenGl::DepthBuffer& depthBuffer
+    , const Math::Mat4<float>& lightSpaceMatrix
+) noexcept
 {
     if (node == nullptr)
         return;
 
     if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
     {
-        // // not work
-        // auto planes = Math::getFrustrumPlanes(cam->getLookAt() * cam->getProjection());
-        // Math::AABB3D B = Math::AABB3D::recalculateAabb3dByModelMatrix(n->mesh->getAabb3d(), n->getWorldTransform());
-
-        // for(auto &i : planes)
-        // {
-        //     if(!Math::AABB3D::intersectAabbPlane(B, i))
-        //         return;
-        // }
-        //
-
         countOfDraws++;
         // n->mesh->uniforms.shader = shader;
         n->mesh->uniforms.intUniforms["ourTexture"] = 1;
@@ -458,6 +525,10 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
         n->mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
         n->mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
         n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
+        n->mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, depthBuffer.getDepthMap());
+        n->mesh->uniforms.intUniforms["shadowMap"] = 4;
         n->mesh->uniforms.intUniforms[Renderer::ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = Renderer::DirectionalLight::getCountOfDirectionalLights();
 
         for(const auto& i : lightNode)

@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "OpenGlShader.hpp"
 
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader) noexcept
@@ -9,7 +12,7 @@ nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader
 
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
 {
-    pathsToShaderSources = std::move(vecOfShaders);
+    pathsToShaderSources = vecOfShaders;
     for (const auto &shaderPath : vecOfShaders)
     {
         link(shaderPath);
@@ -187,6 +190,7 @@ bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
 
         // TODO 2: add message box about error
         Debug::debug(arr);
+        delete[] arr;
 
         glDeleteShader(currentShader);
         return false;

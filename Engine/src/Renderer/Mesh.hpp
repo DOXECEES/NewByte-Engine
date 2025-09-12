@@ -144,6 +144,8 @@ namespace nb
                 
                         verticies[a].tangent = Math::Vector4<float>(tangentVec.x, tangentVec.y,tangentVec.z, handedness);
                     }
+
+                    delete[] tan1;
                 }
                 
                 ShaderUniforms uniforms;

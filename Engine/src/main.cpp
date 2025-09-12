@@ -184,7 +184,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         //engine.run();
     }
 
-    // delete w;
+    delete w;
 
     return 0;
 }

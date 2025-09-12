@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Input.hpp"
 
 #include "../Debug.hpp"
@@ -8,6 +11,7 @@ namespace nb
     namespace Input
     {
         Input::Input()
+            : deviceFlags(0)
         {
             // 0 - mouse 
             // 1 - keyboard

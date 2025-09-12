@@ -11,7 +11,7 @@ namespace nb
         {
             public:
                 IBuffer() = default;
-
+                virtual ~IBuffer() = default;
                 virtual void bind() const noexcept = 0;
                 virtual void unBind() const noexcept = 0;
 

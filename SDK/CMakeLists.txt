@@ -45,6 +45,8 @@ target_link_directories(${PROJECT_NAME} PUBLIC
     C:/rep/Hex/NewByte-UI-Lib/build/NewByte-UI-Lib/Debug
 )
 
+
+
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
     target_link_libraries(${PROJECT_NAME} PRIVATE user32 NewByte_Engine NewByte_UI_Lib)

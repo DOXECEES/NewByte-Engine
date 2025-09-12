@@ -5,6 +5,8 @@ project(NewByte_Engine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+
+
 set(-DCMAKE_GENERATOR_PLATFORM x64)
 
 add_subdirectory(dependencies/glad)
@@ -169,6 +171,9 @@ src/main.cpp
         src/Utils/Indexator.cpp
         src/Utils/Indexator.hpp
 
+        src/Error/ErrorManager.cpp
+        src/Error/ErrorManager.hpp
+
         src/Ecs/Ecs.hpp
         src/Ecs/Ecs.cpp
 
@@ -183,6 +188,7 @@ add_library(${PROJECT_NAME} STATIC ${SRC})
 find_package(OpenGL REQUIRED)
 
 target_include_directories(${PROJECT_NAME} 
+    PUBLIC src
     PUBLIC OpenGL:GL
     PUBLIC dependencies/glad/include
 )
@@ -204,6 +210,7 @@ target_link_directories(${PROJECT_NAME}
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
     target_link_libraries(${PROJECT_NAME} PRIVATE user32 opengl32 glad)
+    
 endif()
 
 foreach(source IN LISTS SRC)

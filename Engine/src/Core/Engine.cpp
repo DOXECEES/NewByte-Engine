@@ -1,5 +1,11 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
+
 #include "Engine.hpp"
 
+#include "Math/RayCast/RayPicker.hpp"
 struct Ray
 {
     nb::Math::Vector3<float> origin;
@@ -49,6 +55,8 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
 
 #include "../ECS/Ecs.hpp"
 #include "../Loaders/PngLoader.hpp"
+#include "Error/ErrorManager.hpp"
+
 namespace nb
 {
     namespace Core
@@ -63,7 +71,7 @@ namespace nb
             int i = 0;
         };
 
-        Engine::Engine(const HWND &hwnd)
+        Engine::Engine(const HWND &windowHwnd)
         {
 
 #ifdef NB_DEBUG
@@ -103,11 +111,18 @@ namespace nb
                 auto h = i.get<Speed>();
                 Debug::debug(h.i);
             }
+
+            auto m = Error::ErrorManager::instance().report(Error::Type::INFO, "Hello")
+                .with("Hello", "Hello")
+                .with("World", "World");
+
+            
+            
 #endif            
 
 
+            hwnd = windowHwnd;
             subSystems->Init(hwnd);
-            this->hwnd = hwnd;
             keyboard = subSystems->getKeyboard();
             mouse = subSystems->getMouse();
             input = createRef<Input::Input>();
@@ -118,19 +133,22 @@ namespace nb
             Utils::Timer::init();   
         }
 
-        void Engine::bufferizeInput(const MSG &msg) noexcept
+        void Engine::bufferizeInput(const MSG &msg) const noexcept
         {
             uint32_t size = sizeof(RAWINPUT);
             static RAWINPUT rawInput;
-            MSG nMsg;
 
-            if (GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT, &rawInput, &size, sizeof(RAWINPUTHEADER)) == 0)
+            if (GetRawInputData(reinterpret_cast<HRAWINPUT>(msg.lParam),
+                                RID_INPUT,
+                                &rawInput,
+                                &size,
+                                sizeof(RAWINPUTHEADER)) == 0)
                 return;
 
             input->bufferize(rawInput);
         }
 
-        void Engine::processInput() noexcept
+        void Engine::processInput() const noexcept
         {
             input->updateAll();
             input->update();
@@ -138,48 +156,49 @@ namespace nb
 
         void Engine::handleEditorMode() noexcept
         {
+            using namespace nb::Input;
             input->stopHandlingPosition();
 
             // show cursor
             ClipCursor(nullptr);
 
-            if (keyboard->isKeyPressed(0x31))
+            if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
             {
                 renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::LINES);
             }
-            if (keyboard->isKeyPressed(0x32))
+            if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_2))
             {
                 renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::POINTS);
             }
-            if (keyboard->isKeyPressed(0x33))
+            if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_3))
             {
                 nb::OpenGl::OpenGLRender::applyDefaultModel();
             }
-            if (keyboard->isKeyPressed(0x34))
+            if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_4))
             {
                 nb::OpenGl::OpenGLRender::applyDefaultModelFlat();
             }
-            if(keyboard->isKeyPressed(0x39))
+            if(keyboard->isKeyPressed(Keyboard::KeyCode::NB_9))
             {
                 renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::FULL);
             }
-            if (keyboard->isKeyPressed(VK_CONTROL))
+            if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_CONTROL))
             {
                 SetCursorPos(EngineSettings::getWidth() / 2, EngineSettings::getHeight() / 2);
             }
-            if (keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x5A))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_CONTROL) && keyboard->isKeyPressed(Keyboard::KeyCode::NB_Z))
             {
                 cam.toggleAlignByZ();
             }
-            if (keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x59))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_CONTROL) && keyboard->isKeyPressed(Keyboard::KeyCode::NB_Y))
             {
                 cam.toggleAlignByY();
             }
-            if (keyboard->isKeyHeld(VK_CONTROL) && keyboard->isKeyPressed(0x58))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_CONTROL) && keyboard->isKeyPressed(Keyboard::KeyCode::NB_X))
             {
                 cam.toggleAlignByX();
             }
-            if(keyboard->isKeyPressed(VK_TAB))
+            if(keyboard->isKeyPressed(Keyboard::KeyCode::NB_TAB))
             {
                 using namespace nb::ResMan;
                 auto rm = ResourceManager::getInstance();
@@ -194,6 +213,8 @@ namespace nb
 
         bool Engine::run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons) 
         {
+            using namespace nb::Input;
+
             float deltaTime = Utils::Timer::timeElapsed();
              
             this->mouseDelta = mouseDelta;
@@ -203,7 +224,7 @@ namespace nb
             static float pitch;
 
 
-            cam.update(mouse->getX(), mouse->getY());
+            cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
             if (mode == Mode::GAME)
             {
                 input->startHandlingPosition();
@@ -219,14 +240,9 @@ namespace nb
                 ClipCursor(&r);
             }
 
-            static float xAngle = 0.0f;
-            static float yAngle = 0.0f;
-            static float zAngle = 0.0f;
-
-            auto camPos = cam.getPosition();
             auto camDir = cam.getDirection();
 
-            if (keyboard->isKeyPressed(VK_ESCAPE))
+            if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_ESCAPE))
             {
                 SetCursorPos(EngineSettings::getWidth() / 2, EngineSettings::getHeight() / 2);
 
@@ -251,44 +267,46 @@ namespace nb
 
         void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept
         {
-            if (keyboard->isKeyHeld(0x53))
+            using namespace nb::Input;
+
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
                 cam.moveAt(camDir * 2.0f * deltaTime);
             }
-            if (keyboard->isKeyHeld(0x57))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
             {
                 cam.moveAt(-camDir * 2.0f * deltaTime);
             }
-            if (keyboard->isKeyHeld(0x41))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
                 cam.moveAt(rightVec * 2.0f * deltaTime);
             }
-            if (keyboard->isKeyHeld(0x44))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
                 cam.moveAt(-rightVec * 2.0f * deltaTime);
             }
-            if (keyboard->isKeyHeld(VK_SPACE))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
             {
                 cam.moveAt(cam.getUpVector() * 2.0f * deltaTime);
             }
-            if (keyboard->isKeyHeld(VK_SHIFT))
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SHIFT))
             {
                 cam.moveAt(-(cam.getUpVector() * 2.0f * deltaTime));
             }
         }
 
-        void Engine::rayPick(const uint32_t x, const uint32_t y) noexcept
+        void Engine::rayPick(const uint32_t x, const uint32_t y) const noexcept
         {
             if (mode == Mode::GAME)
                 return;
 
             nb::Math::RayPicker rp;
             auto a = rp.cast(renderer->getCamera(), x, y, EngineSettings::getWidth(), EngineSettings::getHeight());
-            auto scene = renderer->getScene()->getScene();
+            auto scene = renderer->getScene()->getScene(); // the fuck is that
             
 
             std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
@@ -322,7 +340,7 @@ namespace nb
                         interFind = true;
                         nb::OpenGl::OpenGLRender::spawnGizmo(*n);
 
-                        if (buttons & 0x0001)
+                        if (buttons & 0x0001) // magic???
                         {
                             OpenGl::OpenGLRender::setAmbientLight({255, 0, 0});
                         }   

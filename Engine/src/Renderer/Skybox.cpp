@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Skybox.hpp"
 
 namespace nb
@@ -61,6 +64,13 @@ namespace nb
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
             
+            delete[] xp;
+            delete[] xn;
+            delete[] yp;
+            delete[] yn;
+            delete[] zp;
+            delete[] zn;
+
             textureData.clear();
             std::vector<std::unique_ptr<Renderer::SubMesh>> m;
             auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);

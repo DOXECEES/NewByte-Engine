@@ -159,7 +159,7 @@ namespace nb
             void normalize() noexcept
             {
                 const float length = this->length();
-                if (length != 0)
+                if (std::fabs(length) > std::numeric_limits<float>::epsilon())
                 {
                     *this /= length;
                 }
