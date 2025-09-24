@@ -37,6 +37,7 @@
 
 .PVS-Studio
 .vscode
+.vs
 build
 bin
 docs

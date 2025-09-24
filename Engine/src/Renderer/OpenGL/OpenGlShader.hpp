@@ -43,7 +43,7 @@ namespace nb
             explicit OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept;
             ~OpenGlShader() noexcept;
 
-            void recompile() noexcept;
+            void recompile() noexcept override;
 
             void link(const std::filesystem::path &pathToShader) noexcept;
             void use() noexcept override;
@@ -58,7 +58,6 @@ namespace nb
             virtual void setUniformMat2(std::string_view name, const Math::Mat2<float>& value) const noexcept override final;
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept override final;
             virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept override final;
-
 
 
         private:

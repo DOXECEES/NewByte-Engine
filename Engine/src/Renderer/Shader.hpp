@@ -34,6 +34,8 @@ namespace nb
 
             inline int getId() const noexcept { return id; };
 
+            virtual void recompile() noexcept = 0;
+
         private:
             int         id;
 

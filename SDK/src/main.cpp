@@ -10,6 +10,7 @@
 
 #include <Widgets/Button.hpp>
 #include <Widgets/TreeView.hpp>
+#include <Widgets/CheckBox.hpp>
 
 #include <Core/Engine.hpp>
 #include <Math/Quaternion.hpp>
@@ -31,7 +32,6 @@ std::shared_ptr<nb::Core::Engine> g_engine = nullptr;
 HWND hwndMain;
 
 
-#include <thread>
 #include <atomic>
 
 std::atomic<bool> g_running{true};
@@ -74,7 +74,7 @@ public:
 
         while (!stk.empty())
         {
-            auto [current, item, depth] = stk.top();
+            auto& [current, item, depth] = stk.top();
             stk.pop();
 
             for (const auto& c : current->getChildrens())
@@ -181,6 +181,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     Layout* layout = new VBoxLayout(&childWnd);
     Layout* layout2 = new VBoxLayout(&childWnd2);
+	Layout* layout3 = new VBoxLayout(&childWnd3);
 
 
     Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
@@ -193,21 +194,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Widgets::Button* button2 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
     button2->setText(L"Set Mode to full");
     button2->setOnClickCallback([&window]()
-        {
-            g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+    {
+        g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+    });
 
-        });
-
-    Widgets::TreeView* treeView = new Widgets::TreeView(NbRect<int>(100, 100, 100, 100));
+    button->setDisable();
+    button2->setDisable();
 
     Widgets::Label* lb = new Widgets::Label(NbRect<int>(100, 100, 100, 100));
 
+	Widgets::Button* button3 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
+	button3->setText(L"LEFT");
+	button3->setOnClickCallback([&window, &lb]()
+	{
+		g_engine->invokeAsync([](nb::Core::Engine& e)
+        {
+			e.getShaderSystem().reloadAll();
+		});
+
+	});
+
+    Widgets::TreeView* treeView = new Widgets::TreeView(NbRect<int>(100, 100, 100, 100));
+
+    Widgets::CheckBox* cb = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
+    cb->setText(L"TOGGLE");
+    layout3->addWidget(cb);
+
+
     lb->setText(L"Hello world");
+    lb->setHTextAlign(Widgets::Label::HTextAlign::BOTTOM);
+    lb->setVTextAlign(Widgets::Label::VTextAlign::CENTER);
 
     layout2->addWidget(treeView);
+    layout->addWidget(lb);
     layout->addWidget(button);
     layout->addWidget(button2);
-
+    layout->addWidget(button3);
     DockManager dockManager(&window);
     dockManager.addWindow(nullptr, &sceneWindow, DockPlacement::CENTER);
     dockManager.addWindow(nullptr, &childWnd, DockPlacement::LEFT);
@@ -247,6 +269,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     {
         if(g_init && !notInit)
         {
+            button->setDefault();
+            button2->setDefault();
+
+            childWnd.repaint();
+
             auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
             treeView->setModel(model);
             notInit = true;
@@ -264,6 +291,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 childWnd3.setTitle(Utils::toWstring(treeView->getModel()->data(index)));
                 childWnd3.repaint();
 
+            });
+
+            subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
+                if (state)
+                {
+					g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
+                }
+                else
+                {
+					g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+                }
             });
 
         }

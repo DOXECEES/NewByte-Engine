@@ -39,6 +39,8 @@ src/main.cpp
         src/Core/Engine.hpp
         src/Core/EngineSettings.cpp
         src/Core/EngineSettings.hpp
+        src/Core/ShaderSystem.cpp
+        src/Core/ShaderSystem.hpp
 
         src/UI/Button.cpp
         src/UI/Button.hpp

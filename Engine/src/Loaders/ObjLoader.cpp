@@ -15,7 +15,7 @@ namespace nb
             GetModuleFileNameA(NULL, buffer, MAX_PATH);
             std::string::size_type pos = std::string(buffer).find_last_of("\\/");
             auto s = std::string(buffer).substr(0, pos);
-           
+            s += "/res";
             file.open(s / path);
 
             if (!file.is_open())

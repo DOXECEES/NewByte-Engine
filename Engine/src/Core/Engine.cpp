@@ -203,17 +203,19 @@ namespace nb
                 using namespace nb::ResMan;
                 auto rm = ResourceManager::getInstance();
                 const ResourceManager::ResourcePool& res = rm->getAllResources<nb::Renderer::Shader>();
-                
+                           
                 for(auto&i : res)
                 {
-                    std::dynamic_pointer_cast<nb::OpenGl::OpenGlShader>(i.second)->recompile();
+                    Resource::resourceTo<nb::Renderer::Shader>(i.second.get())->recompile();
                 }
             }
         }
 
+
         bool Engine::run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons) 
         {
             using namespace nb::Input;
+            processCommands();
 
             float deltaTime = Utils::Timer::timeElapsed();
              
@@ -365,5 +367,10 @@ namespace nb
             return mode;
         }
 
-    };
+		NB_NODISCARD ShaderSystem& Engine::getShaderSystem() noexcept
+		{
+            return shaderSystem;
+		}
+
+	};
 };
