@@ -12,9 +12,17 @@ set(-DCMAKE_GENERATOR_PLATFORM x64)
 
 set (SRC 
     src/NTree.hpp
+    src/Alghorithm.hpp
+    src/Uuid.hpp
+    src/BitManipulation.hpp
 )
 
+add_subdirectory(../Common NbCommon_build)
+target_link_libraries(nbstl PUBLIC NbCommon)
+
 add_library(${PROJECT_NAME} STATIC ${SRC})
+
+
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->

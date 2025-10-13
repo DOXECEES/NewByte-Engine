@@ -42,7 +42,7 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, color)));
     glEnableVertexAttribArray(2);
         
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, textureCoodinates)));
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, textureCoordinates)));
     glEnableVertexAttribArray(3);
 
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, tangent)));

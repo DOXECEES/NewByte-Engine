@@ -12,9 +12,12 @@ namespace nb
 
         public:
 
-            static constexpr size_t         PRECISION               = 25;
+            static constexpr size_t         PI_PRECISION            = 25;
             static constexpr double         PI                      = 3.141592653589793238462643383279502884;
             inline static constexpr float   HALF_OF_CIRCLE_IN_DEG   = 180.0;
+            static constexpr size_t         EULER_NUMBER_PRECISION  = 250;
+            static constexpr double         EULER_NUMBER            = 2.71;
+
 
         //private:
 
@@ -22,7 +25,7 @@ namespace nb
             {
                 double res = 0;
 
-                for (int i = 0; i < PRECISION; i++)
+                for (int i = 0; i < PI_PRECISION; i++)
                 {
                     double p = 16;
                     for (int j = 0; j < i; j++)
@@ -35,6 +38,21 @@ namespace nb
                 }
 
                 return res;
+            }
+            
+            static constexpr double calculateEulerNumber() noexcept
+            {
+               
+                double eulerNumber = 1.0;
+                double latestCalculatedFactorial = 1;
+
+                for (size_t i = 1; i < EULER_NUMBER_PRECISION; ++i)
+                {
+                    latestCalculatedFactorial *= i;
+                    eulerNumber += 1 / (latestCalculatedFactorial);
+                }
+
+                return eulerNumber;
             }
         };
     };

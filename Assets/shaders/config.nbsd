@@ -1,0 +1,68 @@
+{
+    "vert.shader": {
+        "sources": [
+            "Assets/shaders/vert.vs",
+            "Assets/shaders/vert.fs"
+        ]
+    },
+	"vertFlat.shader": {
+        "sources": [
+            "Assets/shaders/vertFlat.vs",
+            "Assets/shaders/vertFlat.fs"
+        ]
+    },
+    "aabb.shader" : {
+        "sources": [
+            "Assets/shaders/aabb.vs",
+            "Assets/shaders/aabb.fs"
+        ]
+    },
+	"skybox.shader" : {
+        "sources": [
+            "Assets/shaders/skybox.vs",
+            "Assets/shaders/skybox.fs"
+        ]
+    },
+	"DiffuseReflection.shader" : {
+        "sources": [
+            "Assets/shaders/DiffuseReflection.vs",
+            "Assets/shaders/DiffuseReflection.fs"
+        ]
+    },
+	"ADS.shader" : {
+        "sources": [
+            "Assets/shaders/ADS.vs",
+            "Assets/shaders/ADS.fs"
+        ]
+    },
+	"arrow.shader" : {
+        "sources": [
+            "Assets/shaders/arrow.vs",
+			"Assets/shaders/arrow.gs",
+            "Assets/shaders/arrow.fs"
+        ]
+    },
+	"lightVisulize.shader" : {
+        "sources": [
+            "Assets/shaders/lightVisulize.vs",
+            "Assets/shaders/lightVisulize.fs"
+        ]
+    },
+	"depth.shader" : {
+        "sources": [
+            "Assets/shaders/depth.vs",
+            "Assets/shaders/depth.fs"
+        ]
+    },
+	"quadShader.shader" : {
+        "sources": [
+            "Assets/shaders/quadShader.vs",
+            "Assets/shaders/quadShader.fs"
+        ]
+    },
+	"lightPass.shader" : {
+		"sources": [
+			"Assets/shaders/lightPass.vs"
+		]
+	}
+}

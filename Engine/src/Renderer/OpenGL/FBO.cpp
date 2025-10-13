@@ -195,7 +195,7 @@ namespace nb
         void FBO::errorMessage(std::string_view message) const noexcept
         {
             Debug::debug(message);
-            //abort();
+            abort();
         }
     };
 };

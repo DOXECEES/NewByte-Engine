@@ -31,6 +31,12 @@ namespace nb
             constexpr Vector2(const T x, const T y) noexcept
                 : x(x), y(y) {}
 
+            constexpr Vector2(std::initializer_list<T> list)
+            {
+                auto it = list.begin();
+                x = (it != list.end()) ? *it++ : 0;
+                y = (it != list.end()) ? *it++ : 0;
+            }
 
             T& operator[](const size_t index)
             {

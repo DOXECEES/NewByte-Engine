@@ -28,6 +28,14 @@ namespace nb
             constexpr Vector4(const T x, const T y, const T z, const T w) noexcept
                 : x(x), y(y), z(z), w(w) {}
 
+            constexpr Vector4(std::initializer_list<T> list)
+            {
+                auto it = list.begin();
+                x = (it != list.end()) ? *it++ : 0;
+                y = (it != list.end()) ? *it++ : 0;
+                z = (it != list.end()) ? *it++ : 0;
+                w = (it != list.end()) ? *it++ : 0;
+            }
 
             T& operator[](const size_t index) 
             {
@@ -98,7 +106,6 @@ namespace nb
                 this->w *= scalar;
                 return *this;
             }
-
 
             constexpr Vector4<T> operator*(const Vector4<T>& other) const noexcept
             {

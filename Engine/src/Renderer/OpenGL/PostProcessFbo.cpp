@@ -11,6 +11,7 @@ namespace nb
     {
         PostProcessFbo::PostProcessFbo(const GLuint width, const GLuint height)
         {
+            Debug::debug("FBO CREATED");
             this->setSize(width, height);
             this->bindTexture(TextureType::COLOR);
             this->bindRenderBuffer(RenderBufferType::DEPTH_STENCIL);

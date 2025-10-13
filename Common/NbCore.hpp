@@ -68,6 +68,21 @@
 
 #define NB_DEBUG _DEBUG
 
-
+#ifndef NB_DEBUG
+#define NB_ASSERT(condition, message) ((void)0)
+#else
+#include <iostream>
+#define NB_ASSERT(condition, message) \
+    do { \
+        if (!(condition)) { \
+            std::cerr << "ASSERT FAILED: " << (message) << "\n" \
+                      << "File: " << __FILE__ << "\n" \
+                      << "Line: " << __LINE__ << "\n" \
+                      << "Function: " << __func__ << "\n" \
+                      << "Condition: " << #condition << std::endl; \
+            std::abort(); \
+        } \
+    } while (false)
+#endif
 
 #endif

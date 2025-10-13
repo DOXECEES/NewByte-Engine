@@ -94,9 +94,9 @@ namespace nb
                         const Math::Vector3<float>& v2 = verticies[i2].position;
                         const Math::Vector3<float>& v3 = verticies[i3].position;
                 
-                        const Math::Vector2<float>& w1 = verticies[i1].textureCoodinates;
-                        const Math::Vector2<float>& w2 = verticies[i2].textureCoodinates;
-                        const Math::Vector2<float>& w3 = verticies[i3].textureCoodinates;
+                        const Math::Vector2<float>& w1 = verticies[i1].textureCoordinates;
+                        const Math::Vector2<float>& w2 = verticies[i2].textureCoordinates;
+                        const Math::Vector2<float>& w3 = verticies[i3].textureCoordinates;
                 
                         float x1 = v2.x - v1.x;
                         float x2 = v3.x - v1.x;

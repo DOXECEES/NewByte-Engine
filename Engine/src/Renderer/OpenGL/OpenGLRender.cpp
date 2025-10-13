@@ -6,6 +6,7 @@
 #include "../Objects/Objects.hpp"
 #include "DepthBuffer.hpp"
 
+
 nb::OpenGl::OpenGLRender::OpenGLRender(HWND _hwnd) noexcept
     : IRenderAPI(_hwnd), hdc(GetDC(hwnd))
 {
@@ -29,6 +30,7 @@ MessageCallback(GLenum source,
                 const GLchar *message,
                 const void *userParam)
 {
+    Debug::debug(message);
     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
             type, severity, message);
@@ -167,47 +169,47 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     auto rm = nb::ResMan::ResourceManager::getInstance();
     shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
 
-    auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
-    auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
-    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine (2).obj");
-    auto wall = rm->getResource<Renderer::Mesh>("wall.obj");
+    //auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
+    //auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
+    //auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine (2).obj");
+    //auto wall = rm->getResource<Renderer::Mesh>("wall.obj");
 
     sceneGraph = Renderer::SceneGraph::getInstance();
 
     auto scene = sceneGraph->getScene();
-    auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.0f, 0.0f, 0.0f});
+    //auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.0f, 0.0f, 0.0f});
 
-    Renderer::Transform at;
+    //Renderer::Transform at;
 
-    auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
-    auto g = std::make_shared<Renderer::ObjectNode>("Gizmo", at, gizmo, shader);
+    //auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
+    //auto g = std::make_shared<Renderer::ObjectNode>("Gizmo", at, gizmo, shader);
 
-    Renderer::Transform t;
-    t.translate = {0.0f, -10.0f, 0.0f};
+    //Renderer::Transform t;
+    //t.translate = {0.0f, -10.0f, 0.0f};
 
-    Renderer::Transform t2;
-    t2.translate = {0.0f, 3.0f, 0.0f};
-    t2.rotateX = Math::toRadians(90.0f);
+    //Renderer::Transform t2;
+    //t2.translate = {0.0f, 3.0f, 0.0f};
+    //t2.rotateX = Math::toRadians(90.0f);
 
-    auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
+    //auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
 
-    Renderer::Transform wallTransform;
-    wallTransform.translate = {0.0f, 0.0f, -15.0f};
-    wallTransform.scale = {8.0f, 1.0f, 1.0f};
-    wallTransform.rotateX = Math::toRadians(90.0f);
+    //Renderer::Transform wallTransform;
+    //wallTransform.translate = {0.0f, 0.0f, -15.0f};
+    //wallTransform.scale = {8.0f, 1.0f, 1.0f};
+    //wallTransform.rotateX = Math::toRadians(90.0f);
 
-    auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
+    //auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
 
 
   
-    auto box = rm->getResource<Renderer::Mesh>("box.obj");
+    //auto box = rm->getResource<Renderer::Mesh>("box.obj");
 
 
-    Renderer::Transform boxTransform;
-    boxTransform.translate = {0.0f, 0.0f, 0.0f};
-    boxTransform.scale = {4.0f, 4.0f, 4.0f};
+    //Renderer::Transform boxTransform;
+    //boxTransform.translate = {0.0f, 0.0f, 0.0f};
+    //boxTransform.scale = {4.0f, 4.0f, 4.0f};
 
-    auto nBox = std::make_shared<Renderer::ObjectNode>("Box", boxTransform , box, shader);
+    //auto nBox = std::make_shared<Renderer::ObjectNode>("Box", boxTransform , box, shader);
 
     Renderer::Transform dirLightTransform;
     auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
@@ -219,18 +221,31 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
                 pointLightTransform.translate, 1.0f, 0.0f, 0.0f , 1.0f);
     auto pointLightNode = std::make_shared<Renderer::LightNode>("PointLight", pointLightTransform, pointLight);
 
-    auto hand = rm->getResource<Renderer::Mesh>("Hands.obj");
-    Renderer::Transform handsTransform;
-    auto hands = std::make_shared<Renderer::ObjectNode>("hands", handsTransform , hand, shader);
+    //auto hand = rm->getResource<Renderer::Mesh>("Hands.obj");
+    //Renderer::Transform handsTransform;
+    //auto hands = std::make_shared<Renderer::ObjectNode>("hands", handsTransform , hand, shader);
 
+    /*static Ref<Renderer::Mesh> sniper = rm->getResource<Renderer::Mesh>("Sniper_Rifle.obj"); 
+    Renderer::Transform sniperTransform;
 
-    //scene->addChildren(n);
-    //scene->addChildren(g);
-    scene->addChildren(n5);
-    n5->addChildren(nBox);
-    //scene->addChildren(nWall);
-    //scene->addChildren(hands);
-    //scene->addChildren(nBox);
+    auto sniperNode = std::make_shared<Renderer::ObjectNode>("sniper", sniperTransform, sniper, shader);
+    scene->addChildren(sniperNode);*/
+
+    Renderer::PrimitiveGenerators::ParametricSegments segments{ 32, 32 };
+    static Ref<Renderer::Mesh> cube = Renderer::PrimitiveGenerators::createTorus(segments, 16,8);
+    Renderer::Transform cubeTransform;
+    cubeTransform.scale = { 0.25f,0.25f,0.25f };
+
+    auto cubeNode = std::make_shared<Renderer::ObjectNode>("cube", cubeTransform, cube, shader);
+    scene->addChildren(cubeNode);
+
+    ////scene->addChildren(n);
+    ////scene->addChildren(g);
+    //scene->addChildren(n5);
+    //n5->addChildren(nBox);
+    ////scene->addChildren(nWall);
+    ////scene->addChildren(hands);
+    ////scene->addChildren(nBox);
     scene->addChildren(dirLightNode);
     dirLightNode->addChildren(pointLightNode);
     
@@ -305,11 +320,9 @@ void nb::OpenGl::OpenGLRender::render()
     const int height = nb::Core::EngineSettings::getHeight();
     static bool reinit = false;
 
-    /*if (width == 0 || height == 0)
-    {
-        reinit = true;
-        return;
-    }*/
+    if (width <= 0 || height <= 0)
+        return; // просто пропускаем кадр
+
 
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -327,18 +340,10 @@ void nb::OpenGl::OpenGLRender::render()
 
     // === FBO BUFFER ===
     // init
-    if (reinit)
+    if (!postProcessFbo || postProcessFbo->getWidth() != width || postProcessFbo->getHeight() != height)
     {
-		delete postProcessFbo;
-		postProcessFbo = new PostProcessFbo(width, height);
-    }
-
-    if(!postProcessFbo)
-    {
-        if (width != 0 && height != 0)
-        {
-            postProcessFbo = new PostProcessFbo(width, height);
-        }
+        delete postProcessFbo;
+        postProcessFbo = new PostProcessFbo(width, height);
     }
 
     GLuint fboHeigth = postProcessFbo->getHeight();
@@ -346,14 +351,14 @@ void nb::OpenGl::OpenGLRender::render()
 
     static bool isWindowMinimizePrevFrame = false;
 
-    if(fboWidth != width || fboHeigth != height)
+    /*if(fboWidth != width || fboHeigth != height)
     {
         if (width != 0 && height != 0)
         {
 			delete postProcessFbo;
 			postProcessFbo = new PostProcessFbo(width, height);
         }
-    }
+    }*/
 
 
     postProcessFbo->bind();
@@ -384,8 +389,8 @@ void nb::OpenGl::OpenGLRender::render()
 
     // === ТЕКСТУРЫ ===
     if (!t) {
-        t = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick.png");
-        tn = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick_normal.png");
+        t = new OpenGlTexture("Assets\\res\\brick.png");
+        tn = new OpenGlTexture("Assets\\res\\brick_normal.png");
     }
 
 
@@ -482,12 +487,12 @@ void nb::OpenGl::OpenGLRender::render()
             {{1.0f, -1.0f, 0.0f}, {}},
             {{1.0f, 1.0f, 0.0f}, {}}};
 
-        quadVertices[0].textureCoodinates = {0.0f, 1.0f};
-        quadVertices[1].textureCoodinates = {0.0f, 0.0f};
-        quadVertices[2].textureCoodinates = {1.0f, 0.0f};
-        quadVertices[3].textureCoodinates = {0.0f, 1.0f};
-        quadVertices[4].textureCoodinates = {1.0f, 0.0f};
-        quadVertices[5].textureCoodinates = {1.0f, 1.0f};
+        quadVertices[0].textureCoordinates = {0.0f, 1.0f};
+        quadVertices[1].textureCoordinates = {0.0f, 0.0f};
+        quadVertices[2].textureCoordinates = {1.0f, 0.0f};
+        quadVertices[3].textureCoordinates = {0.0f, 1.0f};
+        quadVertices[4].textureCoordinates = {1.0f, 0.0f};
+        quadVertices[5].textureCoordinates = {1.0f, 1.0f};
 
         static std::vector<unsigned int> edges =
             {
@@ -547,14 +552,14 @@ void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> no
 
         n->mesh->draw(GL_TRIANGLES, shader);
 
-        if (!shouldVisualizeAabb)
+        if (shouldVisualizeAabb)
         {
             visualizeAabb(n->mesh->getAabb3d(), n->getWorldTransform());
         }
     }
     else if(auto n = std::dynamic_pointer_cast<Renderer::LightNode>(node); n != nullptr)
     {
-        if (!shouldVisualizeLight)
+        if (shouldVisualizeLight)
         {
             visualizeLight(n);
         }

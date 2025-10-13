@@ -20,7 +20,7 @@ namespace nb
             std::array<int, 6> ind = {
                 6, 4, 1, 9, 5, 7};
 
-            lodepng::decode(textureData, width, height, "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\skybox.png");
+            lodepng::decode(textureData, width, height, "Assets\\res\\skybox.png");
 
             const int segmentWidth = width / cols;
             const int segmentHeight = height / rows;

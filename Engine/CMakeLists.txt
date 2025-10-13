@@ -105,6 +105,8 @@ src/main.cpp
         src/Renderer/OpenGL/ShadowMapFbo.hpp
         src/Renderer/OpenGl/PostProcessFbo.cpp
         src/Renderer/OpenGl/PostProcessFbo.hpp
+        src/Renderer/Color.cpp
+        src/Renderer/Color.hpp
         
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
@@ -193,6 +195,9 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC src
     PUBLIC OpenGL:GL
     PUBLIC dependencies/glad/include
+    ../nbstl/src
+    ../Common
+
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
@@ -205,9 +210,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 target_link_directories(${PROJECT_NAME} 
     PRIVATE dependencies/glad/src
 )
-
-
-
         
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)

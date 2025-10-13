@@ -226,16 +226,22 @@ namespace nb
             _near.normalize();
             _far.normalize();
 
-            return { Plane(toVector3(left), left.w)
-                   , Plane(toVector3(right), right.w)
-                   , Plane(toVector3(bottom), bottom.w)
-                   , Plane(toVector3(top), top.w)
-                   , Plane(toVector3(_near), _near.w)
-                   , Plane(toVector3(_far), _far.w)     
+            return { 
+                Plane(toVector3(left), left.w)
+                , Plane(toVector3(right), right.w)
+                , Plane(toVector3(bottom), bottom.w)
+                , Plane(toVector3(top), top.w)
+                , Plane(toVector3(_near), _near.w)
+                , Plane(toVector3(_far), _far.w)     
             };
         }
 
 
+        //template<typename Vec>
+        //Vec normalize(const Vec& vector) noexcept
+        //{
+        //    return vector.normalize
+        //}
     };
 };
 

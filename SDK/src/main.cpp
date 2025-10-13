@@ -24,6 +24,7 @@
 #include <thread>
 
 #include <Widgets/Label.hpp>
+#include <Widgets/ComboBox.hpp>
 
 HWND activeWindow = nullptr;
 
@@ -34,13 +35,13 @@ HWND hwndMain;
 
 #include <atomic>
 
-std::atomic<bool> g_running{true};
-std::atomic<bool> g_input{false};
-std::atomic<bool> g_init{false};
+std::atomic<bool> g_running{ true };
+std::atomic<bool> g_input{ false };
+std::atomic<bool> g_init{ false };
 
 void engineThreadFunc(nb::Core::Engine* engine, HWND han)
 {
-    if(g_engine == nullptr)
+    if (g_engine == nullptr)
     {
         g_engine = std::make_shared<nb::Core::Engine>(han);
     }
@@ -56,13 +57,12 @@ void engineThreadFunc(nb::Core::Engine* engine, HWND han)
 class SceneModel : public Widgets::ITreeModel
 {
 public:
-    SceneModel(std::shared_ptr<nb::Renderer::SceneGraph> sceneGraph) 
+    SceneModel(std::shared_ptr<nb::Renderer::SceneGraph> sceneGraph)
     {
-
         struct StackItem
         {
             nb::Renderer::BaseNode* node;
-            Widgets::ModelItem*     modelItem;
+            Widgets::ModelItem* modelItem;
             size_t                  depth;
         };
 
@@ -70,7 +70,7 @@ public:
         rootItems.push_back(std::make_unique<Widgets::ModelItem>(rootNode, nullptr, 0)); // depth of root node = 0
         // addNode(node, parent = nulllptr);
         std::stack<StackItem> stk;
-        stk.push({rootNode, rootItems.back().get(), 0});
+        stk.push({ rootNode, rootItems.back().get(), 0 });
 
         while (!stk.empty())
         {
@@ -84,7 +84,7 @@ public:
 
                 item->children.push_back(std::move(childItem));
                 // addNode(childItem, item)
-                stk.push({c.get(), rawPtr, depth + 1});
+                stk.push({ c.get(), rawPtr, depth + 1 });
             }
         }
     }
@@ -124,21 +124,25 @@ public:
     }
 
 
-    std::string data(const Widgets::ModelItem& item) const noexcept override 
+    std::string data(const Widgets::ModelItem& item) const noexcept override
     {
         nb::Renderer::BaseNode* n = static_cast<nb::Renderer::BaseNode*>(item.data);
         return n->getName();
     }
 
-	std::string data(const Widgets::ModelIndex& index) noexcept override
-	{
-        const Widgets::ModelItem& item = findByIndex(index);
-		nb::Renderer::BaseNode* n = static_cast<nb::Renderer::BaseNode*>(item.data);
-		return n->getName();
-	}
+    std::string data(const Widgets::ModelIndex& index) noexcept override
+    {
+        std::optional<std::reference_wrapper<const Widgets::ModelItem>> item = findByIndex(index);
+        if (!item.has_value())
+        {
+            return {};
+        }
+        nb::Renderer::BaseNode* n = static_cast<nb::Renderer::BaseNode*>(item->get().data);
+        return n->getName();
+    }
 
 private:
-    
+
 
 };
 
@@ -146,16 +150,17 @@ private:
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 
-    const wchar_t *mainClassName = L"MDIMainWindow";
+    const wchar_t* mainClassName = L"MDIMainWindow";
     AllocConsole();
 
     Win32Window::Window window;
+    window.setTitle(L"NewByte SDK");
     Win32Window::Win32EventLoop eventLoop;
 
     Win32Window::ChildWindow sceneWindow(&window);
 
     Win32Window::ChildWindow childWnd(&window);
-   // childWnd.addCaption();
+    // childWnd.addCaption();
     childWnd.setTitle(L"Child window 1");
     childWnd.setBackgroundColor({ 100, 100, 100 });
 
@@ -163,7 +168,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //childWnd2.addCaption();
     childWnd2.setTitle(L"Child window 2");
     childWnd2.setBackgroundColor({ 10, 1, 1 });
-    
+
     Win32Window::ChildWindow childWnd3(&window);
     // //childWnd2.addCaption();
     childWnd3.setTitle(L"Child window 3");
@@ -181,7 +186,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     Layout* layout = new VBoxLayout(&childWnd);
     Layout* layout2 = new VBoxLayout(&childWnd2);
-	Layout* layout3 = new VBoxLayout(&childWnd3);
+    Layout* layout3 = new VBoxLayout(&childWnd3);
 
 
     Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
@@ -194,25 +199,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Widgets::Button* button2 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
     button2->setText(L"Set Mode to full");
     button2->setOnClickCallback([&window]()
-    {
-        g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
-    });
+        {
+            g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+        });
 
     button->setDisable();
     button2->setDisable();
 
     Widgets::Label* lb = new Widgets::Label(NbRect<int>(100, 100, 100, 100));
 
-	Widgets::Button* button3 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
-	button3->setText(L"LEFT");
-	button3->setOnClickCallback([&window, &lb]()
-	{
-		g_engine->invokeAsync([](nb::Core::Engine& e)
+    Widgets::Button* button3 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
+    button3->setText(L"LEFT");
+    button3->setOnClickCallback([&window, &lb]()
         {
-			e.getShaderSystem().reloadAll();
-		});
-
-	});
+            g_engine->invokeAsync([](nb::Core::Engine& e)
+                {
+                    e.getShaderSystem().reloadAll();
+                });
+        });
 
     Widgets::TreeView* treeView = new Widgets::TreeView(NbRect<int>(100, 100, 100, 100));
 
@@ -220,6 +224,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     cb->setText(L"TOGGLE");
     layout3->addWidget(cb);
 
+    Widgets::CheckBox* cb1 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
+    cb1->setText(L"TOGGLE1");
+    layout3->addWidget(cb1);
+
+    Widgets::CheckBox* cb2 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
+    cb2->setText(L"TOGGLE2");
+    layout3->addWidget(cb2);
+
+
+    Widgets::ComboBox* comboBox = new Widgets::ComboBox();
+    layout3->addWidget(comboBox);
+
+    Widgets::CheckBox* cb3 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
+    cb3->setText(L"TOGGLE3");
+    layout3->addWidget(cb3);
+
+    Widgets::ComboBox* comboBox2 = new Widgets::ComboBox();
+    layout3->addWidget(comboBox2);
+
+    Widgets::CheckBox* cb4 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
+    cb4->setText(L"TOGGLE4");
+    layout3->addWidget(cb4);
+
+    Widgets::Button* button4 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
+    button4->setText(L"LEFT");
+    layout3->addWidget(button4);
 
     lb->setText(L"Hello world");
     lb->setHTextAlign(Widgets::Label::HTextAlign::BOTTOM);
@@ -252,26 +282,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
     window.show();
+    childWnd.show();
+    childWnd2.show();
+    childWnd3.show();
 
-    const NbSize<int> &size = sceneWindow.getSize();
+    const NbSize<int>& size = sceneWindow.getSize();
 
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
     //childWnd.show();
     g_running = true;
     std::thread engineThread(engineThreadFunc, g_engine.get(), sceneWindow.getHandle().as<HWND>());
-    
+
 
     MSG msg;
     bool notInit = false;
     bool running = true;
     while (running)
     {
-        if(g_init && !notInit)
+        if (g_init && !notInit)
         {
+            sceneWindow.setRenderable(false);
             button->setDefault();
             button2->setDefault();
-
             childWnd.repaint();
 
             auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
@@ -279,12 +312,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             notInit = true;
             childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
 
-			subscribe(*treeView, &Widgets::TreeView::onItemClickSignal, [&treeView](Widgets::ModelIndex index) {
-				if (index.isValid())
-				{
+            subscribe(*treeView, &Widgets::TreeView::onItemClickSignal, [&treeView](Widgets::ModelIndex index) {
+                if (index.isValid())
+                {
                     treeView->setItemState(index, Widgets::TreeView::ItemState::COLLAPSED);
-				}
-			});
+                }
+            });
 
             subscribe(*treeView, &Widgets::TreeView::onItemClickSignal, [&treeView, &childWnd3](Widgets::ModelIndex index) {
 
@@ -296,13 +329,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
                 if (state)
                 {
-					g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
+                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
                 }
                 else
                 {
-					g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
                 }
-            });
+                });
 
         }
 
@@ -345,7 +378,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 }
             }
 
-           
+
             window.resetStateDirtyFlags();
             sceneWindow.resetStateDirtyFlags();
 
@@ -354,8 +387,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         g_input = true;
         //g_engine->run({}, {});
-         
-        
+
+
 
         if (!running)
             break;
