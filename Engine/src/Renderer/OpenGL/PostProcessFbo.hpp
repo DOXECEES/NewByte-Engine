@@ -13,7 +13,7 @@ namespace nb
         {
         public:
             PostProcessFbo(const GLuint width = 1024, const GLuint height = 1024);
-            ~PostProcessFbo() = default;
+            virtual ~PostProcessFbo();
 
             GLuint getQuadTexture() const noexcept { return this->getTextures()[0]; };
         };

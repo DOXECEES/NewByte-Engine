@@ -34,6 +34,8 @@
 
 #include "../../Utils/Timer.hpp"
 
+#include <memory>
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB             0x2093
@@ -142,7 +144,7 @@ namespace nb
 
                 OpenGlTexture*                      t                       = nullptr;
                 OpenGlTexture*                      tn                      = nullptr;
-                PostProcessFbo*                     postProcessFbo          = nullptr;
+                std::shared_ptr<PostProcessFbo>     postProcessFbo          = nullptr;
 
         };
     };

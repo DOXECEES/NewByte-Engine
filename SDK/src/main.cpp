@@ -25,6 +25,11 @@
 
 #include <Widgets/Label.hpp>
 #include <Widgets/ComboBox.hpp>
+#include <Widgets/SideBar.hpp>
+
+#include <String.hpp>
+
+
 
 HWND activeWindow = nullptr;
 
@@ -39,75 +44,50 @@ std::atomic<bool> g_running{ true };
 std::atomic<bool> g_input{ false };
 std::atomic<bool> g_init{ false };
 
-void engineThreadFunc(nb::Core::Engine* engine, HWND han)
+void engineThreadFunc(std::shared_ptr<nb::Core::Engine> engine, HWND han)
 {
     if (g_engine == nullptr)
     {
         g_engine = std::make_shared<nb::Core::Engine>(han);
     }
-    while (g_running)
+    while (g_running.load(std::memory_order_acquire))
     {
         g_init = true;
         g_engine->processInput();
         g_engine->run({}, {});
-        //catchError();
     }
 }
 
-class SceneModel : public Widgets::ITreeModel
+class SceneModel final : public Widgets::ITreeModel
 {
 public:
-    SceneModel(std::shared_ptr<nb::Renderer::SceneGraph> sceneGraph)
+    explicit SceneModel(std::shared_ptr<nb::Renderer::SceneGraph> sceneGraph)
+        : sceneGraph(std::move(sceneGraph))
     {
-        struct StackItem
-        {
-            nb::Renderer::BaseNode* node;
-            Widgets::ModelItem* modelItem;
-            size_t                  depth;
-        };
-
-        auto rootNode = sceneGraph->getScene().get();
-        rootItems.push_back(std::make_unique<Widgets::ModelItem>(rootNode, nullptr, 0)); // depth of root node = 0
-        // addNode(node, parent = nulllptr);
-        std::stack<StackItem> stk;
-        stk.push({ rootNode, rootItems.back().get(), 0 });
-
-        while (!stk.empty())
-        {
-            auto& [current, item, depth] = stk.top();
-            stk.pop();
-
-            for (const auto& c : current->getChildrens())
-            {
-                auto childItem = std::make_unique<Widgets::ModelItem>(c.get(), item, depth + 1);
-                Widgets::ModelItem* rawPtr = childItem.get();
-
-                item->children.push_back(std::move(childItem));
-                // addNode(childItem, item)
-                stk.push({ c.get(), rawPtr, depth + 1 });
-            }
-        }
+        buildModel();
     }
 
+    ~SceneModel() override = default;
 
-    const std::vector<std::unique_ptr<Widgets::ModelItem>>& getChildren(const Widgets::ModelItem& parent) const noexcept override
+    // === Реализация интерфейса ITreeModel ===
+
+    const std::vector<std::unique_ptr<Widgets::ModelItem>>& getRootItems() const noexcept override
     {
-        return parent.children;
+        return rootItems;
     }
 
-    bool hasChildren(const Widgets::ModelItem& parent) const noexcept override
+    const Widgets::ModelItem* findById(const nbstl::Uuid& id) const noexcept override
     {
-        return !parent.children.empty();
+        auto it = uuidMap.find(id);
+        return (it != uuidMap.end()) ? it->second : nullptr;
     }
 
-    void forEach(std::function<void(const Widgets::ModelItem&)> func) noexcept override
+    void forEach(std::function<void(const Widgets::ModelItem&)> func) const noexcept override
     {
         std::stack<const Widgets::ModelItem*> stk;
 
         for (const auto& i : rootItems)
-        {
             stk.push(i.get());
-        }
 
         while (!stk.empty())
         {
@@ -117,33 +97,93 @@ public:
             func(*item);
 
             for (const auto& child : item->children)
-            {
                 stk.push(child.get());
-            }
         }
     }
-
 
     std::string data(const Widgets::ModelItem& item) const noexcept override
     {
-        nb::Renderer::BaseNode* n = static_cast<nb::Renderer::BaseNode*>(item.data);
-        return n->getName();
+        auto* n = static_cast<nb::Renderer::BaseNode*>(item.getData());
+        return n ? n->getName() : std::string{};
     }
 
-    std::string data(const Widgets::ModelIndex& index) noexcept override
+    size_t size() const noexcept override
     {
-        std::optional<std::reference_wrapper<const Widgets::ModelItem>> item = findByIndex(index);
-        if (!item.has_value())
-        {
-            return {};
-        }
-        nb::Renderer::BaseNode* n = static_cast<nb::Renderer::BaseNode*>(item->get().data);
-        return n->getName();
+        return uuidMap.size();
+    }
+
+    void rebuildFromScene() noexcept
+    {
+        rootItems.clear();
+        uuidMap.clear();
+        buildModel();
+    }
+
+    void moveAt(const Widgets::ModelIndex& index) noexcept
+    {
+        using namespace Widgets;
+        const Widgets::ModelItem* item = uuidMap[index.getUuid()];
+        nb::Renderer::BaseNode* node = static_cast<nb::Renderer::BaseNode*>(item->data);
+
+        node->moveAt({ 1.0f,0.0f, 0.0f });
+    }
+
+    nb::Renderer::BaseNode* getBaseNode(const Widgets::ModelIndex& index) noexcept
+    {
+        using namespace Widgets;
+        const Widgets::ModelItem* item = uuidMap[index.getUuid()];
+        return static_cast<nb::Renderer::BaseNode*>(item->data);
     }
 
 private:
+    std::shared_ptr<nb::Renderer::SceneGraph> sceneGraph;
+    std::vector<std::unique_ptr<Widgets::ModelItem>> rootItems;
+    std::unordered_map<nbstl::Uuid, Widgets::ModelItem*> uuidMap;
 
+    void buildModel() noexcept
+    {
+        if (!sceneGraph)
+            return;
 
+        nb::Renderer::BaseNode* rootNode = sceneGraph->getScene().get();
+        if (!rootNode)
+            return;
+
+        // создаём корень модели
+        rootItems.push_back(std::make_unique<Widgets::ModelItem>(rootNode, nullptr, 0));
+        Widgets::ModelItem* rootItem = rootItems.back().get();
+        uuidMap[rootItem->getUuid()] = rootItem;
+
+        struct StackItem
+        {
+            nb::Renderer::BaseNode* node;
+            Widgets::ModelItem* modelItem;
+            size_t depth;
+        };
+
+        std::stack<StackItem> stk;
+        stk.push({ rootNode, rootItem, 0 });
+
+        while (!stk.empty())
+        {
+            auto [currentNode, modelItem, depth] = stk.top();
+            stk.pop();
+
+            for (const auto& child : currentNode->getChildrens())
+            {
+                auto childItem = std::make_unique<Widgets::ModelItem>(child.get(), modelItem, depth + 1);
+                Widgets::ModelItem* rawPtr = childItem.get();
+
+                modelItem->children.push_back(std::move(childItem));
+
+                // регистрируем в карте
+                uuidMap[rawPtr->getUuid()] = rawPtr;
+
+                // добавляем в стек
+                stk.push({ child.get(), rawPtr, depth + 1 });
+            }
+        }
+    }
 };
 
 
@@ -174,9 +214,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     childWnd3.setTitle(L"Child window 3");
     childWnd3.setBackgroundColor({ 120, 100, 100 });
 
-    // Win32Window::ChildWindow childWnd4(&window);
-    // //childWnd2.addCaption();
-    // childWnd4.setTitle(L"Child window 4");
+    Win32Window::ChildWindow childWnd4(nullptr);
+    childWnd4.addCaption();
+    childWnd4.setTitle(L"Settings");
+
+    Win32Window::ChildWindow childWnd5(nullptr);
+    childWnd5.addCaption();
+    childWnd5.setTitle(L"SideBarTest");
+    //Layout* layout5 = new VBoxLayout(&childWnd5);
+    Widgets::Sidebar* sideBar = new Widgets::Sidebar(&childWnd5, {});
+    
+
+	Widgets::Button* btn1 = new Widgets::Button(NbRect<int>(0, 0, 100, 40));
+	btn1->setText(L"btn1");
+	Widgets::Button* btn2 = new Widgets::Button(NbRect<int>(0, 0, 100, 40));
+	btn2->setText(L"btn2");
+
+	sideBar->addButton(btn1);
+    sideBar->addButton(btn2);
+
     // childWnd4.setBackgroundColor({ 180, 180, 100 });
 
     // Win32Window::ChildWindow childWnd5(&window);
@@ -187,7 +243,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Layout* layout = new VBoxLayout(&childWnd);
     Layout* layout2 = new VBoxLayout(&childWnd2);
     Layout* layout3 = new VBoxLayout(&childWnd3);
+    GridLayout* layout4 = new GridLayout(&childWnd4, 2, 2);
 
+    
 
     Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
     button->setText(L"Set Mode to points");
@@ -222,7 +280,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     Widgets::CheckBox* cb = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
     cb->setText(L"TOGGLE");
-    layout3->addWidget(cb);
+    layout4->addWidget(cb, 1 ,1);
 
     Widgets::CheckBox* cb1 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
     cb1->setText(L"TOGGLE1");
@@ -238,14 +296,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     Widgets::CheckBox* cb3 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
     cb3->setText(L"TOGGLE3");
-    layout3->addWidget(cb3);
+    layout4->addWidget(cb3, 0, 1);
 
     Widgets::ComboBox* comboBox2 = new Widgets::ComboBox();
     layout3->addWidget(comboBox2);
 
     Widgets::CheckBox* cb4 = new Widgets::CheckBox(NbRect<int>(100, 100, 100, 100));
     cb4->setText(L"TOGGLE4");
-    layout3->addWidget(cb4);
+    layout4->addWidget(cb4, 1,0);
 
     Widgets::Button* button4 = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
     button4->setText(L"LEFT");
@@ -285,6 +343,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     childWnd.show();
     childWnd2.show();
     childWnd3.show();
+    childWnd4.show();
+    childWnd4.repaint();
+    childWnd5.show();
 
     const NbSize<int>& size = sceneWindow.getSize();
 
@@ -292,7 +353,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     nb::Core::EngineSettings::setWidth(size.width);
     //childWnd.show();
     g_running = true;
-    std::thread engineThread(engineThreadFunc, g_engine.get(), sceneWindow.getHandle().as<HWND>());
+
+    //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
+
+    std::thread engineThread(engineThreadFunc, g_engine, sceneWindow.getHandle().as<HWND>());
 
 
     MSG msg;
@@ -312,19 +376,60 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             notInit = true;
             childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
 
-            subscribe(*treeView, &Widgets::TreeView::onItemClickSignal, [&treeView](Widgets::ModelIndex index) {
-                if (index.isValid())
+            subscribe(*treeView, &Widgets::TreeView::onItemButtonClickSignal,
+                [&treeView, &childWnd3](Widgets::ModelIndex index)
                 {
-                    treeView->setItemState(index, Widgets::TreeView::ItemState::COLLAPSED);
-                }
+                    if (!index.isValid())
+                        return;
+
+                    auto model = treeView->getModel();
+                    if (!model)
+                        return;
+
+                    // получаем элемент
+                    auto itemOpt = model->findById(index.getUuid());
+                    if (!itemOpt)
+                        return;
+
+                    const auto& item = itemOpt;
+
+                    // === 1. Переключаем состояние (expand / collapse)
+                    auto currentState = treeView->getItemState(*item);
+                    auto newState = (currentState == Widgets::TreeView::ItemState::EXPANDED)
+                        ? Widgets::TreeView::ItemState::COLLAPSED
+                        : Widgets::TreeView::ItemState::EXPANDED;
+                    treeView->setItemState(index, newState);
+
+                    // === 2. Обновляем заголовок окна
+                    std::string name = model->data(*item);
+                    childWnd3.setTitle(Utils::toWstring(name));
+                    childWnd3.repaint();
+                });
+
+            subscribe(*treeView, &Widgets::TreeView::onItemChangeSignal,
+                [&treeView, &childWnd3, &lb](Widgets::ModelIndex index)
+            {
+                    const Widgets::ModelItem& item = treeView->getItemByIndex(index);
+                    std::shared_ptr<SceneModel> model = std::dynamic_pointer_cast<SceneModel>(treeView->getModel());
+                    Debug::debug(model->data(item));
+                    
+                    nb::Renderer::BaseNode* node = model->getBaseNode(index);
+                    
+                    std::wstring str;
+                    const nb::Math::Vector3<float>& translate = node->getTransform().translate;
+                    str = L"X: " + std::to_wstring(translate.x) 
+                        + L"; Y: " + std::to_wstring(translate.y) 
+                        + L"; Z: " + std::to_wstring(translate.z);
+                    lb->setText(str);
+                    //model->moveAt(index);
+                
             });
 
-            subscribe(*treeView, &Widgets::TreeView::onItemClickSignal, [&treeView, &childWnd3](Widgets::ModelIndex index) {
+            subscribe(*lb, &Widgets::Label::onTextChanged, [&childWnd](const std::wstring& text) {
 
-                childWnd3.setTitle(Utils::toWstring(treeView->getModel()->data(index)));
-                childWnd3.repaint();
+                childWnd.repaint();
 
-            });
+             });
 
             subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
                 if (state)
@@ -335,8 +440,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 {
                     g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
                 }
-                });
+            });
 
+            subscribe(window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect) {
+                dockManager.onSize(rect);
+            });
+
+            subscribe(sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
+                nb::Core::EngineSettings::setHeight(size.height);
+                nb::Core::EngineSettings::setWidth(size.width);
+            });
         }
 
         g_input = false;
@@ -353,18 +466,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 g_engine->bufferizeInput(msg);
             }
 
-            if (window.isSizeChanged())
+
+           /* if (window.isSizeChanged() || msg.message == WM_SIZE)
             {
                 dockManager.onSize(window.getClientRect());
-            }
+            }*/
 
-            if (sceneWindow.isSizeChanged())
-            {
-                const NbSize<int>& size = sceneWindow.getSize();
+            //if (sceneWindow.isSizeChanged())
+            //{
+            //    const NbSize<int>& size = sceneWindow.getSize();
 
-                nb::Core::EngineSettings::setHeight(size.height);
-                nb::Core::EngineSettings::setWidth(size.width);
-            }
+            //    nb::Core::EngineSettings::setHeight(size.height);
+            //    nb::Core::EngineSettings::setWidth(size.width);
+            //}
 
             if (g_engine)
             {
@@ -393,7 +507,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         if (!running)
             break;
     }
-    engineThread.detach();
+
+    g_running = false;
+
+    g_running.store(false, std::memory_order_release);
+    FreeConsole();
+    
+    if (engineThread.joinable())
+        engineThread.join();
 
     auto i = GetLastError();
 

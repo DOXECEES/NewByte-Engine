@@ -1,0 +1,205 @@
+:root{
+  --bg:#0e1117;
+  --panel:#16191f;
+  --border:#2a2e36;
+  --text:#d9dee7;
+  --accent:#4aa3ff;
+  --muted:#7f8896;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Inter,Segoe UI,Roboto,Helvetica,Arial;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Верхняя панель */
+header {
+  height: 32px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 13px;
+}
+header .title {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Основная сетка */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 240px 1fr 300px;
+  grid-template-rows: 1fr 160px;
+  grid-template-areas:
+    "hierarchy scene inspector"
+    "console console console";
+  height: calc(100vh - 32px);
+}
+
+section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 8px;
+  overflow: auto;
+}
+
+#hierarchy { grid-area: hierarchy; }
+#scene { grid-area: scene; }
+#inspector { grid-area: inspector; }
+#console { grid-area: console; }
+
+.placeholder {
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px;
+  text-align: center;
+  margin-top: 8px;
+  border-radius: 6px;
+}
+
+/* Стили скроллбаров */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #2f3542;
+  border-radius: 6px;
+  border: 2px solid var(--panel);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+
+/* === Inspector === */
+#inspector {
+  background: #252526;
+  color: #ddd;
+  padding: 8px;
+  border-left: 1px solid #3a3a3a;
+  overflow-y: auto;
+}
+
+#inspector h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #bbb;
+}
+
+.inspector-section {
+  border: 1px solid #3a3a3a;
+  border-radius: 5px;
+  margin-bottom: 6px;
+  background: #2b2b2b;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.inspector-header {
+  background: #333;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12.5px;
+  border-bottom: 1px solid #3a3a3a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.inspector-header::after {
+  content: "▼";
+  font-size: 9px;
+  transition: transform 0.25s;
+}
+
+.inspector-header.collapsed::after {
+  transform: rotate(-90deg);
+}
+
+.inspector-content {
+  max-height: 600px;
+  overflow: hidden;
+  transition: max-height 0.25s ease, padding 0.2s ease;
+  padding: 6px 8px;
+}
+
+.inspector-content.collapsed {
+  max-height: 0;
+  padding: 0 8px;
+}
+
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.field label {
+  font-size: 11.5px;
+  color: #ccc;
+}
+
+.field input[type="number"],
+.field input[type="text"] {
+  background: #1e1e1e;
+  border: 1px solid #444;
+  color: #eee;
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  width: 60%;
+  transition: border-color 0.2s;
+}
+
+.field input[type="number"]:focus,
+.field input[type="text"]:focus {
+  border-color: #0078d7;
+  outline: none;
+}
+
+.field input[type="checkbox"] {
+  transform: scale(1.05);
+  accent-color: #0078d7;
+}
+
+.checkbox-field label {
+  margin-right: 6px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #3a3a3a;
+  margin: 5px 0;
+}
+
+.dragging {
+  opacity: 0.8;
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.dock-placeholder {
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  height: 100px;
+  margin: 4px 0;
+  opacity: 0.5;
+}

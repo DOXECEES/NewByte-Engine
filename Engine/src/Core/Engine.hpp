@@ -69,7 +69,7 @@ namespace nb
                 //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
 
                 nbstl::Uuid uuid = nbstl::Uuid::generate();
-                std::string s = nbstl::Uuid::toString(uuid);
+                std::string s = uuid.toString();
 
                 struct Helth
                 {

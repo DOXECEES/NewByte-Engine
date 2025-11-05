@@ -17,8 +17,11 @@ namespace nb
 
         FBO::~FBO() noexcept
         {
+
+            unBind();
             for (auto& i : textures)
                 glDeleteTextures(1, &i);
+            glDeleteRenderbuffers(1, &renderBuffer);
             glDeleteFramebuffers(1, &buffer);
         }
 
@@ -31,6 +34,7 @@ namespace nb
         {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
+
         void FBO::bindTexture(TextureType type) noexcept
         {
             if(!checkIsSizeValid())
@@ -183,15 +187,18 @@ namespace nb
             }
             return maxColorAttachments;
         }
+
         bool FBO::finalize() noexcept
         {
             return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
         }
+
         void FBO::setupTextureParams() const noexcept
         {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         }
+
         void FBO::errorMessage(std::string_view message) const noexcept
         {
             Debug::debug(message);

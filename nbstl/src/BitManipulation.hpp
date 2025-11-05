@@ -2,6 +2,7 @@
 #define NBSTL_SRC_BITMANIPULATION_HPP
 
 
+
 #include <cstdint>
 #include <type_traits>
 #include <cassert>

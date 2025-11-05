@@ -1,42 +1,25 @@
 cmake_minimum_required(VERSION 3.25.0)
+project(nbstl LANGUAGES CXX)
 
-project(nbstl)
+# 1. Создаём header-only библиотеку
+add_library(nbstl INTERFACE)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-
-
-set(-DCMAKE_GENERATOR_PLATFORM x64)
-
-
-set (SRC 
-    src/NTree.hpp
-    src/Alghorithm.hpp
-    src/Uuid.hpp
-    src/BitManipulation.hpp
+# 2. Добавляем include пути
+target_include_directories(nbstl INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src        # свои .hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Common  # NbCore.hpp
 )
 
-add_subdirectory(../Common NbCommon_build)
-target_link_libraries(nbstl PUBLIC NbCommon)
+# 3. Линкуем NbCommon (header-only)
+target_link_libraries(nbstl INTERFACE NbCommon)
 
-add_library(${PROJECT_NAME} STATIC ${SRC})
-
-
-
-target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
+# 4. Настройки компиляции (опционально)
+target_compile_options(nbstl INTERFACE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive-> 
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wpedantic>
-)        
-        
-if(WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
-endif()
+)
 
-foreach(source IN LISTS SRC)
-  get_filename_component(source_path "${source}" PATH)
-  string(REPLACE "/" "\\" source_path_msvc "${source_path}")
-  source_group("${source_path_msvc}" FILES "${source}")
-  
-endforeach()
+if(WIN32)
+    target_compile_definitions(nbstl INTERFACE UNICODE _UNICODE)
+endif()

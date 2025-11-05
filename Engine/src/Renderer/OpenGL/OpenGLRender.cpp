@@ -16,7 +16,6 @@ nb::OpenGl::OpenGLRender::~OpenGLRender() noexcept
 {
     delete t;
     delete tn;
-    delete postProcessFbo;
     wglMakeCurrent(nullptr, nullptr);
     ReleaseDC(hwnd, hdc);
 }
@@ -340,10 +339,10 @@ void nb::OpenGl::OpenGLRender::render()
 
     // === FBO BUFFER ===
     // init
-    if (!postProcessFbo || postProcessFbo->getWidth() != width || postProcessFbo->getHeight() != height)
+    //Debug::debug(width);
+    if (!postProcessFbo)
     {
-        delete postProcessFbo;
-        postProcessFbo = new PostProcessFbo(width, height);
+        postProcessFbo = std::make_shared<PostProcessFbo>(width, height);
     }
 
     GLuint fboHeigth = postProcessFbo->getHeight();
@@ -351,14 +350,13 @@ void nb::OpenGl::OpenGLRender::render()
 
     static bool isWindowMinimizePrevFrame = false;
 
-    /*if(fboWidth != width || fboHeigth != height)
+    if(fboWidth != width || fboHeigth != height)
     {
         if (width != 0 && height != 0)
         {
-			delete postProcessFbo;
-			postProcessFbo = new PostProcessFbo(width, height);
+            postProcessFbo = std::make_shared<PostProcessFbo>(width, height);
         }
-    }*/
+    }
 
 
     postProcessFbo->bind();

@@ -16,6 +16,12 @@ if(BUILD_COVERAGE)
     endif()
 endif()
 
+add_subdirectory(Common)
+
+# 2. Добавляем nbstl
+add_subdirectory(nbstl)
+
+
 add_subdirectory(SDK)
 add_subdirectory(Engine)
 add_subdirectory(NewByte-UI-Lib)

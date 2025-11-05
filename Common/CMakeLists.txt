@@ -1,16 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
-
 project(NbCommon LANGUAGES CXX)
 
-# Создаём header-only библиотеку
-add_library(NbCommon INTERFACE)
+# Создаём только если таргет ещё не существует
+if(NOT TARGET NbCommon)
+    add_library(NbCommon INTERFACE)
 
-# Задаём стандарт C++ и гарантируем поддержку
-target_compile_features(NbCommon INTERFACE cxx_std_20)
+    target_compile_features(NbCommon INTERFACE cxx_std_20)
 
-# Указываем путь к заголовкам
-target_include_directories(NbCommon
-    INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:include>
-)
+    target_include_directories(NbCommon
+        INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_sources(NbCommon INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/NbCore.hpp
+    )
+endif()

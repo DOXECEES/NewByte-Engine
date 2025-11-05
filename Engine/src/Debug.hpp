@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
 #define NOMINMAX
 
 #include <Windows.h>
@@ -201,4 +201,4 @@ inline void Debug::debug<std::wstring>(std::wstring val, const std::source_locat
 
 
 
-#endif // _DEBUG
+//#endif // _DEBUG
