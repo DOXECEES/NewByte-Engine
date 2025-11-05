@@ -5,8 +5,8 @@
 
 #include <Win32Window/Win32ChildWindow.hpp>
 #include <Layout.hpp>
-#include <DockManager.hpp>
-
+//#include <DockManager.hpp>
+#include <TempDocking.hpp>
 
 #include <Widgets/Button.hpp>
 #include <Widgets/TreeView.hpp>
@@ -42,7 +42,7 @@ HWND hwndMain;
 
 std::atomic<bool> g_running{ true };
 std::atomic<bool> g_input{ false };
-std::atomic<bool> g_init{ false };
+std::atomic<bool> g_init{ true };
 
 void engineThreadFunc(std::shared_ptr<nb::Core::Engine> engine, HWND han)
 {
@@ -193,30 +193,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     const wchar_t* mainClassName = L"MDIMainWindow";
     AllocConsole();
 
-    Win32Window::Window window;
-    window.setTitle(L"NewByte SDK");
+    auto window = std::make_shared<Win32Window::Window>();
+    window->setTitle(L"NewByte SDK");
     Win32Window::Win32EventLoop eventLoop;
 
-    Win32Window::ChildWindow sceneWindow(&window);
+    auto sceneWindow = std::make_shared<Win32Window::ChildWindow>(window.get());
 
-    Win32Window::ChildWindow childWnd(&window);
+    //Win32Window::ChildWindow childWnd(&window);
     // childWnd.addCaption();
-    childWnd.setTitle(L"Child window 1");
-    childWnd.setBackgroundColor({ 100, 100, 100 });
+    //childWnd.setTitle(L"Child window 1");
+    //childWnd.setBackgroundColor({ 100, 100, 100 });
 
-    Win32Window::ChildWindow childWnd2(&window);
+    //Win32Window::ChildWindow childWnd2(&window);
     //childWnd2.addCaption();
-    childWnd2.setTitle(L"Child window 2");
-    childWnd2.setBackgroundColor({ 10, 1, 1 });
+    //childWnd2.setTitle(L"Child window 2");
+    //childWnd2.setBackgroundColor({ 10, 1, 1 });
 
-    Win32Window::ChildWindow childWnd3(&window);
+    //Win32Window::ChildWindow childWnd3(&window);
     // //childWnd2.addCaption();
-    childWnd3.setTitle(L"Child window 3");
-    childWnd3.setBackgroundColor({ 120, 100, 100 });
+    //childWnd3.setTitle(L"Child window 3");
+    //childWnd3.setBackgroundColor({ 120, 100, 100 });
 
-    Win32Window::ChildWindow childWnd4(nullptr);
-    childWnd4.addCaption();
-    childWnd4.setTitle(L"Settings");
+    //Win32Window::ChildWindow childWnd4(nullptr);
+    //childWnd4.addCaption();
+    //childWnd4.setTitle(L"Settings");
 
     Win32Window::ChildWindow childWnd5(nullptr);
     childWnd5.addCaption();
@@ -240,14 +240,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // childWnd5.setTitle(L"Child window 5");
     // childWnd5.setBackgroundColor({ 80, 80, 255 });
 
-    Layout* layout = new VBoxLayout(&childWnd);
-    Layout* layout2 = new VBoxLayout(&childWnd2);
-    Layout* layout3 = new VBoxLayout(&childWnd3);
-    GridLayout* layout4 = new GridLayout(&childWnd4, 2, 2);
+    //Layout* layout = new VBoxLayout(&childWnd);
+    //Layout* layout2 = new VBoxLayout(&childWnd2);
+    //Layout* layout3 = new VBoxLayout(&childWnd3);
+    //GridLayout* layout4 = new GridLayout(&childWnd4, 2, 2);
 
     
 
-    Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
+    /*Widgets::Button* button = new Widgets::Button(NbRect<int>(100, 100, 100, 100));
     button->setText(L"Set Mode to points");
     button->setOnClickCallback([&window]()
         {
@@ -317,8 +317,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     layout->addWidget(lb);
     layout->addWidget(button);
     layout->addWidget(button2);
-    layout->addWidget(button3);
-    DockManager dockManager(&window);
+    layout->addWidget(button3);*/
+    //DockManager 
+    // (&window);
+
+ /*   Temp::DockingSystem dockManager(window);
+    auto tab1 = dockManager.dockAsTab(sceneWindow);*/
+#if 0
     dockManager.addWindow(nullptr, &sceneWindow, DockPlacement::CENTER);
     dockManager.addWindow(nullptr, &childWnd, DockPlacement::LEFT);
     dockManager.addWindow(nullptr, &childWnd2, DockPlacement::RIGHT);
@@ -327,6 +332,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //dockManager.addWindow(&childWnd, &childWnd3, DockPlacement::TOP);
     //dockManager.addWindow(nullptr, &childWnd4, DockPlacement::RIGHT);
     // dockManager.addWindow(nullptr, &childWnd2, DockPlacement::RIGHT);
+#endif
+
+
+    // --- Создаём менеджер докинга ---
+    Temp::DockingSystem dockManager(window);
+
+    // --- Создаём сцену и докуем её как вкладку ---
+    auto sceneTab = dockManager.dockAsTab(sceneWindow, nullptr, "Scene");
+
+    // --- Создаём дочерние окна ---
+    auto child1 = std::make_shared<Win32Window::ChildWindow>(window.get());
+    child1->setTitle(L"child 1");
+    child1->setBackgroundColor({ 255,128,17 });
+    auto child2 = std::make_shared<Win32Window::ChildWindow>(window.get());
+    child2->setBackgroundColor({ 128,128,92 });
+    child2->setTitle(L"child 2");
+    auto child3 = std::make_shared<Win32Window::ChildWindow>(window.get());
+    child3->setBackgroundColor({ 72,128,92 });
+    child3->setTitle(L"child 3");
+    auto child4 = std::make_shared<Win32Window::ChildWindow>(window.get());
+    child4->setBackgroundColor({ 72,22,92 });
+    child4->setTitle(L"child 4");
+    // --- Докуем относительно сцены ---
+    // Теперь мы используем TabNode сцены как targetNode
+    dockManager.dockRelative(child2, Temp::DockPosition::LEFT, sceneTab->getWindow(), Temp::Percent(25));
+    dockManager.dockRelative(child1, Temp::DockPosition::BOTTOM, sceneTab->getWindow(), Temp::Percent(25));
+    dockManager.dockRelative(child4, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
+    dockManager.dockRelative(child3, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
+
+
+    // --- Вызываем пересчёт layout главного окна ---
+    dockManager.onSize(window->getWidth(), window->getHeight());
+
+    //dockManager.dock(&childWnd, DockPlacement::LEFT);
+    //dockManager.dock(&childWnd2, DockPlacement::RIGHT);
+    //dockManager.dock(&childWnd3, DockPlacement::BOTTOM, &childWnd2);
 
     //dockManager.update(dockManager.getTree()->getRoot());
     // Layout* parent = new VBoxLayout(&window);
@@ -339,15 +380,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
     //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
-    window.show();
-    childWnd.show();
-    childWnd2.show();
-    childWnd3.show();
-    childWnd4.show();
-    childWnd4.repaint();
+    window->show();
+    //childWnd.show();
+    //childWnd2.show();
+    //childWnd3.show();
+    //childWnd4.show();
+    //childWnd4.repaint();
     childWnd5.show();
 
-    const NbSize<int>& size = sceneWindow.getSize();
+    const NbSize<int>& size = sceneWindow->getSize();
 
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
@@ -356,7 +397,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
 
-    std::thread engineThread(engineThreadFunc, g_engine, sceneWindow.getHandle().as<HWND>());
+    //std::thread engineThread(engineThreadFunc, g_engine, sceneWindow->getHandle().as<HWND>());
 
 
     MSG msg;
@@ -366,72 +407,72 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     {
         if (g_init && !notInit)
         {
-            sceneWindow.setRenderable(false);
-            button->setDefault();
-            button2->setDefault();
-            childWnd.repaint();
+            //sceneWindow->setRenderable(false);
+            //button->setDefault();
+            //button2->setDefault();
+            //childWnd.repaint();
 
-            auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
-            treeView->setModel(model);
+            //auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
+            //treeView->setModel(model);
             notInit = true;
-            childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
+            //childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
 
-            subscribe(*treeView, &Widgets::TreeView::onItemButtonClickSignal,
-                [&treeView, &childWnd3](Widgets::ModelIndex index)
-                {
-                    if (!index.isValid())
-                        return;
+            //subscribe(*treeView, &Widgets::TreeView::onItemButtonClickSignal,
+            //    [&treeView, &childWnd3](Widgets::ModelIndex index)
+            //    {
+            //        if (!index.isValid())
+            //            return;
 
-                    auto model = treeView->getModel();
-                    if (!model)
-                        return;
+            //        auto model = treeView->getModel();
+            //        if (!model)
+            //            return;
 
-                    // получаем элемент
-                    auto itemOpt = model->findById(index.getUuid());
-                    if (!itemOpt)
-                        return;
+            //        // получаем элемент
+            //        auto itemOpt = model->findById(index.getUuid());
+            //        if (!itemOpt)
+            //            return;
 
-                    const auto& item = itemOpt;
+            //        const auto& item = itemOpt;
 
-                    // === 1. Переключаем состояние (expand / collapse)
-                    auto currentState = treeView->getItemState(*item);
-                    auto newState = (currentState == Widgets::TreeView::ItemState::EXPANDED)
-                        ? Widgets::TreeView::ItemState::COLLAPSED
-                        : Widgets::TreeView::ItemState::EXPANDED;
-                    treeView->setItemState(index, newState);
+            //        // === 1. Переключаем состояние (expand / collapse)
+            //        auto currentState = treeView->getItemState(*item);
+            //        auto newState = (currentState == Widgets::TreeView::ItemState::EXPANDED)
+            //            ? Widgets::TreeView::ItemState::COLLAPSED
+            //            : Widgets::TreeView::ItemState::EXPANDED;
+            //        treeView->setItemState(index, newState);
 
-                    // === 2. Обновляем заголовок окна
-                    std::string name = model->data(*item);
-                    childWnd3.setTitle(Utils::toWstring(name));
-                    childWnd3.repaint();
-                });
+            //        // === 2. Обновляем заголовок окна
+            //        std::string name = model->data(*item);
+            //        childWnd3.setTitle(Utils::toWstring(name));
+            //        childWnd3.repaint();
+            //    });
 
-            subscribe(*treeView, &Widgets::TreeView::onItemChangeSignal,
-                [&treeView, &childWnd3, &lb](Widgets::ModelIndex index)
-            {
-                    const Widgets::ModelItem& item = treeView->getItemByIndex(index);
-                    std::shared_ptr<SceneModel> model = std::dynamic_pointer_cast<SceneModel>(treeView->getModel());
-                    Debug::debug(model->data(item));
-                    
-                    nb::Renderer::BaseNode* node = model->getBaseNode(index);
-                    
-                    std::wstring str;
-                    const nb::Math::Vector3<float>& translate = node->getTransform().translate;
-                    str = L"X: " + std::to_wstring(translate.x) 
-                        + L"; Y: " + std::to_wstring(translate.y) 
-                        + L"; Z: " + std::to_wstring(translate.z);
-                    lb->setText(str);
-                    //model->moveAt(index);
-                
-            });
+            //subscribe(*treeView, &Widgets::TreeView::onItemChangeSignal,
+            //    [&treeView, &childWnd3, &lb](Widgets::ModelIndex index)
+            //{
+            //        const Widgets::ModelItem& item = treeView->getItemByIndex(index);
+            //        std::shared_ptr<SceneModel> model = std::dynamic_pointer_cast<SceneModel>(treeView->getModel());
+            //        Debug::debug(model->data(item));
+            //        
+            //        nb::Renderer::BaseNode* node = model->getBaseNode(index);
+            //        
+            //        std::wstring str;
+            //        const nb::Math::Vector3<float>& translate = node->getTransform().translate;
+            //        str = L"X: " + std::to_wstring(translate.x) 
+            //            + L"; Y: " + std::to_wstring(translate.y) 
+            //            + L"; Z: " + std::to_wstring(translate.z);
+            //        lb->setText(str);
+            //        //model->moveAt(index);
+            //    
+            //});
 
-            subscribe(*lb, &Widgets::Label::onTextChanged, [&childWnd](const std::wstring& text) {
+            //subscribe(*lb, &Widgets::Label::onTextChanged, [&childWnd](const std::wstring& text) {
 
-                childWnd.repaint();
+            //    childWnd.repaint();
 
-             });
+            // });
 
-            subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
+            /*subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
                 if (state)
                 {
                     g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
@@ -440,15 +481,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 {
                     g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
                 }
-            });
+            });*/
 
-            subscribe(window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect) {
-                dockManager.onSize(rect);
-            });
+            subscribe(*window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect) {
+                //dockManager.onSize(rect);
+                dockManager.onSize(rect.width, rect.height);
+                Debug::debug(dockManager.dumpTreeW());
+                });
 
-            subscribe(sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
-                nb::Core::EngineSettings::setHeight(size.height);
-                nb::Core::EngineSettings::setWidth(size.width);
+            subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
+                //nb::Core::EngineSettings::setHeight(size.height);
+                //nb::Core::EngineSettings::setWidth(size.width);
             });
         }
 
@@ -484,17 +527,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             {
                 if (g_engine->getMode() == nb::Core::Engine::Mode::EDITOR)
                 {
-                    window.showCursor();
+                    window->showCursor();
                 }
                 else
                 {
-                    window.hideCursor();
+                    window->hideCursor();
                 }
             }
 
 
-            window.resetStateDirtyFlags();
-            sceneWindow.resetStateDirtyFlags();
+            window->resetStateDirtyFlags();
+            sceneWindow->resetStateDirtyFlags();
 
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -513,8 +556,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     g_running.store(false, std::memory_order_release);
     FreeConsole();
     
-    if (engineThread.joinable())
-        engineThread.join();
+    //if (engineThread.joinable())
+    //    engineThread.join();
 
     auto i = GetLastError();
 
