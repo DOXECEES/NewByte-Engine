@@ -85,4 +85,26 @@
     } while (false)
 #endif
 
+#define NB_NON_COPYABLE(ClassName) \
+ClassName(const ClassName& other) noexcept = delete; \
+ClassName& operator=(const ClassName& other) noexcept = delete; \
+
+#define NB_NON_MOVABLE(ClassName) \
+ClassName(ClassName&& other) noexcept = delete; \
+ClassName& operator=(ClassName&& other) noexcept = delete;\
+
+#define NB_NON_COPYMOVABLE(ClassName) \
+NB_NON_COPYABLE(ClassName) \
+NB_NON_MOVABLE(ClassName) \
+
+#define NB_MOVE_ONLY(ClassName) \
+NB_NON_COPYABLE(ClassName) \
+ClassName(ClassName&& other) noexcept = default; \
+ClassName& operator=(ClassName&& other) noexcept = default; \
+
+#define NB_COPY_ONLY(ClassName) \
+NB_NON_MOVABLE(ClassName) \
+ClassName(const ClassName& other) noexcept = default; \
+ClassName& operator=(const ClassName& other) noexcept = default; \
+
 #endif
