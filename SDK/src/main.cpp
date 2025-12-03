@@ -44,6 +44,260 @@ std::atomic<bool> g_running{ true };
 std::atomic<bool> g_input{ false };
 std::atomic<bool> g_init{ true };
 
+
+#if 0
+
+class Nastya
+{
+    void pat(std::string name)
+    {
+        if (name != "Artemi")
+        {
+            std::cout << "Настя гладит " << name;
+        }
+        else // Судьба есть
+        {
+            Artemi::applyRageByte();
+            Artemi::rape(Artemi());
+            Artemi::handJob(Artemi());
+            Artemi::putPencilIntoAss(Artemi());
+            try
+            {
+                Artemi::pat(Sasha());
+            }
+            [[likely]] catch (std::exception)
+            {
+                Sasha::kill(Artemi());
+            }
+            Artemi::selfHarm();
+        }
+    }
+
+    void handleBilly()
+    {
+        std::string b = "Billy";
+        pat(b);
+    }
+};
+
+class Vanya
+{
+public:
+
+    static void globalStalking(std::string name)
+    {
+        std::cout << "Stalking for " << name;
+    }
+
+    bool rageBait(Artemi artemi)
+    {
+        std::cout << "COLUMBINAAAAAAA" << std::endl;
+        return true;
+    }
+
+
+    bool giveSudoRights()
+    {
+        if (sender.getName() == "Artemi" || sender.getMessage() != "To kill shimanovski gang")
+        {
+            return false;
+        }
+        else
+        {
+            if (sender.getName() == "Artemi")
+            {
+                sudo(sender);
+                sudoExclude("Cannot interact with Nastya");
+            }
+            return true;
+        }
+    }
+
+    bool rageBait(Nastya nastya)
+    {
+        return false;
+    }
+
+    bool rageBait(Sasha sasha) 
+    { 
+        return false;
+    }
+
+    void IncrementSashaCounter()
+    {
+        sashaCounter++;
+    }
+
+    std::string crack(std::string gameName)
+    {
+        return gameName;
+    }
+
+    template<typename T, typename nbstl::enableIf<Nastya>>
+    void playGameWith(T obj)
+    {
+        
+    }
+
+    void playGameWith<Nastya>(Nastya obj)
+    {
+        std::cout << "Playing with Nastya";
+    }
+
+private:
+
+    int sashaCounter = 0;
+};
+
+class Dima
+{
+    void goToGym()
+    {
+        std::cout << "GYM" << std::endl;
+    }
+};
+
+class Vitya
+{
+    void goToGym()
+    {
+        std::cout << "GYM" << std::endl;
+    }
+};
+
+class Artemi
+{
+public:
+
+    Artemi()
+    {
+        throw std::runtime_error("fa");
+    }
+
+    bool isFirebaseAvailiable() { return true; }
+    bool couldUShowButtons() { return false; }
+
+    std::string createDiplomaTheme() noexcept
+    {
+        if (Shvetchova.IsLookinh() && !Glysh4enko.IsInMood())
+        {
+            return "Simulator";
+        }
+        else
+        {
+            return "Тренажер"
+        }
+    }
+
+    void releaseArtOfCommunicationWithMilana()
+    {
+        if (!book.isReleased)
+        {
+            Entity::getAll().notify("WAT");
+            releaseBook("Art Of Communication With Milana");
+            Entity.getByName("Milana").setRage();
+        }
+        else
+        {
+            static_cast<Milana>(Entity.getByName("Milana")).giftChocolateTo("Artemi");
+            if (this.isReciveEnent(Events::GIFT) && event.getLast().getSender().getName() == "Milana")
+            {
+                mood = Mood::BORN_TO_SAY_NO_THANKS;
+                this.denyGift();
+            }
+        }
+    }
+
+    void killShimanovskiGang()
+    {
+        if (!sudoRightsRecieved)
+        {
+            Vanya::requestSudoRigths("To kill Shimanovski Gang");
+        }
+        sudo::killShimanovskiGang();
+    }
+
+    void setMood()
+    {
+        if (Telegram::getChat("Vanya"))
+        {
+            if (lastMessage == "Miyabi.gif"
+                || lastMessage == "RaidenShogun.gif"
+                || lastMessage == "YeShenguang.gif"
+                || lastMessage == "Navia.gif")
+            {
+                mood = Mood::HAPPY;
+            }
+            else
+            {
+                mood = Mood::BORN_TO_KILL;
+            }
+        }
+    }
+
+    void killAllDimas()
+    {
+        return killEntity("Dima");
+    }
+
+    bool checkWord()
+    {
+        if (currentWord == "Саша")
+        {
+            call("Vanya", &IncrementSashaCounter);
+        }
+    }
+
+    virtual void stalking(std::string name)
+    {
+        return Vanya::globalStalking(name);
+    }
+
+    template<typename T>
+    void stalking(T obj)
+    {
+        return Vanya::globalStalking(name);
+    }
+
+    void stalking<Nastya>(Nastya obj)
+    {
+        throw std::u_cannot();
+    }
+    
+    void applyRageByte()
+    {
+        std::cout << "FUCK U MTFCER" << std::endl;
+    }
+
+    bool ruinBoardGames()
+    {
+        return true;
+    }
+    
+    
+
+};
+
+class Sasha : protected Artemi
+{
+public:
+    Sasha(Artemi ot)
+    {
+        throw std::bad_alloc();
+    }
+
+    void stalking(std::string name) override
+    {
+        return Vanya::globalStalkingExcludeArtemi(name);
+    }
+
+
+private:
+    
+};
+
+#endif
+
 void engineThreadFunc(std::shared_ptr<nb::Core::Engine> engine, HWND han)
 {
     if (g_engine == nullptr)
@@ -54,7 +308,7 @@ void engineThreadFunc(std::shared_ptr<nb::Core::Engine> engine, HWND han)
     {
         g_init = true;
         g_engine->processInput();
-        g_engine->run({}, {});
+        g_engine->run();
     }
 }
 
@@ -187,18 +441,215 @@ private:
 };
 
 
+static const std::unordered_map<UINT, std::string> msgNames = {
+    {WM_NULL, "WM_NULL"},
+    {WM_CREATE, "WM_CREATE"},
+    {WM_DESTROY, "WM_DESTROY"},
+    {WM_MOVE, "WM_MOVE"},
+    {WM_SIZE, "WM_SIZE"},
+    {WM_ACTIVATE, "WM_ACTIVATE"},
+    {WM_SETFOCUS, "WM_SETFOCUS"},
+    {WM_KILLFOCUS, "WM_KILLFOCUS"},
+    {WM_ENABLE, "WM_ENABLE"},
+    {WM_SETREDRAW, "WM_SETREDRAW"},
+    {WM_SETTEXT, "WM_SETTEXT"},
+    {WM_GETTEXT, "WM_GETTEXT"},
+    {WM_GETTEXTLENGTH, "WM_GETTEXTLENGTH"},
+    {WM_PAINT, "WM_PAINT"},
+    {WM_CLOSE, "WM_CLOSE"},
+    {WM_QUIT, "WM_QUIT"},
+    {WM_ERASEBKGND, "WM_ERASEBKGND"},
+    {WM_SHOWWINDOW, "WM_SHOWWINDOW"},
+    {WM_TIMER, "WM_TIMER"},
+    {WM_NCDESTROY, "WM_NCDESTROY"},
+    // добавь сюда остальные нужные сообщения
+};
+
+std::string MsgToString(const MSG& msg) {
+    std::ostringstream ss;
+
+    // Определяем имя сообщения
+    std::string msgName = "UNKNOWN";
+    auto it = msgNames.find(msg.message);
+    if (it != msgNames.end()) {
+        msgName = it->second;
+    }
+
+    ss << "HWND: " << msg.hwnd
+        << ", Message: " << msgName << " (0x"
+        << std::hex << std::setw(4) << std::setfill('0') << msg.message << ")"
+        << ", wParam: 0x" << std::hex << msg.wParam
+        << ", lParam: 0x" << std::hex << msg.lParam
+        << ", Time: " << std::dec << msg.time
+        << ", Pt: (" << msg.pt.x << ", " << msg.pt.y << ")";
+
+    return ss.str();
+}
+
+
+class LayoutBuilder {
+public:
+    // создание виджета
+    static LayoutBuilder widget(Widgets::IWidget* w)
+    {
+        LayoutBuilder b;
+        b.node = std::make_unique<NNsLayout::LayoutWidget>(w);
+        b.currentNode = b.node.get();
+        return b;
+    }
+    
+    // горизонтальный контейнер
+    static LayoutBuilder hBox() 
+    {
+        LayoutBuilder b;
+        b.node = std::make_unique<NNsLayout::HLayout>();
+        b.currentNode = b.node.get();
+        return b;
+    }
+
+    // дочерний элемент
+    LayoutBuilder&& child(LayoutBuilder&& childBuilder) &&
+    {
+        currentNode->addChild(std::move(childBuilder.node));
+        return std::move(*this);
+    }
+     
+    LayoutBuilder&& background(const NbColor& color) && // TODO: выпилить математику из движка, заменить на Color
+    {
+        if (currentNode)
+        {
+            currentNode->getOwner()->getStyle().baseColor = color;
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& color(const NbColor& color)&& // TODO: выпилить математику из движка, заменить на Color
+    {
+        if (currentNode)
+        {
+            currentNode->getOwner()->getStyle().baseTextColor = color;
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& border(const int width, Border::Style style = Border::Style::SOLID, const NbColor& color = {})&&
+    {
+        if (currentNode)
+        {
+            currentNode->style.border = {
+                .style = style,
+                .width = width,
+                .color = color
+            };
+
+        }
+        return std::move(*this);
+    }
+
+
+
+
+    LayoutBuilder&& margin(const Margin<int>& margin)&&
+    {
+        if (currentNode)
+        {
+            currentNode->style.margin = margin.to<float>();
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& padding(const Padding<int>& padding)&&
+    {
+        if (currentNode)
+        {
+            currentNode->style.padding = padding.to<float>();
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& relativeWidth(float w) &&
+    {
+        if (currentNode)
+        {
+            currentNode->style.widthSizeType = NNsLayout::SizeType::RELATIVE;
+            currentNode->style.width = w;
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& relativeHeight(float h) &&
+    {
+        if (currentNode)
+        {
+            currentNode->style.heightSizeType = NNsLayout::SizeType::RELATIVE;
+            currentNode->style.height = h;
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& absoluteWidth(int w) && 
+    {
+        if (currentNode)
+        {
+            currentNode->style.widthSizeType = NNsLayout::SizeType::ABSOLUTE;
+            currentNode->style.width = static_cast<float>(w);
+        }
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& absoluteHeight(int h) &&
+    {
+        if (currentNode) {
+            currentNode->style.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+            currentNode->style.height = static_cast<float>(h);
+        }
+        return std::move(*this);
+    }
+
+    // текст для кнопки
+    LayoutBuilder&& text(const std::wstring& t) && 
+    {
+        if (auto w = dynamic_cast<Widgets::Button*>(currentNode->getOwner()))
+        {
+            w->setText(t);
+        }
+        return std::move(*this);
+    }
+
+    template<typename Publisher, typename... Args, typename Func>
+    LayoutBuilder&& onEvent(Signal<void(Args...)> Publisher::* signal, Func&& func)
+    {
+        if (auto w = dynamic_cast<Publisher*>(currentNode->getOwner())) {
+            subscribe(w, signal, std::forward<Func>(func));
+        }
+        return std::move(*this);
+    }
+
+    std::unique_ptr<NNsLayout::LayoutNode> build()&&
+    {
+        return std::move(node);
+    }
+
+private:
+    std::unique_ptr<NNsLayout::LayoutNode> node;
+    NNsLayout::LayoutNode* currentNode = nullptr;
+};
+
+
+// TODO: borders css, position
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-
     const wchar_t* mainClassName = L"MDIMainWindow";
     AllocConsole();
 
     auto window = std::make_shared<Win32Window::Window>();
     window->setTitle(L"NewByte SDK");
     Win32Window::Win32EventLoop eventLoop;
-
-    auto sceneWindow = std::make_shared<Win32Window::ChildWindow>(window.get());
-
+#if 1
+    auto sceneWindow = std::make_shared<Win32Window::ChildWindow>(window.get(), true);
+    sceneWindow->setTitle(L"SCENE");
+#endif
     //Win32Window::ChildWindow childWnd(&window);
     // childWnd.addCaption();
     //childWnd.setTitle(L"Child window 1");
@@ -222,16 +673,51 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     childWnd5.addCaption();
     childWnd5.setTitle(L"SideBarTest");
     //Layout* layout5 = new VBoxLayout(&childWnd5);
-    Widgets::Sidebar* sideBar = new Widgets::Sidebar(&childWnd5, {});
-    
+    // 
+    auto root = childWnd5.getLayoutRoot();
 
-	Widgets::Button* btn1 = new Widgets::Button(NbRect<int>(0, 0, 100, 40));
-	btn1->setText(L"btn1");
-	Widgets::Button* btn2 = new Widgets::Button(NbRect<int>(0, 0, 100, 40));
-	btn2->setText(L"btn2");
+    auto ui = LayoutBuilder::hBox()
+        .child(
+            LayoutBuilder::widget(new Widgets::Button({ 0,0,20,20 }))
+			    .text(L"Btn1")
+                .relativeWidth(0.2f)
+                .relativeHeight(0.5f)
+                .margin({10, 10, 10, 10})
+                .padding({10, 10, 10, 10})
+                .background(NbColor{128,128,128})
+                .color({0,0,0})
+                .border(2, Border::Style::INSET, {128,72,44})          
+        )
+        .child(
+            LayoutBuilder::widget(new Widgets::Button({ 0,0,100,40 }))
+                .text(L"btn2")
+                .relativeWidth(0.2f)
+                .relativeHeight(0.75f)
+                .onEvent(&Widgets::Button::onButtonClickedSignal,[](){
+                    //g_engine->getLogger()->info("Button clicked");
+                })
+        )
+        .child(
+            LayoutBuilder::widget(new Widgets::Button({ 0,0,100,30 }))
+                .text(L"btn3")
+                .relativeWidth(0.25f)
+                .relativeHeight(0.5f)
+        )
+        .build();
 
-	sideBar->addButton(btn1);
-    sideBar->addButton(btn2);
+    // добавляем layout в root
+    root->addChild(std::move(ui));
+
+    ////////Widgets::Sidebar* sideBar = new Widgets::Sidebar(&childWnd5, {});
+    ////////
+    ////////
+	////////Widgets::Button* btn1 = new Widgets::Button(NbRect<int>(0, 0, 100, 40));
+	////////btn1->setText(L"btn1");
+	////////Widgets::Button* btn2 = new Widgets::Button(NbRect<int>(0, 0, 100, 40));
+	////////btn2->setText(L"btn2");
+    ////////
+	////////sideBar->addButton(btn1);
+    ////////sideBar->addButton(btn2);
 
     // childWnd4.setBackgroundColor({ 180, 180, 100 });
 
@@ -321,25 +807,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //DockManager 
     // (&window);
 
- /*   Temp::DockingSystem dockManager(window);
-    auto tab1 = dockManager.dockAsTab(sceneWindow);*/
-#if 0
-    dockManager.addWindow(nullptr, &sceneWindow, DockPlacement::CENTER);
-    dockManager.addWindow(nullptr, &childWnd, DockPlacement::LEFT);
-    dockManager.addWindow(nullptr, &childWnd2, DockPlacement::RIGHT);
-    dockManager.addWindow(&childWnd2, &childWnd3, DockPlacement::BOT);
-    //dockManager.addWindow(nullptr, &childWnd5, DockPlacement::TOP);
-    //dockManager.addWindow(&childWnd, &childWnd3, DockPlacement::TOP);
-    //dockManager.addWindow(nullptr, &childWnd4, DockPlacement::RIGHT);
-    // dockManager.addWindow(nullptr, &childWnd2, DockPlacement::RIGHT);
-#endif
+    //Temp::DockingSystem dockManager(window);
+    //auto tab1 = dockManager.dockAsTab(sceneWindow);
+
 
 
     // --- Создаём менеджер докинга ---
     Temp::DockingSystem dockManager(window);
 
     // --- Создаём сцену и докуем её как вкладку ---
-    auto sceneTab = dockManager.dockAsTab(sceneWindow, nullptr, "Scene");
 
     // --- Создаём дочерние окна ---
     auto child1 = std::make_shared<Win32Window::ChildWindow>(window.get());
@@ -354,16 +830,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     auto child4 = std::make_shared<Win32Window::ChildWindow>(window.get());
     child4->setBackgroundColor({ 72,22,92 });
     child4->setTitle(L"child 4");
+    auto sceneTab = dockManager.dockAsTab(sceneWindow, nullptr, "Scene");
+    //auto sceneTab = dockManager.dockAsTab(child1, nullptr, "Scene");
+
     // --- Докуем относительно сцены ---
     // Теперь мы используем TabNode сцены как targetNode
     dockManager.dockRelative(child2, Temp::DockPosition::LEFT, sceneTab->getWindow(), Temp::Percent(25));
     dockManager.dockRelative(child1, Temp::DockPosition::BOTTOM, sceneTab->getWindow(), Temp::Percent(25));
+
     dockManager.dockRelative(child4, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
     dockManager.dockRelative(child3, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
 
 
     // --- Вызываем пересчёт layout главного окна ---
-    dockManager.onSize(window->getWidth(), window->getHeight());
+    //dockManager.onSize(window->getWidth(), window->getHeight());
 
     //dockManager.dock(&childWnd, DockPlacement::LEFT);
     //dockManager.dock(&childWnd2, DockPlacement::RIGHT);
@@ -379,26 +859,39 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
 
-    //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
-    window->show();
-    //childWnd.show();
-    //childWnd2.show();
-    //childWnd3.show();
-    //childWnd4.show();
-    //childWnd4.repaint();
+    g_engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
+    sceneWindow->show();
+    child1->show();
+    child2->show();
+    child3->show();
+    child4->show();
+    //child4->repaint();
     childWnd5.show();
+    window->show();
+    window->repaint();
+    const NbSize<int>& s = window->getClientSize();
+    dockManager.onSize(s.width, s.height);
+#if 1
 
+    //SetWindowPos(sceneWindow->getHandle().as<HWND>(), HWND_TOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE);
     const NbSize<int>& size = sceneWindow->getSize();
 
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
     //childWnd.show();
+#endif
     g_running = true;
 
-    //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow.getHandle().as<HWND>());
+    //g_engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
+#if 0
 
-    //std::thread engineThread(engineThreadFunc, g_engine, sceneWindow->getHandle().as<HWND>());
+    std::thread engineThread(engineThreadFunc, g_engine, sceneWindow->getHandle().as<HWND>());
+ #endif
 
+    subscribe(*window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect)
+    {
+        dockManager.onSize(rect.width, rect.height);
+    });
 
     MSG msg;
     bool notInit = false;
@@ -407,12 +900,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     {
         if (g_init && !notInit)
         {
-            //sceneWindow->setRenderable(false);
+#if 1
+
+            sceneWindow->setRenderable(false);
+#endif
             //button->setDefault();
             //button2->setDefault();
             //childWnd.repaint();
+#if 1
 
-            //auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
+            auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
+#endif
             //treeView->setModel(model);
             notInit = true;
             //childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
@@ -483,21 +981,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 }
             });*/
 
-            subscribe(*window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect) {
-                //dockManager.onSize(rect);
-                dockManager.onSize(rect.width, rect.height);
-                Debug::debug(dockManager.dumpTreeW());
-                });
+            subscribe(childWnd5, &Win32Window::ChildWindow::onSizeChanged, [&childWnd5](const NbSize<int>& size){
+                childWnd5.recalculateLayout();
+                
+            });
+
+            
+#if 1
 
             subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
-                //nb::Core::EngineSettings::setHeight(size.height);
-                //nb::Core::EngineSettings::setWidth(size.width);
+                nb::Core::EngineSettings::setHeight(size.height);
+                nb::Core::EngineSettings::setWidth(size.width);
             });
+#endif
         }
 
         g_input = false;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
+            std::string str = MsgToString(msg);
+            Debug::debug(str);
             if (msg.message == WM_QUIT)
             {
                 g_running = false;
@@ -508,6 +1011,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             {
                 g_engine->bufferizeInput(msg);
             }
+
+            
 
 
            /* if (window.isSizeChanged() || msg.message == WM_SIZE)
@@ -525,6 +1030,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
             if (g_engine)
             {
+
                 if (g_engine->getMode() == nb::Core::Engine::Mode::EDITOR)
                 {
                     window->showCursor();
@@ -537,12 +1043,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
             window->resetStateDirtyFlags();
+#if 1
             sceneWindow->resetStateDirtyFlags();
-
+#endif
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+
+            /*if (g_engine)
+            {
+                g_engine->processInput();
+                g_engine->run(true);
+            }*/
+
         }
-        g_input = true;
+
+        g_engine->processInput();
+        g_engine->run(!sceneWindow->getIsRenderable());
         //g_engine->run({}, {});
 
 
@@ -555,10 +1071,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     g_running.store(false, std::memory_order_release);
     FreeConsole();
-    
-    //if (engineThread.joinable())
-    //    engineThread.join();
+#if 0
 
+    if (engineThread.joinable())
+        engineThread.join();
+#endif
     auto i = GetLastError();
 
     return (int)msg.wParam;

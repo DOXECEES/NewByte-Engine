@@ -137,7 +137,7 @@ namespace nb
             void processInput() const noexcept;
             void setHandleInput(bool var) { handleInput = var; }
 
-            bool run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons);
+            bool run(bool shouldRender = true);
             void handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept;
             void handleEditorMode() noexcept;
 

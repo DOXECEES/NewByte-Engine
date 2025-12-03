@@ -140,7 +140,7 @@ namespace nb
         }
 
 
-        bool Engine::run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons) 
+        bool Engine::run(bool shouldRender) 
         {
             using namespace nb::Input;
             processCommands();
@@ -191,7 +191,10 @@ namespace nb
                 handleGameMode(camDir, deltaTime);
             }
 
-            renderer->render();
+                renderer->render();
+            if (shouldRender)
+            {
+            }
             return true;
         }
 
