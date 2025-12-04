@@ -87,6 +87,14 @@ namespace nbstl
     template<typename T>
     using removeConstVolatileT = typename removeConstVolatile<T>::type;
 
+    template<typename T> struct isArray { static constexpr bool value = false; };
+    template<typename T> struct isArray<T[]> { static constexpr bool value = true; };
+    template<typename T, size_t N> struct isArray<T[N]> { static constexpr bool value = true; };
+
+    template <typename T> struct removeReference { using type = T; };
+    template <typename T> struct removeReference<T&> { using type = T; };
+    template <typename T> struct removeReference<T&&> { using type = T; };
+
 
 }
 

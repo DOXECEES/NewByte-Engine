@@ -686,7 +686,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 .padding({10, 10, 10, 10})
                 .background(NbColor{128,128,128})
                 .color({0,0,0})
-                .border(2, Border::Style::INSET, {128,72,44})          
+                .border(20, Border::Style::INSET, {128,72,44})          
         )
         .child(
             LayoutBuilder::widget(new Widgets::Button({ 0,0,100,40 }))
@@ -696,6 +696,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 .onEvent(&Widgets::Button::onButtonClickedSignal,[](){
                     //g_engine->getLogger()->info("Button clicked");
                 })
+                .border(30, Border::Style::OUTSET, { 128,72,44 })
+
         )
         .child(
             LayoutBuilder::widget(new Widgets::Button({ 0,0,100,30 }))

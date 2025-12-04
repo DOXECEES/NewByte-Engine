@@ -22,7 +22,24 @@ namespace nbstl
         T data_[N == 0 ? 1 : N]; 
 
     public:
-        constexpr reference operator[](size_type i) noexcept {
+        constexpr Array() noexcept = default;
+        constexpr ~Array() noexcept = default;
+
+        constexpr Array(std::initializer_list<T> list)
+        {
+            Size i = 0;
+            for (auto& v : list) {
+                if (i < N) {
+                    data_[i++] = v;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+
+        constexpr reference operator[](size_type i) noexcept
+        {
             return data_[i];
         }
 

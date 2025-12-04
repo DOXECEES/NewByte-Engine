@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.25.0)
-project(nbstl LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # 1. Создаём header-only библиотеку
 add_library(nbstl INTERFACE)
