@@ -1,0 +1,13 @@
+{
+    "project_root": "C:/Repos/Engine/NewByte-Engine",
+    "folder_prefixes": {
+        "Engine": "NB",
+        "nbstl": "NBSTL",
+        "NewByte-UI-Lib": "NBUI"
+    },
+    "namespaces": {
+        "Engine": "nb",
+        "nbstl": "nbstl",
+        "NewByte-UI-Lib": "NBUI"
+    }
+}
