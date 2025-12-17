@@ -1,6 +1,10 @@
 #ifndef NBSTL_SRC_ITERATOR_HPP
 #define NBSTL_SRC_ITERATOR_HPP
 
+#include <cstddef>  // для std::ptrdiff_t
+#include <iterator> // для std::random_access_iterator_tag
+
+
 namespace nbstl 
 {
 	template<typename Iter>

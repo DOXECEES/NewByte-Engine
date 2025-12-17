@@ -183,6 +183,8 @@ src/main.cpp
 
         dependencies/lodepng/lodepng.cpp
 
+        src/MemoryTracker.cpp
+        src/MemoryTracker.hpp
 
 )
 

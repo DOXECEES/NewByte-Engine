@@ -95,6 +95,12 @@ namespace nbstl
     template <typename T> struct removeReference<T&> { using type = T; };
     template <typename T> struct removeReference<T&&> { using type = T; };
 
+    template<typename T>
+    struct isLvalueReference : falseType {};
+
+    template<typename T>
+    struct isLvalueReference<T&> : trueType {};
+
 
 }
 

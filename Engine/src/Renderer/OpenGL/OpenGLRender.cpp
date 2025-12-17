@@ -231,7 +231,7 @@ void nb::OpenGl::OpenGLRender::loadScene() noexcept
     scene->addChildren(sniperNode);*/
 
     Renderer::PrimitiveGenerators::ParametricSegments segments{ 32, 32 };
-    static Ref<Renderer::Mesh> cube = Renderer::PrimitiveGenerators::createTorus(segments, 16,8);
+    Ref<Renderer::Mesh> cube = Renderer::PrimitiveGenerators::createTorus(segments, 16,8);
     Renderer::Transform cubeTransform;
     cubeTransform.scale = { 0.25f,0.25f,0.25f };
 

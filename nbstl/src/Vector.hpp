@@ -5,6 +5,8 @@
 #include "Iterator.hpp"
 #include "Memory.hpp"
 
+#include <initializer_list> // cannot be rewriten
+
 namespace nbstl 
 {
 	template<typename T>
@@ -76,6 +78,15 @@ namespace nbstl
 			return *this;
 		}
 
+		Vector(std::initializer_list<T> init)
+		{
+			reserve(init.size());
+			for (const T& value : init)
+			{
+				pushBack(value);
+			}
+		}
+
 
 		~Vector() noexcept
 		{
@@ -144,7 +155,10 @@ namespace nbstl
 				destroyAt(_begin + i);
 			}
 
-			::operator delete(_begin);
+			if (!isEmpty())
+			{
+				::operator delete(_begin);
+			}
 			_begin = newData;
 			_end = newData + oldSize;
 			_capacityEnd = newData + newCapacity;

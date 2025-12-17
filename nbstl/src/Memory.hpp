@@ -5,11 +5,13 @@
 
 namespace nbstl 
 {
-	template <typename T>
-	constexpr T&& forward(typename removeReference<T>::type& arg) noexcept
-	{
-		return static_cast<T&&>(arg);
+	template<class T>
+	constexpr T&& forward(T&& t) noexcept {
+		return static_cast<T&&>(t);
 	}
+
+
+
 
 	template<typename T>
 	constexpr T* addressOf(T& ref) noexcept
@@ -24,7 +26,7 @@ namespace nbstl
 	template<typename T, typename... Args>
 	constexpr T* constructAt(T* p, Args&&... args) noexcept
 	{
-		return ::new (static_cast<void*>(p)) T(forward<Args>(args)...);
+		return ::new (static_cast<void*>(p)) T(std::forward<Args>(args)...);
 	}
 
 	template<typename T>

@@ -6,6 +6,8 @@
 
 #include "TypeTraits.hpp"
 
+#include <cmath>
+
 namespace nbstl
 {
     template<typename T>

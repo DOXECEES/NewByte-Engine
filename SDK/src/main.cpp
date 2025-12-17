@@ -1,5 +1,8 @@
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
 #include <windows.h>
 
+//#include "MemoryTracker.hpp"
 #include <Win32Window/Win32EventLoop.hpp>
 #include <Win32Window/Win32Window.hpp>
 
@@ -26,9 +29,9 @@
 #include <Widgets/Label.hpp>
 #include <Widgets/ComboBox.hpp>
 #include <Widgets/SideBar.hpp>
+#include <Widgets/SpinBox.hpp>
 
 #include <String.hpp>
-
 
 
 HWND activeWindow = nullptr;
@@ -39,6 +42,9 @@ HWND hwndMain;
 
 
 #include <atomic>
+
+
+
 
 std::atomic<bool> g_running{ true };
 std::atomic<bool> g_input{ false };
@@ -475,6 +481,8 @@ std::string MsgToString(const MSG& msg) {
         msgName = it->second;
     }
 
+    
+
     ss << "HWND: " << msg.hwnd
         << ", Message: " << msgName << " (0x"
         << std::hex << std::setw(4) << std::setfill('0') << msg.message << ")"
@@ -487,6 +495,37 @@ std::string MsgToString(const MSG& msg) {
 }
 
 
+class Spacer : public Widgets::IWidget
+{
+public:
+    // Inherited via IWidget
+    bool hitTest(const NbPoint<int>& pos) override
+    {
+        return false;
+    }
+    const char* getClassName() const override
+    {
+        return "SPACER";
+    }
+
+    Spacer() noexcept : IWidget({}) {};
+    ~Spacer()  {};
+
+    const NbSize<int>& measure(const NbSize<int>& max) noexcept override
+    {
+        size = { 0, 0 };
+        return size;
+    }
+
+    void layout(const NbRect<int>& rect) noexcept override
+    {
+        this->rect = rect;
+    }
+
+    NbSize<int> size;
+
+};
+
 class LayoutBuilder {
 public:
     // создание виджета
@@ -497,6 +536,14 @@ public:
         b.currentNode = b.node.get();
         return b;
     }
+
+    static LayoutBuilder label(const std::wstring& text)
+    {
+        LayoutBuilder b;
+        b.node = std::make_unique<NNsLayout::LayoutWidget>(new Widgets::Label(text));
+        b.currentNode = b.node.get();
+        return b;
+    }
     
     // горизонтальный контейнер
     static LayoutBuilder hBox() 
@@ -504,6 +551,26 @@ public:
         LayoutBuilder b;
         b.node = std::make_unique<NNsLayout::HLayout>();
         b.currentNode = b.node.get();
+        return b;
+    }
+
+    static LayoutBuilder vBox()
+    {
+        LayoutBuilder b;
+        b.node = std::make_unique<NNsLayout::VLayout>();
+        b.currentNode = b.node.get();
+        return b;
+    }
+
+    static LayoutBuilder spacer()
+    {
+        LayoutBuilder b;
+        b.node = std::make_unique<NNsLayout::LayoutWidget>(new Spacer());
+        b.currentNode = b.node.get();
+        b.currentNode->style.widthSizeType = NNsLayout::SizeType::RELATIVE;
+        b.currentNode->style.width = 1.0f;
+        b.currentNode->style.heightSizeType = NNsLayout::SizeType::RELATIVE;
+        b.currentNode->style.height = 1.0f;
         return b;
     }
 
@@ -532,7 +599,26 @@ public:
         return std::move(*this);
     }
 
-    LayoutBuilder&& border(const int width, Border::Style style = Border::Style::SOLID, const NbColor& color = {})&&
+    LayoutBuilder&& checked(bool state)&& // TODO: выпилить математику из движка, заменить на Color
+    {
+        Debug::debug("Checked not impl");
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& fontSize(int size)&& // TODO: выпилить математику из движка, заменить на Color
+    {
+        Debug::debug("Font size not impl");
+        return std::move(*this);
+    }
+
+    LayoutBuilder&& textAlign(Widgets::TextAlign align) && // TODO: выпилить математику из движка, заменить на Color
+    {
+        Debug::debug("TextAlign not impl");
+        return std::move(*this);
+    }
+    
+
+    LayoutBuilder&& border(const int width, Border::Style style = Border::Style::SOLID, const NbColor& color = {}) &&
     {
         if (currentNode)
         {
@@ -545,9 +631,6 @@ public:
         }
         return std::move(*this);
     }
-
-
-
 
     LayoutBuilder&& margin(const Margin<int>& margin)&&
     {
@@ -613,6 +696,14 @@ public:
         {
             w->setText(t);
         }
+        else if (auto w = dynamic_cast<Widgets::Label*>(currentNode->getOwner()))
+        {
+            w->setText(t);
+        }
+        else if (auto w = dynamic_cast<Widgets::CheckBox*>(currentNode->getOwner()))
+        {
+            w->setText(t);
+        }
         return std::move(*this);
     }
 
@@ -624,6 +715,16 @@ public:
         }
         return std::move(*this);
     }
+
+    LayoutBuilder&& style(std::function<void(NNsLayout::LayoutStyle&)> f)&&
+    {
+        if (currentNode)
+        {
+            f(currentNode->style);
+        }
+        return std::move(*this);
+    }
+
 
     std::unique_ptr<NNsLayout::LayoutNode> build()&&
     {
@@ -640,6 +741,7 @@ private:
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     const wchar_t* mainClassName = L"MDIMainWindow";
     AllocConsole();
 
@@ -674,38 +776,338 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     childWnd5.setTitle(L"SideBarTest");
     //Layout* layout5 = new VBoxLayout(&childWnd5);
     // 
+    bool shouldShowDebug = false;
+    // 
     auto root = childWnd5.getLayoutRoot();
 
     auto ui = LayoutBuilder::hBox()
-        .child(
-            LayoutBuilder::widget(new Widgets::Button({ 0,0,20,20 }))
-			    .text(L"Btn1")
-                .relativeWidth(0.2f)
-                .relativeHeight(0.5f)
-                .margin({10, 10, 10, 10})
-                .padding({10, 10, 10, 10})
-                .background(NbColor{128,128,128})
-                .color({0,0,0})
-                .border(20, Border::Style::INSET, {128,72,44})          
-        )
-        .child(
-            LayoutBuilder::widget(new Widgets::Button({ 0,0,100,40 }))
-                .text(L"btn2")
-                .relativeWidth(0.2f)
-                .relativeHeight(0.75f)
-                .onEvent(&Widgets::Button::onButtonClickedSignal,[](){
-                    //g_engine->getLogger()->info("Button clicked");
-                })
-                .border(30, Border::Style::OUTSET, { 128,72,44 })
+        .style([](NNsLayout::LayoutStyle& s) {
+        s.padding = { 0, 0, 0, 0 };
+        s.color = NbColor{ 30, 30, 30 };
+        s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+        s.height = 1.0f;
+            })
 
+        .child(
+            LayoutBuilder::vBox()
+            .style([](NNsLayout::LayoutStyle& s) {
+                s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+                s.width = 0.25f;
+                s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+                s.height = 1.0f;
+                s.padding = { 0, 0, 0, 0 };
+                s.color = NbColor{ 40, 40, 40 };
+                })
+
+            .child(LayoutBuilder::label(L"SETTINGS")
+                .relativeWidth(1.0f)
+                .absoluteHeight(50)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 60, 60, 60 })
+                .color(NbColor{ 220, 220, 220 })
+                .fontSize(16)
+                .textAlign(Widgets::TextAlign::CENTER))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"PROJECT SETTINGS")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 50, 50, 50 })
+                .color(NbColor{ 200, 200, 200 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"EDITOR PREFERENCES")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 70, 70, 70 })
+                .color(NbColor{ 255, 255, 255 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"PLUGINS")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 50, 50, 50 })
+                .color(NbColor{ 200, 200, 200 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"KEYBOARD SHORTCUTS")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 50, 50, 50 })
+                .color(NbColor{ 200, 200, 200 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"APPEARANCE")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 50, 50, 50 })
+                .color(NbColor{ 200, 200, 200 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"PERFORMANCE")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 50, 50, 50 })
+                .color(NbColor{ 200, 200, 200 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"SOURCE CODE")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 50, 50, 50 })
+                .color(NbColor{ 200, 200, 200 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(LayoutBuilder::spacer())
+            
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"SAVE")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 0, 120, 0 })
+                .color(NbColor{ 255, 255, 255 })
+                .textAlign(Widgets::TextAlign::CENTER))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"CANCEL")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 80, 80, 80 })
+                .color(NbColor{ 220, 220, 220 })
+                .textAlign(Widgets::TextAlign::CENTER))
+
+            .child(LayoutBuilder::widget(new Widgets::Button())
+                .text(L"RESET")
+                .relativeWidth(1.0f)
+                .absoluteHeight(40)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 120, 0, 0 })
+                .color(NbColor{ 255, 255, 255 })
+                .textAlign(Widgets::TextAlign::CENTER))
         )
         .child(
-            LayoutBuilder::widget(new Widgets::Button({ 0,0,100,30 }))
-                .text(L"btn3")
-                .relativeWidth(0.25f)
-                .relativeHeight(0.5f)
-        )
-        .build();
+            LayoutBuilder::vBox()
+            .style([](NNsLayout::LayoutStyle& s) {
+                s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+                s.width = 0.75f;
+                s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+                s.height = 1.0f;
+                s.padding = { 15, 15, 15, 15 };
+                s.color = NbColor{ 50, 50, 50 };
+                })
+
+            .child(LayoutBuilder::label(L"EDITOR PREFERENCES")
+                .relativeWidth(1.0f)
+                .absoluteHeight(50)
+                .margin({ 0, 0, 0, 0 })
+                .background(NbColor{ 60, 60, 60 })
+                .color(NbColor{ 255, 255, 255 })
+                .fontSize(20)
+                .textAlign(Widgets::TextAlign::LEFT)
+                .padding({ 0, 0, 0, 0 }))
+
+            .child(
+                LayoutBuilder::hBox()
+                .style([](NNsLayout::LayoutStyle& s) {
+                    s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+                    s.height = 35;
+                    s.margin = { 0, 0, 15, 0 };
+                    })
+                .child(LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"GENERAL")
+                    .relativeWidth(0.2f)
+                    .absoluteHeight(35)
+                    .margin({ 0, 5, 0, 0 })
+                    .background(NbColor{ 80, 80, 80 })
+                    .color(NbColor{ 255, 255, 255 }))
+
+                .child(LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"REGIONAL")
+                    .relativeWidth(0.2f)
+                    .absoluteHeight(35)
+                    .margin({ 0, 5, 0, 0 })
+                    .background(NbColor{ 70, 70, 70 })
+                    .color(NbColor{ 200, 200, 200 }))
+
+                .child(LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"SOURCE CODE")
+                    .relativeWidth(0.2f)
+                    .absoluteHeight(35)
+                    .margin({ 0, 5, 0, 0 })
+                    .background(NbColor{ 70, 70, 70 })
+                    .color(NbColor{ 200, 200, 200 }))
+
+                .child(LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"DEBUGGING")
+                    .relativeWidth(0.2f)
+                    .absoluteHeight(35)
+                    .margin({ 0, 5, 0, 0 })
+                    .background(NbColor{ 70, 70, 70 })
+                    .color(NbColor{ 200, 200, 200 }))
+
+                .child(LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"EXPERIMENTAL")
+                    .relativeWidth(0.2f)
+                    .absoluteHeight(35)
+                    .margin({ 0, 0, 0, 0 })
+                    .background(NbColor{ 70, 70, 70 })
+                    .color(NbColor{ 200, 200, 200 }))
+            )
+
+            .child(
+                LayoutBuilder::vBox()
+                .style([](NNsLayout::LayoutStyle& s) {
+                    s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+                    s.height = 1.0f;
+                    s.padding = { 0, 0, 0, 0 };
+                    })
+
+                .child(
+                    LayoutBuilder::vBox()
+                    .style([](NNsLayout::LayoutStyle& s) {
+                        s.margin = { 0, 0, 15, 0 };
+                        s.padding = { 10, 10, 10, 10 };
+                        s.color = NbColor{ 45, 45, 45 };
+                        s.border.width = 1;
+                        })
+
+                    .child(LayoutBuilder::label(L"Auto Save")
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(35)
+                        .margin({ 0, 0, 8, 0 })
+                        .background(NbColor{ 60, 60, 60 })
+                        .color(NbColor{ 220, 220, 220 })
+                        .fontSize(16)
+                        .textAlign(Widgets::TextAlign::LEFT))
+
+                    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+                        .text(L"Enable Auto Save")
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(35)
+                        .margin({ 0, 0, 8, 0 })
+                        .background(NbColor{ 80, 80, 80 })
+                        .color(NbColor{ 200, 200, 200 })
+                        .textAlign(Widgets::TextAlign::LEFT)
+                        .padding({ 0, 0, 0, 0 })
+                        .onEvent(&Widgets::CheckBox::onCheckStateChanged,
+                            [&](bool checked) {
+                                Debug::debug(L"Auto Save: " + std::wstring(checked ? L"Enabled" : L"Disabled"));
+                            }))
+
+                    .child(
+                        LayoutBuilder::hBox()
+                        .style([](NNsLayout::LayoutStyle& s) {
+                            s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+                            s.height = 35;
+                            s.margin = { 0, 0, 8, 0 };
+                            })
+
+                        .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                            .relativeWidth(0.7f)
+                            .absoluteHeight(35)
+                            .color(NbColor{ 200, 200, 200 })
+                            .textAlign(Widgets::TextAlign::LEFT)
+                            .padding({ 0, 0, 0, 0 })
+                            )
+
+                        .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                            .relativeWidth(0.2f)
+                            .absoluteHeight(35)
+                            .background(NbColor{ 80, 80, 80 })
+                            .color(NbColor{ 220, 220, 220 })
+                            .textAlign(Widgets::TextAlign::CENTER)
+                            )
+                    )
+
+                    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+                        .text(L"Save Only Current File")
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(35)
+                        .margin({ 0, 0, 0, 0 })
+                        .background(NbColor{ 80, 80, 80 })
+                        .color(NbColor{ 200, 200, 200 })
+                        .textAlign(Widgets::TextAlign::LEFT)
+                        .padding({ 0, 0, 0, 0 }))
+                )
+            )
+        ).build();
+
+
+
+    //auto ui = LayoutBuilder::hBox() // главный горизонтальный контейнер
+    //    .style([](NNsLayout::LayoutStyle& s) {
+    //    s.widthSizeType = NNsLayout::SizeType::FLEX;
+    //    s.heightSizeType = NNsLayout::SizeType::FLEX;
+    //    s.padding = { 0,0,0,0 };
+    //    s.color= NbColor{ 30,30,30 };
+    //        })
+
+    //    // Сайдбар слева
+    //    .child(
+    //        LayoutBuilder::vBox()
+    //        .style([](NNsLayout::LayoutStyle& s) {
+    //            s.width = 200; // фиксированная ширина
+    //            s.heightSizeType = NNsLayout::SizeType::FLEX;
+    //            s.padding = { 5,5,5,5 };
+    //            s.color = NbColor{ 50,50,50 };
+    //            })
+    //        .child(LayoutBuilder::widget(new Widgets::Button({ 0,0,0,0 })).text(L"Category 1").absoluteHeight(40).margin({ 5,5,5,5 }))
+    //        .child(LayoutBuilder::widget(new Widgets::Button({ 0,0,0,0 })).text(L"Category 2").absoluteHeight(40).margin({ 5,5,5,5 }))
+    //        .child(LayoutBuilder::widget(new Widgets::Button({ 0,0,0,0 })).text(L"Category 3").absoluteHeight(40).margin({ 5,5,5,5 }))
+    //    )
+
+    //    // Панель контента справа
+    //    .child(
+    //        LayoutBuilder::vBox()
+    //        .style([](NNsLayout::LayoutStyle& s) {
+    //            s.widthSizeType = NNsLayout::SizeType::FLEX; // занимает всё оставшееся пространство
+    //            s.heightSizeType = NNsLayout::SizeType::FLEX;
+    //            s.padding = { 10,10,10,10 };
+    //            s.color= NbColor{ 70,70,70 };
+    //            })
+    //        .child(
+    //            LayoutBuilder::widget(new Widgets::Button({ 0,0,0,0 }))
+    //            .text(L"Content for Category 1")
+    //            .absoluteHeight(50)
+    //            .margin({ 5,5,5,5 })
+    //        )
+    //        .child(
+    //            LayoutBuilder::widget(new Widgets::Button({ 0,0,0,0 }))
+    //            .text(L"Content for Category 2")
+    //            .absoluteHeight(50)
+    //            .margin({ 5,5,5,5 })
+    //        )
+    //        .child(
+    //            LayoutBuilder::widget(new Widgets::Button({ 0,0,0,0 }))
+    //            .text(L"Content for Category 3")
+    //            .absoluteHeight(50)
+    //            .margin({ 5,5,5,5 })
+    //        )
+    //    )
+    //    .build();
+
 
     // добавляем layout в root
     root->addChild(std::move(ui));
@@ -844,22 +1246,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     dockManager.dockRelative(child3, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
 
 
-    // --- Вызываем пересчёт layout главного окна ---
-    //dockManager.onSize(window->getWidth(), window->getHeight());
-
-    //dockManager.dock(&childWnd, DockPlacement::LEFT);
-    //dockManager.dock(&childWnd2, DockPlacement::RIGHT);
-    //dockManager.dock(&childWnd3, DockPlacement::BOTTOM, &childWnd2);
-
-    //dockManager.update(dockManager.getTree()->getRoot());
-    // Layout* parent = new VBoxLayout(&window);
-    // Layout* sceneLayout = new VBoxLayout(&sceneWindow);
-    // Layout *childLayout = new VBoxLayout(&childWnd);
-
-    // parent->addLayout(sceneLayout);
-    // parent->addLayout(childLayout);
-
-
 
     g_engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
     sceneWindow->show();
@@ -890,6 +1276,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     std::thread engineThread(engineThreadFunc, g_engine, sceneWindow->getHandle().as<HWND>());
  #endif
 
+    
+
     subscribe(*window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect)
     {
         dockManager.onSize(rect.width, rect.height);
@@ -900,109 +1288,120 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     bool running = true;
     while (running)
     {
-        if (g_init && !notInit)
-        {
-#if 1
 
-            sceneWindow->setRenderable(false);
-#endif
-            //button->setDefault();
-            //button2->setDefault();
-            //childWnd.repaint();
-#if 1
-
-            auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
-#endif
-            //treeView->setModel(model);
-            notInit = true;
-            //childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
-
-            //subscribe(*treeView, &Widgets::TreeView::onItemButtonClickSignal,
-            //    [&treeView, &childWnd3](Widgets::ModelIndex index)
-            //    {
-            //        if (!index.isValid())
-            //            return;
-
-            //        auto model = treeView->getModel();
-            //        if (!model)
-            //            return;
-
-            //        // получаем элемент
-            //        auto itemOpt = model->findById(index.getUuid());
-            //        if (!itemOpt)
-            //            return;
-
-            //        const auto& item = itemOpt;
-
-            //        // === 1. Переключаем состояние (expand / collapse)
-            //        auto currentState = treeView->getItemState(*item);
-            //        auto newState = (currentState == Widgets::TreeView::ItemState::EXPANDED)
-            //            ? Widgets::TreeView::ItemState::COLLAPSED
-            //            : Widgets::TreeView::ItemState::EXPANDED;
-            //        treeView->setItemState(index, newState);
-
-            //        // === 2. Обновляем заголовок окна
-            //        std::string name = model->data(*item);
-            //        childWnd3.setTitle(Utils::toWstring(name));
-            //        childWnd3.repaint();
-            //    });
-
-            //subscribe(*treeView, &Widgets::TreeView::onItemChangeSignal,
-            //    [&treeView, &childWnd3, &lb](Widgets::ModelIndex index)
-            //{
-            //        const Widgets::ModelItem& item = treeView->getItemByIndex(index);
-            //        std::shared_ptr<SceneModel> model = std::dynamic_pointer_cast<SceneModel>(treeView->getModel());
-            //        Debug::debug(model->data(item));
-            //        
-            //        nb::Renderer::BaseNode* node = model->getBaseNode(index);
-            //        
-            //        std::wstring str;
-            //        const nb::Math::Vector3<float>& translate = node->getTransform().translate;
-            //        str = L"X: " + std::to_wstring(translate.x) 
-            //            + L"; Y: " + std::to_wstring(translate.y) 
-            //            + L"; Z: " + std::to_wstring(translate.z);
-            //        lb->setText(str);
-            //        //model->moveAt(index);
-            //    
-            //});
-
-            //subscribe(*lb, &Widgets::Label::onTextChanged, [&childWnd](const std::wstring& text) {
-
-            //    childWnd.repaint();
-
-            // });
-
-            /*subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
-                if (state)
-                {
-                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
-                }
-                else
-                {
-                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
-                }
-            });*/
-
-            subscribe(childWnd5, &Win32Window::ChildWindow::onSizeChanged, [&childWnd5](const NbSize<int>& size){
-                childWnd5.recalculateLayout();
-                
-            });
-
-            
-#if 1
-
-            subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
-                nb::Core::EngineSettings::setHeight(size.height);
-                nb::Core::EngineSettings::setWidth(size.width);
-            });
-#endif
-        }
+//
+//        if (g_init && !notInit)
+//        {
+//#if 1
+//
+//            sceneWindow->setRenderable(false);
+//#endif
+//            //button->setDefault();
+//            //button2->setDefault();
+//            //childWnd.repaint();
+//#if 1
+//
+//            auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
+//#endif
+//            //treeView->setModel(model);
+//            notInit = true;
+//            //childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
+//
+//            //subscribe(*treeView, &Widgets::TreeView::onItemButtonClickSignal,
+//            //    [&treeView, &childWnd3](Widgets::ModelIndex index)
+//            //    {
+//            //        if (!index.isValid())
+//            //            return;
+//
+//            //        auto model = treeView->getModel();
+//            //        if (!model)
+//            //            return;
+//
+//            //        // получаем элемент
+//            //        auto itemOpt = model->findById(index.getUuid());
+//            //        if (!itemOpt)
+//            //            return;
+//
+//            //        const auto& item = itemOpt;
+//
+//            //        // === 1. Переключаем состояние (expand / collapse)
+//            //        auto currentState = treeView->getItemState(*item);
+//            //        auto newState = (currentState == Widgets::TreeView::ItemState::EXPANDED)
+//            //            ? Widgets::TreeView::ItemState::COLLAPSED
+//            //            : Widgets::TreeView::ItemState::EXPANDED;
+//            //        treeView->setItemState(index, newState);
+//
+//            //        // === 2. Обновляем заголовок окна
+//            //        std::string name = model->data(*item);
+//            //        childWnd3.setTitle(Utils::toWstring(name));
+//            //        childWnd3.repaint();
+//            //    });
+//
+//            //subscribe(*treeView, &Widgets::TreeView::onItemChangeSignal,
+//            //    [&treeView, &childWnd3, &lb](Widgets::ModelIndex index)
+//            //{
+//            //        const Widgets::ModelItem& item = treeView->getItemByIndex(index);
+//            //        std::shared_ptr<SceneModel> model = std::dynamic_pointer_cast<SceneModel>(treeView->getModel());
+//            //        Debug::debug(model->data(item));
+//            //        
+//            //        nb::Renderer::BaseNode* node = model->getBaseNode(index);
+//            //        
+//            //        std::wstring str;
+//            //        const nb::Math::Vector3<float>& translate = node->getTransform().translate;
+//            //        str = L"X: " + std::to_wstring(translate.x) 
+//            //            + L"; Y: " + std::to_wstring(translate.y) 
+//            //            + L"; Z: " + std::to_wstring(translate.z);
+//            //        lb->setText(str);
+//            //        //model->moveAt(index);
+//            //    
+//            //});
+//
+//            //subscribe(*lb, &Widgets::Label::onTextChanged, [&childWnd](const std::wstring& text) {
+//
+//            //    childWnd.repaint();
+//
+//            // });
+//
+//            /*subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
+//                if (state)
+//                {
+//                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
+//                }
+//                else
+//                {
+//                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
+//                }
+//            });*/
+//
+//            subscribe(childWnd5, &Win32Window::ChildWindow::onSizeChanged, [&childWnd5](const NbSize<int>& size){
+//                childWnd5.recalculateLayout();
+//                
+//            });
+//
+//            
+//#if 1
+//
+//            subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
+//                nb::Core::EngineSettings::setHeight(size.height);
+//                nb::Core::EngineSettings::setWidth(size.width);
+//            });
+//#endif
+//        }
 
         g_input = false;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            std::string str = MsgToString(msg);
-            Debug::debug(str);
+            if (msg.message != WM_INPUT)
+            {
+                //std::string str = MsgToString(msg);
+                //Debug::debug(str);
+
+            }
+            if (shouldShowDebug)
+            {
+               
+
+            }
             if (msg.message == WM_QUIT)
             {
                 g_running = false;
@@ -1079,6 +1478,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         engineThread.join();
 #endif
     auto i = GetLastError();
+    _CrtDumpMemoryLeaks();  // Явный вывод
 
     return (int)msg.wParam;
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

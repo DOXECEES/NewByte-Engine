@@ -1,6 +1,7 @@
 #ifndef NBSTL_SRC_ARRAY_HPP
 #define NBSTL_SRC_ARRAY_HPP
 
+#include <initializer_list>
 #include "Types.hpp"
 
 namespace nbstl
@@ -28,11 +29,14 @@ namespace nbstl
         constexpr Array(std::initializer_list<T> list)
         {
             Size i = 0;
-            for (auto& v : list) {
-                if (i < N) {
+            for (auto& v : list)
+            {
+                if (i < N)
+                {
                     data_[i++] = v;
                 }
-                else {
+                else
+                {
                     break;
                 }
             }

@@ -1,13 +1,61 @@
 cmake_minimum_required(VERSION 3.25.0)
 project(NewByte)
 
-# Опция для включения покрытия кода
+# ============================================================================  
+# VS Memory Profiler настройки  
+# ============================================================================  
+
+option(USE_VS_PROFILER "Enable VS Memory Profiler for memory tracking" ON)
+
+# Макрос для включения CRT debug tracking
+if(MSVC AND USE_VS_PROFILER)
+    add_compile_definitions(_CRTDBG_MAP_ALLOC)
+endif()
+
+# ============================================================================  
+# Поддиректории проекта  
+# ============================================================================  
+
+add_subdirectory(Common)
+add_subdirectory(nbstl)
+add_subdirectory(SDK)
+add_subdirectory(Engine)
+add_subdirectory(NewByte-UI-Lib)
+add_subdirectory(googletest)
+enable_testing()
+add_subdirectory(tests)
+
+# ============================================================================  
+# Функции для применения флагов ко всем целям  
+# ============================================================================  
+
+function(apply_debug_flags target)
+    if(TARGET ${target} AND USE_VS_PROFILER)
+        # Полная отладочная информация
+        target_compile_options(${target} PRIVATE /Zi /Od /MDd)
+        target_link_options(${target} PRIVATE /DEBUG)
+        target_compile_definitions(${target} PRIVATE USE_VS_PROFILER)
+        message(STATUS "VS Memory Profiler enabled for target: ${target}")
+    endif()
+endfunction()
+
+# ============================================================================  
+# Применяем профайлер ко всем основным целям  
+# ============================================================================  
+
+set(ALL_TARGETS NewByte-Engine SDK NewByte-UI-Lib Common nbstl tests)
+
+foreach(t ${ALL_TARGETS})
+    apply_debug_flags(${t})
+endforeach()
+
+# ============================================================================  
+# Code coverage (по желанию)  
+# ============================================================================  
+
 option(BUILD_COVERAGE "Build with code coverage support" OFF)
 
 if(BUILD_COVERAGE)
-    message(STATUS "Code coverage enabled")
-    
-    # Всегда используем OpenCppCoverage для Windows
     find_program(OPENCPPCOVERAGE OpenCppCoverage)
     if(OPENCPPCOVERAGE)
         message(STATUS "OpenCppCoverage found: ${OPENCPPCOVERAGE}")
@@ -16,44 +64,12 @@ if(BUILD_COVERAGE)
     endif()
 endif()
 
-add_subdirectory(Common)
+# ============================================================================  
+# Рекомендация для snapshot  
+# ============================================================================  
 
-# 2. Добавляем nbstl
-add_subdirectory(nbstl)
-
-
-add_subdirectory(SDK)
-add_subdirectory(Engine)
-add_subdirectory(NewByte-UI-Lib)
-add_subdirectory(googletest)
-
-enable_testing()  
-add_subdirectory(tests)
-
-# Цели для покрытия кода
-if(BUILD_COVERAGE AND OPENCPPCOVERAGE)
-    # Цель для генерации отчета покрытия
-    add_custom_target(coverage
-        COMMAND ${OPENCPPCOVERAGE} 
-            --sources ${CMAKE_SOURCE_DIR}/Engine/src
-            --sources ${CMAKE_SOURCE_DIR}/SDK/src  
-            --sources ${CMAKE_SOURCE_DIR}/NewByte-UI-Lib/src
-            --modules ${CMAKE_BINARY_DIR}/tests/Debug/*.exe
-            --export_type html:${CMAKE_BINARY_DIR}/coverage_report
-            -- ${CMAKE_BINARY_DIR}/tests/Debug/hsv_tests.exe
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Running code coverage with OpenCppCoverage"
-        DEPENDS hsv_tests
-    )
-    
-    # Цель для быстрого запуска тестов с покрытием
-    add_custom_target(coverage-quick
-        COMMAND ${OPENCPPCOVERAGE} 
-            --sources ${CMAKE_SOURCE_DIR}/Engine/src
-            --modules ${CMAKE_BINARY_DIR}/tests/Debug/*.exe
-            -- ${CMAKE_BINARY_DIR}/tests/Debug/hsv_tests.exe
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Quick coverage run (console output only)"
-        DEPENDS hsv_tests
-    )
-endif()
+# В коде можно добавить, если хочешь, ручной snapshot для Profiler:
+# #ifdef USE_VS_PROFILER
+# #include <crtdbg.h>
+# _CrtDumpMemoryLeaks(); // выведет текущие утечки в Output Window
+# #endif
