@@ -177,6 +177,10 @@ src/main.cpp
 
         src/Error/ErrorManager.cpp
         src/Error/ErrorManager.hpp
+        src/Error/IErrorPrinter.cpp
+        src/Error/IErrorPrinter.hpp
+        src/Error/ErrorConsolePrinter.cpp
+        src/Error/ErrorConsolePrinter.hpp
 
         src/Ecs/Ecs.hpp
         src/Ecs/Ecs.cpp

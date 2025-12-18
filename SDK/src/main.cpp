@@ -33,6 +33,9 @@
 
 #include <String.hpp>
 
+#include <Error/ErrorManager.hpp>
+#include <Error/ErrorConsolePrinter.hpp>
+
 
 HWND activeWindow = nullptr;
 
@@ -745,6 +748,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     const wchar_t* mainClassName = L"MDIMainWindow";
     AllocConsole();
 
+    nb::Error::ErrorManager::instance().setPrinter(new nb::Error::ErrorConsolePrinter());
+    nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, "DDDD");
     auto window = std::make_shared<Win32Window::Window>();
     window->setTitle(L"NewByte SDK");
     Win32Window::Win32EventLoop eventLoop;
