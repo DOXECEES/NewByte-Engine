@@ -2,7 +2,6 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-
 #include "Engine.hpp"
 
 #include "Math/RayCast/RayPicker.hpp"
@@ -61,78 +60,7 @@ namespace nb
 {
     namespace Core
     {
-        struct Helth
-        {
-            int i=0;
-        };
-
-        struct Speed
-        {
-            int i = 0;
-        };
-
-        Engine::Engine(const HWND &windowHwnd)
-        {
-
-#ifdef NB_DEBUG
-
-            Math::Vector3<float> v1 = {0.0f, 0.0f, 0.0f};
-            Math::Vector3<float> v2 = {0.0f, 1.0f, 0.0f};
-
-            Math::Ray r(v1, v2);
-
-            Math::Ray r2({5.0f, 2.0f, 0.0f}, {-1.0f, 0.0f, 0.0f});
-            auto res = Math::distanceBetweenRays(r, r2);
-
-            //auto v = nb::Math::projectVectorToVector(v1, v2);
-
-
-            //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
-            
-
-            Ecs::EcsManager manager;
-            auto ent1 = manager.createEntity();
-            ent1.add<Helth>(Helth(1));
-            ent1.add<Speed>(Speed(1));
-            auto ent2 = manager.createEntity();
-            ent2.add<Helth>(Helth(2));
-
-            Debug::debug("HELTH:");
-
-            for(auto&i : manager.getEntitiesWithComponent<Helth>())
-            {
-                auto h = i.get<Helth>();
-                Debug::debug(h.i);
-            }
-            Debug::debug("Speed:");
-
-            for(auto&i : manager.getEntitiesWithComponent<Speed>())
-            {
-                auto h = i.get<Speed>();
-                Debug::debug(h.i);
-            }
-
-            auto m = Error::ErrorManager::instance().report(Error::Type::INFO, "Hello")
-                .with("Hello", "Hello")
-                .with("World", "World");
-
-            
-            
-#endif            
-
-
-            hwnd = windowHwnd;
-            subSystems->Init(hwnd);
-            keyboard = subSystems->getKeyboard();
-            mouse = subSystems->getMouse();
-            input = createRef<Input::Input>();
-            input->linkKeyboard(keyboard);
-            input->linkMouse(mouse);
-            renderer = subSystems->getRenderer();
-            renderer->setCamera(&cam);
-            Utils::Timer::init();   
-        }
-
+        
         void Engine::bufferizeInput(const MSG &msg) const noexcept
         {
             uint32_t size = sizeof(RAWINPUT);
@@ -164,11 +92,11 @@ namespace nb
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
             {
-                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::LINES);
+                renderer->togglePolygonVisibilityMode(Renderer::PolygonMode::LINES);
             }
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_2))
             {
-                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::POINTS);
+                renderer->togglePolygonVisibilityMode(Renderer::PolygonMode::POINTS);
             }
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_3))
             {
@@ -180,7 +108,7 @@ namespace nb
             }
             if(keyboard->isKeyPressed(Keyboard::KeyCode::NB_9))
             {
-                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::FULL);
+                renderer->togglePolygonVisibilityMode(Renderer::PolygonMode::FULL);
             }
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_CONTROL))
             {
@@ -212,7 +140,7 @@ namespace nb
         }
 
 
-        bool Engine::run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons) 
+        bool Engine::run(bool shouldRender) 
         {
             using namespace nb::Input;
             processCommands();
@@ -263,7 +191,10 @@ namespace nb
                 handleGameMode(camDir, deltaTime);
             }
 
-            renderer->render();
+                renderer->render();
+            if (shouldRender)
+            {
+            }
             return true;
         }
 
@@ -273,31 +204,31 @@ namespace nb
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
-                cam.moveAt(camDir * 2.0f * deltaTime);
+                cam.moveAt(camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
             {
-                cam.moveAt(-camDir * 2.0f * deltaTime);
+                cam.moveAt(-camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(rightVec * 2.0f * deltaTime);
+                cam.moveAt(rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(-rightVec * 2.0f * deltaTime);
+                cam.moveAt(-rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
             {
-                cam.moveAt(cam.getUpVector() * 2.0f * deltaTime);
+                cam.moveAt(cam.getUpVector() * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SHIFT))
             {
-                cam.moveAt(-(cam.getUpVector() * 2.0f * deltaTime));
+                cam.moveAt(-(cam.getUpVector() * 5.0f * deltaTime));
             }
         }
 

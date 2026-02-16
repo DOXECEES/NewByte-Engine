@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NewByte SDK Mockup — Base Template</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/inspector.css">
+<link rel="stylesheet" href="css/hierarchy.css">
+<link rel="stylesheet" href="css/console.css">
+
+
+
+</head>
+<body>
+
+<header>
+  <div class="title">NewByte SDK — Mockup</div>
+  <div class="menu">Файл | Вид | Окно | Справка</div>
+</header>
+
+<main>
+ <section id="hierarchy">
+  <h3>Hierarchy</h3>
+
+  <div class="hierarchy-list">
+    <div class="hierarchy-item expanded">
+      <span class="triangle">▼</span> Player
+      <div class="hierarchy-children">
+        <div class="hierarchy-item">Camera</div>
+        <div class="hierarchy-item">Weapon</div>
+      </div>
+    </div>
+
+    <div class="hierarchy-item">
+      <span class="triangle">▶</span> Environment
+    </div>
+
+    <div class="hierarchy-item">
+      <span class="triangle">▶</span> Enemy_01
+    </div>
+
+    <div class="hierarchy-item">
+      <span class="triangle">▶</span> Light
+    </div>
+  </div>
+</section>
+
+
+
+
+
+  <section id="scene">
+    <h3>Scene View</h3>
+    <div class="placeholder">Окно сцены (3D-превью / 2D-редактор)</div>
+  </section>
+
+  <!-- Подключаем инспектор как внешний компонент -->
+ <section id="inspector">
+  <h3 class="panel-title">Inspector</h3>
+
+  <!-- Компонент Transform -->
+  <div class="inspector-section">
+    <div class="inspector-header">Transform</div>
+    <div class="inspector-content">
+      <div class="field"><label>Position X</label><input type="number" value="0"></div>
+      <div class="field"><label>Position Y</label><input type="number" value="0"></div>
+      <div class="field"><label>Position Z</label><input type="number" value="0"></div>
+      <hr>
+      <div class="field"><label>Rotation X</label><input type="number" value="0"></div>
+      <div class="field"><label>Rotation Y</label><input type="number" value="0"></div>
+      <div class="field"><label>Rotation Z</label><input type="number" value="0"></div>
+      <hr>
+      <div class="field"><label>Scale X</label><input type="number" value="1" step="0.1"></div>
+      <div class="field"><label>Scale Y</label><input type="number" value="1" step="0.1"></div>
+      <div class="field"><label>Scale Z</label><input type="number" value="1" step="0.1"></div>
+    </div>
+  </div>
+
+  <!-- Rendering -->
+  <div class="inspector-section">
+    <div class="inspector-header">Rendering</div>
+    <div class="inspector-content">
+      <div class="field"><label>Mesh</label><input type="text" value="player_model"></div>
+      <div class="field"><label>Material</label><input type="text" value="default.mat"></div>
+      <div class="field checkbox-field"><label>Visible</label><input type="checkbox" checked></div>
+    </div>
+  </div>
+
+  <!-- Physics -->
+  <div class="inspector-section">
+    <div class="inspector-header">Physics</div>
+    <div class="inspector-content">
+      <div class="field"><label>Mass</label><input type="number" value="70" step="0.1"></div>
+      <div class="field"><label>Collider</label><input type="text" value="Capsule"></div>
+      <div class="field checkbox-field"><label>Is Kinematic</label><input type="checkbox"></div>
+    </div>
+  </div>
+
+  <!-- Metadata -->
+  <div class="inspector-section">
+    <div class="inspector-header">Metadata</div>
+    <div class="inspector-content">
+      <div class="field"><label>Name</label><input type="text" value="Player"></div>
+      <div class="field"><label>Tag</label><input type="text" value="Player"></div>
+      <div class="field"><label>Layer</label><input type="text" value="Default"></div>
+    </div>
+  </div>
+</section>
+
+  
+  <section id="console">
+  <h3>Console</h3>
+  <div class="console-toolbar">
+    <button class="filter active" data-type="all">All</button>
+    <button class="filter" data-type="log">Log</button>
+    <button class="filter" data-type="warning">Warning</button>
+    <button class="filter" data-type="error">Error</button>
+    <button class="clear">Clear</button>
+  </div>
+
+  <div class="console-output">
+    <div class="console-line log">[Info] Инициализация завершена</div>
+    <div class="console-line warning">[Warning] Невозможно загрузить материал "brick.mat"</div>
+    <div class="console-line error">[Error] Shader compilation failed</div>
+    <div class="console-line log">[Log] Сцена "TestScene" загружена</div>
+  </div>
+</section>
+
+</main>
+
+<script src="js/inspector.js"></script>
+<script src="js/hierarchy.js"></script>
+<script src="js/console.js"></script>
+
+<script>
+/* === Макетный докинг панелей === */
+const panels = document.querySelectorAll("main > section");
+let draggedPanel = null;
+let placeholder = null;
+
+panels.forEach(panel => {
+  const header = panel.querySelector("h3");
+  if (!header) return;
+
+  header.style.cursor = "grab";
+  header.addEventListener("mousedown", e => {
+    draggedPanel = panel;
+    placeholder = document.createElement("div");
+    placeholder.className = "dock-placeholder";
+    panel.parentNode.insertBefore(placeholder, panel.nextSibling);
+    panel.classList.add("dragging");
+    panel.style.position = "absolute";
+    panel.style.zIndex = 9999;
+    panel.startX = e.clientX;
+    panel.startY = e.clientY;
+    panel.startLeft = panel.offsetLeft;
+    panel.startTop = panel.offsetTop;
+    document.body.style.userSelect = "none";
+  });
+});
+
+window.addEventListener("mousemove", e => {
+  if (!draggedPanel) return;
+  const dx = e.clientX - draggedPanel.startX;
+  const dy = e.clientY - draggedPanel.startY;
+  draggedPanel.style.left = draggedPanel.startLeft + dx + "px";
+  draggedPanel.style.top = draggedPanel.startTop + dy + "px";
+});
+
+window.addEventListener("mouseup", e => {
+  if (!draggedPanel) return;
+  document.body.style.userSelect = "";
+  draggedPanel.classList.remove("dragging");
+  draggedPanel.style.position = "";
+  draggedPanel.style.zIndex = "";
+  draggedPanel.style.left = "";
+  draggedPanel.style.top = "";
+
+  if (placeholder) {
+    placeholder.parentNode.insertBefore(draggedPanel, placeholder);
+    placeholder.remove();
+  }
+  placeholder = null;
+  draggedPanel = null;
+});
+</script>
+
+</body>
+</html>

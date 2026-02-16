@@ -14,15 +14,12 @@ namespace nb
             this->setSize(width, height);
             this->bindTexture(TextureType::COLOR);
             this->bindRenderBuffer(RenderBufferType::DEPTH_STENCIL);
-
-            if (!this->finalize())
-            {
-                Debug::debug("Framebuffer is not complete!");
-                int errorCode = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-                Debug::debug(errorCode);
-            }
         
             this->unBind();
+        }
+
+        PostProcessFbo::~PostProcessFbo()
+        {
         }
     };
 };

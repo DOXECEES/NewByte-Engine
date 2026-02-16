@@ -53,3 +53,7 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 out
+TestResults
+
+!Assets/
+!Assets/**/*.obj

@@ -68,6 +68,16 @@ namespace nb
             {
                 position = _position;
             }
+
+            const Math::Vector3<float>& getAmbient() const noexcept
+            {
+                return ambient;
+            }
+
+            const Math::Vector3<float>& getDiffuse() const noexcept
+            {
+                return diffuse;
+            }
             
         protected:
 

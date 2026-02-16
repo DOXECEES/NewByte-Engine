@@ -15,7 +15,7 @@ namespace nb
                 virtual void bind() const noexcept = 0;
                 virtual void unBind() const noexcept = 0;
 
-                
+                GLuint getId() const noexcept;
 
             protected:
                 GLuint buffer;

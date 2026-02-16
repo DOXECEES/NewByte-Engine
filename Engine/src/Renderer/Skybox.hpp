@@ -32,6 +32,8 @@ namespace nb
             
                 void render(Ref<Renderer::Shader> shader);
 
+                GLuint getCubemapTextureId() const noexcept;
+
             private:
                 std::vector<uint8_t>    textureData;
                 GLuint                  cubemapTexture;

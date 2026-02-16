@@ -20,7 +20,7 @@ namespace nb
             std::array<int, 6> ind = {
                 6, 4, 1, 9, 5, 7};
 
-            lodepng::decode(textureData, width, height, "C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\skybox.png");
+            lodepng::decode(textureData, width, height, "Assets\\res\\skybox.png");
 
             const int segmentWidth = width / cols;
             const int segmentHeight = height / rows;
@@ -58,7 +58,9 @@ namespace nb
                 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, segmentWidth, segmentHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pl[i]);
             }
 
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -95,6 +97,10 @@ namespace nb
             glDepthFunc(GL_LESS);
             glDepthMask(GL_TRUE);
             glEnable(GL_DEPTH_TEST);
+        }
+        GLuint Skybox::getCubemapTextureId() const noexcept
+        {
+            return cubemapTexture;
         }
     };
 };

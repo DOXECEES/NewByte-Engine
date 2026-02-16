@@ -5,6 +5,7 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
+#include <functional>
 
 #include "../Math/Matrix/Matrix.hpp"
 #include "../Math/Math.hpp" 
@@ -68,6 +69,7 @@ namespace nb
             std::shared_ptr<BaseNode> getChildren(const size_t index) const noexcept;
             void addChildren(std::shared_ptr<BaseNode> node) noexcept;
 
+            void addTranslate(const Math::Vector3<float>& translate) noexcept;
             void setTranslate(const Math::Vector3<float>& translate) noexcept;
             void setRotationX(const float val) noexcept;
             void setRotationY(const float val) noexcept;
@@ -111,14 +113,20 @@ namespace nb
         {
         public:
             ObjectNode() = delete;
-            ObjectNode(std::string_view nodeName, const Transform& nodeTransform, const std::shared_ptr<Mesh> &nodeMesh, const std::shared_ptr<Shader> nodeShader)
+            ObjectNode(
+                std::string_view nodeName,
+                const Transform& nodeTransform,
+                const std::shared_ptr<Mesh> &nodeMesh,
+                const std::shared_ptr<Shader> nodeShader
+            )
                 : BaseNode(nodeName, nodeTransform), mesh(nodeMesh)
             {
-            
+                mesh->uniforms.shader = nodeShader;
             }
 
         //private:
-            std::shared_ptr<Mesh> mesh;
+            std::shared_ptr<Mesh>   mesh;
+            Ref<Material>           material;
             
         };
 
@@ -149,6 +157,8 @@ namespace nb
             std::shared_ptr<BaseNode> getScene() const noexcept;
 
             std::shared_ptr<BaseNode> find(std::string_view str);
+
+            void traverse(const std::function<void(std::shared_ptr<BaseNode>&)>& func) noexcept;
 
             SceneGraph() noexcept;
 

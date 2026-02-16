@@ -1,6 +1,7 @@
 #ifndef SRC_RENDERER_OPENGL_VBO_HPP
 #define SRC_RENDERER_OPENGL_VBO_HPP
 
+#include <NbCore.hpp>
 #include <glad/glad.h>
 
 #include "../RendererStructures.hpp"
@@ -24,11 +25,13 @@ namespace nb
             VBO() noexcept;
             ~VBO() noexcept;
 
-            VBO(const VBO& other) noexcept = delete;
-            VBO& operator=(const VBO& other) noexcept = delete;
+            NB_COPYMOVABLE(VBO);
 
-            VBO(VBO&& other) noexcept = delete;
-            VBO& operator=(VBO&& other) noexcept = delete;
+            //VBO(const VBO& other) noexcept = delete;
+            //VBO& operator=(const VBO& other) noexcept = delete;
+            //
+            //VBO(VBO&& other) noexcept = delete;
+            //VBO& operator=(VBO&& other) noexcept = delete;
 
             virtual void bind() const noexcept override;
             virtual void unBind() const noexcept override;

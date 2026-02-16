@@ -28,6 +28,13 @@ namespace nb
             constexpr Vector3(const T x, const T y, const T z) noexcept
                 : x(x), y(y), z(z) {}
 
+            constexpr Vector3(std::initializer_list<T> list)
+            {
+                auto it = list.begin();
+                x = (it != list.end()) ? *it++ : 0;
+                y = (it != list.end()) ? *it++ : 0;
+                z = (it != list.end()) ? *it++ : 0;
+            }
 
             T& operator[](const size_t index)
             {

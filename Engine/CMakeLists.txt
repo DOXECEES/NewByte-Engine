@@ -105,7 +105,16 @@ src/main.cpp
         src/Renderer/OpenGL/ShadowMapFbo.hpp
         src/Renderer/OpenGl/PostProcessFbo.cpp
         src/Renderer/OpenGl/PostProcessFbo.hpp
-        
+        src/Renderer/Color.cpp
+        src/Renderer/Color.hpp
+        src/Renderer/PipelineCache.cpp
+        src/Renderer/PipelineCache.hpp
+        src/Renderer/IFrameBuffer.hpp
+        src/Renderer/Material.cpp
+        src/Renderer/Material.hpp
+        src/Renderer/ContextMeshCache.cpp
+        src/Renderer/ContextMeshCache.hpp
+
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
         src/Math/Vector2.hpp
@@ -175,12 +184,18 @@ src/main.cpp
 
         src/Error/ErrorManager.cpp
         src/Error/ErrorManager.hpp
+        src/Error/IErrorPrinter.cpp
+        src/Error/IErrorPrinter.hpp
+        src/Error/ErrorConsolePrinter.cpp
+        src/Error/ErrorConsolePrinter.hpp
 
         src/Ecs/Ecs.hpp
         src/Ecs/Ecs.cpp
 
         dependencies/lodepng/lodepng.cpp
 
+        src/MemoryTracker.cpp
+        src/MemoryTracker.hpp
 
 )
 
@@ -193,6 +208,9 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC src
     PUBLIC OpenGL:GL
     PUBLIC dependencies/glad/include
+    ../nbstl/src
+    ../Common
+
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
@@ -205,9 +223,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 target_link_directories(${PROJECT_NAME} 
     PRIVATE dependencies/glad/src
 )
-
-
-
         
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)

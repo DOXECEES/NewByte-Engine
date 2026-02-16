@@ -13,9 +13,7 @@ namespace nb
         {
             this->setSize(width, height);
             this->bindTexture(TextureType::DEPTH);
-            if (!this->finalize())
-                Debug::debug("Framebuffer is not complete!");
-        
+            
             this->unBind();
 
         }

@@ -1,6 +1,7 @@
 #ifndef SRC_RENDERER_OPENGL_EBO_HPP
 #define SRC_RENDERER_OPENGL_EBO_HPP
 
+#include <NbCore.hpp>
 #include <glad/glad.h>
 
 #include "IBuffer.hpp"
@@ -19,11 +20,13 @@ namespace nb
             EBO() noexcept;
             ~EBO() noexcept;
 
-            EBO(const EBO& other) noexcept = delete;
-            EBO& operator=(const EBO& other) noexcept = delete;
+            NB_COPYMOVABLE(EBO);
 
-            EBO(EBO&& other) noexcept = delete;
-            EBO& operator=(EBO&& other) noexcept = delete;
+            //EBO(const EBO& other) noexcept = delete;
+            //EBO& operator=(const EBO& other) noexcept = delete;
+            //
+            //EBO(EBO&& other) noexcept = delete;
+            //EBO& operator=(EBO&& other) noexcept = delete;
 
             virtual void bind() const noexcept override;
             virtual void unBind() const noexcept override;

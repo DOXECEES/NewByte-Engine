@@ -34,6 +34,21 @@ add_executable(${PROJECT_NAME} WIN32
     src/UiStore.hpp
 )
 
+set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
+if(NOT EXISTS "${ASSETS_SRC_DIR}")
+    set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/assets")
+endif()
+
+if(NOT EXISTS "${ASSETS_SRC_DIR}")
+    message(WARNING "Assets directory not found (checked ${CMAKE_SOURCE_DIR}/Assets and ${CMAKE_SOURCE_DIR}/assets). No copy will be performed.")
+else()
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_SRC_DIR}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
+        
+        COMMENT "Copying Assets folder to $<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
+    )
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ../Engine/src

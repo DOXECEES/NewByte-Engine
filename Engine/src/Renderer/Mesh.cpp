@@ -102,6 +102,28 @@ namespace nb
             recalculateAabb3dForce();
         }
 
+        Mesh::Mesh(const Mesh& other) noexcept
+            : Resource::IResource(other) 
+            , aabb(other.aabb)
+            , ind(other.ind)
+            , verticies(other.verticies)
+            , indiciesCount(other.indiciesCount)
+            , uniforms(other.uniforms)
+            , VAO(other.VAO)
+        {
+           
+            meshes.reserve(other.meshes.size());
+            for (const auto& sub : other.meshes)
+            {
+                auto newSub = std::make_unique<SubMesh>(sub->indices, sub->material);
+                newSub->shader = sub->shader; 
+
+                this->meshes.push_back(std::move(newSub));
+            }
+
+        }
+
+
         std::vector<Renderer::Material> Mesh::getMaterials() const noexcept
         {
             std::vector<Renderer::Material> mats;
@@ -139,6 +161,16 @@ namespace nb
             return aabb;
         }
 
+        GLuint Mesh::getVboId() const noexcept
+        {
+            return VAO.getVbo().getId();
+        }
+
+        GLuint Mesh::getEboId() const noexcept
+        {
+            return VAO.getEbo().getId();
+        }
+
         std::vector<uint32_t> Mesh::uniteIndicies() noexcept
         {
             size_t lenght = 0;
@@ -168,18 +200,45 @@ namespace nb
 
         void Mesh::draw(GLenum mode, const Ref<Shader> &shader) const noexcept
         {
-            size_t indiciesOffset = 0;
-            size_t matIndex = 0;
-            for (const auto &i : meshes)
+            VAO.bind();
+
+            size_t byteOffset = 0;
+
+            for (const auto& sub : meshes)
             {
+                sub->attachShader(shader);
+                applyMaterial(*sub);
 
-                i->attachShader(shader);
-                applyMaterial(*i);
+                VAO.draw(static_cast<uint32_t>(sub->indices.size()), mode, byteOffset);
 
-                VAO.bind();
-                VAO.draw(i->indices.size(), mode, indiciesOffset);
-                indiciesOffset += i->indices.size();
+                byteOffset += sub->indices.size() * sizeof(uint32_t);
             }
+
+            VAO.unBind();
         }
+
+        void Mesh::draw(
+            GLenum mode,
+            const Ref<Shader>& shader,
+            GLuint vao) const noexcept
+        {
+            glBindVertexArray(vao);
+
+            size_t byteOffset = 0;
+
+            for (const auto& sub : meshes)
+            {
+                sub->attachShader(shader);
+                applyMaterial(*sub);
+
+                VAO.draw(static_cast<uint32_t>(sub->indices.size()), mode, byteOffset);
+
+                byteOffset += sub->indices.size() * sizeof(uint32_t);
+            }
+
+            glBindVertexArray(0);
+        }
+
+
     };
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
 #define NOMINMAX
 
 #include <Windows.h>
@@ -32,7 +32,7 @@ public:
     static void debug(T val
                     , const std::source_location& location = std::source_location::current())
     {
-
+#if 0
         std::ostringstream oss;
 
         addHeader(location, oss);
@@ -47,13 +47,14 @@ public:
         }
 
         writeToConsole(oss.str());
+#endif
     }
 
     template <template <typename...> class Container, class... T>
     static void debug(const Container<T...> &container
                     , const std::source_location& location = std::source_location::current())
     {
-
+#if 0
         std::ostringstream oss;
         addHeader(location, oss);
 
@@ -116,6 +117,7 @@ public:
         }
 
         writeToConsole(oss.str());
+#endif
     } 
 
 private:
@@ -201,4 +203,4 @@ inline void Debug::debug<std::wstring>(std::wstring val, const std::source_locat
 
 
 
-#endif // _DEBUG
+//#endif // _DEBUG

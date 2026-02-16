@@ -1,0 +1,28 @@
+﻿[meta]
+code = ru-RU
+language = ru
+country = RU
+script = Cyrl
+direction = LTR
+
+[names]
+display = Russian (Russia)
+native = Русский (Россия)
+
+[number]
+decimal = ,
+thousands = space
+percent = %
+currency = RUB
+currencySymbol = ₽
+
+[datetime]
+date = dd.MM.yyyy
+time = HH:mm:ss
+datetime = dd.MM.yyyy HH:mm:ss
+
+[plural]
+rule = russian
+
+[fallback]
+chain = ru, en

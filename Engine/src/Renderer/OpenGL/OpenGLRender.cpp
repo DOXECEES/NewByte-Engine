@@ -1,13 +1,230 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+#include <Windows.h>
 #include "OpenGLRender.hpp"
 
 #include "../Objects/Objects.hpp"
 #include "DepthBuffer.hpp"
 
-nb::OpenGl::OpenGLRender::OpenGLRender(HWND _hwnd) noexcept
-    : IRenderAPI(_hwnd), hdc(GetDC(hwnd))
+
+namespace nb::OpenGl
+{
+
+    GLenum OpenGLRender::toOpenGlPolygonMode(Renderer::PolygonMode mode) noexcept
+    {
+        switch (mode)
+        {
+        case nb::Renderer::PolygonMode::POINTS:
+            return GL_POINTS;
+        case nb::Renderer::PolygonMode::LINES:
+            return GL_LINE;
+        case nb::Renderer::PolygonMode::FULL:
+            return GL_FILL;
+        default:
+            Error::ErrorManager::instance()
+                .report(Error::Type::WARNING, "Unsupported polygon mode");
+            return GL_FILL;
+        }
+    }
+
+    Renderer::SharedWindowContext OpenGLRender::shareContext(void* handle) const noexcept
+    {
+        Renderer::SharedWindowContext ctx;
+        ctx.handle = reinterpret_cast<HWND>(handle);
+        ctx.hdc = GetDC(ctx.handle);
+
+        if (!ctx.hdc) return {};
+
+        // 1. ПРОВЕРКА: Установлен ли формат уже?
+        int currentPF = GetPixelFormat(ctx.hdc);
+        if (currentPF == 0)
+        {
+            // Формат не установлен. Пытаемся установить формат основного окна.
+            // ВАЖНО: используем сохраненные в init() значения this->pixelFormat и this->pfd
+            if (!SetPixelFormat(ctx.hdc, this->pixelFormat, &this->pfd))
+            {
+                // Если установка основного формата не удалась (ошибка 87), 
+                // пробуем "упрощенный" подбор.
+                int fallbackPF = ChoosePixelFormat(ctx.hdc, &this->pfd);
+                if (!SetPixelFormat(ctx.hdc, fallbackPF, &this->pfd))
+                {
+                    nb::Error::ErrorManager::instance()
+                        .report(Error::Type::FATAL, "SetPixelFormat failed even with fallback")
+                        .with("WinError", (int)GetLastError());
+                    ReleaseDC(ctx.handle, ctx.hdc);
+                    return {};
+                }
+            }
+        }
+
+        // 2. СОЗДАНИЕ КОНТЕКСТА (Modern Way)
+        auto wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+
+        int contextAttribs[] = {
+            0x2091, 4,      // WGL_CONTEXT_MAJOR_VERSION_ARB
+            0x2092, 5,      // WGL_CONTEXT_MINOR_VERSION_ARB
+            0x9126, 0x0001, // WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB
+            0
+        };
+
+        // Шарим ресурсы: передаем this->hglrc вторым параметром
+        ctx.hglrc = wglCreateContextAttribsARB(ctx.hdc, this->hglrc, contextAttribs);
+
+        if (!ctx.hglrc)
+        {
+            // Fallback на старый метод, если ARB не сработал
+            ctx.hglrc = wglCreateContext(ctx.hdc);
+            wglShareLists(this->hglrc, ctx.hglrc);
+        }
+
+        return ctx;
+    }
+
+
+    bool OpenGLRender::setContext(HDC hdc, HGLRC hglrc) noexcept
+    {
+        if (hdc == nullptr || hglrc == nullptr)
+        {
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::INFO, "HDC or HGLRC == nullptr");
+            return wglMakeCurrent(this->hdc, this->hglrc);
+        }
+        return wglMakeCurrent(hdc, hglrc);
+    }
+
+    bool OpenGLRender::setDefaultContext() noexcept
+    {
+        return wglMakeCurrent(this->hdc, this->hglrc);
+    }
+
+
+    void OpenGLRender::beginFrame() noexcept
+    {
+        setClearColor(Renderer::Colors::WHITE, 1.0f, 0);
+        clear(true, true, false);
+    }
+
+    void OpenGLRender::endFrame() noexcept
+    {
+        SwapBuffers(hdc);
+    }
+
+    void OpenGLRender::drawMesh(Renderer::RendererCommand& command) noexcept
+    {
+        bindPipeline(command.pipeline);
+        command.mesh->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader);
+    }
+
+    void OpenGLRender::drawContextMesh(const Renderer::ContextMesh& contextMesh, Renderer::PipelineHandle pipeline) noexcept
+    {
+        bindPipeline(pipeline);
+        contextMesh.source->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader, contextMesh.vao);
+    }
+
+    void OpenGLRender::bindPipeline(Renderer::PipelineHandle pipelineHandle) noexcept 
+    {
+        if (activePipeline == pipelineHandle)
+        {
+            return;
+        }
+
+        const auto& pipeline = pipelineCache.getDesc(pipelineHandle);
+
+        pipeline.shader->use();
+
+       
+        glPolygonMode(GL_FRONT_AND_BACK, toOpenGlPolygonMode(pipeline.polygonMode));
+
+        if (pipeline.isDepthTestEnable)
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+        }
+        else
+        {
+            glDisable(GL_DEPTH_TEST);
+        }
+
+        if (pipeline.isBlendEnable)
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+        else
+        {
+            glDisable(GL_BLEND);
+        }
+
+        activePipeline = pipelineHandle;
+    }
+
+    Ref<Renderer::IFrameBuffer> OpenGLRender::createFrameBuffer(const uint32 width, const uint32 height) const noexcept
+    {
+        auto buffer = createRef<FBO>();
+        buffer->setSize(width, height);
+        return buffer;
+    }
+
+    void OpenGLRender::bindDefaultFrameBuffer() noexcept
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+    }
+
+    void OpenGLRender::bindFrameBuffer(const Ref<Renderer::IFrameBuffer>& frameBuffer) noexcept
+    {
+        frameBuffer->bind();
+    }
+
+    void OpenGLRender::bindTexture(uint8 slot, uint32 textureId) noexcept
+    {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+    }
+
+    void OpenGLRender::setViewport(const Renderer::Viewport& viewport) noexcept
+    {
+        glViewport(
+            static_cast<GLuint>(viewport.x),
+            static_cast<GLuint>(viewport.y),
+            static_cast<GLuint>(viewport.width),
+            static_cast<GLuint>(viewport.height)
+        );
+    }
+
+    void OpenGLRender::clear(bool color, bool depth, bool stencil) noexcept
+    {
+        int32 clearFlag = 0;
+        if (color)
+        {
+            clearFlag |= GL_COLOR_BUFFER_BIT;
+        }
+        if (depth)
+        {
+            clearFlag |= GL_DEPTH_BUFFER_BIT;
+        }
+        if (stencil)
+        {
+            clearFlag |= GL_STENCIL_BUFFER_BIT;
+        }
+
+        glClear(clearFlag);
+    }
+
+    void OpenGLRender::setClearColor(const Renderer::Color& color, float depthValue,  int32 stencilValue) noexcept
+    {
+        const Math::Vector4<GLfloat>& clearColor = color.asVec4();
+        glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
+        glClearDepthf(depthValue);
+        glClearStencil(stencilValue);
+    }
+
+};
+
+
+nb::OpenGl::OpenGLRender::OpenGLRender(void* handle) noexcept
+    : IRenderAPI(handle)
+    , hdc(GetDC(static_cast<HWND>(handle)))
 {
 }
 
@@ -15,10 +232,11 @@ nb::OpenGl::OpenGLRender::~OpenGLRender() noexcept
 {
     delete t;
     delete tn;
-    delete postProcessFbo;
     wglMakeCurrent(nullptr, nullptr);
-    ReleaseDC(hwnd, hdc);
+    ReleaseDC(getNativeHandleAs<HWND>(), hdc);
 }
+
+
 
 void GLAPIENTRY
 MessageCallback(GLenum source,
@@ -29,14 +247,17 @@ MessageCallback(GLenum source,
                 const GLchar *message,
                 const void *userParam)
 {
+    //Debug::debug(message);
+    nb::Error::ErrorManager::instance().report(nb::Error::Type::WARNING, message);
     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
             type, severity, message);
 }
 
 
-bool nb::OpenGl::OpenGLRender::init() noexcept
+bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
 {
+    this->handle = handle;
     // thats looks wierd, but works)
     WNDCLASS wc = {};
     wc.style = CS_OWNDC;
@@ -52,7 +273,6 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
     HDC dummyHDC = GetDC(dummyWindow);
 
-    PIXELFORMATDESCRIPTOR pfd = {};
     pfd.nSize = sizeof(pfd);
     pfd.nVersion = 1;
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
@@ -93,6 +313,8 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
 
     PIXELFORMATDESCRIPTOR pfdN;
     DescribePixelFormat(hdc, pixelFormatN, sizeof(pfdN), &pfdN);
+    pixelFormat = pixelFormatN;
+    pfd = pfdN;
     if (!SetPixelFormat(hdc, pixelFormatN, &pfdN))
     {
         initFail("Failed to set the pixel format", nullptr);
@@ -114,9 +336,9 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
         WGL_CONTEXT_PROFILE_MASK_ARB, 0x0001,
         0};
 
-    HGLRC modernContext = wglCreateContextAttribsARB(hdc, nullptr, contextAttribs);
+    hglrc = wglCreateContextAttribsARB(hdc, nullptr, contextAttribs);
 
-    if (!modernContext)
+    if (!hglrc)
     {
         initFail("Failed to create modern OpenGL context", tempContext);
         return false;
@@ -125,15 +347,15 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     wglMakeCurrent(nullptr, nullptr);
     wglDeleteContext(tempContext);
 
-    if (!wglMakeCurrent(hdc, modernContext))
+    if (!wglMakeCurrent(hdc, hglrc))
     {
-        initFail("Failed to set the modern OpenGL context", modernContext);
+        initFail("Failed to set the modern OpenGL context", hglrc);
         return false;
     }
 
     if (!gladLoadGL())
     {
-        initFail("Failed to initialize GLAD", modernContext);
+        initFail("Failed to initialize GLAD", hglrc);
         return false;
     }
 
@@ -145,12 +367,12 @@ bool nb::OpenGl::OpenGLRender::init() noexcept
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
     glEnable(GL_BLEND);
-
+    glDisable(GL_CULL_FACE);
     ReleaseDC(dummyWindow, dummyHDC);
     DestroyWindow(dummyWindow);
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
 
-    loadScene();
+    //loadScene();
     return true;
 }
 
@@ -159,83 +381,110 @@ void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context)
     Debug::debug(message);
     wglMakeCurrent(nullptr, nullptr);
     wglDeleteContext(context);
-    ReleaseDC(hwnd, hdc);
+    ReleaseDC(getNativeHandleAs<HWND>(), hdc);
 }
 
 void nb::OpenGl::OpenGLRender::loadScene() noexcept
 {
     auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
+    auto shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
 
-    auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
-    auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
-    auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine (2).obj");
-    auto wall = rm->getResource<Renderer::Mesh>("wall.obj");
+    //auto mesh = rm->getResource<Renderer::Mesh>("untitled2_.obj");
+    //auto gizmo = rm->getResource<Renderer::Mesh>("Gizmo.obj");
+    //auto lumine = rm->getResource<Renderer::Mesh>("Tactical_Lumine (2).obj");
+    //auto wall = rm->getResource<Renderer::Mesh>("wall.obj");
 
     sceneGraph = Renderer::SceneGraph::getInstance();
 
     auto scene = sceneGraph->getScene();
-    auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.0f, 0.0f, 0.0f});
+    //auto wtr = Math::translate(Math::Mat4<float>::identity(), {0.0f, 0.0f, 0.0f});
 
-    Renderer::Transform at;
+    //Renderer::Transform at;
 
-    auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
-    auto g = std::make_shared<Renderer::ObjectNode>("Gizmo", at, gizmo, shader);
+    //auto n = std::make_shared<Renderer::ObjectNode>("Weapon 1", at, mesh, shader);
+    //auto g = std::make_shared<Renderer::ObjectNode>("Gizmo", at, gizmo, shader);
 
-    Renderer::Transform t;
-    t.translate = {0.0f, -10.0f, 0.0f};
+    //Renderer::Transform t;
+    //t.translate = {0.0f, -10.0f, 0.0f};
 
-    Renderer::Transform t2;
-    t2.translate = {0.0f, 3.0f, 0.0f};
-    t2.rotateX = Math::toRadians(90.0f);
+    //Renderer::Transform t2;
+    //t2.translate = {0.0f, 3.0f, 0.0f};
+    //t2.rotateX = Math::toRadians(90.0f);
 
-    auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
+    //auto n5 = std::make_shared<Renderer::ObjectNode>("Lumine", t2, lumine, shader);
 
-    Renderer::Transform wallTransform;
-    wallTransform.translate = {0.0f, 0.0f, -15.0f};
-    wallTransform.scale = {8.0f, 1.0f, 1.0f};
-    wallTransform.rotateX = Math::toRadians(90.0f);
+    //Renderer::Transform wallTransform;
+    //wallTransform.translate = {0.0f, 0.0f, -15.0f};
+    //wallTransform.scale = {8.0f, 1.0f, 1.0f};
+    //wallTransform.rotateX = Math::toRadians(90.0f);
 
-    auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
+    //auto nWall = std::make_shared<Renderer::ObjectNode>("Wall", wallTransform , wall, shader);
 
 
   
-    auto box = rm->getResource<Renderer::Mesh>("box.obj");
+    //auto box = rm->getResource<Renderer::Mesh>("box.obj");
 
 
-    Renderer::Transform boxTransform;
-    boxTransform.translate = {0.0f, 0.0f, 0.0f};
-    boxTransform.scale = {4.0f, 4.0f, 4.0f};
+    //Renderer::Transform boxTransform;
+    //boxTransform.translate = {0.0f, 0.0f, 0.0f};
+    //boxTransform.scale = {4.0f, 4.0f, 4.0f};
 
-    auto nBox = std::make_shared<Renderer::ObjectNode>("Box", boxTransform , box, shader);
+    //auto nBox = std::make_shared<Renderer::ObjectNode>("Box", boxTransform , box, shader);
 
     Renderer::Transform dirLightTransform;
-    auto dirLight = std::make_shared<Renderer::DirectionalLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, Math::Vector3<float>{-1.00f, 10.0f, -10.0f});
+    auto dirLight = std::make_shared<Renderer::DirectionalLight>(
+        ambientColor,
+        Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+        Math::Vector3<float>{0.1f, 0.1f, 0.1f},
+        Math::Vector3<float>{-1.00f, 10.0f, -10.0f}
+    );
     auto dirLightNode = std::make_shared<Renderer::LightNode>("DirLight", dirLightTransform, dirLight);
 
     Renderer::Transform pointLightTransform;
     pointLightTransform.translate = {0.0f, 0.0f, 0.0f};
-    auto pointLight = std::make_shared<Renderer::PointLight>(ambientColor, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector3<float>{0.1f, 0.1f, 0.1f}, 
-                pointLightTransform.translate, 1.0f, 0.0f, 0.0f , 1.0f);
+    auto pointLight = std::make_shared<Renderer::PointLight>(
+        ambientColor,
+        Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+        Math::Vector3<float>{0.1f, 0.1f, 0.1f}, 
+        pointLightTransform.translate,
+        1.0f, 0.0f, 0.0f , 1.0f
+    );
     auto pointLightNode = std::make_shared<Renderer::LightNode>("PointLight", pointLightTransform, pointLight);
 
-    auto hand = rm->getResource<Renderer::Mesh>("Hands.obj");
-    Renderer::Transform handsTransform;
-    auto hands = std::make_shared<Renderer::ObjectNode>("hands", handsTransform , hand, shader);
+    //auto hand = rm->getResource<Renderer::Mesh>("Hands.obj");
+    //Renderer::Transform handsTransform;
+    //auto hands = std::make_shared<Renderer::ObjectNode>("hands", handsTransform , hand, shader);
+
+    /*static Ref<Renderer::Mesh> sniper = rm->getResource<Renderer::Mesh>("Sniper_Rifle.obj"); 
+    Renderer::Transform sniperTransform;
+
+    auto sniperNode = std::make_shared<Renderer::ObjectNode>("sniper", sniperTransform, sniper, shader);
+    scene->addChildren(sniperNode);*/
+
+    Renderer::PrimitiveGenerators::ParametricSegments segments{ 32, 32 };
+    Ref<Renderer::Mesh> cube = Renderer::PrimitiveGenerators::createTorus(segments, 16,8);
+    Renderer::Transform cubeTransform;
+    cubeTransform.scale = { 0.25f,0.25f,0.25f };
+
+    auto cubeNode = std::make_shared<Renderer::ObjectNode>("cube", cubeTransform, cube, shader);
+    scene->addChildren(cubeNode);
 
 
-    //scene->addChildren(n);
-    //scene->addChildren(g);
-    scene->addChildren(n5);
-    n5->addChildren(nBox);
-    //scene->addChildren(nWall);
-    //scene->addChildren(hands);
-    //scene->addChildren(nBox);
+
+    ////scene->addChildren(n);
+    ////scene->addChildren(g);
+    //scene->addChildren(n5);
+    //n5->addChildren(nBox);
+    ////scene->addChildren(nWall);
+    ////scene->addChildren(hands);
+    ////scene->addChildren(nBox);
     scene->addChildren(dirLightNode);
     dirLightNode->addChildren(pointLightNode);
     
 
 }
+
+
 
 void nb::OpenGl::OpenGLRender::visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept
 {
@@ -298,273 +547,10 @@ void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat
 
 
 
-
-void nb::OpenGl::OpenGLRender::render()
-{
-    const int width = nb::Core::EngineSettings::getWidth();
-    const int height = nb::Core::EngineSettings::getHeight();
-    static bool reinit = false;
-
-    /*if (width == 0 || height == 0)
-    {
-        reinit = true;
-        return;
-    }*/
-
-    glViewport(0, 0, width, height);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-
-
-    // Получение камеры и матриц
-    auto view = cam->getLookAt();
-    auto proj = cam->getProjection();
-
-    // === FBO BUFFER ===
-    // init
-    if (reinit)
-    {
-		delete postProcessFbo;
-		postProcessFbo = new PostProcessFbo(width, height);
-    }
-
-    if(!postProcessFbo)
-    {
-        if (width != 0 && height != 0)
-        {
-            postProcessFbo = new PostProcessFbo(width, height);
-        }
-    }
-
-    GLuint fboHeigth = postProcessFbo->getHeight();
-    GLuint fboWidth = postProcessFbo->getWidth();
-
-    static bool isWindowMinimizePrevFrame = false;
-
-    if(fboWidth != width || fboHeigth != height)
-    {
-        if (width != 0 && height != 0)
-        {
-			delete postProcessFbo;
-			postProcessFbo = new PostProcessFbo(width, height);
-        }
-    }
-
-
-    postProcessFbo->bind();
-    glViewport(0, 0, width, height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-
-
-    // === SKYBOX ===
-    static Renderer::Skybox sky;
-    auto skyboxShader = rm->getResource<nb::Renderer::Shader>("skybox.shader");
-    skyboxShader->setUniformInt("skybox", 0);
-    skyboxShader->setUniformMat4("view", view);
-    skyboxShader->setUniformMat4("projection", proj);
-    sky.render(skyboxShader);
-
-    // === SHADER И МАТРИЦЫ ===
-    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
-
-    shader->setUniformMat4("model", model);
-    shader->setUniformMat4("view", view);
-    shader->setUniformMat4("proj", proj);
-
-    MVP = model * view * proj;
-
-    // === ОБНОВЛЕНИЕ СЦЕНЫ ===
-    sceneGraph->getScene()->updateWorldTransform();
-
-    // === ТЕКСТУРЫ ===
-    if (!t) {
-        t = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick.png");
-        tn = new OpenGlTexture("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\res\\brick_normal.png");
-    }
-
-
-    // === СБОР ИСТОЧНИКОВ СВЕТА ===
-    std::vector<Renderer::LightNode> lights;
-    std::stack<std::shared_ptr<Renderer::BaseNode>> nodeStack;
-    nodeStack.push(sceneGraph->getScene());
-
-    while (!nodeStack.empty()) {
-        auto node = nodeStack.top();
-        nodeStack.pop();
-
-        for (auto& child : node->getChildrens())
-            nodeStack.push(child);
-
-        if (auto lightNode = std::dynamic_pointer_cast<Renderer::LightNode>(node))
-            lights.push_back(*lightNode);
-    }
-
-    // === РЕНДЕР ===
-
-    // lightpass
-    Math::Mat4 lightProj = Math::ortho(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
-    Math::Mat4 lightView = Math::lookAt(
-        Math::Vector3<float>{-2.0f, 4.0f, -1.0f}, 
-        Math::Vector3<float>{0.0f, 0.0f, 0.0f}, 
-        Math::Vector3<float>{0.0f, 1.0f, 0.0f}
-    );
-
-    Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
-
-    Ref<Renderer::Shader> lightPassShader = rm->getResource<Renderer::Shader>("lightPass.shader");
-    
-
-    const size_t sizeOfDepthTexture = 1024;
-    glViewport(0, 0, sizeOfDepthTexture, sizeOfDepthTexture);
-    // i dont give a fuck why it eat all the memory
-    // update: ALWAYS DELETE TEXTURE!!!
-    OpenGl::DepthBuffer depthBuffer(sizeOfDepthTexture, sizeOfDepthTexture);
-
-    depthBuffer.bind();
-
-    countOfDraws = 0;
-    nodeStack.push(sceneGraph->getScene());
-
-    while (!nodeStack.empty()) {
-        auto node = nodeStack.top();
-        nodeStack.pop();
-
-        for (auto& child : node->getChildrens())
-            nodeStack.push(child);
-
-        if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
-        {
-            n->mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
-            n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
-            n->mesh->draw(GL_TRIANGLES, lightPassShader);
-        }
-    }
-
-    depthBuffer.unBind();
-
-    postProcessFbo->bind();
-    glViewport(0, 0, width, height);
-
-    refreshPolygonMode();
-
-    countOfDraws = 0;
-    nodeStack.push(sceneGraph->getScene());
-
-    while (!nodeStack.empty()) {
-        auto node = nodeStack.top();
-        nodeStack.pop();
-
-        for (auto& child : node->getChildrens())
-            nodeStack.push(child);
-
-        renderNode(node, lights, depthBuffer, lightSpaceMatrix);
-    }
-
-    postProcessFbo->unBind();
-    // === ПОСТПРОЦЕССИНГ ===
-        glViewport(0, 0, width, height);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-        std::vector<Renderer::Vertex> quadVertices = {
-            {{-1.0f, 1.0f, 0.0f}, {}},
-            {{-1.0f, -1.0f, 0.0f}, {}},
-            {{1.0f, -1.0f, 0.0f}, {}},
-            {{-1.0f, 1.0f, 0.0f}, {}},
-            {{1.0f, -1.0f, 0.0f}, {}},
-            {{1.0f, 1.0f, 0.0f}, {}}};
-
-        quadVertices[0].textureCoodinates = {0.0f, 1.0f};
-        quadVertices[1].textureCoodinates = {0.0f, 0.0f};
-        quadVertices[2].textureCoodinates = {1.0f, 0.0f};
-        quadVertices[3].textureCoodinates = {0.0f, 1.0f};
-        quadVertices[4].textureCoodinates = {1.0f, 0.0f};
-        quadVertices[5].textureCoodinates = {1.0f, 1.0f};
-
-        static std::vector<unsigned int> edges =
-            {
-                0, 1, 2, 3, 4, 5};
-
-        auto quadShader = rm->getResource<Renderer::Shader>("quadShader.shader");
-        quadShader->setUniformInt("depthMap", 3);
-        quadShader->setUniformVec2("screenSize", {(float)width, (float)height});
-        Renderer::Mesh quad(quadVertices, edges);
-
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, postProcessFbo->getQuadTexture());
-        quad.draw(GL_TRIANGLES, quadShader);
-
-        // === ПЕРЕКЛЮЧЕНИЕ БУФЕРОВ ===
-        SwapBuffers(hdc);
-}
-
-void nb::OpenGl::OpenGLRender::renderNode(std::shared_ptr<Renderer::BaseNode> node
-    , const std::vector<Renderer::LightNode>& lightNode
-    , const OpenGl::DepthBuffer& depthBuffer
-    , const Math::Mat4<float>& lightSpaceMatrix
-) noexcept
-{
-    if (node == nullptr)
-        return;
-
-    if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(node); n != nullptr)
-    {
-        countOfDraws++;
-        // n->mesh->uniforms.shader = shader;
-        n->mesh->uniforms.intUniforms["ourTexture"] = 1;
-        n->mesh->uniforms.intUniforms["textureNormal"] = 2;
-        n->mesh->uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
-        n->mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
-        n->mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
-        n->mesh->uniforms.mat4Uniforms["model"] = n->getWorldTransform();
-        n->mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, depthBuffer.getDepthMap());
-        n->mesh->uniforms.intUniforms["shadowMap"] = 4;
-        n->mesh->uniforms.intUniforms[Renderer::ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = Renderer::DirectionalLight::getCountOfDirectionalLights();
-
-        for(const auto& i : lightNode)
-        {
-            i.light->applyUniforms(shader);
-        }
-
-        if(n->getName() == "Gizmo")
-        {
-            n->mesh->uniforms.mat4Uniforms["model"] = gizmoModelMat;
-        }
-
-        t->bind(1);
-        tn->bind(2);
-        //else
-
-        n->mesh->draw(GL_TRIANGLES, shader);
-
-        if (!shouldVisualizeAabb)
-        {
-            visualizeAabb(n->mesh->getAabb3d(), n->getWorldTransform());
-        }
-    }
-    else if(auto n = std::dynamic_pointer_cast<Renderer::LightNode>(node); n != nullptr)
-    {
-        if (!shouldVisualizeLight)
-        {
-            visualizeLight(n);
-        }
-    }
-}
-
 nb::OpenGl::OpenGLRender *nb::OpenGl::OpenGLRender::create(HWND hwnd)
 {
     OpenGLRender *render = new OpenGLRender(hwnd);
-    if (!render->init())
+    if (!render->init(hwnd))
     {
         delete render;
         return nullptr;
@@ -596,43 +582,43 @@ void nb::OpenGl::OpenGLRender::drawTransformationElements(const Ref<Renderer::Me
 
 void nb::OpenGl::OpenGLRender::applyDefaultModel() noexcept
 {
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
+    //auto rm = nb::ResMan::ResourceManager::getInstance();
+    //shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
 }
 
 void nb::OpenGl::OpenGLRender::applyDefaultModelFlat() noexcept
 {
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("vertFlat.shader");
+    //auto rm = nb::ResMan::ResourceManager::getInstance();
+    //shader = rm->getResource<nb::Renderer::Shader>("vertFlat.shader");
 }
 
 void nb::OpenGl::OpenGLRender::applyDiffuseReflectionModel() noexcept
 {
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("DiffuseReflection.shader");
-
-    shader->setUniformVec3("lightPos", {1.0f, 1.0f, 1.0f});
-    shader->setUniformVec3("Kd", ambientColor);
-    shader->setUniformVec3("Ld", {0.498f, 0.294f, 0.784f});
+    //auto rm = nb::ResMan::ResourceManager::getInstance();
+    //shader = rm->getResource<nb::Renderer::Shader>("DiffuseReflection.shader");
+    //
+    //shader->setUniformVec3("lightPos", {1.0f, 1.0f, 1.0f});
+    //shader->setUniformVec3("Kd", ambientColor);
+    //shader->setUniformVec3("Ld", {0.498f, 0.294f, 0.784f});
 }
 
 void nb::OpenGl::OpenGLRender::applyAmbientDiffuseSpecularModel(Renderer::Camera *cam) noexcept
 {
-    auto rm = nb::ResMan::ResourceManager::getInstance();
-    shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
-    shader->setUniformVec3("La", {1.f, 1.f, 1.f});
-    shader->setUniformVec3("Ka", mat.ambient);
+    //auto rm = nb::ResMan::ResourceManager::getInstance();
+    //shader = rm->getResource<nb::Renderer::Shader>("ADS.shader");
+    //shader->setUniformVec3("La", {1.f, 1.f, 1.f});
+    //shader->setUniformVec3("Ka", mat.ambient);
 
-    shader->setUniformVec3("Ld", {1.f, 1.f, 1.f});
-    shader->setUniformVec3("Kd", mat.diffuse);
-    shader->setUniformVec3("LightPos", {1.2f, 1.0f, 2.0f});
+    //shader->setUniformVec3("Ld", {1.f, 1.f, 1.f});
+    //shader->setUniformVec3("Kd", mat.diffuse);
+    //shader->setUniformVec3("LightPos", {1.2f, 1.0f, 2.0f});
 
-    // shader->setUniformMat4("ViewDir", cam->getLookAt() );
-    shader->setUniformVec3("Ls", {1.0f, 1.0f, 1.0f});
-    shader->setUniformVec3("Ks", mat.specular);
-    shader->setUniformFloat("shine", mat.shininess);
+    //// shader->setUniformMat4("ViewDir", cam->getLookAt() );
+    //shader->setUniformVec3("Ls", {1.0f, 1.0f, 1.0f});
+    //shader->setUniformVec3("Ks", mat.specular);
+    //shader->setUniformFloat("shine", mat.shininess);
 
-    shader->setUniformVec3("viewPos", cam->getPosition());
+    //shader->setUniformVec3("viewPos", cam->getPosition());
 }
 
 void nb::OpenGl::OpenGLRender::setpolygonModePoints() noexcept
@@ -655,10 +641,9 @@ void nb::OpenGl::OpenGLRender::refreshPolygonMode() const noexcept
     glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 }
 
+
+
 nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::ambientColor = {0.0f, 0.0f, 0.0f};
-nb::Math::Vector3<float> nb::OpenGl::OpenGLRender::lightPos = {0.0f, 0.0f, 0.0f};
-nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::MVP = {};
-Ref<nb::Renderer::Shader> nb::OpenGl::OpenGLRender::shader = nullptr;
 nb::Math::Mat4<float> nb::OpenGl::OpenGLRender::model({{1.0f, 0.f, 0.f, 0.f},
                                                        {0.f, 1.0f, 0.f, 0.f},
                                                        {0.f, 0.f, 1.0f, 0.f},

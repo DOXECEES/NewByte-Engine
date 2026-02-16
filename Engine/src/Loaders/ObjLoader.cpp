@@ -14,13 +14,14 @@ namespace nb
             char buffer[MAX_PATH];
             GetModuleFileNameA(NULL, buffer, MAX_PATH);
             std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-            auto s = std::string(buffer).substr(0, pos);
-            s += "/res";
-            file.open(s / path);
+            //auto s = std::string(buffer).substr(0, pos);
+            //s += "/Assets/res"; // TODO: no non const path 
+            std::string str = "Assets/res/" + path.string();
+            file.open(str);
 
             if (!file.is_open())
             {
-                return nullptr;
+                return nullptr; // TODO: return placeholder (generate in runtime)
             }
 
             std::vector<Renderer::Vertex> vert;

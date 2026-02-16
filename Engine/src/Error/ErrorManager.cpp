@@ -3,6 +3,8 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "ErrorManager.hpp"
 
+#include "Error/IErrorPrinter.hpp"
+
 namespace nb
 {
     namespace Error
@@ -12,6 +14,7 @@ namespace nb
             static ErrorManager instance;
             return instance;
         }
+
         ErrorManager::ProxyMessage ErrorManager::report(Type errorType, std::string_view message) noexcept
         {
             isMessageReceived = true;
@@ -70,6 +73,7 @@ namespace nb
         void ErrorManager::insert(const ErrorMessage& message) noexcept
         {
             messages.push(message);
+            printer->print(message);
         }
 
         ErrorManager::ProxyMessage::ProxyMessage(Type errorType, std::string_view message) noexcept

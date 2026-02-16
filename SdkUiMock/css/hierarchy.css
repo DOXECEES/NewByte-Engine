@@ -1,0 +1,91 @@
+#hierarchy {
+  background-color: #1f1f1f;
+  color: #ddd;
+  padding: 8px 10px;
+  height: 100%;
+  overflow-y: auto;
+  font-family: "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+#hierarchy h3 {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+}
+
+.hierarchy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hierarchy-item {
+  padding: 4px 6px 4px 18px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  position: relative;
+}
+
+.hierarchy-item:hover {
+  background-color: #2d2d2d;
+}
+
+.hierarchy-item.selected {
+  background-color: #3a65c0;
+  color: #fff;
+}
+
+.hierarchy-children {
+  margin-left: 14px;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.triangle {
+  position: absolute;
+  left: 4px;
+  font-size: 0.7rem;
+  color: #aaa;
+  user-select: none;
+}
+
+/* Scrollbar — в стиле SDK */
+#hierarchy::-webkit-scrollbar {
+  width: 8px;
+}
+
+#hierarchy::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+#hierarchy::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+#hierarchy::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+.hierarchy-children {
+  margin-left: 14px;
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.15s ease-out;
+}
+
+.hierarchy-item.expanded > .triangle {
+  transform: rotate(0deg);
+  transition: transform 0.1s ease;
+}
+

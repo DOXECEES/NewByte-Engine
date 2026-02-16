@@ -24,7 +24,7 @@ namespace nb
 
             rawDevice[1].usUsagePage  = 0x01;
             rawDevice[1].usUsage      = 0x06;
-            rawDevice[1].dwFlags      = RIDEV_NOLEGACY;
+            rawDevice[1].dwFlags      = 0;
             rawDevice[1].hwndTarget   = nb::Core::Engine::getLinkedHwnd();
 
             RegisterRawInputDevices(rawDevice, 2, sizeof(RAWINPUTDEVICE));

@@ -24,22 +24,28 @@ namespace nb
         {
             Vertex() = default;
 
-            Vertex(const Math::Vector3<float> &pos, const Math::Vector3<float> &norm = 0, const Math::Vector3<float>& color = 0, const Math::Vector2<float> &tex = 0, const Math::Vector4<float> &tang = 0)
-                : position(pos), normal(norm), color(color), textureCoodinates(tex), tangent(tang)
-            {
-            }
-            Math::Vector3<float> position;
-            Math::Vector3<float> normal;
-            Math::Vector3<float> color;
-            Math::Vector2<float> textureCoodinates;
-            Math::Vector4<float> tangent;
+            Vertex(
+                const Math::Vector3<float>& pos = {},
+                const Math::Vector3<float>& norm = {},
+                const Math::Vector3<float>& col = { 1.0f,1.0f,1.0f },
+                const Math::Vector2<float>& tex = {},
+                const Math::Vector4<float>& tang = {}
+            )
+                : position(pos), normal(norm), color(col), textureCoordinates(tex), tangent(tang)
+            {}
+
+            Math::Vector3<float> position{};
+            Math::Vector3<float> normal{};
+            Math::Vector3<float> color{ 1.0f, 1.0f, 1.0f };
+            Math::Vector2<float> textureCoordinates{};
+            Math::Vector4<float> tangent{};
 
             bool operator==(const Vertex &other) const
             {
                 return position == other.position &&
                        normal == other.normal &&
                        color == other.color &&
-                       textureCoodinates == other.textureCoodinates;
+                       textureCoordinates == other.textureCoordinates;
             }
         };
 

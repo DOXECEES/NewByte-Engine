@@ -2,6 +2,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "ShaderFactory.hpp"
+#include "Debug.hpp"
 
 namespace nb
 {
@@ -16,7 +17,8 @@ namespace nb
                 case Core::GraphicsAPI::OPENGL:
                 {
                     auto rm = nb::ResMan::ResourceManager::getInstance();
-                    auto shaders = rm->getResource<Json>("C:\\rep\\Hex\\NewByte-Engine\\build\\Engine\\Debug\\shaders\\config.nbsd");
+                    Debug::debug(std::filesystem::current_path());
+                    auto shaders = rm->getResource<Json>("Assets\\shaders\\config.nbsd");
                     auto str = path.string();
                     std::vector<std::filesystem::path> s = (*shaders)[str]["sources"].getArray<std::filesystem::path>();
                     return createRef<nb::OpenGl::OpenGlShader>(s);

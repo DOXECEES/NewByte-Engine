@@ -11,7 +11,7 @@ namespace nb
         {
         public:
             DepthBuffer(const GLuint width = 1024, const GLuint height = 1024) noexcept;
-            ~DepthBuffer() = default;
+            virtual ~DepthBuffer() = default;
 
             GLuint generateDepthMap(const GLuint width, const GLuint height) const noexcept;
 

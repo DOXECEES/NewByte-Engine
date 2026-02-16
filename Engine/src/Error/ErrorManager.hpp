@@ -6,6 +6,10 @@
 #include <chrono>
 #include <queue>
 
+
+
+
+
 template<typename T>
 inline std::string toString(const T& val) noexcept
 {
@@ -14,10 +18,12 @@ inline std::string toString(const T& val) noexcept
     return oss.str();
 }
 
+
 namespace nb
 {
     namespace Error
     {
+        class IErrorPrinter;
         // TODO: stringify macro 
         enum class Type : uint8_t
         {
@@ -64,7 +70,6 @@ namespace nb
                 template<typename T>
                 ProxyMessage& with(std::string_view key, const T& value) noexcept
                 {
-                    // to string
                     message.data[key.data()] = toString(value);
                     return *this;
                 }
@@ -84,6 +89,7 @@ namespace nb
             ErrorMessage get() noexcept;
             
             inline bool hasMessages() const noexcept { return isMessageReceived; };
+            void setPrinter(IErrorPrinter* printer) { this->printer = printer; }
 
         private:
             ErrorManager() noexcept = default;
@@ -100,8 +106,12 @@ namespace nb
         private:
             bool                        isMessageReceived = false;
             std::queue<ErrorMessage>    messages;
+            
+            IErrorPrinter* printer = nullptr;
+        
         };
     };
 };
+
 
 #endif

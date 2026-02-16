@@ -23,10 +23,18 @@
 
 #include "../Renderer/Camera.hpp"
 
+#include "ECS/ecs.hpp"
+
+#include "Renderer/Color.hpp"
+#include <Alghorithm.hpp>
+
+
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <future>
+
+#include <Uuid.hpp>
 
 namespace nb
 {
@@ -42,14 +50,94 @@ namespace nb
                 GAME
             };
 
-            Engine(const HWND& windowHwnd);
+            Engine(const HWND& windowHwnd)
+            {
+
+#ifdef NB_DEBUG
+
+                Math::Vector3<float> v1 = { 0.0f, 0.0f, 0.0f };
+                Math::Vector3<float> v2 = { 0.0f, 1.0f, 0.0f };
+
+                Math::Ray r(v1, v2);
+
+                Math::Ray r2({ 5.0f, 2.0f, 0.0f }, { -1.0f, 0.0f, 0.0f });
+                auto res = Math::distanceBetweenRays(r, r2);
+
+                //auto v = nb::Math::projectVectorToVector(v1, v2);
+
+
+                //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
+
+                nbstl::Uuid uuid = nbstl::Uuid::generate();
+                std::string s = uuid.toString();
+
+                struct Helth
+                {
+                    int hp;
+                };
+
+                struct Speed
+                {
+                    float velocity;
+                };
+
+                struct Position
+                {
+                    Math::Vector3<float> position;
+                };
+
+                Ecs::EcsManager manager;
+                auto ent1 = manager.createEntity();
+                ent1.add<Helth>(Helth(1));
+                ent1.add<Speed>(Speed(1));
+                auto ent2 = manager.createEntity();
+                ent2.add<Helth>(Helth(2));
+
+                Debug::debug("HELTH:");
+
+                for (auto& i : manager.getEntitiesWithComponent<Helth>())
+                {
+                    auto h = i.get<Helth>();
+                    Debug::debug(h.hp);
+                }
+                Debug::debug("Speed:");
+
+                for (auto& i : manager.getEntitiesWithComponent<Speed>())
+                {
+                    auto h = i.get<Speed>();
+                    Debug::debug(h.velocity);
+                }
+
+                Renderer::Color color = Renderer::Color::fromRgb(92, 82, 14);
+                auto hsv = color.toHsv();
+
+                auto m = Error::ErrorManager::instance().report(Error::Type::INFO, "Hello")
+                    .with("Hello", "Hello")
+                    .with("World", "World");
+                
+
+
+#endif            
+
+
+                hwnd = windowHwnd;
+                subSystems->Init(hwnd);
+                keyboard = subSystems->getKeyboard();
+                mouse = subSystems->getMouse();
+                input = createRef<Input::Input>();
+                input->linkKeyboard(keyboard);
+                input->linkMouse(mouse);
+                renderer = subSystems->getRenderer();
+                renderer->setCamera(&cam);
+                Utils::Timer::init();
+            }
             ~Engine() = default;
 
             void bufferizeInput(const MSG& msg) const noexcept;
             void processInput() const noexcept;
             void setHandleInput(bool var) { handleInput = var; }
 
-            bool run(Input::MouseDelta mouseDelta, Input::MouseButtons buttons);
+            bool run(bool shouldRender = true);
             void handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept;
             void handleEditorMode() noexcept;
 

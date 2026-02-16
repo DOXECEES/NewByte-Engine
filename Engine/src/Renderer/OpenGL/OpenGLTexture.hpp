@@ -20,6 +20,8 @@ namespace nb
 
                 void bind(const uint32_t slotId) const noexcept;
 
+                GLuint getId() const noexcept;
+
             private:
                 GLuint texture;
         };
