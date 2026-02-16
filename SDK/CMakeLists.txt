@@ -45,6 +45,7 @@ else()
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_SRC_DIR}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
+        
         COMMENT "Copying Assets folder to $<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
     )
 endif()

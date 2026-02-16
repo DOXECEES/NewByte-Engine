@@ -60,6 +60,12 @@
             "Assets/shaders/quadShader.fs"
         ]
     },
+	"quadShader2.shader" : {
+        "sources": [
+            "Assets/shaders/quadShader2.vs",
+            "Assets/shaders/quadShader2.fs"
+        ]
+    },
 	"lightPass.shader" : {
 		"sources": [
 			"Assets/shaders/lightPass.vs"

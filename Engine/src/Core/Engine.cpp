@@ -92,11 +92,11 @@ namespace nb
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
             {
-                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::LINES);
+                renderer->togglePolygonVisibilityMode(Renderer::PolygonMode::LINES);
             }
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_2))
             {
-                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::POINTS);
+                renderer->togglePolygonVisibilityMode(Renderer::PolygonMode::POINTS);
             }
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_3))
             {
@@ -108,7 +108,7 @@ namespace nb
             }
             if(keyboard->isKeyPressed(Keyboard::KeyCode::NB_9))
             {
-                renderer->togglePolygonVisibilityMode(Renderer::Renderer::PolygonMode::FULL);
+                renderer->togglePolygonVisibilityMode(Renderer::PolygonMode::FULL);
             }
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_CONTROL))
             {
@@ -204,31 +204,31 @@ namespace nb
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
-                cam.moveAt(camDir * 2.0f * deltaTime);
+                cam.moveAt(camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
             {
-                cam.moveAt(-camDir * 2.0f * deltaTime);
+                cam.moveAt(-camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(rightVec * 2.0f * deltaTime);
+                cam.moveAt(rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(-rightVec * 2.0f * deltaTime);
+                cam.moveAt(-rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
             {
-                cam.moveAt(cam.getUpVector() * 2.0f * deltaTime);
+                cam.moveAt(cam.getUpVector() * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SHIFT))
             {
-                cam.moveAt(-(cam.getUpVector() * 2.0f * deltaTime));
+                cam.moveAt(-(cam.getUpVector() * 5.0f * deltaTime));
             }
         }
 

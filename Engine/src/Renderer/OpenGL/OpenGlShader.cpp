@@ -144,7 +144,14 @@ void nb::OpenGl::OpenGlShader::createProgram() noexcept
         {
             glDeleteShader(i);
         }
-        Debug::debug(infoLog);
+        std::string s;
+        s.reserve(infoLog.size());
+        for (auto i : infoLog)
+        {
+            s += i;
+        }
+
+        nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, s);
         assert(L"Cannot link shader");
     }
 

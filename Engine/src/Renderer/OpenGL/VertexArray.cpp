@@ -34,7 +34,6 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, position)));
     glEnableVertexAttribArray(0);
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, normal)));
     glEnableVertexAttribArray(1);
@@ -66,4 +65,14 @@ void nb::OpenGl::VertexArray::draw(const size_t count, GLenum mode, const size_t
     {
         glDisableVertexAttribArray(i);
     }
+}
+
+const nb::OpenGl::VBO& nb::OpenGl::VertexArray::getVbo() const noexcept
+{
+    return vbo;
+}
+
+const nb::OpenGl::EBO& nb::OpenGl::VertexArray::getEbo() const noexcept
+{
+    return ebo;
 }

@@ -7,6 +7,9 @@
 #include <queue>
 
 
+
+
+
 template<typename T>
 inline std::string toString(const T& val) noexcept
 {
@@ -14,6 +17,7 @@ inline std::string toString(const T& val) noexcept
     oss << val;
     return oss.str();
 }
+
 
 namespace nb
 {
@@ -66,7 +70,6 @@ namespace nb
                 template<typename T>
                 ProxyMessage& with(std::string_view key, const T& value) noexcept
                 {
-                    // to string
                     message.data[key.data()] = toString(value);
                     return *this;
                 }
@@ -109,5 +112,6 @@ namespace nb
         };
     };
 };
+
 
 #endif

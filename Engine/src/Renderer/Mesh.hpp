@@ -67,6 +67,12 @@ namespace nb
                     recalculateAabb3dForce();
                 };
 
+                Mesh(const Mesh& other) noexcept;
+
+                void setVaoId(GLuint id) noexcept
+                {
+                    VAO.setExternalId(id);
+                }
                 
                 std::vector<Material> getMaterials() const noexcept;
                 
@@ -75,7 +81,8 @@ namespace nb
                 const Math::AABB3D &recalculateAabb3dForce() noexcept;
 
                 void draw(GLenum mode, const Ref<Shader>& shader) const noexcept;
-                
+                void draw(GLenum mode, const Ref<Shader>& shader, GLuint vao) const noexcept;
+
                 void calculateTagnentArray()
                 {
                     size_t triangleCount = indiciesCount / 3;
@@ -90,6 +97,7 @@ namespace nb
                         int i2 = ind[a * 3 + 1];
                         int i3 = ind[a * 3 + 2];
                 
+
                         const Math::Vector3<float>& v1 = verticies[i1].position;
                         const Math::Vector3<float>& v2 = verticies[i2].position;
                         const Math::Vector3<float>& v3 = verticies[i3].position;
@@ -135,11 +143,9 @@ namespace nb
                         const Math::Vector3<float>& n = verticies[a].normal;
                         const Math::Vector3<float>& t = tan1[a];
                 
-                        // Gram-Schmidt orthogonalization
                         Math::Vector3<float> tangentVec = (t - n * n.dot(t));
                         tangentVec.normalize();
 
-                        // Calculate handedness
                         float handedness = (n.cross(t).dot(tan2[a]) < 0.0F) ? -1.0F : 1.0F;
                 
                         verticies[a].tangent = Math::Vector4<float>(tangentVec.x, tangentVec.y,tangentVec.z, handedness);
@@ -149,12 +155,15 @@ namespace nb
                 }
                 
                 ShaderUniforms uniforms;
-            
+                
+                GLuint getVboId() const noexcept;
+                GLuint getEboId() const noexcept;
+
             private:
                 std::vector<uint32_t> uniteIndicies() noexcept;
                 void applyMaterial(const SubMesh& mesh) const noexcept;
 
-            //private:
+            private:
 
 
                 Math::AABB3D                            aabb;

@@ -29,6 +29,7 @@
 #include "OpenGLTexture.hpp"
 #include "ShaderConstants.hpp"
 
+#include "Renderer/OpenGL/FBO.hpp"
 #include "DepthBuffer.hpp"
 #include "PostProcessFbo.hpp"
 
@@ -62,28 +63,54 @@ namespace nb
             typedef HGLRC (WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int*);
             typedef BOOL (WINAPI * PFNWGLCHOOSEPIXELFORMATARBPROC) (HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
 
+
+
             private:
 
                 OpenGLRender() = delete;
-                OpenGLRender(HWND _hwnd) noexcept;
+                OpenGLRender(void* handle) noexcept;
                 ~OpenGLRender() noexcept;
 
-                bool init() noexcept override;
+                void beginFrame() noexcept override;
+                void endFrame() noexcept override;
+
+                void drawMesh(Renderer::RendererCommand& command) noexcept override;
+                void drawContextMesh(const Renderer::ContextMesh& contextMesh, Renderer::PipelineHandle pipeline) noexcept override;
+
+
+                void bindPipeline(Renderer::PipelineHandle pipelineHandle) noexcept override;
+
+                Ref<Renderer::IFrameBuffer> createFrameBuffer(const uint32 width, const uint32 height) const noexcept override;
+                void bindDefaultFrameBuffer() noexcept override;
+                void bindFrameBuffer(const Ref<Renderer::IFrameBuffer>& frameBuffer) noexcept override;
+
+                void bindTexture(uint8 slot, uint32 textureId) noexcept override;
+
+
+                void setViewport(const Renderer::Viewport& viewport) noexcept override;
+
+                void clear(bool color, bool depth, bool stencil) noexcept override;
+
+                void setClearColor(const Renderer::Color& color, float depthValue, int32 stencilValue) noexcept override;
+
+                bool init(void* handle) noexcept override;
                 void initFail(std::string_view message, HGLRC context) noexcept;
                 void loadScene() noexcept;
+
+                static GLenum toOpenGlPolygonMode(Renderer::PolygonMode mode) noexcept;
+
+                Renderer::SharedWindowContext shareContext(void* handle) const noexcept override;
+                bool setContext(HDC hdc, HGLRC hglrc) noexcept override;
+                bool setDefaultContext() noexcept;
+
+
 
                 void visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept;
                 void visualizeAabb(const Math::AABB3D& aabb, Math::Mat4<float> mat) const noexcept;
 
             public:
 
-                void render() override;
-                void renderNode(std::shared_ptr<Renderer::BaseNode> node
-                    , const std::vector<Renderer::LightNode>& lightNode
-                    , const OpenGl::DepthBuffer& depthBuffer
-                    , const Math::Mat4<float>& lightSpaceMatrix
-                ) noexcept;
-
+      
                 static OpenGLRender *create(HWND hwnd);
 
                 static void setAmbientLight(const Math::Vector3<uint8_t>& color) noexcept
@@ -108,12 +135,11 @@ namespace nb
                 virtual void setpolygonModePoints() noexcept override;
                 virtual void setPolygonModeLines()  noexcept override;
                 virtual void setPolygonModeFull()   noexcept override;
+                
 
                 void refreshPolygonMode() const noexcept;
                 
 
-                static Math::Mat4<float>        MVP;
-                static Ref<Renderer::Shader>    shader;
 
                 static Math::Mat4<float>        gizmoModelMat;
 
@@ -123,10 +149,12 @@ namespace nb
 
             private:
 
+                PIXELFORMATDESCRIPTOR pfd = {};
+                int pixelFormat = {};
+                HGLRC hglrc = {};
                 HDC hdc = {};
                 
                 static Math::Vector3<float>         ambientColor;
-                static Math::Vector3<float>         lightPos;
                 static Math::Mat4<float>            model;
 
                 static Renderer::Material           mat;
@@ -137,7 +165,6 @@ namespace nb
 
                 // temp
                 std::vector<Math::Vector3<float>>   lightPosition;
-                bool                                shouldVisualizeLight    = false;
                 bool                                shouldVisualizeAabb     = false;
 
                 //
@@ -146,7 +173,10 @@ namespace nb
                 OpenGlTexture*                      tn                      = nullptr;
                 std::shared_ptr<PostProcessFbo>     postProcessFbo          = nullptr;
 
-        };
+              
+                
+
+};
     };
 };
 

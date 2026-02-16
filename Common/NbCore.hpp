@@ -107,4 +107,16 @@ NB_NON_MOVABLE(ClassName) \
 ClassName(const ClassName& other) noexcept = default; \
 ClassName& operator=(const ClassName& other) noexcept = default; \
 
+#define NB_COPYABLE(ClassName) \
+ClassName(const ClassName& other) noexcept = default; \
+ClassName& operator=(const ClassName& other) noexcept = default; \
+
+#define NB_MOVABLE(ClassName) \
+ClassName(ClassName&& other) noexcept = default; \
+ClassName& operator=(ClassName&& other) noexcept = default; \
+
+#define NB_COPYMOVABLE(ClassName) \
+NB_COPYABLE(ClassName) \
+NB_MOVABLE(ClassName) \
+
 #endif

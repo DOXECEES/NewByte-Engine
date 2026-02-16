@@ -37,5 +37,10 @@ namespace nb
             glActiveTexture(GL_TEXTURE0 + slotId);
             glBindTexture(GL_TEXTURE_2D, texture);
         }
+
+        GLuint OpenGlTexture::getId() const noexcept
+        {
+            return texture;
+        }
     };
 };

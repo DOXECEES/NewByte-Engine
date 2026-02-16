@@ -1,6 +1,8 @@
 #ifndef SRC_RENDERER_OBJECTS_OBJECTS_HPP
 #define SRC_RENDERER_OBJECTS_OBJECTS_HPP
 
+#include <Types.hpp>
+
 #include "../../Core.hpp"
 
 #include "Renderer/Mesh.hpp"
@@ -19,7 +21,7 @@ namespace nb
             };
 
             Ref<Mesh> createCube() noexcept;
-            Ref<Mesh> createSphere(const float radius) noexcept;
+            Ref<Mesh> createSphere(const float radius, uint32 xSegments, uint32 ySegments) noexcept;
             Ref<Mesh> createTorus(const ParametricSegments& segments, const float majorRadius, const float minorRadius) noexcept;
         };
 

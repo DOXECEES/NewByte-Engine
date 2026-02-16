@@ -2,143 +2,185 @@
 
 out vec4 FragColor;
 
+// --- Входные данные ---
 in vec3 FragPos;
 in vec3 oNormal;
 in vec2 TexCoords;
 in mat3 TBN;
-in vec3 oModelFragPos;
 in vec4 FragPosLightSpace;
 
+// --- Текстуры ---
+uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
+uniform sampler2D metallicMap;
+uniform sampler2D roughnessMap;
+uniform sampler2D aoMap;
 
-uniform vec3 Ka;
-uniform vec3 Kd;
-uniform vec3 Ks;
-uniform float shine;
+// --- Параметры ---
+uniform vec3  u_Albedo;
+uniform float u_Metallic;
+uniform float u_Roughness;
+uniform float u_AO;
+uniform vec3  viewPos;
 
-uniform vec3 viewPos;
+// --- Освещение ---
+struct DirectionalLight {
+    vec3 direction;
+    vec3 Ld;
+};
 
-uniform sampler2D ourTexture;
-uniform sampler2D textureNormal;  
+struct PointLight {
+    vec3 position;
+    vec3 Ld;
+    float intensity;
+    // Коэффициенты затухания
+    float point_const_coof;
+    float point_linear_coof;
+    float point_exp_coof;
+};
 
-uniform sampler2D depthMap;
-
-uniform int _COUNT_OF_POINTLIGHT_;
-uniform int _COUNT_OF_SPOTLIGHT_;
+uniform DirectionalLight light[8];
 uniform int _COUNT_OF_DIRECTIONLIGHT_;
 
-struct DirectionalLight
-{
-    vec3 direction;
-    vec3 La;
-    vec3 Ld;
-    vec3 Ls;
-};
-
-
-struct PointLight
-{
-    vec3 La;
-    vec3 Ld;
-    vec3 Ls; 
-	vec3 position;
-	float point_const_coof;
-	float point_linear_coof;
-	float point_exp_coof;
-	float intensity;
-};
-
-uniform sampler2D shadowMap;
-
-uniform DirectionalLight light[32];
 uniform PointLight lightPoint[32];
+uniform int _COUNT_OF_POINTLIGHT_;
 
+const float PI = 3.14159265359;
 
-vec3 calculatePointLight(PointLight pointLight, vec3 normal, vec3 viewDir)
-{
-	
-    vec3 lightDir = normalize(pointLight.position - oModelFragPos);
-    float distance = length(pointLight.position - oModelFragPos);
-	if(distance < 0.0)
-	{
-		lightDir *= -1;
-	}
+struct PBRMaterial {
+    vec3  albedo;
+    float metallic;
+    float roughness;
+    float ao;
+    vec3  normal;
+};
 
-    // Расчёт затухания
-    float attenuation = 1.0 / (pointLight.point_const_coof + 
-                               pointLight.point_linear_coof * distance + 
-                               pointLight.point_exp_coof * (distance * distance));
+// ============================================================================
+// 1. Математика PBR (Cook-Torrance BRDF)
+// ============================================================================
 
-    // Амбиент
-    vec3 ambient = pointLight.La * pointLight.intensity;
-
-    // Диффузное освещение
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = pointLight.Ld * diff * pointLight.intensity;
-
-    // Спекулярное освещение (Phong)
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shine);
-    vec3 specular = pointLight.Ls * spec * pointLight.intensity;
-
-    return ((ambient + diffuse) * attenuation);
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / (PI * denom * denom + 0.0000001);
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
-{
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-
-    if(projCoords.z > 1.0)
-        return 0.0;
-
-    float closestDepth = texture(shadowMap, projCoords.xy).r; 
-    float currentDepth = projCoords.z;
-
-    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.0005);
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
-
-    return shadow;
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k + 0.0000001);
 }
 
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    return GeometrySchlickGGX(NdotV, roughness) * GeometrySchlickGGX(NdotL, roughness);
+}
 
-void main()
-{
-	vec3 norm = texture(textureNormal, TexCoords * 32).rgb;
-    norm = normalize(norm * 2.0 - 1.0);   
-    norm = normalize(TBN * norm);  // Применяем TBN к нормали
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
 
+// Универсальная функция расчета отражения (BRDF)
+vec3 CalculateBRDF(vec3 L, vec3 V, vec3 F0, PBRMaterial mat, vec3 radiance) {
+    vec3 H = normalize(V + L);
+    float NdotL = max(dot(mat.normal, L), 0.0);
+    float NdotV = max(dot(mat.normal, V), 0.0);
+
+    float D = DistributionGGX(mat.normal, H, mat.roughness);   
+    float G = GeometrySmith(mat.normal, V, L, mat.roughness);      
+    vec3  F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+       
+    vec3 numerator    = D * G * F; 
+    float denominator = 4.0 * NdotV * NdotL + 0.001; 
+    vec3 specular     = numerator / denominator;
     
-	vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 kS = F;
+    vec3 kD = (vec3(1.0) - kS) * (1.0 - mat.metallic);
 
-    vec3 ambient = vec3(0.0);
-    for (int i = 0; i < _COUNT_OF_DIRECTIONLIGHT_; ++i)
-    {
-        ambient += light[i].La;
+    return (kD * mat.albedo / PI + specular) * radiance * NdotL;
+}
+
+// ============================================================================
+// 2. Функции обработки данных
+// ============================================================================
+
+PBRMaterial GetMaterialData() {
+    PBRMaterial mat;
+    vec2 uv = TexCoords * 4.0; // Твой тайлинг
+
+    mat.albedo = pow(texture(albedoMap, uv).rgb, vec3(2.2));
+    mat.metallic  = texture(metallicMap, uv).r * u_Metallic;
+    mat.roughness = max(texture(roughnessMap, uv).r * u_Roughness, 0.05);
+    
+    // Читаем AO из красного канала текстуры
+    mat.ao = texture(aoMap, uv).r;
+
+    vec3 tangentNormal = texture(normalMap, uv).rgb * 2.0 - 1.0;
+    mat.normal = normalize(TBN * tangentNormal);
+    
+    return mat;
+}
+
+
+// Расчет направленного света
+vec3 CalculateDirectionalLight(DirectionalLight l, PBRMaterial mat, vec3 V, vec3 F0) {
+    vec3 L = normalize(-l.direction);
+    return CalculateBRDF(L, V, F0, mat, l.Ld);
+}
+
+// Расчет точечного света
+vec3 CalculatePointLight(PointLight l, PBRMaterial mat, vec3 V, vec3 F0) {
+    vec3 L = normalize(l.position - FragPos);
+    float distance = length(l.position - FragPos);
+    
+    // Расчет затухания (Attenuation)
+    float attenuation = 1.0 / (l.point_const_coof + l.point_linear_coof * distance + l.point_exp_coof * (distance * distance));
+    vec3 radiance = l.Ld * l.intensity * attenuation;
+
+    return CalculateBRDF(L, V, F0, mat, radiance);
+}
+
+vec3 ApplyPostProcessing(vec3 color) {
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    color = clamp((color*(a*color+b))/(color*(c*color+d)+e), 0.0, 1.0);
+    return pow(max(color, vec3(0.0)), vec3(1.0/2.2));
+}
+
+// ============================================================================
+// MAIN logic
+// ============================================================================
+
+void main() {
+    PBRMaterial mat = GetMaterialData();
+    vec3 V = normalize(viewPos - FragPos);
+    vec3 F0 = mix(vec3(0.04), mat.albedo, mat.metallic);
+
+    vec3 Lo = vec3(0.0);
+
+    // 1. Направленные источники
+    for(int i = 0; i < _COUNT_OF_DIRECTIONLIGHT_; ++i) {
+        Lo += CalculateDirectionalLight(light[i], mat, V, F0);
     }
-    ambient *= Ka;
 
-    vec3 result = ambient;
+    // 2. Точечные источники
+    for(int i = 0; i < _COUNT_OF_POINTLIGHT_; ++i) {
+        Lo += CalculatePointLight(lightPoint[i], mat, V, F0);
+    }
 
+    // 3. Фоновое освещение
+    vec3 ambient = vec3(0.08) * mat.albedo * mat.ao;
 
-    for (int i = 0; i < _COUNT_OF_DIRECTIONLIGHT_; ++i)
-    {
-        vec3 lightDir = normalize(light[i].direction); 
-        // Diffuse
-        float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = light[i].Ld * (diff * Kd);
-
-        // Specular
-		vec3 reflectDir = reflect(-lightDir, norm);
-		float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-		vec3 specular = light[i].Ls * (spec);
-
-		float shadow = ShadowCalculation(FragPosLightSpace, norm, light[i].direction);
-		result += (1.0 - shadow) * (diffuse + specular);
-	}
+    vec3 color = ambient + Lo;
 	
+	color = mix(color, color * mat.ao, mat.roughness);
 
-		
-	result += calculatePointLight(lightPoint[0], norm, viewDir);
-
-	FragColor = texture(ourTexture,TexCoords * 32) * vec4(result, 1.0);
+    FragColor = vec4(ApplyPostProcessing(color), 1.0);
 }

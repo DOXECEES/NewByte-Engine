@@ -32,7 +32,7 @@ public:
     static void debug(T val
                     , const std::source_location& location = std::source_location::current())
     {
-
+#if 0
         std::ostringstream oss;
 
         addHeader(location, oss);
@@ -47,13 +47,14 @@ public:
         }
 
         writeToConsole(oss.str());
+#endif
     }
 
     template <template <typename...> class Container, class... T>
     static void debug(const Container<T...> &container
                     , const std::source_location& location = std::source_location::current())
     {
-
+#if 0
         std::ostringstream oss;
         addHeader(location, oss);
 
@@ -116,6 +117,7 @@ public:
         }
 
         writeToConsole(oss.str());
+#endif
     } 
 
 private:

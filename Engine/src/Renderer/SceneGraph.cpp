@@ -35,6 +35,12 @@ namespace nb
             dirtyFlag = true;
         }
 
+        void BaseNode::addTranslate(const Math::Vector3<float>& translate) noexcept
+        {
+            transform.translate += translate;
+            dirtyFlag = true;
+        }
+
         void BaseNode::setTranslate(const Math::Vector3<float> &translate) noexcept
         {
             transform.translate = translate;
@@ -169,6 +175,25 @@ namespace nb
         std::shared_ptr<BaseNode> SceneGraph::find(std::string_view str)
         {
             return treeMap[str.data()];
+        }
+
+        void SceneGraph::traverse(const std::function<void(std::shared_ptr<BaseNode>&)>& func) noexcept
+        {
+            std::stack<std::shared_ptr<BaseNode>> nodeStack;
+            nodeStack.push(scene);
+
+            while (!nodeStack.empty())
+            {
+                auto node = nodeStack.top();
+                nodeStack.pop();
+
+                for (auto& child : node->getChildrens())
+                {
+                    nodeStack.push(child);
+                }
+
+                func(node);
+            }
         }
 
         SceneGraph::SceneGraph() noexcept

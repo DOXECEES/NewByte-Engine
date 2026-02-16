@@ -529,7 +529,8 @@ public:
 
 };
 
-class LayoutBuilder {
+class LayoutBuilder 
+{
 public:
     // создание виджета
     static LayoutBuilder widget(Widgets::IWidget* w)
@@ -547,6 +548,7 @@ public:
         b.currentNode = b.node.get();
         return b;
     }
+
     
     // горизонтальный контейнер
     static LayoutBuilder hBox() 
@@ -710,6 +712,16 @@ public:
         return std::move(*this);
     }
 
+    LayoutBuilder&& setTreeModel(std::shared_ptr<SceneModel>& model) &&
+    {
+        if (auto w = dynamic_cast<Widgets::TreeView*>(currentNode->getOwner()))
+        {
+            w->setModel(model);
+        }
+        return std::move(*this);
+    }
+
+
     template<typename Publisher, typename... Args, typename Func>
     LayoutBuilder&& onEvent(Signal<void(Args...)> Publisher::* signal, Func&& func)
     {
@@ -728,11 +740,22 @@ public:
         return std::move(*this);
     }
 
+    template<typename T, typename Func>
+    LayoutBuilder&& apply(Func&& func)&& 
+    {
+        if (auto w = dynamic_cast<T*>(currentNode->getOwner()))
+        {
+            func(w);
+        }
+        return std::move(*this);
+    }
 
     std::unique_ptr<NNsLayout::LayoutNode> build()&&
     {
         return std::move(node);
     }
+
+
 
 private:
     std::unique_ptr<NNsLayout::LayoutNode> node;
@@ -740,7 +763,30 @@ private:
 };
 
 
-// TODO: borders css, position
+#include "Localization/LocaleManager.hpp"
+#include "Localization/LocaleLoader.hpp"
+#include "Localization/Formatter.hpp"
+#include "Localization/Translation.hpp"
+#include "Localization/Calendars/GregorianCalendar.hpp"
+#include "Localization/Calendars/JulianCalendar.hpp"
+#include "Localization/Calendars/HijriCalendar.hpp"
+#include "Localization/Calendars/HebrewCalendar.hpp"
+
+#include "Localization/Calendars/EthiopicCalendar.hpp"
+#include "Localization/Calendars/PersianCalendar.hpp"
+#include "Widgets/Calendar.hpp"
+#include "Localization/PluralEngine.hpp"
+
+void setAppLocale() noexcept
+{
+    using namespace Localization;
+    Locale locale = LocalLoader::load("/Assets/Locales/ru-RU.locale");
+    LocaleManager::setCurrent(locale);
+    Localization::Translation::load("Assets/Localization/ru.translation");
+}
+
+
+nb::Renderer::BaseNode* activeSceneGraphNode = nullptr;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -751,7 +797,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     nb::Error::ErrorManager::instance().setPrinter(new nb::Error::ErrorConsolePrinter());
     nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, "DDDD");
     auto window = std::make_shared<Win32Window::Window>();
-    window->setTitle(L"NewByte SDK");
+
+    setAppLocale();
+    auto buffer = Localization::Formatter::toDate(time(nullptr));
+    //auto buffer = Localization::Translation::fromKey("Ui.Title");
+
+    std::wstring utf16;
+    utf16.resize(buffer.size());
+    int len = MultiByteToWideChar(CP_UTF8, 0, buffer.data(), (int)buffer.size(), utf16.data(), (int)utf16.size());
+    utf16.resize(len);
+
+
+    window->setTitle(utf16);
     Win32Window::Win32EventLoop eventLoop;
 #if 1
     auto sceneWindow = std::make_shared<Win32Window::ChildWindow>(window.get(), true);
@@ -776,14 +833,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //childWnd4.addCaption();
     //childWnd4.setTitle(L"Settings");
 
-    Win32Window::ChildWindow childWnd5(nullptr);
-    childWnd5.addCaption();
-    childWnd5.setTitle(L"SideBarTest");
+    std::shared_ptr<Win32Window::ChildWindow> childWnd5 = std::make_shared<Win32Window::ChildWindow>(nullptr, true);
+    childWnd5->addCaption();
+    childWnd5->setTitle(L"SideBarTest");
     //Layout* layout5 = new VBoxLayout(&childWnd5);
     // 
     bool shouldShowDebug = false;
-    // 
-    auto root = childWnd5.getLayoutRoot();
+    //
+    //childWnd5
+    //auto root = childWnd5.getLayoutRoot();
 
     auto ui = LayoutBuilder::hBox()
         .style([](NNsLayout::LayoutStyle& s) {
@@ -884,7 +942,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 .padding({ 0, 0, 0, 0 }))
 
             .child(LayoutBuilder::spacer())
-            
+
             .child(LayoutBuilder::widget(new Widgets::Button())
                 .text(L"SAVE")
                 .relativeWidth(1.0f)
@@ -1035,7 +1093,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                             .color(NbColor{ 200, 200, 200 })
                             .textAlign(Widgets::TextAlign::LEFT)
                             .padding({ 0, 0, 0, 0 })
-                            )
+                        )
 
                         .child(LayoutBuilder::widget(new Widgets::SpinBox())
                             .relativeWidth(0.2f)
@@ -1043,23 +1101,136 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                             .background(NbColor{ 80, 80, 80 })
                             .color(NbColor{ 220, 220, 220 })
                             .textAlign(Widgets::TextAlign::CENTER)
-                            )
+                        )
                     )
 
-                    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+                    .child(LayoutBuilder::widget(new Widgets::CalendarWidget({}, new Localization::HebrewCalendar))
                         .text(L"Save Only Current File")
                         .relativeWidth(1.0f)
-                        .absoluteHeight(35)
+                        .absoluteHeight(400)
                         .margin({ 0, 0, 0, 0 })
                         .background(NbColor{ 80, 80, 80 })
                         .color(NbColor{ 200, 200, 200 })
                         .textAlign(Widgets::TextAlign::LEFT)
                         .padding({ 0, 0, 0, 0 }))
                 )
+
             )
         ).build();
 
 
+    Win32Window::ChildWindow childWnd6(nullptr);
+    childWnd6.addCaption();
+    childWnd6.setTitle(L"ButtonStyleTest");
+
+
+    auto root1 = childWnd6.getLayoutRoot();
+
+    auto debugUI = LayoutBuilder::vBox()
+        .style([](NNsLayout::LayoutStyle& s) {
+            s.widthSizeType = NNsLayout::SizeType::ABSOLUTE;
+            s.width = 250; 
+            s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+            s.height = 1.0f;
+            s.color = NbColor{ 35, 35, 35 };
+            s.padding = { 10, 10, 10, 10 };
+        })
+
+        .child(LayoutBuilder::label(L"VISUALIZATION")
+            .relativeWidth(1.0f).absoluteHeight(25)
+            .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Wireframe Mode")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getRenderer()->setWireframeMode(checked);
+             }))
+
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Show Grid")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getRenderer()->setGridVisible(checked);
+                }))
+
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Display Normals")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                g_engine->getRenderer()->toggleDebugPass();
+            }))
+
+        // Разделитель
+        .child(LayoutBuilder::spacer().absoluteHeight(10))
+
+        // --- СЕКЦИЯ: ИСТОЧНИКИ СВЕТА ---
+        .child(LayoutBuilder::label(L"LIGHTING & GIZMOS")
+            .relativeWidth(1.0f).absoluteHeight(25)
+            .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Show Light Icons")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getRenderer()->setIconsVisible(Renderer::IconType::Light, checked);
+                }))
+
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Show Bounding Boxes")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getRenderer()->setDrawAABB(checked);
+                }))
+
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Enable Shadows")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getRenderer()->setShadowsEnabled(checked);
+                }))
+
+        // Разделитель
+        .child(LayoutBuilder::spacer().absoluteHeight(10))
+
+        // --- СЕКЦИЯ: СТАТИСТИКА ---
+        .child(LayoutBuilder::label(L"STATISTICS")
+            .relativeWidth(1.0f).absoluteHeight(25)
+            .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
+        
+        .child(LayoutBuilder::widget(new Widgets::ComboBox())
+            .apply<Widgets::ComboBox>([](Widgets::ComboBox* c) {
+                c->addItem({L"FULL", 1});
+                c->addItem({ L"LINES", 2 });
+                c->addItem({ L"POINTS", 3 });
+
+            })
+            .text(L"Show Draw Calls")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getRenderer()->toggleStatsOverlay(checked);
+                }))
+        //.child(LayoutBuilder::widget(new Widgets::ComboBox())
+        //    .text(L"Show Draw Calls")
+        //    .relativeWidth(1.0f).absoluteHeight(30)
+        //    .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+        //        //g_engine->getRenderer()->toggleStatsOverlay(checked);
+        //        }))
+        .child(LayoutBuilder::widget(new Widgets::CheckBox())
+            .text(L"Show FPS Counter")
+            .relativeWidth(1.0f).absoluteHeight(30)
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+                //g_engine->getUI()->setOverlayVisible(L"FPS", checked);
+                }))
+
+        .child(LayoutBuilder::spacer()) // Пружина, чтобы все прижалось к верху
+        .build();
+
+    root1->addChild(std::move(debugUI));
+
+
+   
 
     //auto ui = LayoutBuilder::hBox() // главный горизонтальный контейнер
     //    .style([](NNsLayout::LayoutStyle& s) {
@@ -1115,7 +1286,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
     // добавляем layout в root
-    root->addChild(std::move(ui));
+    //root->addChild(std::move(ui));
+
+    //root
 
     ////////Widgets::Sidebar* sideBar = new Widgets::Sidebar(&childWnd5, {});
     ////////
@@ -1230,36 +1403,178 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     auto child1 = std::make_shared<Win32Window::ChildWindow>(window.get());
     child1->setTitle(L"child 1");
     child1->setBackgroundColor({ 255,128,17 });
+
+
+    
+
+
+
     auto child2 = std::make_shared<Win32Window::ChildWindow>(window.get());
     child2->setBackgroundColor({ 128,128,92 });
     child2->setTitle(L"child 2");
     auto child3 = std::make_shared<Win32Window::ChildWindow>(window.get());
     child3->setBackgroundColor({ 72,128,92 });
     child3->setTitle(L"child 3");
-    auto child4 = std::make_shared<Win32Window::ChildWindow>(window.get());
-    child4->setBackgroundColor({ 72,22,92 });
-    child4->setTitle(L"child 4");
+//    auto child4 = std::make_shared<Win32Window::ChildWindow>(window.get());
+//    child4->setBackgroundColor({ 72,22,92 });
+//    child4->setTitle(L"child 4");
     auto sceneTab = dockManager.dockAsTab(sceneWindow, nullptr, "Scene");
     //auto sceneTab = dockManager.dockAsTab(child1, nullptr, "Scene");
 
     // --- Докуем относительно сцены ---
     // Теперь мы используем TabNode сцены как targetNode
-    dockManager.dockRelative(child2, Temp::DockPosition::LEFT, sceneTab->getWindow(), Temp::Percent(25));
-    dockManager.dockRelative(child1, Temp::DockPosition::BOTTOM, sceneTab->getWindow(), Temp::Percent(25));
+    dockManager.dockRelative(child1, Temp::DockPosition::LEFT, sceneTab->getWindow(), Temp::Percent(25));
+    //dockManager.dockRelative(childWnd5, Temp::DockPosition::BOTTOM, child1, Temp::Percent(25));
+    dockManager.dockRelative(child2, Temp::DockPosition::BOTTOM, sceneTab->getWindow(), Temp::Percent(25));
 
-    dockManager.dockRelative(child4, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
+    //dockManager.dockRelative(childWnd5, Temp::DockPosition::RIGHT, sceneTab->getWindow(), Temp::Percent(25));
     dockManager.dockRelative(child3, Temp::DockPosition::RIGHT, child2, Temp::Percent(25));
 
+    auto inspector = LayoutBuilder::vBox()
+        .style([](NNsLayout::LayoutStyle& s) {
+        s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+        s.width = 1.0f; // Занимает всю ширину правой панели
+        s.padding = { 0, 0, 0, 0 };
+        s.color = NbColor{ 35, 35, 35 }; // Цвет фона инспектора
+            })
 
+        // Заголовок компонента (Transform)
+        .child(LayoutBuilder::label(L"TRANSFORM")
+            .relativeWidth(1.0f)
+            .absoluteHeight(30)
+            .background(NbColor{ 60, 60, 60 })
+            .color(NbColor{ 220, 220, 220 })
+            .fontSize(14)
+            .textAlign(Widgets::TextAlign::LEFT)
+            .padding({ 0, 0, 0, 0 }))
+
+        // Строка "Position"
+        .child(
+            LayoutBuilder::hBox()
+            .style([](NNsLayout::LayoutStyle& s) {
+                s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+                s.height = 30;
+                s.margin = { 0, 0, 5, 0 }; // Отступ снизу
+                s.padding = { 5, 0, 5, 0 };
+                })
+
+            // Название свойства
+            .child(LayoutBuilder::label(L"Position")
+                .relativeWidth(0.35f) // Занимает 35% ширины
+                .color(NbColor{ 180, 180, 180 })
+                .textAlign(Widgets::TextAlign::LEFT)
+                )
+
+            // Контейнер для X, Y, Z
+            .child(
+                LayoutBuilder::hBox()
+                .style([](NNsLayout::LayoutStyle& s) {
+                    s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+                    s.width= 0.65f; 
+                    //s.spacing = 4; // Расстояние между X, Y, Z (если поддерживается)
+                    })
+
+                // Поле X
+                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
+                    .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                        .apply<Widgets::SpinBox>([](Widgets::SpinBox* c) {
+                            c->setRange(-100, 100);
+                        })
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background(NbColor{ 25, 25, 25 })
+                        .color(NbColor{ 255, 100, 100 })
+                        .onEvent(&Widgets::SpinBox::onValueChangedByStep, [](int value){
+                            nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+                            
+                            if (!activeSceneGraphNode)
+                            {
+                                return;
+                            }
+
+                            activeSceneGraphNode->addTranslate({ (float)value, 0.0f, 0.0f });
+                        })
+                    )
+                )
+
+                // Поле Y
+                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
+                    .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                        .apply<Widgets::SpinBox>([](Widgets::SpinBox* c) {
+                            c->setRange(-100, 100);
+                        })
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background(NbColor{ 25, 25, 25 })
+                        .color(NbColor{ 100, 255, 100 })
+                        .onEvent(&Widgets::SpinBox::onValueChangedByStep, [](int value) {
+                            nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+
+                            if (!activeSceneGraphNode)
+                            {
+                                return;
+                            }
+
+                            activeSceneGraphNode->addTranslate({ 0.0f, (float)value, 0.0f });
+                        })
+                    )
+                )
+
+                // Поле Z
+                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
+                    .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                        .apply<Widgets::SpinBox>([](Widgets::SpinBox* c) {
+                            c->setRange(-100, 100);
+                        })
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background(NbColor{ 25, 25, 25 })
+                        .color(NbColor{ 100, 100, 255 }) 
+                        .onEvent(&Widgets::SpinBox::onValueChangedByStep, [](int value) {
+                            nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+
+                            if (!activeSceneGraphNode)
+                            {
+                                return;
+                            }
+
+                            activeSceneGraphNode->addTranslate({ 0.0f, 0.0f, (float)value });
+                        })
+                    )
+                )
+            )
+        )
+
+        // Можно добавить Rotation аналогично
+        //.child(
+        //    LayoutBuilder::hBox()
+        //    .absoluteHeight(30)
+        //    .margin({ 0, 0, 5, 0 })
+        //    .child(LayoutBuilder::label(L"Rotation")
+        //        .relativeWidth(0.35f)
+        //        .color(NbColor{ 180, 180, 180 })
+        //    )
+        //    .child(LayoutBuilder::hBox()
+        //        .relativeWidth(0.65f)
+        //        //.child(LayoutBuilder::widget(new Widgets::SpinBox()).relativeWidth(0.33f).background(NbColor{ 25, 25, 25 }))
+        //        //.child(LayoutBuilder::widget(new Widgets::SpinBox()).relativeWidth(0.33f).background(NbColor{ 25, 25, 25 }))
+        //        //.child(LayoutBuilder::widget(new Widgets::SpinBox()).relativeWidth(0.33f).background(NbColor{ 25, 25, 25 }))
+        //    )
+        //)
+        .build();
+
+        
+    child3->getLayoutRoot()->addChild(std::move(inspector));
 
     g_engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
     sceneWindow->show();
     child1->show();
     child2->show();
     child3->show();
-    child4->show();
+    //child4->show();
     //child4->repaint();
-    childWnd5.show();
+    childWnd5->show();
+    childWnd6.show();
     window->show();
     window->repaint();
     const NbSize<int>& s = window->getClientSize();
@@ -1271,6 +1586,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
+
     //childWnd.show();
 #endif
     g_running = true;
@@ -1281,7 +1597,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     std::thread engineThread(engineThreadFunc, g_engine, sceneWindow->getHandle().as<HWND>());
  #endif
 
-    
+    g_engine->getRenderer()->createSharedContextForWindow(childWnd5->getHandle().as<HWND>());
+    childWnd5->setRenderable(false);
 
     subscribe(*window, &Win32Window::Window::onRectChanged, [&dockManager](const NbRect<int>& rect)
     {
@@ -1294,104 +1611,65 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     while (running)
     {
 
-//
-//        if (g_init && !notInit)
-//        {
-//#if 1
-//
-//            sceneWindow->setRenderable(false);
-//#endif
-//            //button->setDefault();
-//            //button2->setDefault();
-//            //childWnd.repaint();
-//#if 1
-//
-//            auto model = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
-//#endif
-//            //treeView->setModel(model);
-//            notInit = true;
-//            //childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
-//
-//            //subscribe(*treeView, &Widgets::TreeView::onItemButtonClickSignal,
-//            //    [&treeView, &childWnd3](Widgets::ModelIndex index)
-//            //    {
-//            //        if (!index.isValid())
-//            //            return;
-//
-//            //        auto model = treeView->getModel();
-//            //        if (!model)
-//            //            return;
-//
-//            //        // получаем элемент
-//            //        auto itemOpt = model->findById(index.getUuid());
-//            //        if (!itemOpt)
-//            //            return;
-//
-//            //        const auto& item = itemOpt;
-//
-//            //        // === 1. Переключаем состояние (expand / collapse)
-//            //        auto currentState = treeView->getItemState(*item);
-//            //        auto newState = (currentState == Widgets::TreeView::ItemState::EXPANDED)
-//            //            ? Widgets::TreeView::ItemState::COLLAPSED
-//            //            : Widgets::TreeView::ItemState::EXPANDED;
-//            //        treeView->setItemState(index, newState);
-//
-//            //        // === 2. Обновляем заголовок окна
-//            //        std::string name = model->data(*item);
-//            //        childWnd3.setTitle(Utils::toWstring(name));
-//            //        childWnd3.repaint();
-//            //    });
-//
-//            //subscribe(*treeView, &Widgets::TreeView::onItemChangeSignal,
-//            //    [&treeView, &childWnd3, &lb](Widgets::ModelIndex index)
-//            //{
-//            //        const Widgets::ModelItem& item = treeView->getItemByIndex(index);
-//            //        std::shared_ptr<SceneModel> model = std::dynamic_pointer_cast<SceneModel>(treeView->getModel());
-//            //        Debug::debug(model->data(item));
-//            //        
-//            //        nb::Renderer::BaseNode* node = model->getBaseNode(index);
-//            //        
-//            //        std::wstring str;
-//            //        const nb::Math::Vector3<float>& translate = node->getTransform().translate;
-//            //        str = L"X: " + std::to_wstring(translate.x) 
-//            //            + L"; Y: " + std::to_wstring(translate.y) 
-//            //            + L"; Z: " + std::to_wstring(translate.z);
-//            //        lb->setText(str);
-//            //        //model->moveAt(index);
-//            //    
-//            //});
-//
-//            //subscribe(*lb, &Widgets::Label::onTextChanged, [&childWnd](const std::wstring& text) {
-//
-//            //    childWnd.repaint();
-//
-//            // });
-//
-//            /*subscribe(*cb, &Widgets::CheckBox::onCheckStateChanged, [&cb](bool state) {
-//                if (state)
-//                {
-//                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::POINTS);
-//                }
-//                else
-//                {
-//                    g_engine->getRenderer()->togglePolygonVisibilityMode(nb::Renderer::Renderer::PolygonMode::FULL);
-//                }
-//            });*/
-//
-//            subscribe(childWnd5, &Win32Window::ChildWindow::onSizeChanged, [&childWnd5](const NbSize<int>& size){
-//                childWnd5.recalculateLayout();
-//                
-//            });
-//
-//            
-//#if 1
-//
-//            subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
-//                nb::Core::EngineSettings::setHeight(size.height);
-//                nb::Core::EngineSettings::setWidth(size.width);
-//            });
-//#endif
-//        }
+
+        if (g_init && !notInit)
+        {
+
+            sceneWindow->setRenderable(false);
+
+            auto rootChild1 = child1->getLayoutRoot();
+            std::shared_ptr<SceneModel> sceneModel = std::make_shared<SceneModel>(g_engine->getRenderer()->getScene());
+
+            auto uichild1 = LayoutBuilder::hBox()
+                .style([](NNsLayout::LayoutStyle& s) {
+                s.padding = { 10, 10, 10, 10 };
+                s.margin = { 50,50,50,50 };
+                s.color = NbColor{ 30, 30, 30 };
+                s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+                s.height = 1.0f;
+                    })
+                .child(LayoutBuilder::widget(new Widgets::TreeView({}))
+                    .setTreeModel(sceneModel)
+                    .text(L"NONE")
+                    .relativeWidth(1.0f)
+                    .relativeHeight(1.0f)
+                    .margin({ 5, 5, 5, 5 })
+                    .background(NbColor{ 70, 70, 70 })
+                    .color(NbColor{ 200, 200, 200 })
+                    .onEvent(&Widgets::TreeView::onItemClickSignal, [&sceneModel](const Widgets::ModelIndex& index) {
+                        if (!sceneModel)
+                        {
+                            return;
+                        }
+
+                        if(!index.isValid())
+                        {   
+                            return;
+                        }
+
+                        activeSceneGraphNode = reinterpret_cast<nb::Renderer::BaseNode*>(sceneModel->findById(index.getUuid())->getData());
+                    })
+                )
+                .build();
+
+            rootChild1->addChild(std::move(uichild1));
+            child1->show();
+
+            notInit = true;
+            //childWnd2.repaint(); // этому коду срочно нужен рефакторинг)))))) 
+
+            
+           
+
+            
+#if 1
+
+            subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& size) {
+                nb::Core::EngineSettings::setHeight(size.height);
+                nb::Core::EngineSettings::setWidth(size.width);
+            });
+#endif
+        }
 
         g_input = false;
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))

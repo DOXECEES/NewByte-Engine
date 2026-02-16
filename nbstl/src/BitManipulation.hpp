@@ -2,7 +2,7 @@
 #define NBSTL_SRC_BITMANIPULATION_HPP
 
 
-
+#include "Types.hpp"
 #include <cstdint>
 #include <type_traits>
 #include <cassert>
@@ -53,6 +53,12 @@ namespace nbstl
 		static_assert(std::is_integral_v<T>, "T must be an integral type");
 		assert(index < sizeof(T) * 8);
 		value ^= (T(1) << index);
+	}
+
+	template<typename T>
+	inline T rotl(T x, int32 r) noexcept
+	{
+		return (x << r) | (x >> (sizeof(T) - r));
 	}
 }
 

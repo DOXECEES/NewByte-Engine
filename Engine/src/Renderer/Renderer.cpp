@@ -2,38 +2,431 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Renderer.hpp"
+#include "Renderer/Objects/Objects.hpp"
+#include "Material.hpp"
 
-nb::Renderer::Renderer::Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept
+
+
+namespace nb::Renderer
 {
-    switch (apiType)
+    Renderer::Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept
     {
-    case nb::Core::GraphicsAPI::OPENGL:
-        api = nb::OpenGl::OpenGLRender::create(hwnd);
-        if(!api)
-            std::abort();
-        break;
-    case nb::Core::GraphicsAPI::DIRECTX:
-        NB_FALLTHROUGH;
-    case nb::Core::GraphicsAPI::VULKAN:
-        break;
+        switch (apiType)
+        {
+        case nb::Core::GraphicsAPI::OPENGL:
+            api = nb::OpenGl::OpenGLRender::create(hwnd);
+            if (!api)
+            {
+                std::abort();
+            }
+            break;
+        case nb::Core::GraphicsAPI::DIRECTX:
+            NB_FALLTHROUGH;
+        case nb::Core::GraphicsAPI::VULKAN:
+            break;
+        }
+
+        loadScene();
+
+        std::vector<Vertex> quadVertices = {
+            {{-1.0f, 1.0f, 0.0f}, {}},
+            {{-1.0f, -1.0f, 0.0f}, {}},
+            {{1.0f, -1.0f, 0.0f}, {}},
+            {{-1.0f, 1.0f, 0.0f}, {}},
+            {{1.0f, -1.0f, 0.0f}, {}},
+            {{1.0f, 1.0f, 0.0f}, {}}
+        };
+
+        quadVertices[0].textureCoordinates = { 0.0f, 1.0f };
+        quadVertices[1].textureCoordinates = { 0.0f, 0.0f };
+        quadVertices[2].textureCoordinates = { 1.0f, 0.0f };
+        quadVertices[3].textureCoordinates = { 0.0f, 1.0f };
+        quadVertices[4].textureCoordinates = { 1.0f, 0.0f };
+        quadVertices[5].textureCoordinates = { 1.0f, 1.0f };
+
+        std::vector<uint32> quadIndices = { 0, 1, 2, 3, 4, 5 };
+
+        quadScreenMesh = createRef<Mesh>(quadVertices, quadIndices);
+        contextMeshCache = createRef<OpenGl::OpenglContextMeshCache>();
     }
-}
 
-void nb::Renderer::Renderer::togglePolygonVisibilityMode(PolygonMode mode) const noexcept
-{
-    switch (mode)
+    void Renderer::onResize(uint32 width, uint32 heigth) noexcept
     {
-    case PolygonMode::POINTS:
-        api->setpolygonModePoints();
-        break;
-    case PolygonMode::LINES:
-        api->setPolygonModeLines();
-        break;
-    case PolygonMode::FULL:
-        api->setPolygonModeFull();
-        break;
-    default:
-        Debug::debug("Unsupported polygon mode");
-        break;
+        static uint32 prevWidth = 0;
+        static uint32 prevHeigth = 0;
+
+        if (width == 0 || heigth == 0)
+        {
+            return;
+        }
+
+        if (prevWidth == width && prevHeigth == heigth)
+        {
+            return;
+        }
+
+        prevWidth = width;
+        prevHeigth = heigth;
+
+        if (!t)
+        {
+            t = new OpenGl::OpenGlTexture("Assets\\res\\brick.png");
+            tn = new OpenGl::OpenGlTexture("Assets\\res\\brick_normal.png");
+        }
+
+        mainFrameBuffer = api->createFrameBuffer(width, heigth);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        mainFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
+        mainFrameBuffer->finalize();
+
+        shadowFrameBuffer = api->createFrameBuffer(1024, 1024);
+        shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
+        shadowFrameBuffer->finalize();
+        
+        if (!albedo)
+        {
+            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\albedo (2).png"); 
+            metal       = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\metal (2).png");
+            roughtness  = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\rough (2).png");
+            ao          = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\ao (3).png");
+            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\normal.png");
+        }
+
+        if (!debugLightMesh)
+        {
+            debugLightMesh = PrimitiveGenerators::createSphere(0.2f, 16, 16);
+            debugLightShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("lightVisulize.shader");
+        }
+    }
+
+
+    void Renderer::render() noexcept
+    {
+        const int width = nb::Core::EngineSettings::getWidth();
+        const int height = nb::Core::EngineSettings::getHeight();
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        auto rm = ResMan::ResourceManager::getInstance();
+
+        onResize(width, height);
+
+        sceneGraph->getScene()->updateWorldTransform();
+
+        std::vector<LightNode*> lights;
+        nbstl::Vector<RendererCommand> mainQueue;
+
+        sceneGraph->traverse([&](std::shared_ptr<BaseNode> node)
+        {
+            if (auto l = std::dynamic_pointer_cast<LightNode>(node))
+            {
+                lights.push_back(l.get());
+            }
+            else if (auto obj = std::dynamic_pointer_cast<ObjectNode>(node))
+            {
+                Pipeline mainP = {};
+                mainP.shader = obj->mesh->uniforms.shader;
+                mainP.polygonMode = PolygonMode::FULL;
+                mainP.isDepthTestEnable = true;
+                mainP.isBlendEnable = true;
+
+                obj->mesh->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
+
+                mainQueue.pushBack({
+                    obj->mesh.get(),
+                    api->getCache().getOrCreate(mainP)
+                });
+            }
+        });
+
+        api->beginFrame();
+
+        const float shadowSize = 1024.0f;
+      
+        api->setViewport({ 0, 0, shadowSize, shadowSize });
+        api->bindFrameBuffer(shadowFrameBuffer);
+        api->clear(false, true, false); 
+
+        // Настройка камеры света (Directional Light)
+        Math::Mat4 lightProj = Math::ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 75.0f);
+        // Поместите "камеру" света подальше, например, в точку (5, 10, 5)
+        Math::Mat4 lightView = Math::lookAt(
+            Math::Vector3<float>{ 5.0f, 10.0f, 5.0f }, // Позиция источника
+            Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  // Смотрим в центр сцены
+            Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   // Вектор "верх"
+        );
+
+
+        Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
+
+        Ref<Shader> lightPassShader = rm->getResource<Shader>("lightPass.shader");
+
+        // Специальный пайплайн для записи теней (без блендинга, только глубина)
+        Pipeline shadowP = {};
+        shadowP.shader = lightPassShader;
+        shadowP.isDepthTestEnable = true;
+        shadowP.polygonMode = PolygonMode::FULL;
+        uint32 shadowPSO = api->getCache().getOrCreate(shadowP);
+
+        for (auto& cmd : mainQueue) {
+            cmd.mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
+
+            // Используем команду для теней: тот же меш, но другой пайплайн (шейдер)
+            RendererCommand shadowCmd = { cmd.mesh, shadowPSO };
+            api->drawMesh(shadowCmd);
+        }
+
+        api->bindDefaultFrameBuffer();
+       
+
+        api->bindFrameBuffer(mainFrameBuffer);
+        api->setViewport({ 0, 0, (float)width, (float)height });
+        api->setClearColor(Colors::BLACK, 1.0f, 0);
+        api->clear(true, true, false); 
+
+        auto view = cam->getLookAt();
+        auto proj = cam->getProjection();
+
+
+        static Skybox sky;
+        auto skyboxShader = rm->getResource<nb::Renderer::Shader>("skybox.shader");
+        skyboxShader->setUniformInt("skybox", 0);
+        skyboxShader->setUniformMat4("view", view);
+        skyboxShader->setUniformMat4("projection", proj);
+        sky.render(skyboxShader);
+
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
+
+
+        for (auto& cmd : mainQueue) 
+        {
+            auto& u = cmd.mesh->uniforms;
+            PBRMaterial mat(cmd.mesh->uniforms.shader);
+            mat.setAlbedoMap(albedo);
+            mat.setNormalMap(normal);
+            mat.setMetallicMap(metal);
+            mat.setRoughnessMap(roughtness);
+            mat.setAmbientOcclusionMap(ao);
+
+            mat.setInt("albedoMap", 0);
+            mat.setInt("normalMap", 1);
+            mat.setInt("metallicMap", 2);
+            mat.setInt("roughnessMap", 3);
+            mat.setInt("aoMap", 4);
+
+            mat.apply(api);
+
+            u.vec3Uniforms["viewPos"] = cam->getPosition();
+            u.mat4Uniforms["view"] = cam->getLookAt();
+            u.mat4Uniforms["proj"] = cam->getProjection();
+            u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            
+
+            u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = DirectionalLight::getCountOfDirectionalLights();
+            u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] = PointLight::getCountOfPointLights();
+
+            for (auto* lightNode : lights) 
+            {
+                lightNode->light->applyUniforms(u.shader);
+            }
+
+            // Биндим текстуры ( brick, normal и т.д.)
+            //u.intUniforms["ourTexture"] = 1;
+            //u.intUniforms["textureNormal"] = 2;
+            //if (t) t->bind(1);
+            //if (tn) tn->bind(2);
+            
+
+            api->drawMesh(cmd);
+        }
+
+        if (isDebugPassEnabled)
+        {
+            Pipeline debugP = {};
+            debugP.shader = debugLightShader;
+            debugP.polygonMode = PolygonMode::LINES; 
+            debugP.isDepthTestEnable = true;
+            debugP.isBlendEnable = false;
+
+            uint32 debugPSO = api->getCache().getOrCreate(debugP);
+            debugLightShader->use();
+            debugLightShader->setUniformMat4("view", view);
+            debugLightShader->setUniformMat4("proj", proj);
+
+            for (auto* lightNode : lights)
+            {
+                Math::Mat4 model = Math::translate(Math::Mat4<float>::identity(), lightNode->getPosition());
+                debugLightShader->setUniformMat4("model", model);
+
+                debugLightShader->setUniformVec3("u_Color", lightNode->light->getAmbient());
+
+                RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
+                api->drawMesh(debugPassCommand);
+            }
+            if (ctx.handle)
+            {
+                blitToWindow(ctx, albedo->getId());
+            }
+        }
+
+        // =========================================================================
+        // ШАГ 3: POST-PROCESS (Вывод FBO на экран монитора)
+        // =========================================================================
+        api->bindDefaultFrameBuffer(); 
+        api->setViewport({ 0, 0, (float)width, (float)height });
+        api->setClearColor(Colors::WHITE, 1.0f, 0);
+        api->clear(true, false, false); 
+
+        auto quadShader = rm->getResource<Shader>("quadShader.shader");
+        quadShader->setUniformInt("depthMap", 3); 
+        quadShader->setUniformVec2("screenSize", { (float)width, (float)height });
+
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->getTexture(0));
+
+        Pipeline quadPipeline = {};
+        quadPipeline.shader = quadShader;
+        quadPipeline.polygonMode = PolygonMode::FULL;
+        quadPipeline.isDepthTestEnable = false; 
+
+        RendererCommand postCmd = { quadScreenMesh.get(), api->getCache().getOrCreate(quadPipeline) };
+        api->drawMesh(postCmd);
+
+        api->endFrame(); 
+    }
+
+    void Renderer::togglePolygonVisibilityMode(PolygonMode mode) const noexcept
+    {
+        switch (mode)
+        {
+        case PolygonMode::POINTS:
+            api->setpolygonModePoints();
+            break;
+        case PolygonMode::LINES:
+            api->setPolygonModeLines();
+            break;
+        case PolygonMode::FULL:
+            api->setPolygonModeFull();
+            break;
+        default:
+            Debug::debug("Unsupported polygon mode");
+            break;
+        }
+    }
+
+    SharedWindowContext Renderer::createSharedContextForWindow(HWND handle) noexcept
+    {
+        ctx = api->shareContext(handle);
+        return ctx;
+    }
+
+    void Renderer::blitToWindow(const SharedWindowContext& out, uint32 textureId)
+    {
+        if (!api->setContext(out.hdc, out.hglrc))
+        {
+            return;
+        }
+
+        api->setViewport({ 0, 0, 400, 300 });
+        api->setClearColor(Colors::BLUE, 1.0f, 0);
+        api->clear(true, false, false);
+
+        auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("quadShader2.shader");
+        quadShader->use();
+        quadShader->setUniformInt("sceneTexture", 0);
+
+        api->bindTexture(0, textureId);
+
+        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
+        if (!mesh)
+        {
+            mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
+        }
+
+        Pipeline pipeline = {};
+        pipeline.shader = quadShader;
+        pipeline.isDepthTestEnable = false;
+        pipeline.polygonMode = PolygonMode::FULL;
+        uint32 pso = api->getCache().getOrCreate(pipeline);
+
+    
+        RendererCommand shadowCmd = { mesh->source.get(),  pso };
+        api->drawContextMesh(*mesh, pso);
+
+        SwapBuffers(out.hdc);
+        api->setDefaultContext();
+    }
+
+
+    void Renderer::loadScene() noexcept
+    {
+        auto rm = ResMan::ResourceManager::getInstance();
+        auto shader = rm->getResource<Shader>("ADS.shader");
+
+        sceneGraph = SceneGraph::getInstance();
+        auto scene = sceneGraph->getScene();
+       
+        Math::Vector3<float> ambientColor = { 0.0f, 0.0f, 0.0f };
+        
+
+        Transform dirLightTransform;
+        auto dirLight = std::make_shared<DirectionalLight>(
+            ambientColor,
+            Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+            Math::Vector3<float>{0.1f, 0.1f, 0.1f},
+            Math::Vector3<float>{-1.0f, -0.2f, -0.2f}
+        );
+        auto dirLightNode = std::make_shared<LightNode>("DirLight", dirLightTransform, dirLight);
+
+        Transform pointLightTransform;
+        pointLightTransform.translate = { -5.0f, 0.0f, -5.0f };
+        auto pointLight = std::make_shared<PointLight>(
+            ambientColor,
+            Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+            Math::Vector3<float>{0.1f, 0.1f, 0.1f},
+            pointLightTransform.translate,
+            1.0f, 0.0f, 0.0f, 1.0f
+        );
+        auto pointLightNode = std::make_shared<LightNode>("PointLight", pointLightTransform, pointLight);
+
+        Transform pointLight2Transform;
+        pointLight2Transform.translate = { 5.0f, 0.0f, 5.0f };
+        auto pointLight2 = std::make_shared<PointLight>(
+            ambientColor,
+            Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+            Math::Vector3<float>{0.1f, 0.1f, 0.1f},
+            pointLight2Transform.translate,
+            1.0f, 0.0f, 0.0f, 1.0f
+        );
+        auto pointLightNode2 = std::make_shared<LightNode>("PointLight1", pointLight2Transform, pointLight2);
+
+        PrimitiveGenerators::ParametricSegments segments{ 32, 32 };
+        Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
+        //Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
+        Transform cubeTransform;
+        cubeTransform.scale = { 0.25f,0.25f,0.25f };
+
+        auto cubeNode = std::make_shared<ObjectNode>("cube", cubeTransform, cube, shader);
+        scene->addChildren(cubeNode);
+
+        Ref<Mesh> surface = PrimitiveGenerators::createCube();
+        Transform surfaceTransform;
+        surfaceTransform.translate = {0.0f, -25.0f, 0.0f };
+        surfaceTransform.scale = { 2500.0f, 0.10f, 2500.0f };
+
+        auto surfaceNode = std::make_shared<ObjectNode>("surface", surfaceTransform, surface, shader);
+        scene->addChildren(surfaceNode);
+
+        
+        scene->addChildren(dirLightNode);
+        dirLightNode->addChildren(pointLightNode);
+        scene->addChildren(pointLightNode2);
+
+
     }
 }

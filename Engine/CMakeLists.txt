@@ -107,7 +107,14 @@ src/main.cpp
         src/Renderer/OpenGl/PostProcessFbo.hpp
         src/Renderer/Color.cpp
         src/Renderer/Color.hpp
-        
+        src/Renderer/PipelineCache.cpp
+        src/Renderer/PipelineCache.hpp
+        src/Renderer/IFrameBuffer.hpp
+        src/Renderer/Material.cpp
+        src/Renderer/Material.hpp
+        src/Renderer/ContextMeshCache.cpp
+        src/Renderer/ContextMeshCache.hpp
+
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
         src/Math/Vector2.hpp

@@ -1,6 +1,7 @@
 #ifndef SRC_RENDERER_OPENGL_VERTEXARRAY_HPP
 #define SRC_RENDERER_OPENGL_VERTEXARRAY_HPP
 
+#include <NbCore.hpp>
 #include <glad/glad.h>
 
 #include "../RendererStructures.hpp"
@@ -22,6 +23,8 @@ namespace nb
             VertexArray() noexcept;
             ~VertexArray() noexcept;
 
+            NB_COPYMOVABLE(VertexArray);
+
             void bind() const noexcept;
             void unBind() const noexcept;
 
@@ -29,7 +32,13 @@ namespace nb
 
             void draw(const size_t count, GLenum modem, const size_t offset = 0) const noexcept;
             
-            
+            const VBO& getVbo() const noexcept;
+            const EBO& getEbo() const noexcept;
+
+            void setExternalId(GLuint newVaoId) noexcept 
+            {
+                this->array = newVaoId; 
+            }
 
         private:
 
