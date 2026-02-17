@@ -23,7 +23,7 @@ namespace nb
                 
                 explicit Plane(const Vector3<float>& point, const Vector3<float> normal)
                     : normal(normal)
-                    , source(normal)
+                    , source(point)
                 {
 
                 }

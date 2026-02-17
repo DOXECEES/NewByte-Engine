@@ -81,10 +81,14 @@ namespace nb
             
         protected:
 
-            std::string makeUniformName(std::string_view base, int id, std::string_view property) const
+            std::string makeUniformName(
+                std::string_view base,
+                int uniformId,
+                std::string_view property
+            ) const
             {
                 char idBuffer[COUNT_OF_CHARS_TO_WRITE_INT + 1]; // '\0'
-                int len = std::snprintf(idBuffer, sizeof(idBuffer), "%d", id);
+                int len = std::snprintf(idBuffer, sizeof(idBuffer), "%d", uniformId);
 
                 std::string result;
                 result.reserve(base.size() + property.size() + len + 3); // +3 на "[]."

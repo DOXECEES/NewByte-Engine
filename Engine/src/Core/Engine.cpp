@@ -147,7 +147,7 @@ namespace nb
 
             float deltaTime = Utils::Timer::timeElapsed();
              
-            this->mouseDelta = mouseDelta;
+            //this->mouseDelta = mouseDelta;
             renderer->setCamera(&cam);
 
             static float yaw;

@@ -45,7 +45,6 @@ namespace nb
                 int currentRow = (ind[i] - currentCol) % rows;
 
                 int xStart = currentRow * segmentWidth * 4;
-                int xEnd = xStart + segmentWidth * 4;
 
                 for (int j = 0; j < segmentHeight; ++j)
                 {

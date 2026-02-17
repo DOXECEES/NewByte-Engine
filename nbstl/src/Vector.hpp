@@ -1,6 +1,7 @@
 #ifndef NBSTL_SRC_VECTOR_HPP
 #define NBSTL_SRC_VECTOR_HPP
 
+#include "NbCore.hpp"
 #include "Types.hpp"
 #include "Iterator.hpp"
 #include "Memory.hpp"
@@ -117,19 +118,19 @@ namespace nbstl
 
 		// Iterators
 
-		Iterator begin() noexcept { return _begin; }
-		ConstIterator begin() const noexcept { return _begin; }
-		ConstIterator cbegin() const noexcept { return _begin; }
-		Iterator end() noexcept { return _end; }
-		ConstIterator end() const noexcept { return _end; }
-		ConstIterator cend() const noexcept { return _end; }
+		Iterator begin() noexcept				{ return _begin; }
+		ConstIterator begin() const noexcept	{ return _begin; }
+		ConstIterator cbegin() const noexcept	{ return _begin; }
+		Iterator end() noexcept					{ return _end; }
+		ConstIterator end() const noexcept		{ return _end; }
+		ConstIterator cend() const noexcept		{ return _end; }
 
-		ReverseIterator rbegin() noexcept { return ReverseIterator(_end); }
-		ConstReverseIterator rbegin() const noexcept { ReverseIterator(_end); }
-		ConstReverseIterator crbegin() const noexcept { ReverseIterator(_end); };
-		ReverseIterator rend() noexcept { return ReverseIterator(_begin); }
-		ConstReverseIterator rend() const noexcept { ReverseIterator(_begin); }
-		ConstReverseIterator crend() const noexcept { ReverseIterator(_begin); };
+		ReverseIterator rbegin() noexcept				{ return ReverseIterator(_end); }
+		ConstReverseIterator rbegin() const noexcept	{ return ReverseIterator(_end); }
+		ConstReverseIterator crbegin() const noexcept	{ return ReverseIterator(_end); };
+		ReverseIterator rend() noexcept					{ return ReverseIterator(_begin); }
+		ConstReverseIterator rend() const noexcept		{ return ReverseIterator(_begin); }
+		ConstReverseIterator crend() const noexcept		{ return ReverseIterator(_begin); };
 
 		// Capacity 
 		constexpr bool isEmpty() const noexcept

@@ -32,7 +32,7 @@ namespace nb
             WARNING = 1 << 1,
             FATAL   = 1 << 2,
 
-            ALL     = ~(uint8_t)0,
+            ALL     = static_cast<uint8_t>(0xFF)
         };
 
 
@@ -89,7 +89,7 @@ namespace nb
             ErrorMessage get() noexcept;
             
             inline bool hasMessages() const noexcept { return isMessageReceived; };
-            void setPrinter(IErrorPrinter* printer) { this->printer = printer; }
+            void setPrinter(IErrorPrinter* printerPtr) { this->printer = printerPtr; }
 
         private:
             ErrorManager() noexcept = default;

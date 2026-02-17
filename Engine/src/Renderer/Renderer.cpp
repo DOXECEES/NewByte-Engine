@@ -83,6 +83,12 @@ namespace nb::Renderer
         shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
         shadowFrameBuffer->finalize();
         
+        navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
+        navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
+        navigationalGizmoFrameBuffer->finalize();
+
+
         if (!albedo)
         {
             albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\albedo (2).png"); 
@@ -92,11 +98,14 @@ namespace nb::Renderer
             normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\normal.png");
         }
 
+
         if (!debugLightMesh)
         {
             debugLightMesh = PrimitiveGenerators::createSphere(0.2f, 16, 16);
             debugLightShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("lightVisulize.shader");
         }
+
+        isResourceLoaded = true;
     }
 
 
@@ -108,6 +117,7 @@ namespace nb::Renderer
         {
             return;
         }
+
 
         auto rm = ResMan::ResourceManager::getInstance();
 
@@ -128,7 +138,7 @@ namespace nb::Renderer
             {
                 Pipeline mainP = {};
                 mainP.shader = obj->mesh->uniforms.shader;
-                mainP.polygonMode = PolygonMode::FULL;
+                mainP.polygonMode = polygonMode;
                 mainP.isDepthTestEnable = true;
                 mainP.isBlendEnable = true;
 
@@ -142,6 +152,9 @@ namespace nb::Renderer
         });
 
         api->beginFrame();
+
+
+
 
         const float shadowSize = 1024.0f;
       
@@ -182,6 +195,9 @@ namespace nb::Renderer
         api->bindDefaultFrameBuffer();
        
 
+
+
+
         api->bindFrameBuffer(mainFrameBuffer);
         api->setViewport({ 0, 0, (float)width, (float)height });
         api->setClearColor(Colors::BLACK, 1.0f, 0);
@@ -200,6 +216,9 @@ namespace nb::Renderer
 
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
+
+        
+
 
 
         for (auto& cmd : mainQueue) 
@@ -267,11 +286,14 @@ namespace nb::Renderer
                 RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
                 api->drawMesh(debugPassCommand);
             }
-            if (ctx.handle)
-            {
-                blitToWindow(ctx, albedo->getId());
-            }
         }
+
+        if (ctx.handle)
+        {
+            blitToWindow(ctx, checkedTextureId);
+        }
+
+        renderNavigationalGizmo();
 
         // =========================================================================
         // ШАГ 3: POST-PROCESS (Вывод FBO на экран монитора)
@@ -319,6 +341,23 @@ namespace nb::Renderer
         }
     }
 
+    void Renderer::setWireframeMode(bool flag) noexcept
+    {
+        if (flag)
+        {
+            polygonMode = PolygonMode::LINES;
+        }
+        else
+        {
+            polygonMode = PolygonMode::FULL;
+        }
+    }
+
+    bool Renderer::isResourceReady() const noexcept
+    {
+        return isResourceLoaded;
+    }
+
     SharedWindowContext Renderer::createSharedContextForWindow(HWND handle) noexcept
     {
         ctx = api->shareContext(handle);
@@ -332,7 +371,12 @@ namespace nb::Renderer
             return;
         }
 
-        api->setViewport({ 0, 0, 400, 300 });
+        RECT rc;
+        GetWindowRect(out.handle, &rc); 
+        int width = rc.right - rc.left;
+        int height = rc.bottom - rc.top;
+
+        api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
         api->setClearColor(Colors::BLUE, 1.0f, 0);
         api->clear(true, false, false);
 
@@ -362,6 +406,67 @@ namespace nb::Renderer
         api->setDefaultContext();
     }
 
+
+    void Renderer::renderNavigationalGizmo() noexcept
+    {
+        api->bindFrameBuffer(navigationalGizmoFrameBuffer);
+
+        api->setViewport({ 0,0,400,400 });
+        api->setClearColor(Colors::GOLD, 1.0f, 0);
+        api->clear(true, true, false);
+
+        Math::Mat4<float> gizmoView = Math::lookAt(
+            Math::Vector3<float>(0, 0, 3), // Позиция камеры индикатора (фиксирована)
+            Math::Vector3<float>(0, 0, 0), // Куда смотрит (в центр, где оси)
+            Math::Vector3<float>(0, 1, 0)  // Вектор "вверх"
+        );
+
+
+        Math::Mat4<float> cameraView = cam->getLookAt();
+        cameraView = Math::inverse(cameraView);
+        cameraView[3][0] = 0.0f;
+        cameraView[3][1] = 0.0f;
+        cameraView[3][2] = 0.0f;
+        cameraView[3][3] = 1.0f;
+
+        
+
+        //gizmoView = Math::translate(Math::Mat4<float>(1.0f), Math::Vector3<float>(0, 0, -5.0f)) * gizmoView;
+
+        // Ортографическая проекция, чтобы оси были ровными
+        Math::Mat4<float> gizmoProj = Math::ortho(-1.5f, 1.5f, -1.5f, 1.5f, 0.1f, 10.0f);
+        //Math::Mat4<float> gizmoProj = cam->getProjection();
+        //Math::Mat4<float> gizemoModel = Math::scale(Math::Mat4<float>(1.0f), {6.5f, 6.5f, 6.5f});
+        Math::Mat4<float> gizemoModel = Math::Mat4<float>::identity();
+        //gizemoModel = Math::translate(gizemoModel, { 0.0f, 0.0f, -1.0f });
+
+        gizemoModel = cameraView;
+        auto gizmoMesh = nb::ResMan::ResourceManager::getInstance()
+            ->getResource<nb::Renderer::Mesh>("Cube.obj");
+        
+
+        auto gizmoShader = nb::ResMan::ResourceManager::getInstance()
+            ->getResource<nb::Renderer::Shader>("gizmoShader.shader");
+
+        Pipeline pipeline = {};
+        pipeline.shader = gizmoShader;
+        pipeline.polygonMode = PolygonMode::FULL;
+        pipeline.isDepthTestEnable = true;
+        pipeline.isBlendEnable = false;
+
+        uint32 pso = api->getCache().getOrCreate(pipeline);
+        gizmoShader->use();
+        gizmoShader->setUniformMat4("model", gizemoModel);
+        gizmoShader->setUniformMat4("view", cameraView);
+        gizmoShader->setUniformMat4("projection", gizmoProj);
+
+        {
+            RendererCommand debugPassCommand{ gizmoMesh.get(), pso };
+            api->drawMesh(debugPassCommand);
+        }
+
+        //api->bindDefaultFrameBuffer();
+    }
 
     void Renderer::loadScene() noexcept
     {

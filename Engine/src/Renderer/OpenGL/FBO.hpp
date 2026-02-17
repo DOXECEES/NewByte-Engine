@@ -74,9 +74,14 @@ namespace nb
             NB_NODISCARD inline GLuint getWidth() const noexcept                         { return width; }
             NB_NODISCARD inline GLuint getHeight() const noexcept                        { return height; }
 
+
+        protected:
+            static void staticUnbind() noexcept;
+        
         private:
             void setupTextureParams() const noexcept;
             void errorMessage(std::string_view message) const noexcept;
+
 
         private:
             inline static constexpr GLuint GL_UINT_MAX = 0xFFFFFFFF;

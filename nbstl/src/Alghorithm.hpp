@@ -65,28 +65,28 @@ namespace nbstl
 
 
 
-    // --- базовые утилиты типов ---
+    // --- Р±Р°Р·РѕРІС‹Рµ СѓС‚РёР»РёС‚С‹ С‚РёРїРѕРІ ---
 
 
 
-    // --- проверка на наличие begin() ---
+    // --- РїСЂРѕРІРµСЂРєР° РЅР° РЅР°Р»РёС‡РёРµ begin() ---
     template<typename T, typename = void>
     struct hasBegin : falseType {};
 
     template<typename T>
     struct hasBegin<T, voidT<decltype(declval<T&>().begin())>> : trueType {};
 
-    // --- проверка на наличие end() ---
+    // --- РїСЂРѕРІРµСЂРєР° РЅР° РЅР°Р»РёС‡РёРµ end() ---
     template<typename T, typename = void>
     struct hasEnd : falseType {};
 
     template<typename T>
     struct hasEnd<T, voidT<decltype(declval<T&>().end())>> : trueType {};
 
-    // --- проверка, является ли что-то контейнером ---
+    // --- РїСЂРѕРІРµСЂРєР°, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‡С‚Рѕ-С‚Рѕ РєРѕРЅС‚РµР№РЅРµСЂРѕРј ---
 
 
-    // --- базовая функция для получения диапазона ---
+    // --- Р±Р°Р·РѕРІР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РґРёР°РїР°Р·РѕРЅР° ---
     /*template<typename Container>
     auto toIteratorPair(Container& c)
     {
@@ -103,7 +103,7 @@ namespace nbstl
         constexpr Pair(T1 f, T2 s) : first(f), second(s) {}
     };
 
-    // --- упрощённая пара ---
+    // --- СѓРїСЂРѕС‰С‘РЅРЅР°СЏ РїР°СЂР° ---
     template<typename A, typename B>
     struct pair
     {
@@ -114,7 +114,7 @@ namespace nbstl
         pair(const A& a, const B& b) : first(a), second(b) {}
     };
 
-    // --- ForEach для контейнера ---
+    // --- ForEach РґР»СЏ РєРѕРЅС‚РµР№РЅРµСЂР° ---
     template<typename Container, typename Func>
     inline typename enableIf<isIterable<Container>::value>::type
         forEach(Container& c, Func f)
@@ -128,7 +128,7 @@ namespace nbstl
         }
     }
 
-    // --- ForEach для пары итераторов ---
+    // --- ForEach РґР»СЏ РїР°СЂС‹ РёС‚РµСЂР°С‚РѕСЂРѕРІ ---
     template<typename Iterator, typename Func>
     inline void forEach(Iterator first, Iterator last, Func f)
     {

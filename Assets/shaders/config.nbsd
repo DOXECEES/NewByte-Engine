@@ -66,6 +66,12 @@
             "Assets/shaders/quadShader2.fs"
         ]
     },
+	"gizmoShader.shader" : {
+        "sources": [
+            "Assets/shaders/gizmoShader.vs",
+            "Assets/shaders/gizmoShader.fs"
+        ]
+    },
 	"lightPass.shader" : {
 		"sources": [
 			"Assets/shaders/lightPass.vs"

@@ -52,7 +52,7 @@ namespace nb
                 root = parser.parse();
             }
 
-            void writeToFile(const std::filesystem::path& path) override
+            void writeToFile(NB_MAYBE_UNUSED const std::filesystem::path& path) override
             {
                 //parser.setJson()
                 writer.write(root);

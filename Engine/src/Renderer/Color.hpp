@@ -191,7 +191,7 @@ namespace nb
 				{
 					if (maxChroma == r)
 					{
-						hue *= std::fmod(((g - b) / deltaChroma), HUE_SECTORS_COUNT);
+						hue *= static_cast<float>(std::fmod(((g - b) / deltaChroma), HUE_SECTORS_COUNT));
 					}
 					else if (maxChroma == g)
 					{
@@ -228,7 +228,11 @@ namespace nb
 					r = v;
 					g = v;
 					b = v;
-					return Color(r, g, b);
+					return Color(
+						static_cast<uint8_t>(r),
+						static_cast<uint8_t>(g),
+						static_cast<uint8_t>(b)
+					);
 				}
 
 				float chroma = v * s;
@@ -287,9 +291,9 @@ namespace nb
 
 				float m = v - chroma;
 				return Color(
-					(r + m) * MAX_LINEAR_RGBA_VALUE,
-					(g + m) * MAX_LINEAR_RGBA_VALUE,
-					(b + m) * MAX_LINEAR_RGBA_VALUE
+					static_cast<uint8_t>((r + m) * MAX_LINEAR_RGBA_VALUE),
+					static_cast<uint8_t>((g + m) * MAX_LINEAR_RGBA_VALUE),
+					static_cast<uint8_t>((b + m) * MAX_LINEAR_RGBA_VALUE)
 				);
 
 			}

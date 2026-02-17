@@ -307,6 +307,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
 
     if (!wglChoosePixelFormatARB(hdc, attributes, fAttributes, 1, &pixelFormatN, &numFormats) || numFormats == 0)
     {
+        ReleaseDC(dummyWindow, dummyHDC);
         initFail("Failed to choose a multisample pixel format", nullptr);
         return false;
     }

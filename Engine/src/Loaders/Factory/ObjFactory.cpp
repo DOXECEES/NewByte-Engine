@@ -12,7 +12,11 @@ namespace nb
             Ref<nb::Resource::IResource> ObjFactory::create(const std::filesystem::path &path) const
             {
                 if(path.extension() == ".obj")
+                {
                     return ObjLoader::loadMesh(path);
+                }
+
+                return nullptr;
             }
         };
     };

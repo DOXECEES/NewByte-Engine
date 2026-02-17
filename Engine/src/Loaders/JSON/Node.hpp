@@ -1,6 +1,7 @@
 #ifndef SRC_LOADERS_JSON_NODE_HPP
 #define SRC_LOADERS_JSON_NODE_HPP
 
+#include <NbCore.hpp>
 #include <map>
 #include <string> 
 #include <vector>
@@ -144,7 +145,7 @@ namespace nb
                     {
                         if(node.isValue())
                         {
-                            result.push_back(std::filesystem::path(node.get<std::string>()));
+                            result.emplace_back(std::filesystem::path(node.get<std::string>()));
                         }
                     }
                 }
@@ -236,7 +237,7 @@ namespace nb
             /**
             * @todo Класс должен выкинуть исключение
             */
-            inline std::string toString(const Map &map) const
+            inline std::string toString(NB_MAYBE_UNUSED const Map &map) const
             {
                 return {};
             }

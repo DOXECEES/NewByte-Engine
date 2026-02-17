@@ -16,7 +16,7 @@
 #endif
 
 #if __has_cpp_attribute(deprecated)
-#define NB_DEPRECATED [[deprecated]]
+#define NB_DEPRECATED(message) [[deprecated(message)]]
 #else
 #define NB_DEPRECATED
 #endif

@@ -17,11 +17,15 @@ namespace nb
 
         FBO::~FBO() noexcept
         {
-            unBind();
+            staticUnbind();
             if (!textures.empty())
+            {
                 glDeleteTextures(static_cast<GLsizei>(textures.size()), textures.data());
+            }
             if (renderBuffer)
+            {
                 glDeleteRenderbuffers(1, &renderBuffer);
+            }
             glDeleteFramebuffers(1, &buffer);
         }
 
@@ -262,5 +266,10 @@ namespace nb
             Debug::debug(message);
             abort();
         }
-    };
+
+        void FBO::staticUnbind() noexcept
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }; 
 };

@@ -5,6 +5,8 @@
 
 #include <Windows.h>
 
+#include <NbCore.hpp>
+
 #include <map>
 #include <unordered_map>
 #include <set>
@@ -50,10 +52,16 @@ public:
 #endif
     }
 
-    template <template <typename...> class Container, class... T>
-    static void debug(const Container<T...> &container
-                    , const std::source_location& location = std::source_location::current())
+    template <
+        template <typename...> class Container,
+        class... T
+    >
+    NB_DEPRECATED("Use ErrorManager::report instead")
+    static void debug(
+        const Container<T...> &container, 
+        const std::source_location& location = std::source_location::current())
     {
+
 #if 0
         std::ostringstream oss;
         addHeader(location, oss);

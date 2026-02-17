@@ -10,6 +10,10 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/main.cpp
 
+    src/App.cpp
+    src/App.hpp
+    src/SceneModel.hpp
+
     src/SceneWindow.cpp
     src/SceneWindow.hpp
     src/HierarchyWindow.cpp
@@ -32,7 +36,7 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/UiStore.cpp
     src/UiStore.hpp
-)
+ "src/App.cpp")
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
 if(NOT EXISTS "${ASSETS_SRC_DIR}")
