@@ -310,6 +310,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     pfd = pfdN;
     if (!SetPixelFormat(hdc, pixelFormatN, &pfdN))
     {
+        ReleaseDC(dummyWindow, dummyHDC);
         initFail("Failed to set the pixel format", nullptr);
         return false;
     }

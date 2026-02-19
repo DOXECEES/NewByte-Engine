@@ -122,7 +122,7 @@ namespace nb
            
 
             void*                                   handle;
-            Camera*                                 cam;
+            Camera*                                 cam             = nullptr;
 
             PipelineHandle                          activePipeline  = 0;
             PipelineCache                           pipelineCache;

@@ -141,8 +141,6 @@ namespace nb::Renderer
                 Pipeline mainP = {};
                 mainP.shader = meshPtr->uniforms.shader;
                 mainP.polygonMode = polygonMode;
-                mainP.isDepthTestEnable = true;
-                mainP.isBlendEnable = true;
 
                 meshPtr->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
 
@@ -206,7 +204,6 @@ namespace nb::Renderer
         // Специальный пайплайн для записи теней (без блендинга, только глубина)
         Pipeline shadowP = {};
         shadowP.shader = lightPassShader;
-        shadowP.isDepthTestEnable = true;
         shadowP.polygonMode = PolygonMode::FULL;
         uint32 shadowPSO = api->getCache().getOrCreate(shadowP);
 

@@ -4,6 +4,9 @@
 #include <cmath>
 
 #include "Constants.hpp"
+
+#include <Math/NbMath.hpp>
+
 #include "../Core.hpp"
 
 namespace nb
@@ -122,32 +125,87 @@ namespace nb
             //
             friend constexpr Vector4<T> operator/(Vector4<T> a, const T scalar) noexcept
             {
-                assert(scalar == T(0));
-                a.x /= scalar;
-                a.y /= scalar;
-                a.z /= scalar;
-                a.w /= scalar;
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    assert(!nbstl::Math::equalByEpsilon(scalar, T(0)) && "Vector4: division by zero (scalar is too close to epsilon)");
+
+                    T invScalar = static_cast<T>(1.0) / scalar;
+                    a.x *= invScalar;
+                    a.y *= invScalar;
+                    a.z *= invScalar;
+                    a.w *= invScalar;
+                }
+                else
+                {
+                    assert(scalar != 0 && "Vector4: division by zero (integer)");
+
+                    a.x /= scalar;
+                    a.y /= scalar;
+                    a.z /= scalar;
+                    a.w /= scalar;
+                }
                 return a;
             }
 
             constexpr Vector4<T>& operator/=(const T scalar) noexcept
             {
-                assert(scalar != T(0));
-                this->x /= scalar;
-                this->y /= scalar;
-                this->z /= scalar;
-                this->w /= scalar;
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    assert(!nbstl::Math::equalByEpsilon(scalar, T(0)) && "Vector3: division by zero (scalar is too close to epsilon)");
+
+                    T invScalar = static_cast<T>(1.0) / scalar;
+                    this->x *= invScalar;
+                    this->y *= invScalar;
+                    this->z *= invScalar;
+                    this->w *= invScalar;
+                }
+                else
+                {
+                    assert(scalar != 0 && "Vector3: division by zero (integer)");
+
+                    this->x /= scalar;
+                    this->y /= scalar;
+                    this->z /= scalar;
+                    this->w /= scalar;
+                }
+
                 return *this;
             }
             //
             constexpr bool operator==(const Vector4<T>& other) const
             {
-                return x == other.x && y == other.y && z == other.z && w == other.w;
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    return nbstl::Math::equalByEpsilon(x, other.x)
+                        && nbstl::Math::equalByEpsilon(y, other.y)
+                        && nbstl::Math::equalByEpsilon(z, other.z)
+                        && nbstl::Math::equalByEpsilon(w, other.w);
+                }
+                else
+                {
+                    return x == other.x
+                        && y == other.y
+                        && z == other.z
+                        && w == other.w;
+                }
             }
 
             constexpr bool operator!=(const Vector4<T>& other) const
             {
-                return x != other.x || y != other.y || z != other.z || w != other.w;
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    return !nbstl::Math::equalByEpsilon(x, other.x)
+                        || !nbstl::Math::equalByEpsilon(y, other.y)
+                        || !nbstl::Math::equalByEpsilon(z, other.z)
+                        || !nbstl::Math::equalByEpsilon(w, other.w);
+                }
+                else
+                {
+                    return x != other.x
+                        || y != other.y
+                        || z != other.z
+                        || w != other.w;
+                }
             }
 
             constexpr T dot(const Vector4<T>& oth) const noexcept
@@ -164,7 +222,14 @@ namespace nb
 
             constexpr bool isOrtogonal(const Vector4<T>& oth) const noexcept
             {
-                return (this->dot(oth) == 0);
+                if constexpr (std::is_floating_point_v<T>)
+                {
+                    return nbstl::Math::equalByEpsilon(this->dot(oth), 0);
+                }
+                else
+                {
+                    return (this->dot(oth) == 0);
+                }
             }
 
            /* constexpr bool isColleniar(const Vector3<T>& oth) const noexcept

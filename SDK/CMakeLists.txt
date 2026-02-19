@@ -13,30 +13,7 @@ add_executable(${PROJECT_NAME} WIN32
     src/App.cpp
     src/App.hpp
     src/SceneModel.hpp
-
-    src/SceneWindow.cpp
-    src/SceneWindow.hpp
-    src/HierarchyWindow.cpp
-    src/HierarchyWindow.hpp
-    src/PropertiesWindow.cpp
-    src/PropertiesWindow.hpp
-
-    src/Ui/Slider.cpp
-    src/Ui/Slider.hpp
-    src/Ui/ComboBox.hpp
-    src/Ui/ComboBox.cpp
-    src/Ui/RadioGroup.cpp
-    src/Ui/RadioGroup.hpp
-    src/Ui/Button.cpp
-    src/Ui/Button.hpp
-    src/Ui/IWidget.cpp
-    src/Ui/IWidget.hpp
-    src/Ui/UiMapper.cpp
-    src/Ui/UiMapper.hpp
-
-    src/UiStore.cpp
-    src/UiStore.hpp
- "src/App.cpp")
+)
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
 if(NOT EXISTS "${ASSETS_SRC_DIR}")
