@@ -36,12 +36,12 @@ namespace nb
         };
 
 
-        inline bool operator&(const Type& lhs, const Type& rhs) noexcept
+        inline bool operator&(Type lhs, Type rhs) noexcept
         {
             return static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs);
         }
 
-        inline Type operator|(const Type& lhs, const Type& rhs) noexcept
+        inline Type operator|(Type lhs, Type rhs) noexcept
         {
             return static_cast<Type>(
                 static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs)

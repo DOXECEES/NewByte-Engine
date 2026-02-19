@@ -29,10 +29,11 @@ namespace nb
                 direction.y = 0.0f;
             }
 
-            auto rightDirection = direction.cross(up);
 
             if(deltaYaw != 0.0f || deltaPitch != 0.0f)
             {
+                auto rightDirection = direction.cross(up);
+
                 auto yawQuat = Math::Quaternion<float>::axisAngleToQuaternion(deltaYaw, up);
                 auto pitchQuat = Math::Quaternion<float>::axisAngleToQuaternion(-deltaPitch, rightDirection);
 

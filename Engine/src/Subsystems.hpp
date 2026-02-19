@@ -15,7 +15,7 @@ class Subsystems
 public:
     Subsystems() = default;
 
-    void Init(const HWND& hwnd);
+    void Init(HWND hwnd);
 
 //    inline Renderer2D *GetRenderer2D() const noexcept
 //    {
@@ -37,7 +37,7 @@ public:
         return mouse;
     }
 
-    ~Subsystems();
+    ~Subsystems() noexcept = default;
 
 private:
     // subsystems list

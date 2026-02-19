@@ -36,7 +36,7 @@ namespace nb
 
             void setCamera(Camera* camera)                                      { this->cam = camera; };
             inline Camera *getCamera() const noexcept                           { return cam; };
-            inline const std::shared_ptr<SceneGraph> getScene() const noexcept  { return sceneGraph; };
+            inline const std::shared_ptr<SceneGraph>& getScene() const noexcept  { return sceneGraph; };
             inline void setScenes(std::shared_ptr<SceneGraph> &s)               { sceneGraph = s; };
 
             void togglePolygonVisibilityMode(PolygonMode mode) const noexcept;
@@ -82,6 +82,12 @@ namespace nb
             {
                 return navigationalGizmoFrameBuffer->getTexture();
             }
+
+            uint32 getShadowTextureId() const
+            {
+                return shadowFrameBuffer->getTexture();
+            }
+
 
             void setCheckedTextureId(uint32_t id) { checkedTextureId = id; }
 

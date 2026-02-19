@@ -31,7 +31,7 @@ namespace nb
         {
             node->parent = shared_from_this();
             this->children.push_back(node);
-            SceneGraph::treeMap[node->getName()] = node;
+            SceneGraph::treeMap[node->getName()] = std::move(node);
             dirtyFlag = true;
         }
 

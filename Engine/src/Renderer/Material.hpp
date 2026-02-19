@@ -18,7 +18,7 @@ namespace nb::Renderer
         MaterialNew(Ref<Shader> shader)
             : shader(shader)
         {
-            state.shader = shader;
+            state.shader = std::move(shader);
             state.polygonMode = PolygonMode::FULL;
             state.isDepthTestEnable = true;
             state.isBlendEnable = true;
@@ -41,7 +41,7 @@ namespace nb::Renderer
 
         void setTexture(uint32 slot, Ref<OpenGl::OpenGlTexture> tex) 
         {
-            textures[slot] = tex;
+            textures[slot] = std::move(tex);
         }
 
         void setPolygonMode(PolygonMode mode) { state.polygonMode = mode; }

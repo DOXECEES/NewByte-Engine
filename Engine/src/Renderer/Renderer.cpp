@@ -136,16 +136,29 @@ namespace nb::Renderer
             }
             else if (auto obj = std::dynamic_pointer_cast<ObjectNode>(node))
             {
+                auto* meshPtr = obj->mesh.get();
+
                 Pipeline mainP = {};
-                mainP.shader = obj->mesh->uniforms.shader;
+                mainP.shader = meshPtr->uniforms.shader;
                 mainP.polygonMode = polygonMode;
                 mainP.isDepthTestEnable = true;
                 mainP.isBlendEnable = true;
 
-                obj->mesh->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
+                meshPtr->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
+
+                if (obj->getName() == "cube")
+                {
+                    auto pos = cam->getPosition();
+                    
+                    nb::Error::ErrorManager::instance()
+                        .report(nb::Error::Type::WARNING,"Pos")
+                        .with("X", pos.x)
+                        .with("Y", pos.y)
+                        .with("Z", pos.z);
+                }
 
                 mainQueue.pushBack({
-                    obj->mesh.get(),
+                    meshPtr,
                     api->getCache().getOrCreate(mainP)
                 });
             }
@@ -160,19 +173,33 @@ namespace nb::Renderer
       
         api->setViewport({ 0, 0, shadowSize, shadowSize });
         api->bindFrameBuffer(shadowFrameBuffer);
+        api->setClearColor(Colors::BROWN, 1.0f, 0);
         api->clear(false, true, false); 
 
         // Настройка камеры света (Directional Light)
-        Math::Mat4 lightProj = Math::ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 75.0f);
+        float size = 35.0f; // Размер области, которая будет покрыта тенями
+
+        Math::Mat4 lightProj = Math::ortho(-size, size, -size, size, 0.1f, 75.0f);
         // Поместите "камеру" света подальше, например, в точку (5, 10, 5)
+        
+
+        Math::Vector3<float> lightDir = { -1.0f, -0.2f, -0.2f };
+        lightDir.normalize();// Куда светит
+        float distance = 20.0f; // Расстояние, на которое мы "отлетаем" от центра сцены
+        Math::Vector3<float> lightPos = -lightDir * distance; 
+
         Math::Mat4 lightView = Math::lookAt(
-            Math::Vector3<float>{ 5.0f, 10.0f, 5.0f }, // Позиция источника
+            //Math::Vector3<float>{ 1.0f, 1.0f, 5.0f }, // Позиция источника
+            //lightPos,
+            lights[1]->getPosition(),
             Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  // Смотрим в центр сцены
             Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   // Вектор "верх"
         );
 
+        
 
-        Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
+
+        //Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
 
         Ref<Shader> lightPassShader = rm->getResource<Shader>("lightPass.shader");
 
@@ -184,7 +211,9 @@ namespace nb::Renderer
         uint32 shadowPSO = api->getCache().getOrCreate(shadowP);
 
         for (auto& cmd : mainQueue) {
-            cmd.mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            lightPassShader->setUniformMat4("lightProj", lightProj);
+            lightPassShader->setUniformMat4("lightView", lightView);
+
             lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
 
             // Используем команду для теней: тот же меш, но другой пайплайн (шейдер)
@@ -242,7 +271,7 @@ namespace nb::Renderer
             u.vec3Uniforms["viewPos"] = cam->getPosition();
             u.mat4Uniforms["view"] = cam->getLookAt();
             u.mat4Uniforms["proj"] = cam->getProjection();
-            u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            //u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
             
 
             u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = DirectionalLight::getCountOfDirectionalLights();
@@ -312,7 +341,7 @@ namespace nb::Renderer
         glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->getTexture(0));
 
         Pipeline quadPipeline = {};
-        quadPipeline.shader = quadShader;
+        quadPipeline.shader = std::move(quadShader);
         quadPipeline.polygonMode = PolygonMode::FULL;
         quadPipeline.isDepthTestEnable = false; 
 
@@ -393,7 +422,7 @@ namespace nb::Renderer
         }
 
         Pipeline pipeline = {};
-        pipeline.shader = quadShader;
+        pipeline.shader = std::move(quadShader);
         pipeline.isDepthTestEnable = false;
         pipeline.polygonMode = PolygonMode::FULL;
         uint32 pso = api->getCache().getOrCreate(pipeline);
@@ -442,7 +471,7 @@ namespace nb::Renderer
 
         gizemoModel = cameraView;
         auto gizmoMesh = nb::ResMan::ResourceManager::getInstance()
-            ->getResource<nb::Renderer::Mesh>("Cube.obj");
+            ->getResource<nb::Renderer::Mesh>("Cube22.obj");
         
 
         auto gizmoShader = nb::ResMan::ResourceManager::getInstance()
@@ -514,7 +543,8 @@ namespace nb::Renderer
         Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
         //Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
         Transform cubeTransform;
-        cubeTransform.scale = { 0.25f,0.25f,0.25f };
+        cubeTransform.translate = { 0.0f, 0.0f, 0.0f };
+        cubeTransform.scale = { 2.25f,2.25f,2.25f };
 
         auto cubeNode = std::make_shared<ObjectNode>("cube", cubeTransform, cube, shader);
         scene->addChildren(cubeNode);

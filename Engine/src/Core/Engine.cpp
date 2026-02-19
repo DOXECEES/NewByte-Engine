@@ -170,7 +170,6 @@ namespace nb
                 ClipCursor(&r);
             }
 
-            auto camDir = cam.getDirection();
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_ESCAPE))
             {
@@ -188,6 +187,7 @@ namespace nb
             }
             else
             {
+                auto camDir = cam.getDirection();
                 handleGameMode(camDir, deltaTime);
             }
 

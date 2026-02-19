@@ -117,7 +117,7 @@ namespace nb
                 std::string_view nodeName,
                 const Transform& nodeTransform,
                 const std::shared_ptr<Mesh> &nodeMesh,
-                const std::shared_ptr<Shader> nodeShader
+                const std::shared_ptr<Shader>& nodeShader
             )
                 : BaseNode(nodeName, nodeTransform), mesh(nodeMesh)
             {

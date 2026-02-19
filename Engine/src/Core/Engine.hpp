@@ -50,7 +50,7 @@ namespace nb
                 GAME
             };
 
-            Engine(const HWND& windowHwnd)
+            Engine(HWND windowHwnd)
             {
 
 #ifdef NB_DEBUG
@@ -68,8 +68,7 @@ namespace nb
 
                 //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
 
-                nbstl::Uuid uuid = nbstl::Uuid::generate();
-                std::string s = uuid.toString();
+             
 
                 struct Helth
                 {

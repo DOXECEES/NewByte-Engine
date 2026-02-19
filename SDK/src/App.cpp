@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "App.hpp"
 
 
@@ -167,6 +170,7 @@ void EditorApp::setupHierarchyUI() noexcept
 void EditorApp::setupInspectorUI() noexcept
 {
     using namespace nbui;
+    auto& errorManager = nb::Error::ErrorManager::instance();
         auto inspector = LayoutBuilder::vBox()
         .style([](NNsLayout::LayoutStyle& s) {
         s.widthSizeType = NNsLayout::SizeType::RELATIVE;
@@ -222,7 +226,7 @@ void EditorApp::setupInspectorUI() noexcept
                         .background(NbColor{ 25, 25, 25 })
                         .color(NbColor{ 255, 100, 100 })
                         .onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value){
-                            nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+                            errorManager.report(nb::Error::Type::INFO, std::to_string(value));
                             
                             if (!activeNode)
                             {
@@ -245,7 +249,7 @@ void EditorApp::setupInspectorUI() noexcept
                         .background(NbColor{ 25, 25, 25 })
                         .color(NbColor{ 100, 255, 100 })
                         .onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                            nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+                            errorManager.report(nb::Error::Type::INFO, std::to_string(value));
 
                             if (!activeNode)
                             {
@@ -681,14 +685,18 @@ void EditorApp::setupDebugUI() noexcept
 
         .child(LayoutBuilder::widget(new Widgets::ComboBox())
             .apply<Widgets::ComboBox>([&](Widgets::ComboBox* c) {
-                c->addItem({ L"Albedo",     engine->getRenderer()->getAlbedoId()});
-                c->addItem({ L"Ao",         engine->getRenderer()->getAoId() });
-                c->addItem({ L"Metal",      engine->getRenderer()->getMetalId() });
-                c->addItem({ L"Normal",     engine->getRenderer()->getNormalId()});
-                c->addItem({ L"Roughtness", engine->getRenderer()->getRoughtnessId()});
-                c->addItem({ L"Gizmo",      engine->getRenderer()->getGizmoTextureId() });
 
-                })
+                const nb::Renderer::Renderer* renderer = engine->getRenderer().get();
+
+                c->addItem({ L"Albedo",     renderer->getAlbedoId()});
+                c->addItem({ L"Ao",         renderer->getAoId() });
+                c->addItem({ L"Metal",      renderer->getMetalId() });
+                c->addItem({ L"Normal",     renderer->getNormalId()});
+                c->addItem({ L"Roughtness", renderer->getRoughtnessId()});
+                c->addItem({ L"Shadow",     renderer->getShadowTextureId() });
+                c->addItem({ L"Gizmo",      renderer->getGizmoTextureId() });
+
+             })
             .text(L"Show Draw Calls")
             .relativeWidth(1.0f).absoluteHeight(30)
             .onEvent(&Widgets::ComboBox::onItemChecked, [&](const Widgets::ListItem& item) {

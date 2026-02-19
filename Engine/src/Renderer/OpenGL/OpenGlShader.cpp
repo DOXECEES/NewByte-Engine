@@ -11,8 +11,8 @@ nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader
 }
 
 nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
+    : pathsToShaderSources(vecOfShaders)
 {
-    pathsToShaderSources = vecOfShaders;
     for (const auto &shaderPath : vecOfShaders)
     {
         link(shaderPath);
@@ -76,19 +76,25 @@ void nb::OpenGl::OpenGlShader::setUniformInt(std::string_view name, const int va
     glProgramUniform1i(program, loc, value);
 }
 
-void nb::OpenGl::OpenGlShader::setUniformVec2(std::string_view name, const Math::Vector2<float> value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformVec2(
+    std::string_view name,
+    const Math::Vector2<float>& value
+) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform2f(program, loc, value.x, value.y);
 }
 
-void nb::OpenGl::OpenGlShader::setUniformVec3(std::string_view name, const Math::Vector3<float> value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformVec3(
+    std::string_view name,
+    const Math::Vector3<float>& value
+) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform3f(program, loc, value.x, value.y, value.z);
 }
 
-void nb::OpenGl::OpenGlShader::setUniformVec4(std::string_view name, const Math::Vector4<float> value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformVec4(std::string_view name, const Math::Vector4<float>& value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform4f(program, loc, value.x, value.y, value.z, value.w);

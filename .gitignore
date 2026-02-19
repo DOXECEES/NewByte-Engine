@@ -54,6 +54,7 @@ CTestTestfile.cmake
 _deps
 out
 TestResults
+bb
 
 !Assets/
 !Assets/**/*.obj

@@ -37,12 +37,12 @@ namespace nb
 
         void Input::linkMouse(Ref<Mouse> mouse) noexcept
         {
-            this->mouse = mouse;
+            this->mouse = std::move(mouse);
         }
 
         void Input::linkKeyboard(Ref<Keyboard> keyboard) noexcept
         {
-            this->keyboard = keyboard;
+            this->keyboard = std::move(keyboard);
         }
 
         void Input::update() noexcept

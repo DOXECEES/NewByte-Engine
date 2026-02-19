@@ -82,7 +82,7 @@
                          1.0f // Направление битангенса
                      );
 
-                     vertices.push_back(Vertex(pos, normal, {1.0f,1.0f,1.0f}, uv, tangent));
+                     vertices.emplace_back(Vertex(pos, normal, {1.0f,1.0f,1.0f}, uv, tangent));
                  }
              }
 
@@ -113,7 +113,11 @@
           z = r * sin(v)*/
 
 
-		 Ref<Mesh> PrimitiveGenerators::createTorus(const ParametricSegments& segments, const float majorRadius, const float minorRadius) noexcept
+		 Ref<Mesh> PrimitiveGenerators::createTorus(
+             ParametricSegments segments,
+             const float majorRadius,
+             const float minorRadius
+         ) noexcept
 		 {
 			 const int segU = segments.u;
 			 const int segV = segments.v;

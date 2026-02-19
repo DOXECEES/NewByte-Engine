@@ -105,7 +105,10 @@ namespace nb
 
 
                 void visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept;
-                void visualizeAabb(const Math::AABB3D& aabb, Math::Mat4<float> mat) const noexcept;
+                void visualizeAabb(
+                    const Math::AABB3D& aabb,
+                    const Math::Mat4<float>& mat
+                ) const noexcept;
 
             public:
 
@@ -117,7 +120,7 @@ namespace nb
                     ambientColor = Math::toFloatColor(color);
                 }
 
-                static void drawTransformationElements(const Ref<Renderer::Mesh> mesh) noexcept;
+                static void drawTransformationElements(const Ref<Renderer::Mesh>& mesh) noexcept;
 
                 static void applyDefaultModel() noexcept;
                 static void applyDefaultModelFlat() noexcept;

@@ -62,9 +62,9 @@ endfunction()
 
 set(ALL_TARGETS NewByte-Engine SDK NewByte-UI-Lib Common nbstl tests)
 
-foreach(t ${ALL_TARGETS})
-    apply_debug_flags(${t})
-endforeach()
+#foreach(t ${ALL_TARGETS})
+    #apply_debug_flags(${t})
+#endforeach()
 
 # ============================================================================  
 # Code coverage (опционально)

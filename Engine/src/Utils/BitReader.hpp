@@ -133,7 +133,7 @@ namespace nb
                 {
                     auto bit = getBitMs(); 
                     if (bit.has_value())
-                        res |= (bit.value() << i);
+                        res |= (*bit << i);
                 }
 
                 return res;

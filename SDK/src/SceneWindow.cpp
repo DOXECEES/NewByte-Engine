@@ -1,9 +1,15 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "SceneWindow.hpp"
 #include <../../Engine/src/Math/RayCast/RayPicker.hpp>
 namespace Editor
 {
 
-    SceneWindow::SceneWindow(const HWND &parentHwnd, std::shared_ptr<nb::Core::Engine> engine)
+    SceneWindow::SceneWindow(
+        HWND parentHwnd,
+        std::shared_ptr<nb::Core::Engine> engine
+    )
         :engine(engine)
     {
         Sengine = engine;

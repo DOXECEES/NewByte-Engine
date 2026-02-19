@@ -62,10 +62,8 @@ namespace nbstl
 
         void clearHeap() noexcept
         {
-            if (stringData.heap.buffer)
-            {
-                delete[] stringData.heap.buffer;
-            }
+            delete[] stringData.heap.buffer;
+            stringData.heap.buffer = nullptr;
             clearSSO();
         }
 
@@ -107,10 +105,9 @@ namespace nbstl
             std::memset(tempBuffer, 0, stringData.heap.capacity * 2);
             std::memcpy(tempBuffer, stringData.heap.buffer, stringData.heap.size * sizeof(T));
 
-            if (stringData.heap.buffer)
-            {
-                delete[] stringData.heap.buffer;
-            }
+            
+            delete[] stringData.heap.buffer;
+            stringData.heap.buffer = nullptr;
 
             stringData.heap.buffer = tempBuffer;
             stringData.heap.capacity = stringData.heap.capacity * 2;

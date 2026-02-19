@@ -22,7 +22,11 @@ namespace nb
 
             Ref<Mesh> createCube() noexcept;
             Ref<Mesh> createSphere(const float radius, uint32 xSegments, uint32 ySegments) noexcept;
-            Ref<Mesh> createTorus(const ParametricSegments& segments, const float majorRadius, const float minorRadius) noexcept;
+            Ref<Mesh> createTorus(
+                ParametricSegments segments,
+                const float majorRadius,
+                const float minorRadius
+            ) noexcept;
         };
 
         enum class MeshType

@@ -15,7 +15,10 @@ namespace Editor
 
     public:
     
-        SceneWindow(const HWND& parentHwnd, std::shared_ptr<nb::Core::Engine> engine);
+        SceneWindow(
+            HWND parentHwnd,
+            std::shared_ptr<nb::Core::Engine> engine
+        );
         ~SceneWindow() = default;
 
         inline const HWND &getHandle() const noexcept { return hwnd; };
