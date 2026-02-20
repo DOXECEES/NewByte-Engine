@@ -204,23 +204,23 @@ namespace nb
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
-                cam.moveAt(camDir * 5.0f * deltaTime);
+                cam.moveAt(-camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
             {
-                cam.moveAt(-camDir * 5.0f * deltaTime);
+                cam.moveAt(camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(rightVec * 5.0f * deltaTime);
+                cam.moveAt(-rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(-rightVec * 5.0f * deltaTime);
+                cam.moveAt(rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
             {

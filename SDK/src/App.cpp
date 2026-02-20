@@ -233,7 +233,7 @@ void EditorApp::setupInspectorUI() noexcept
                                 return;
                             }
 
-                            activeNode->addTranslate({ (float)value, 0.0f, 0.0f });
+                            activeNode->addTranslate({ static_cast<float>(value), 0.0f, 0.0f });
                         })
                     )
                 )
@@ -256,7 +256,7 @@ void EditorApp::setupInspectorUI() noexcept
                                 return;
                             }
 
-                            activeNode->addTranslate({ 0.0f, (float)value, 0.0f });
+                            activeNode->addTranslate({ 0.0f, static_cast<float>(value), 0.0f });
                         })
                     )
                 )
@@ -279,7 +279,7 @@ void EditorApp::setupInspectorUI() noexcept
                                 return;
                             }
 
-                            activeNode->addTranslate({ 0.0f, 0.0f, (float)value });
+                            activeNode->addTranslate({ 0.0f, 0.0f, static_cast<float>(value)});
                         })
                     )
                 )
@@ -632,10 +632,10 @@ void EditorApp::setupDebugUI() noexcept
             }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show Grid")
+            .text(L"Show vertex color")
             .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-                //g_engine->getRenderer()->setGridVisible(checked);
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+                engine->getRenderer()->showVertexColor(checked);
             }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())

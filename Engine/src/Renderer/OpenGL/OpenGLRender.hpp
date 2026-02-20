@@ -100,7 +100,7 @@ namespace nb
 
                 Renderer::SharedWindowContext shareContext(void* handle) const noexcept override;
                 bool setContext(HDC hdc, HGLRC hglrc) noexcept override;
-                bool setDefaultContext() noexcept;
+                bool setDefaultContext() noexcept override;
 
 
 

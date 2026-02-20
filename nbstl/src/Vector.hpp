@@ -355,9 +355,9 @@ namespace nbstl
 			_capacityEnd = newData + newCapacity;
 		}
 
-		T* _begin;
-		T* _end;
-		T* _capacityEnd;
+		T* _begin		= nullptr;
+		T* _end			= nullptr;
+		T* _capacityEnd = nullptr;
 	};
 }; 
 

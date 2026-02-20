@@ -320,6 +320,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
 
     if (!wglCreateContextAttribsARB)
     {
+        ReleaseDC(dummyWindow, dummyHDC);
         initFail("Failed to get wglCreateContextAttribsARB", tempContext);
         return false;
     }

@@ -15,7 +15,7 @@ namespace nb
         void Timer::reset() noexcept
         {
             initTime = std::chrono::high_resolution_clock::now();
-            start = std::chrono::high_resolution_clock::now();
+            start = initTime;
         }
 
         float Timer::timeElapsedSinceInit() noexcept

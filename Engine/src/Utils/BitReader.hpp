@@ -148,8 +148,10 @@ namespace nb
                 {
                     auto bit = getBitLs(); 
                     if (bit.has_value())
+                    {
                         res <<= i;
-                        res |= ((0 << i) | bit.value());
+                        res |= (static_cast<uint32_t>(bit.value()) << i);
+                    }
                 }
 
                 return res;

@@ -104,10 +104,12 @@ namespace nb
            
 
         private:
-            bool                        isMessageReceived = false;
             std::queue<ErrorMessage>    messages;
             
             IErrorPrinter* printer = nullptr;
+
+            bool isMessageReceived = false;
+
         
         };
     };

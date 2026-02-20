@@ -287,7 +287,7 @@ namespace nb
         template<typename T>
         constexpr Matrix<T, 4, 4> lookAt(Vector3<T> eye, Vector3<T> center, Vector3<T> up)
         {
-            Vector3<T> z = (center - eye);
+            Vector3<T> z = (eye - center);
             z.normalize();  
 
             // Проверяем на коллинеарность

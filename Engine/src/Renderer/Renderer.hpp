@@ -43,6 +43,7 @@ namespace nb
             inline void setPolygonVisibilityMode(PolygonMode mode) noexcept     { polygonMode = mode; };
 
             void setWireframeMode(bool flag) noexcept;
+            void showVertexColor(bool flag) noexcept;
 
             inline void toggleDebugPass() noexcept { isDebugPassEnabled = !isDebugPassEnabled; }
 

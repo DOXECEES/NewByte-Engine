@@ -118,7 +118,6 @@ namespace nb::Renderer
             return;
         }
 
-
         auto rm = ResMan::ResourceManager::getInstance();
 
         onResize(width, height);
@@ -164,9 +163,6 @@ namespace nb::Renderer
 
         api->beginFrame();
 
-
-
-
         const float shadowSize = 1024.0f;
       
         api->setViewport({ 0, 0, shadowSize, shadowSize });
@@ -174,34 +170,27 @@ namespace nb::Renderer
         api->setClearColor(Colors::BROWN, 1.0f, 0);
         api->clear(false, true, false); 
 
-        // Настройка камеры света (Directional Light)
-        float size = 35.0f; // Размер области, которая будет покрыта тенями
+        float size = 35.0f; 
 
         Math::Mat4 lightProj = Math::ortho(-size, size, -size, size, 0.1f, 75.0f);
-        // Поместите "камеру" света подальше, например, в точку (5, 10, 5)
         
 
         Math::Vector3<float> lightDir = { -1.0f, -0.2f, -0.2f };
-        lightDir.normalize();// Куда светит
-        float distance = 20.0f; // Расстояние, на которое мы "отлетаем" от центра сцены
+        lightDir.normalize();
+        float distance = 20.0f; 
         Math::Vector3<float> lightPos = -lightDir * distance; 
 
         Math::Mat4 lightView = Math::lookAt(
-            //Math::Vector3<float>{ 1.0f, 1.0f, 5.0f }, // Позиция источника
-            //lightPos,
             lights[1]->getPosition(),
-            Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  // Смотрим в центр сцены
-            Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   // Вектор "верх"
+            Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  
+            Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   
         );
 
         
-
-
         //Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
 
         Ref<Shader> lightPassShader = rm->getResource<Shader>("lightPass.shader");
 
-        // Специальный пайплайн для записи теней (без блендинга, только глубина)
         Pipeline shadowP = {};
         shadowP.shader = lightPassShader;
         shadowP.polygonMode = PolygonMode::FULL;
@@ -240,12 +229,12 @@ namespace nb::Renderer
         skyboxShader->setUniformMat4("projection", proj);
         sky.render(skyboxShader);
 
-        glActiveTexture(GL_TEXTURE4);
+        glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
 
         
 
-
+       
 
         for (auto& cmd : mainQueue) 
         {
@@ -269,6 +258,11 @@ namespace nb::Renderer
             u.mat4Uniforms["view"] = cam->getLookAt();
             u.mat4Uniforms["proj"] = cam->getProjection();
             //u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+
+            u.mat4Uniforms["lightView"] = lightView;
+            u.mat4Uniforms["lightProj"] = lightProj;
+            u.intUniforms["shadowMap"] = 5;
+
             
 
             u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = DirectionalLight::getCountOfDirectionalLights();
@@ -377,6 +371,11 @@ namespace nb::Renderer
         {
             polygonMode = PolygonMode::FULL;
         }
+    }
+
+    void Renderer::showVertexColor(bool flag) noexcept
+    {
+
     }
 
     bool Renderer::isResourceReady() const noexcept
@@ -515,7 +514,7 @@ namespace nb::Renderer
         auto dirLightNode = std::make_shared<LightNode>("DirLight", dirLightTransform, dirLight);
 
         Transform pointLightTransform;
-        pointLightTransform.translate = { -5.0f, 0.0f, -5.0f };
+        pointLightTransform.translate = { -5.0f, 19.0f, -5.0f };
         auto pointLight = std::make_shared<PointLight>(
             ambientColor,
             Math::Vector3<float>{1.0f, 1.0f, 1.0f},
@@ -546,13 +545,22 @@ namespace nb::Renderer
         auto cubeNode = std::make_shared<ObjectNode>("cube", cubeTransform, cube, shader);
         scene->addChildren(cubeNode);
 
-        Ref<Mesh> surface = PrimitiveGenerators::createCube();
-        Transform surfaceTransform;
-        surfaceTransform.translate = {0.0f, -25.0f, 0.0f };
-        surfaceTransform.scale = { 2500.0f, 0.10f, 2500.0f };
 
-        auto surfaceNode = std::make_shared<ObjectNode>("surface", surfaceTransform, surface, shader);
-        scene->addChildren(surfaceNode);
+        Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
+        // Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
+        Transform surfTransform;
+        surfTransform.translate = {0.0f, 0.0f, 0.0f};
+
+        auto surfNode = std::make_shared<ObjectNode>("scene", surfTransform, surf, shader);
+        scene->addChildren(surfNode);
+
+        //Ref<Mesh> surface = PrimitiveGenerators::createCube();
+        //Transform surfaceTransform;
+        //surfaceTransform.translate = {0.0f, -25.0f, 0.0f };
+        //surfaceTransform.scale = { 2500.0f, 0.10f, 2500.0f };
+        //
+        //auto surfaceNode = std::make_shared<ObjectNode>("surface", surfaceTransform, surface, shader);
+        //scene->addChildren(surfaceNode);
 
         
         scene->addChildren(dirLightNode);

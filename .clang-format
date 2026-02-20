@@ -1,0 +1,35 @@
+BasedOnStyle: LLVM
+Language: Cpp
+
+# Отступы
+IndentWidth: 4
+ColumnLimit: 100
+
+# СКОБКИ: Стиль Allman принудительно ставит все скобки на новые строки.
+# Это лучший способ гарантировать закрывающую скобку на новой строке в VS.
+BreakBeforeBraces: Allman
+
+InsertBraces: true 
+BinPackParameters: AlwaysOnePerLine
+AlignAfterOpenBracket: BlockIndent
+BreakBeforeBinaryOperators: All
+# ЗАПРЕТ КОРОТКИХ КОНСТРУКЦИЙ
+# Эти параметры понимает даже старый clang-format
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+
+# Указатели
+PointerAlignment: Left
+
+# Пробелы
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+NamespaceIndentation: All
+
+
+
+# Инклюды
+SortIncludes: true

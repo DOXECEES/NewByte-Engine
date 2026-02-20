@@ -141,7 +141,7 @@ private:
             mainWindow->resetStateDirtyFlags();
             sceneWindow->resetStateDirtyFlags();
         }
-        return (int)msg.wParam;
+        return static_cast<int>(msg.wParam);
     }
 };
 
