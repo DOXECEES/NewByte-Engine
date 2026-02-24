@@ -10,20 +10,25 @@ namespace nb
         class Plane
         {
             public:
-                explicit Plane(const Vector3<float>& point1,
-                        const Vector3<float>& point2,
-                        const Vector3<float>& point3)
+                explicit Plane(
+                    const Vector3<float>& point1,
+                    const Vector3<float>& point2,
+                    const Vector3<float>& point3
+                )
+                    : source(point1)
                 {
                     Vector3<float> a = point2 - point1;
                     Vector3<float> b = point3 - point1;
                     normal = a.cross(b);
                     normal.normalize();
-                    source = point1;
                 }
                 
-                explicit Plane(const Vector3<float>& point, const Vector3<float> normal)
+                explicit Plane(
+                    const Vector3<float>& point,
+                    const Vector3<float>& normal
+                )
                     : normal(normal)
-                    , source(normal)
+                    , source(point)
                 {
 
                 }

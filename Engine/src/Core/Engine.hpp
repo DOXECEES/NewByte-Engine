@@ -50,7 +50,7 @@ namespace nb
                 GAME
             };
 
-            Engine(const HWND& windowHwnd)
+            Engine(HWND windowHwnd)
             {
 
 #ifdef NB_DEBUG
@@ -68,8 +68,7 @@ namespace nb
 
                 //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
 
-                nbstl::Uuid uuid = nbstl::Uuid::generate();
-                std::string s = uuid.toString();
+             
 
                 struct Helth
                 {
@@ -86,36 +85,28 @@ namespace nb
                     Math::Vector3<float> position;
                 };
 
-                Ecs::EcsManager manager;
-                auto ent1 = manager.createEntity();
-                ent1.add<Helth>(Helth(1));
-                ent1.add<Speed>(Speed(1));
-                auto ent2 = manager.createEntity();
-                ent2.add<Helth>(Helth(2));
+                Ecs::ECSRegistry ecs;
+                auto ent1 = ecs.createEntity();
+                ecs.add(ent1, Helth(1.0f));
+                ecs.add(ent1, Speed(1));
+                auto ent2 = ecs.createEntity();
+                ecs.add(ent2, Helth(2));
 
-                Debug::debug("HELTH:");
 
-                for (auto& i : manager.getEntitiesWithComponent<Helth>())
+                auto& helthStore = ecs.getStorage<Helth>();
+
+                for (auto& i : helthStore.entitiesView())
                 {
-                    auto h = i.get<Helth>();
-                    Debug::debug(h.hp);
+                    auto h = helthStore.get(i);
+                    nb::Error::ErrorManager::instance()
+                        .report(nb::Error::Type::INFO, "Helth")
+                        .with("id", i)
+                        .with("value", h.hp);
                 }
-                Debug::debug("Speed:");
-
-                for (auto& i : manager.getEntitiesWithComponent<Speed>())
-                {
-                    auto h = i.get<Speed>();
-                    Debug::debug(h.velocity);
-                }
+                
 
                 Renderer::Color color = Renderer::Color::fromRgb(92, 82, 14);
                 auto hsv = color.toHsv();
-
-                auto m = Error::ErrorManager::instance().report(Error::Type::INFO, "Hello")
-                    .with("Hello", "Hello")
-                    .with("World", "World");
-                
-
 
 #endif            
 

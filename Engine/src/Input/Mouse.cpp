@@ -41,7 +41,12 @@ namespace nb
             return (buttonFlags & MIDDLE_BUTTON_DOWN);
         }
 
-        void Mouse::update(const int x, const int y, const float scrollDelta, const uint16_t flags) noexcept
+        void Mouse::update( // TODO: share NbPoint, NbRect and other with engine
+            const int x,
+            const int y,
+            const float scrollDelta,
+            const uint16_t flags
+        ) noexcept
         {
             this->scrollDelta = scrollDelta;
            

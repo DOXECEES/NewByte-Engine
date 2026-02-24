@@ -22,8 +22,8 @@ namespace nb::OpenGl
         case nb::Renderer::PolygonMode::FULL:
             return GL_FILL;
         default:
-            Error::ErrorManager::instance()
-                .report(Error::Type::WARNING, "Unsupported polygon mode");
+            //Error::ErrorManager::instance()
+            //    .report(Error::Type::WARNING, "Unsupported polygon mode");
             return GL_FILL;
         }
     }
@@ -36,16 +36,11 @@ namespace nb::OpenGl
 
         if (!ctx.hdc) return {};
 
-        // 1. ПРОВЕРКА: Установлен ли формат уже?
         int currentPF = GetPixelFormat(ctx.hdc);
         if (currentPF == 0)
         {
-            // Формат не установлен. Пытаемся установить формат основного окна.
-            // ВАЖНО: используем сохраненные в init() значения this->pixelFormat и this->pfd
             if (!SetPixelFormat(ctx.hdc, this->pixelFormat, &this->pfd))
             {
-                // Если установка основного формата не удалась (ошибка 87), 
-                // пробуем "упрощенный" подбор.
                 int fallbackPF = ChoosePixelFormat(ctx.hdc, &this->pfd);
                 if (!SetPixelFormat(ctx.hdc, fallbackPF, &this->pfd))
                 {
@@ -58,7 +53,6 @@ namespace nb::OpenGl
             }
         }
 
-        // 2. СОЗДАНИЕ КОНТЕКСТА (Modern Way)
         auto wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
 
         int contextAttribs[] = {
@@ -68,12 +62,10 @@ namespace nb::OpenGl
             0
         };
 
-        // Шарим ресурсы: передаем this->hglrc вторым параметром
         ctx.hglrc = wglCreateContextAttribsARB(ctx.hdc, this->hglrc, contextAttribs);
 
         if (!ctx.hglrc)
         {
-            // Fallback на старый метод, если ARB не сработал
             ctx.hglrc = wglCreateContext(ctx.hdc);
             wglShareLists(this->hglrc, ctx.hglrc);
         }
@@ -307,6 +299,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
 
     if (!wglChoosePixelFormatARB(hdc, attributes, fAttributes, 1, &pixelFormatN, &numFormats) || numFormats == 0)
     {
+        ReleaseDC(dummyWindow, dummyHDC);
         initFail("Failed to choose a multisample pixel format", nullptr);
         return false;
     }
@@ -317,6 +310,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     pfd = pfdN;
     if (!SetPixelFormat(hdc, pixelFormatN, &pfdN))
     {
+        ReleaseDC(dummyWindow, dummyHDC);
         initFail("Failed to set the pixel format", nullptr);
         return false;
     }
@@ -326,6 +320,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
 
     if (!wglCreateContextAttribsARB)
     {
+        ReleaseDC(dummyWindow, dummyHDC);
         initFail("Failed to get wglCreateContextAttribsARB", tempContext);
         return false;
     }
@@ -492,18 +487,23 @@ void nb::OpenGl::OpenGLRender::visualizeLight(std::shared_ptr<Renderer::LightNod
     auto mesh = rm->getResource<Renderer::Mesh>("sphere.obj");
 
     auto lightVisulizeShader = rm->getResource<nb::Renderer::Shader>("lightVisulize.shader");
+    
+    Renderer::ShaderUniforms& uniforms = mesh->uniforms;
 
-    mesh->uniforms.floatUniforms["time"] = Utils::Timer::timeElapsedSinceInit();
-    mesh->uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
-    mesh->uniforms.mat4Uniforms["view"] = cam->getLookAt();
-    mesh->uniforms.mat4Uniforms["proj"] = cam->getProjection();
-    mesh->uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), node->getPosition() - Math::Vector3<float>{0.0f, 1.0f, 1.0f});
+    uniforms.floatUniforms["time"] = Utils::Timer::timeElapsedSinceInit();
+    uniforms.vec3Uniforms["viewPos"] = cam->getPosition();
+    uniforms.mat4Uniforms["view"] = cam->getLookAt();
+    uniforms.mat4Uniforms["proj"] = cam->getProjection();
+    uniforms.mat4Uniforms["model"] = Math::translate(Math::Matrix<float, 4, 4>::identity(), node->getPosition() - Math::Vector3<float>{0.0f, 1.0f, 1.0f});
 
     mesh->draw(GL_TRIANGLES, lightVisulizeShader);
 
 }
 
-void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat4<float> mat) const noexcept
+void nb::OpenGl::OpenGLRender::visualizeAabb(
+    const Math::AABB3D &aabb,
+    const Math::Mat4<float>& mat
+) const noexcept
 {
 
     auto rm = ResMan::ResourceManager::getInstance();
@@ -519,7 +519,8 @@ void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat
         {{B.minPoint.x, B.maxPoint.y, B.minPoint.z}, {}},
         {{B.minPoint.x, B.maxPoint.y, B.maxPoint.z}, {}},
         {{B.maxPoint.x, B.maxPoint.y, B.maxPoint.z}, {}},
-        {{B.maxPoint.x, B.maxPoint.y, B.minPoint.z}, {}}};
+        {{B.maxPoint.x, B.maxPoint.y, B.minPoint.z}, {}}
+    };
 
     static std::vector<unsigned int> edges = {
         0, 4,
@@ -535,7 +536,8 @@ void nb::OpenGl::OpenGLRender::visualizeAabb(const Math::AABB3D &aabb, Math::Mat
         4, 5,
         5, 6,
         6, 7,
-        7, 4};
+        7, 4
+    };
 
     Renderer::Mesh m(vertices, edges);
     m.uniforms.mat4Uniforms["model"] = Math::Mat4<float>::identity();
@@ -559,7 +561,7 @@ nb::OpenGl::OpenGLRender *nb::OpenGl::OpenGLRender::create(HWND hwnd)
     return render;
 }
 
-void nb::OpenGl::OpenGLRender::drawTransformationElements(const Ref<Renderer::Mesh> mesh) noexcept
+void nb::OpenGl::OpenGLRender::drawTransformationElements(const Ref<Renderer::Mesh>& mesh) noexcept
 {
     // Math::AABB3D aabb = mesh->getAABB();
     // Math::Vector3<float> center = aabb.center();

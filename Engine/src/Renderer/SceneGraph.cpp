@@ -2,6 +2,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "SceneGraph.hpp"
+#include "TransformProxy.hpp"
 #include "../Math/Matrix/Transformation.hpp"
 
 #include "../Debug.hpp"
@@ -31,7 +32,7 @@ namespace nb
         {
             node->parent = shared_from_this();
             this->children.push_back(node);
-            SceneGraph::treeMap[node->getName()] = node;
+            SceneGraph::treeMap[node->getName()] = std::move(node);
             dirtyFlag = true;
         }
 
@@ -74,6 +75,25 @@ namespace nb
         void BaseNode::setTransform(const Transform &newTransform) noexcept
         {
             this->transform = newTransform;
+            dirtyFlag = true;
+        }
+
+        void BaseNode::setTransformX(float value) noexcept
+        {
+            transform.translate.x = value;
+            dirtyFlag = true;
+        }
+
+        void BaseNode::setTransformY(float value) noexcept
+        {
+            transform.translate.y = value;
+            dirtyFlag = true;
+        }
+
+        void BaseNode::setTransformZ(float value) noexcept
+        {
+            transform.translate.z = value;
+            dirtyFlag = true;
         }
 
         Math::Mat4<float> BaseNode::getLocalTransform() const noexcept
@@ -106,9 +126,14 @@ namespace nb
             return parent;
         }
 
-        const Transform &BaseNode::getTransform() const noexcept
+        const Transform& BaseNode::getTransform() const noexcept
         {
             return transform;
+        }
+
+        TransformProxy BaseNode::getTransformView() noexcept
+        {
+            return TransformProxy(*this, transform);
         }
 
         Math::Mat4<float> BaseNode::getLocalTransform() noexcept
@@ -159,7 +184,11 @@ namespace nb
 
         }
 
-        ///
+        void BaseNode::markDirty() noexcept
+        {
+            dirtyFlag = true;
+        }
+
 
         std::shared_ptr<SceneGraph> SceneGraph::getInstance() noexcept
         {

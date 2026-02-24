@@ -17,11 +17,15 @@ namespace nb
 
         FBO::~FBO() noexcept
         {
-            unBind();
+            staticUnbind();
             if (!textures.empty())
+            {
                 glDeleteTextures(static_cast<GLsizei>(textures.size()), textures.data());
+            }
             if (renderBuffer)
+            {
                 glDeleteRenderbuffers(1, &renderBuffer);
+            }
             glDeleteFramebuffers(1, &buffer);
         }
 
@@ -82,13 +86,14 @@ namespace nb
                 float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
                 glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
+                bind();
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
 
                 if (colorTextureCount == 0) {
                     glDrawBuffer(GL_NONE);
                     glReadBuffer(GL_NONE);
                 }
-
+                unBind();
                 isDepthBufferAttached = true; 
                 break;
             }
@@ -262,5 +267,10 @@ namespace nb
             Debug::debug(message);
             abort();
         }
-    };
+
+        void FBO::staticUnbind() noexcept
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+    }; 
 };

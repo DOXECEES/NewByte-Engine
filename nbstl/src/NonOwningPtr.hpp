@@ -27,7 +27,6 @@ namespace nbstl
             return *this;
         }
 
-
         constexpr NonOwningPtr& operator=(NonOwningPtr&& other) noexcept
         {
             if (this != &other)

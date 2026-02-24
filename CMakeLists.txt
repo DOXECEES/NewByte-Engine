@@ -1,19 +1,27 @@
-cmake_minimum_required(VERSION 3.25.0)
-project(NewByte)
+cmake_minimum_required(VERSION 3.25)
+project(NewByte LANGUAGES CXX)
 
 # ============================================================================  
-# VS Memory Profiler настройки  
+# Настройки профайлера
 # ============================================================================  
 
 option(USE_VS_PROFILER "Enable VS Memory Profiler for memory tracking" ON)
 
-# Макрос для включения CRT debug tracking
-if(MSVC AND USE_VS_PROFILER)
-    add_compile_definitions(_CRTDBG_MAP_ALLOC)
+# ============================================================================  
+# Глобальные опции компилятора для MSVC
+# ============================================================================  
+
+if(MSVC)
+    # Кодировка исходников UTF-8
+    add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+    
+    if(USE_VS_PROFILER)
+        add_compile_definitions(_CRTDBG_MAP_ALLOC)
+    endif()
 endif()
 
 # ============================================================================  
-# Поддиректории проекта  
+# Поддиректории проекта
 # ============================================================================  
 
 add_subdirectory(Common)
@@ -22,35 +30,44 @@ add_subdirectory(SDK)
 add_subdirectory(Engine)
 add_subdirectory(NewByte-UI-Lib)
 add_subdirectory(googletest)
+
 enable_testing()
 add_subdirectory(tests)
 
 # ============================================================================  
-# Функции для применения флагов ко всем целям  
+# Функция для применения debug-флагов к таргету
 # ============================================================================  
 
 function(apply_debug_flags target)
     if(TARGET ${target} AND USE_VS_PROFILER)
-        # Полная отладочная информация
-        target_compile_options(${target} PRIVATE /Zi /Od /MDd)
-        target_link_options(${target} PRIVATE /DEBUG)
-        target_compile_definitions(${target} PRIVATE USE_VS_PROFILER)
+        # Полная отладочная информация только для Debug
+        target_compile_options(${target} PRIVATE
+            $<$<CONFIG:Debug>:/Zi /Od>
+        )
+        target_link_options(${target} PRIVATE
+            $<$<CONFIG:Debug>:/DEBUG>
+        )
+        target_compile_definitions(${target} PRIVATE
+            $<$<CONFIG:Debug>:USE_VS_PROFILER>
+        )
+        # MSVC Runtime Debug DLL
+        set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
         message(STATUS "VS Memory Profiler enabled for target: ${target}")
     endif()
 endfunction()
 
 # ============================================================================  
-# Применяем профайлер ко всем основным целям  
+# Применяем флаги ко всем основным таргетам
 # ============================================================================  
 
 set(ALL_TARGETS NewByte-Engine SDK NewByte-UI-Lib Common nbstl tests)
 
-foreach(t ${ALL_TARGETS})
-    apply_debug_flags(${t})
-endforeach()
+#foreach(t ${ALL_TARGETS})
+    #apply_debug_flags(${t})
+#endforeach()
 
 # ============================================================================  
-# Code coverage (по желанию)  
+# Code coverage (опционально)
 # ============================================================================  
 
 option(BUILD_COVERAGE "Build with code coverage support" OFF)
@@ -65,10 +82,25 @@ if(BUILD_COVERAGE)
 endif()
 
 # ============================================================================  
-# Рекомендация для snapshot  
+# PVS-Studio integration
 # ============================================================================  
 
-# В коде можно добавить, если хочешь, ручной snapshot для Profiler:
+find_program(PVS_ANALYZER NAMES pvs-studio-analyzer.exe)
+find_program(PVS_CONVERTER NAMES plog-converter.exe)
+
+if(PVS_ANALYZER AND PVS_CONVERTER)
+    add_custom_target(pvs
+        COMMAND ${PVS_ANALYZER} analyze --build ${CMAKE_BINARY_DIR} --output ${CMAKE_BINARY_DIR}/pvs.log
+        COMMAND ${PVS_CONVERTER} -a GA:1,2,3,4 -t html -o ${CMAKE_BINARY_DIR}/pvs.html ${CMAKE_BINARY_DIR}/pvs.log
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running PVS-Studio analysis"
+    )
+endif()
+
+# ============================================================================  
+# Рекомендации по snapshot (ручной)
+# ============================================================================  
+
 # #ifdef USE_VS_PROFILER
 # #include <crtdbg.h>
 # _CrtDumpMemoryLeaks(); // выведет текущие утечки в Output Window

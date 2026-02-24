@@ -9,6 +9,7 @@ namespace nb
     {
         IRenderAPI::IRenderAPI(void* handle) noexcept
             : pipelineCache(this)
+            , handle(handle)
         {
         }
 

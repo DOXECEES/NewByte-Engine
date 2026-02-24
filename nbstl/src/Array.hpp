@@ -2,6 +2,7 @@
 #define NBSTL_SRC_ARRAY_HPP
 
 #include <initializer_list>
+#include "Alghorithm.hpp"
 #include "Types.hpp"
 
 namespace nbstl
@@ -40,6 +41,15 @@ namespace nbstl
                     break;
                 }
             }
+
+            if (i < N)
+            {
+                for (Size j = i; j < N; j++)
+                {
+                    data_[j] = T();
+                }
+            }
+
         }
 
         constexpr reference operator[](size_type i) noexcept

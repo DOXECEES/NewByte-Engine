@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Timer.hpp"
 
 namespace nb
@@ -12,7 +15,7 @@ namespace nb
         void Timer::reset() noexcept
         {
             initTime = std::chrono::high_resolution_clock::now();
-            start = std::chrono::high_resolution_clock::now();
+            start = initTime;
         }
 
         float Timer::timeElapsedSinceInit() noexcept

@@ -45,9 +45,6 @@ namespace nb
                     break;
                 case 'v':
                 {
-                    std::istringstream ss(str);
-                    std::string s;
-
                     switch (str[1])
                     {
                     case ' ':
@@ -77,7 +74,7 @@ namespace nb
                     {
                         std::string materialName = str.substr(position + 7);
                         materialOrder.push_back(materialName);
-                        indicies.push_back({});
+                        indicies.emplace_back();
                     }
                     else 
                     {
@@ -142,7 +139,7 @@ namespace nb
                                 vert.push_back(vertex);
                             }
                             if(indicies.empty())
-                                indicies.push_back({});
+                                indicies.emplace_back();
 
                             indicies.back().push_back(uniqueVertices[vertex]);
                         }

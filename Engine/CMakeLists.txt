@@ -114,6 +114,8 @@ src/main.cpp
         src/Renderer/Material.hpp
         src/Renderer/ContextMeshCache.cpp
         src/Renderer/ContextMeshCache.hpp
+        src/Renderer/TransformProxy.cpp
+        src/Renderer/TransformProxy.hpp
 
         src/Math/Constants.hpp
         src/Math/Vector2.cpp

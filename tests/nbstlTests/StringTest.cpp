@@ -4,7 +4,7 @@
 #include <cstring>
 #include <benchmark/benchmark.h>
 
-
+using namespace nbstl;
 
 // -----------------------------
 // 1. Пустая строка

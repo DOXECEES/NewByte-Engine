@@ -8,9 +8,12 @@ namespace nb
     namespace Renderer
     {
 
-        SubMesh::SubMesh(const std::vector<uint32_t> &indices, const Renderer::Material &mat) noexcept
-            //: verticies(std::move(vertices))
-            : indices(std::move(indices)), material(mat)
+        SubMesh::SubMesh(
+            const std::vector<uint32_t> &indices,
+            const Renderer::Material &mat
+        ) noexcept
+            : indices(indices)
+            , material(mat)
         {
             // Math::Vector3<float> minPoint;
             // Math::Vector3<float> maxPoint;
@@ -174,18 +177,24 @@ namespace nb
         std::vector<uint32_t> Mesh::uniteIndicies() noexcept
         {
             size_t lenght = 0;
-            for (const auto &i : meshes)
-                lenght += i->indices.size();
+
+            for (const auto& meshPtr : meshes) 
+            {
+                const auto& indices = meshPtr->indices; 
+                lenght += indices.size();
+            }
 
             indiciesCount = lenght;
 
             std::vector<uint32_t> unitedVector(0, lenght);
             for (const auto &i : meshes)
             {
+                //TEST
                 unitedVector.insert(
                     unitedVector.end(),
                     std::make_move_iterator(i->indices.begin()),
-                    std::make_move_iterator(i->indices.end()));
+                    std::make_move_iterator(i->indices.end())
+                );
             }
 
             return unitedVector;

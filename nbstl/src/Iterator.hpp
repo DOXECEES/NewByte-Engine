@@ -1,8 +1,8 @@
 #ifndef NBSTL_SRC_ITERATOR_HPP
 #define NBSTL_SRC_ITERATOR_HPP
 
-#include <cstddef>  // для std::ptrdiff_t
-#include <iterator> // для std::random_access_iterator_tag
+#include <cstddef>  // РґР»СЏ std::ptrdiff_t
+#include <iterator> // РґР»СЏ std::random_access_iterator_tag
 
 
 namespace nbstl 
@@ -67,14 +67,14 @@ namespace nbstl
 			return addressOf(operator*());
 		}
 
-		// ++r  двигает назад
+		// ++r  РґРІРёРіР°РµС‚ РЅР°Р·Р°Рґ
 		constexpr ReverseIterator& operator++() noexcept
 		{
 			--current;
 			return *this;
 		}
 
-		// r++  двигает назад
+		// r++  РґРІРёРіР°РµС‚ РЅР°Р·Р°Рґ
 		constexpr ReverseIterator operator++(int) noexcept
 		{
 			ReverseIterator tmp = *this;
@@ -82,7 +82,7 @@ namespace nbstl
 			return tmp;
 		}
 
-		// --r  двигает вперед
+		// --r  РґРІРёРіР°РµС‚ РІРїРµСЂРµРґ
 		constexpr ReverseIterator& operator--() noexcept
 		{
 			++current;

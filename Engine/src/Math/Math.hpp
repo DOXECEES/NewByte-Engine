@@ -21,6 +21,7 @@ namespace nb
 {
     namespace Math
     {
+
         class Line
         {
 
@@ -55,15 +56,15 @@ namespace nb
             Math::Vector3<float> direction  = {};
         };
 
-
+      
         inline float toRadians(const float degrees) noexcept
         {
-            return degrees * (Constants::PI / Constants::HALF_OF_CIRCLE_IN_DEG);
+            return static_cast<float>(degrees * (Constants::PI / Constants::HALF_OF_CIRCLE_IN_DEG));
         } 
 
         inline float toDegrees(const float radians) noexcept
         {
-            return radians * (Constants::HALF_OF_CIRCLE_IN_DEG / Constants::PI);
+            return static_cast<float>(radians * (Constants::HALF_OF_CIRCLE_IN_DEG / Constants::PI));
         }
 
         inline Vector3<float> toFloatColor(const Vector3<uint8_t>& color)
@@ -236,6 +237,7 @@ namespace nb
             };
         }
 
+       
 
         //template<typename Vec>
         //Vec normalize(const Vec& vector) noexcept

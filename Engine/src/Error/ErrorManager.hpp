@@ -32,16 +32,16 @@ namespace nb
             WARNING = 1 << 1,
             FATAL   = 1 << 2,
 
-            ALL     = ~(uint8_t)0,
+            ALL     = static_cast<uint8_t>(0xFF)
         };
 
 
-        inline bool operator&(const Type& lhs, const Type& rhs) noexcept
+        inline bool operator&(Type lhs, Type rhs) noexcept
         {
             return static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs);
         }
 
-        inline Type operator|(const Type& lhs, const Type& rhs) noexcept
+        inline Type operator|(Type lhs, Type rhs) noexcept
         {
             return static_cast<Type>(
                 static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs)
@@ -89,7 +89,7 @@ namespace nb
             ErrorMessage get() noexcept;
             
             inline bool hasMessages() const noexcept { return isMessageReceived; };
-            void setPrinter(IErrorPrinter* printer) { this->printer = printer; }
+            void setPrinter(IErrorPrinter* printerPtr) { this->printer = printerPtr; }
 
         private:
             ErrorManager() noexcept = default;
@@ -104,10 +104,12 @@ namespace nb
            
 
         private:
-            bool                        isMessageReceived = false;
             std::queue<ErrorMessage>    messages;
             
             IErrorPrinter* printer = nullptr;
+
+            bool isMessageReceived = false;
+
         
         };
     };

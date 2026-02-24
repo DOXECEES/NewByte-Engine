@@ -147,7 +147,7 @@ namespace nb
 
             float deltaTime = Utils::Timer::timeElapsed();
              
-            this->mouseDelta = mouseDelta;
+            //this->mouseDelta = mouseDelta;
             renderer->setCamera(&cam);
 
             static float yaw;
@@ -170,7 +170,6 @@ namespace nb
                 ClipCursor(&r);
             }
 
-            auto camDir = cam.getDirection();
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_ESCAPE))
             {
@@ -188,6 +187,7 @@ namespace nb
             }
             else
             {
+                auto camDir = cam.getDirection();
                 handleGameMode(camDir, deltaTime);
             }
 
@@ -204,23 +204,23 @@ namespace nb
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
-                cam.moveAt(camDir * 5.0f * deltaTime);
+                cam.moveAt(-camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
             {
-                cam.moveAt(-camDir * 5.0f * deltaTime);
+                cam.moveAt(camDir * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(rightVec * 5.0f * deltaTime);
+                cam.moveAt(-rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(-rightVec * 5.0f * deltaTime);
+                cam.moveAt(rightVec * 5.0f * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
             {

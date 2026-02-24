@@ -3,7 +3,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Subsystems.hpp"
 
-void Subsystems::Init(const HWND& hwnd)
+void Subsystems::Init(HWND hwnd)
 {    
     //renderer2d = new Renderer2D();
     renderer = createRef<nb::Renderer::Renderer>(hwnd, nb::Core::EngineSettings::getGraphicsAPI());
@@ -11,7 +11,3 @@ void Subsystems::Init(const HWND& hwnd)
     mouse = createRef<nb::Input::Mouse>();
 }
 
-Subsystems::~Subsystems()
-{
-    //renderer.reset();
-}

@@ -43,7 +43,7 @@ namespace nb
 
             std::optional<bool> getBitMs()
             {
-                bool res = (data[currentBytePointer] & (1 << 8 - msBitPointer - 1));
+                bool res = (data[currentBytePointer] & (1 << (8 - msBitPointer - 1)));
 
                 msBitPointer++;
 
@@ -78,7 +78,7 @@ namespace nb
                 {
                     return std::nullopt;
                 }
-                return (data[currentBytePointer] & (1 << 8 - msBitPointer - 1));
+                return (data[currentBytePointer] & (1 << (8 - msBitPointer - 1)));
             }
 
             std::optional<bool> peekBitLsLookAhead(size_t offset)
@@ -121,7 +121,7 @@ namespace nb
 
                 }
 
-                return (data[copyBytesPos] & (1 << 8 - copyMsBitPointer - 1));
+                return (data[copyBytesPos] & (1 << (8 - copyMsBitPointer - 1)));
             }
 
             template <typename T = uint32_t>
@@ -133,7 +133,7 @@ namespace nb
                 {
                     auto bit = getBitMs(); 
                     if (bit.has_value())
-                        res |= (bit.value() << i);
+                        res |= (*bit << i);
                 }
 
                 return res;
@@ -148,8 +148,10 @@ namespace nb
                 {
                     auto bit = getBitLs(); 
                     if (bit.has_value())
+                    {
                         res <<= i;
-                        res |= ((0 << i) | bit.value());
+                        res |= (static_cast<uint32_t>(bit.value()) << i);
+                    }
                 }
 
                 return res;

@@ -17,6 +17,7 @@ target_link_libraries(nbstl INTERFACE NbCommon)
 # 4. Настройки компиляции (опционально)
 target_compile_options(nbstl INTERFACE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive-> 
+    /analyze
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -Wpedantic>
 )

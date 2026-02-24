@@ -71,12 +71,17 @@ namespace nb
             NB_NODISCARD inline uint32 getTexture(uint8 index) const noexcept override   { return static_cast<uint32>(textures[index]); }
 
             NB_NODISCARD inline uint8_t getColorTextureCount() const noexcept            { return colorTextureCount; }
-            NB_NODISCARD inline GLuint getWidth() const noexcept                         { return width; }
-            NB_NODISCARD inline GLuint getHeight() const noexcept                        { return height; }
+            NB_NODISCARD inline GLuint getWidth() const noexcept override                        { return width; }
+            NB_NODISCARD inline GLuint getHeight() const noexcept override                       { return height; }
 
+
+        protected:
+            static void staticUnbind() noexcept;
+        
         private:
             void setupTextureParams() const noexcept;
             void errorMessage(std::string_view message) const noexcept;
+
 
         private:
             inline static constexpr GLuint GL_UINT_MAX = 0xFFFFFFFF;

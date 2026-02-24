@@ -28,7 +28,7 @@ namespace nb
                     writeObject(currentKey);
 
                     Node::Map map = current.get<Node::Map>();
-                    for (auto i = map.begin(); i != map.end(); i++)
+                    for (auto i = map.begin(); i != map.end(); ++i)
                     {
                         stack.push(i->second);
                         keys.push(i->first);
@@ -116,7 +116,7 @@ namespace nb
                             writeObject(currentKey);
 
                             Node::Map map = current.get<Node::Map>();
-                            for (auto i = map.begin(); i != map.end(); i++)
+                            for (auto i = map.begin(); i != map.end(); ++i)
                             {
                                 stack.push(i->second);
                                 keys.push(i->first);

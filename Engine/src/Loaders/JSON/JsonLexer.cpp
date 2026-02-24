@@ -13,7 +13,7 @@ namespace nb
         }
 
         JsonLexer::JsonLexer(const std::string &json) noexcept
-            : data(std::move(json))
+            : data(json)
             , size(data.size())
         {}
 
@@ -47,7 +47,7 @@ namespace nb
 
         void JsonLexer::setJson(const std::string &json)
         {
-            data = std::move(json);
+            data = json;
             size = data.size();
         }
 

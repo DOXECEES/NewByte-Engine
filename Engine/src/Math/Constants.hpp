@@ -23,16 +23,16 @@ namespace nb
 
             static constexpr double calculatePi()
             {
-                double res = 0;
+                double res = 0.0;
 
                 for (int i = 0; i < PI_PRECISION; i++)
                 {
-                    double p = 16;
+                    double p = 16.0;
                     for (int j = 0; j < i; j++)
                     {
-                        p *= 16;
+                        p *= 16.0;
                     }
-                        double temp = 1/ p;
+                    double temp = 1.0 / p;
                     temp *= ((4.0 / (8.0 * i + 1.0)) - (2.0 / (8.0 * i + 4)) - (1.0 / (8.0 * i + 5)) - (1.0 / (8.0 * i + 6)));
                     res += temp;
                 }
@@ -44,7 +44,7 @@ namespace nb
             {
                
                 double eulerNumber = 1.0;
-                double latestCalculatedFactorial = 1;
+                double latestCalculatedFactorial = 1.0;
 
                 for (size_t i = 1; i < EULER_NUMBER_PRECISION; ++i)
                 {

@@ -270,18 +270,24 @@ namespace nb
         template<typename T>
         constexpr Matrix<T, 4, 4> ortho(const T& left, const T& right, const T& bot, const T& top, const T& nearPlane, const T& farPlane)
         {
+            // Каждая фигурная скобка здесь — это СТОЛБЕЦ (Column)
             return Matrix<T, 4, 4>({
-                { (2.0f / (right - left)), 0, 0, (-(right+left)/(right-left))},
-                {0, (2/(top-bot)), 0, (-(top+bot)/(top-bot))},
-                {0, 0, (-2.0f/(farPlane-nearPlane)), (-(farPlane+nearPlane)/(farPlane-nearPlane))},
-                {0, 0, 0, 1}
-            });
+                { 2.0f / (right - left), 0.0f, 0.0f, 0.0f },                                 // Столбец 0
+                { 0.0f, 2.0f / (top - bot), 0.0f, 0.0f },                                    // Столбец 1
+                { 0.0f, 0.0f, -2.0f / (farPlane - nearPlane), 0.0f },                        // Столбец 2
+                {
+                    -(right + left) / (right - left),                                        // Столбец 3, строка 0
+                    -(top + bot) / (top - bot),                                              // Столбец 3, строка 1
+                    -(farPlane + nearPlane) / (farPlane - nearPlane),                        // Столбец 3, строка 2
+                    1.0f                                                                     // Столбец 3, строка 3
+                }
+                });
         }
 
         template<typename T>
         constexpr Matrix<T, 4, 4> lookAt(Vector3<T> eye, Vector3<T> center, Vector3<T> up)
         {
-            Vector3<T> z = (center - eye);
+            Vector3<T> z = (eye - center);
             z.normalize();  
 
             // Проверяем на коллинеарность

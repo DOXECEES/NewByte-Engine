@@ -14,8 +14,7 @@ namespace nb
             this->setSize(width, height);
             this->bindTexture(TextureType::DEPTH);
             
-            this->unBind();
-
+            staticUnbind();
         }
 
         GLuint DepthBuffer::generateDepthMap(const GLuint width, const GLuint height) const noexcept

@@ -16,7 +16,6 @@
 #include "../SceneGraph.hpp"
 
 #include "../IRenderAPI.hpp"
-#include "../../Math/Matrix/Transformation.hpp"
 
 #include "../../Debug.hpp"
 
@@ -101,12 +100,15 @@ namespace nb
 
                 Renderer::SharedWindowContext shareContext(void* handle) const noexcept override;
                 bool setContext(HDC hdc, HGLRC hglrc) noexcept override;
-                bool setDefaultContext() noexcept;
+                bool setDefaultContext() noexcept override;
 
 
 
                 void visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept;
-                void visualizeAabb(const Math::AABB3D& aabb, Math::Mat4<float> mat) const noexcept;
+                void visualizeAabb(
+                    const Math::AABB3D& aabb,
+                    const Math::Mat4<float>& mat
+                ) const noexcept;
 
             public:
 
@@ -118,7 +120,7 @@ namespace nb
                     ambientColor = Math::toFloatColor(color);
                 }
 
-                static void drawTransformationElements(const Ref<Renderer::Mesh> mesh) noexcept;
+                static void drawTransformationElements(const Ref<Renderer::Mesh>& mesh) noexcept;
 
                 static void applyDefaultModel() noexcept;
                 static void applyDefaultModelFlat() noexcept;

@@ -8,143 +8,212 @@
 #include <functional>
 #include "../Utils/Indexator.hpp"
 
-namespace nb
+#include <cstdint>
+#include <memory>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
+
+namespace nb::Ecs
 {
-    namespace Ecs
+    using EntityID = uint32_t;
+    using ComponentTypeID = uint32_t;
+
+    
+    struct Entity
     {
-        class Entity
+        EntityID id = 0;
+
+        bool operator==(const Entity& other) const noexcept
         {
-        public:
-
-            template <typename T>
-            void add(const T &component);
-
-            template <typename T>
-            T &get();
-
-            bool operator==(const Entity &other) const { return id == other.id; }
-            bool operator!=(const Entity &other) const { return !(*this == other); }
-
-            size_t getId() const { return id; }
-
-        private:
-            friend class EcsManager;
-
-            Entity(size_t id, class EcsManager *manager)
-                : id(id), manager(manager) {}
-
-            size_t id = 0;
-            class EcsManager *manager = nullptr;
-        };
-
-        class EcsManager
-        {
-        private:
-            class IComponentPool
-            {
-            public:
-                virtual ~IComponentPool() = default;
-                virtual std::vector<Entity> getEntitiesAsArray() const = 0;
-            };
-
-            template <class T>
-            class ConcreteComponentPool : public IComponentPool
-            {
-            public:
-                void add(const Entity &entity, const T &component)
-                {
-                    pool[entity] = component;
-                }
-
-                std::vector<Entity> getEntitiesAsArray() const override
-                {
-                    std::vector<Entity> entities;
-                    entities.reserve(pool.size());
-                    for (const auto &pair : pool)
-                    {
-                        entities.push_back(pair.first);
-                    }
-                    return entities;
-                }
-
-                T &get(const Entity &entity)
-                {
-                    return pool.at(entity);
-                }
-
-            private:
-                std::unordered_map<Entity, T> pool;
-            };
-
-            std::unordered_map<std::type_index, std::unique_ptr<IComponentPool>> components;
-            Utils::Indexator indexator;
-
-        public:
-            Entity createEntity()
-            {
-                return Entity(indexator.index(), this);
-            }
-
-            template <typename T>
-            void addComponent(const Entity &entity, const T &component)
-            {
-                std::type_index type(typeid(T));
-                if (components.find(type) == components.end())
-                {
-                    components[type] = std::make_unique<ConcreteComponentPool<T>>();
-                }
-                auto &pool = static_cast<ConcreteComponentPool<T> &>(*components[type]);
-                pool.add(entity, component);
-            }
-
-            template <typename T>
-            T &getComponent(const Entity &entity)
-            {
-                std::type_index type(typeid(T));
-                auto &pool = static_cast<ConcreteComponentPool<T> &>(*components.at(type));
-                return pool.get(entity);
-            }
-
-            template <typename T>
-            std::vector<Entity> getEntitiesWithComponent()
-            {
-                std::type_index type(typeid(T));
-                return components.at(type)->getEntitiesAsArray();
-            }
-        };
-
-        template <typename T>
-        void Entity::add(const T &component)
-        {
-            manager->addComponent(*this, component);
+            return id == other.id;
         }
 
-        template <typename T>
-        T &Entity::get()
+        bool operator!=(const Entity& other) const noexcept
         {
-            return manager->getComponent<T>(*this);
-        }
-
-        class ISystem
-        {
-        public:
-            virtual ~ISystem() = default;
-        };
-
-    };
-};
-
-// Специализация std::hash для Entity
-namespace std
-{
-    template <>
-    struct hash<nb::Ecs::Entity>
-    {
-        size_t operator()(const nb::Ecs::Entity &entity) const noexcept
-        {
-            return hash<size_t>{}(entity.getId());
+            return !(*this == other);
         }
     };
+
+    inline ComponentTypeID generateComponentTypeID()
+    {
+        static ComponentTypeID counter = 0;
+        return counter++;
+    }
+
+    template <typename T> struct ComponentType
+    {
+        static ComponentTypeID id() noexcept
+        {
+            static ComponentTypeID value = generateComponentTypeID();
+            return value;
+        }
+    };
+
+
+    template <typename T> class ComponentStorage
+    {
+    public:
+        void
+        add(EntityID entity,
+            const T& component)
+        {
+            if (indexMap.contains(entity))
+            {
+                data[indexMap[entity]] = component;
+                return;
+            }
+
+            indexMap[entity] = data.size();
+
+            entities.push_back(entity);
+            data.push_back(component);
+        }
+
+        void remove(EntityID entity)
+        {
+            auto it = indexMap.find(entity);
+            if (it == indexMap.end())
+            {
+                return;
+            }
+
+            size_t index = it->second;
+            size_t last = data.size() - 1;
+
+            entities[index] = entities[last];
+            data[index] = data[last];
+
+            indexMap[entities[index]] = index;
+
+            entities.pop_back();
+            data.pop_back();
+            indexMap.erase(it);
+        }
+
+        bool contains(EntityID entity) const
+        {
+            return indexMap.contains(entity);
+        }
+
+        T& get(EntityID entity)
+        {
+            return data.at(indexMap.at(entity));
+        }
+
+        const std::vector<T>& components() const noexcept
+        {
+            return data;
+        }
+
+        const std::vector<EntityID>& entitiesView() const noexcept
+        {
+            return entities;
+        }
+
+    private:
+        std::unordered_map<EntityID, size_t> indexMap;
+
+        std::vector<EntityID> entities;
+        std::vector<T> data;
+    };
+
+    struct StorageWrapperBase
+    {
+        virtual ~StorageWrapperBase() = default;
+        virtual void remove(EntityID entity) = 0;
+    };
+
+    template <typename T> struct StorageWrapper : StorageWrapperBase
+    {
+        ComponentStorage<T> storage;
+
+        void remove(EntityID entity) override
+        {
+            storage.remove(entity);
+        }
+    };
+
+
+
+    class ECSRegistry
+    {
+    public:
+        Entity createEntity()
+        {
+            return Entity{nextEntityID++};
+        }
+
+        void destroyEntity(Entity entity)
+        {
+            for (auto& storage : storages)
+            {
+                if (storage)
+                {
+                    storage->remove(entity.id);
+                }
+            }
+        }
+
+        template <typename T>
+        void
+        add(Entity entity,
+            const T& component)
+        {
+            getStorage<T>().add(entity.id, component);
+        }
+
+        template <typename T> T& get(Entity entity)
+        {
+            return getStorage<T>().get(entity.id);
+        }
+
+        template <typename T> bool has(Entity entity)
+        {
+            return getStorage<T>().contains(entity.id);
+        }
+
+        template <typename T> ComponentStorage<T>& getStorage()
+        {
+            ComponentTypeID id = ComponentType<T>::id();
+
+            if (storages.size() <= id)
+            {
+                storages.resize(id + 1);
+            }
+
+            if (!storages[id])
+            {
+                storages[id] = std::make_unique<StorageWrapper<T>>();
+            }
+
+            return static_cast<StorageWrapper<T>*>(storages[id].get())->storage;
+        }
+
+        template <typename T> const ComponentStorage<T>& getStorage() const
+        {
+            return const_cast<ECSRegistry*>(this)->getStorage<T>();
+        }
+
+    private:
+        struct IStorage
+        {
+            virtual ~IStorage() = default;
+            virtual void remove(EntityID entity) = 0;
+        };
+
+        EntityID nextEntityID = 1;
+
+        std::vector<std::unique_ptr<StorageWrapperBase>> storages;
+
+        template <typename T> using StorageIndexMap = std::unordered_map<EntityID, size_t>;
+
+        template <typename T> StorageIndexMap<T>& storageIndexMap()
+        {
+            return getStorage<T>().indexMap;
+        }
+    };
+
 };
 
 #endif

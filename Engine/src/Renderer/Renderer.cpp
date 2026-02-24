@@ -83,6 +83,12 @@ namespace nb::Renderer
         shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
         shadowFrameBuffer->finalize();
         
+        navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
+        navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
+        navigationalGizmoFrameBuffer->finalize();
+
+
         if (!albedo)
         {
             albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\albedo (2).png"); 
@@ -92,11 +98,14 @@ namespace nb::Renderer
             normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\normal.png");
         }
 
+
         if (!debugLightMesh)
         {
             debugLightMesh = PrimitiveGenerators::createSphere(0.2f, 16, 16);
             debugLightShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("lightVisulize.shader");
         }
+
+        isResourceLoaded = true;
     }
 
 
@@ -126,16 +135,16 @@ namespace nb::Renderer
             }
             else if (auto obj = std::dynamic_pointer_cast<ObjectNode>(node))
             {
-                Pipeline mainP = {};
-                mainP.shader = obj->mesh->uniforms.shader;
-                mainP.polygonMode = PolygonMode::FULL;
-                mainP.isDepthTestEnable = true;
-                mainP.isBlendEnable = true;
+                auto* meshPtr = obj->mesh.get();
 
-                obj->mesh->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
+                Pipeline mainP = {};
+                mainP.shader = meshPtr->uniforms.shader;
+                mainP.polygonMode = polygonMode;
+
+                meshPtr->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
 
                 mainQueue.pushBack({
-                    obj->mesh.get(),
+                    meshPtr,
                     api->getCache().getOrCreate(mainP)
                 });
             }
@@ -147,31 +156,39 @@ namespace nb::Renderer
       
         api->setViewport({ 0, 0, shadowSize, shadowSize });
         api->bindFrameBuffer(shadowFrameBuffer);
+        api->setClearColor(Colors::BROWN, 1.0f, 0);
         api->clear(false, true, false); 
 
-        // Настройка камеры света (Directional Light)
-        Math::Mat4 lightProj = Math::ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 75.0f);
-        // Поместите "камеру" света подальше, например, в точку (5, 10, 5)
+        float size = 35.0f; 
+
+        Math::Mat4 lightProj = Math::ortho(-size, size, -size, size, 0.1f, 75.0f);
+        
+
+        Math::Vector3<float> lightDir = { -1.0f, -0.2f, -0.2f };
+        lightDir.normalize();
+        float distance = 20.0f; 
+        Math::Vector3<float> lightPos = -lightDir * distance; 
+
         Math::Mat4 lightView = Math::lookAt(
-            Math::Vector3<float>{ 5.0f, 10.0f, 5.0f }, // Позиция источника
-            Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  // Смотрим в центр сцены
-            Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   // Вектор "верх"
+            lights[1]->getPosition(),
+            Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  
+            Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   
         );
 
-
-        Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
+        
+        //Math::Mat4<float> lightSpaceMatrix = lightProj * lightView;
 
         Ref<Shader> lightPassShader = rm->getResource<Shader>("lightPass.shader");
 
-        // Специальный пайплайн для записи теней (без блендинга, только глубина)
         Pipeline shadowP = {};
         shadowP.shader = lightPassShader;
-        shadowP.isDepthTestEnable = true;
         shadowP.polygonMode = PolygonMode::FULL;
         uint32 shadowPSO = api->getCache().getOrCreate(shadowP);
 
         for (auto& cmd : mainQueue) {
-            cmd.mesh->uniforms.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            lightPassShader->setUniformMat4("lightProj", lightProj);
+            lightPassShader->setUniformMat4("lightView", lightView);
+
             lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
 
             // Используем команду для теней: тот же меш, но другой пайплайн (шейдер)
@@ -181,6 +198,9 @@ namespace nb::Renderer
 
         api->bindDefaultFrameBuffer();
        
+
+
+
 
         api->bindFrameBuffer(mainFrameBuffer);
         api->setViewport({ 0, 0, (float)width, (float)height });
@@ -198,9 +218,12 @@ namespace nb::Renderer
         skyboxShader->setUniformMat4("projection", proj);
         sky.render(skyboxShader);
 
-        glActiveTexture(GL_TEXTURE4);
+        glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
 
+        
+
+       
 
         for (auto& cmd : mainQueue) 
         {
@@ -223,7 +246,12 @@ namespace nb::Renderer
             u.vec3Uniforms["viewPos"] = cam->getPosition();
             u.mat4Uniforms["view"] = cam->getLookAt();
             u.mat4Uniforms["proj"] = cam->getProjection();
-            u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+            //u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+
+            u.mat4Uniforms["lightView"] = lightView;
+            u.mat4Uniforms["lightProj"] = lightProj;
+            u.intUniforms["shadowMap"] = 5;
+
             
 
             u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = DirectionalLight::getCountOfDirectionalLights();
@@ -267,11 +295,14 @@ namespace nb::Renderer
                 RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
                 api->drawMesh(debugPassCommand);
             }
-            if (ctx.handle)
-            {
-                blitToWindow(ctx, albedo->getId());
-            }
         }
+
+        if (ctx.handle)
+        {
+            blitToWindow(ctx, checkedTextureId);
+        }
+
+        renderNavigationalGizmo();
 
         // =========================================================================
         // ШАГ 3: POST-PROCESS (Вывод FBO на экран монитора)
@@ -290,7 +321,7 @@ namespace nb::Renderer
         glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->getTexture(0));
 
         Pipeline quadPipeline = {};
-        quadPipeline.shader = quadShader;
+        quadPipeline.shader = std::move(quadShader);
         quadPipeline.polygonMode = PolygonMode::FULL;
         quadPipeline.isDepthTestEnable = false; 
 
@@ -319,6 +350,28 @@ namespace nb::Renderer
         }
     }
 
+    void Renderer::setWireframeMode(bool flag) noexcept
+    {
+        if (flag)
+        {
+            polygonMode = PolygonMode::LINES;
+        }
+        else
+        {
+            polygonMode = PolygonMode::FULL;
+        }
+    }
+
+    void Renderer::showVertexColor(bool flag) noexcept
+    {
+
+    }
+
+    bool Renderer::isResourceReady() const noexcept
+    {
+        return isResourceLoaded;
+    }
+
     SharedWindowContext Renderer::createSharedContextForWindow(HWND handle) noexcept
     {
         ctx = api->shareContext(handle);
@@ -332,7 +385,12 @@ namespace nb::Renderer
             return;
         }
 
-        api->setViewport({ 0, 0, 400, 300 });
+        RECT rc;
+        GetWindowRect(out.handle, &rc); 
+        int width = rc.right - rc.left;
+        int height = rc.bottom - rc.top;
+
+        api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
         api->setClearColor(Colors::BLUE, 1.0f, 0);
         api->clear(true, false, false);
 
@@ -349,7 +407,7 @@ namespace nb::Renderer
         }
 
         Pipeline pipeline = {};
-        pipeline.shader = quadShader;
+        pipeline.shader = std::move(quadShader);
         pipeline.isDepthTestEnable = false;
         pipeline.polygonMode = PolygonMode::FULL;
         uint32 pso = api->getCache().getOrCreate(pipeline);
@@ -362,6 +420,67 @@ namespace nb::Renderer
         api->setDefaultContext();
     }
 
+
+    void Renderer::renderNavigationalGizmo() noexcept
+    {
+        api->bindFrameBuffer(navigationalGizmoFrameBuffer);
+
+        api->setViewport({ 0,0,400,400 });
+        api->setClearColor(Colors::GOLD, 1.0f, 0);
+        api->clear(true, true, false);
+
+        Math::Mat4<float> gizmoView = Math::lookAt(
+            Math::Vector3<float>(0, 0, 3), // Позиция камеры индикатора (фиксирована)
+            Math::Vector3<float>(0, 0, 0), // Куда смотрит (в центр, где оси)
+            Math::Vector3<float>(0, 1, 0)  // Вектор "вверх"
+        );
+
+
+        Math::Mat4<float> cameraView = cam->getLookAt();
+        cameraView = Math::inverse(cameraView);
+        cameraView[3][0] = 0.0f;
+        cameraView[3][1] = 0.0f;
+        cameraView[3][2] = 0.0f;
+        cameraView[3][3] = 1.0f;
+
+        
+
+        //gizmoView = Math::translate(Math::Mat4<float>(1.0f), Math::Vector3<float>(0, 0, -5.0f)) * gizmoView;
+
+        // Ортографическая проекция, чтобы оси были ровными
+        Math::Mat4<float> gizmoProj = Math::ortho(-1.5f, 1.5f, -1.5f, 1.5f, 0.1f, 10.0f);
+        //Math::Mat4<float> gizmoProj = cam->getProjection();
+        //Math::Mat4<float> gizemoModel = Math::scale(Math::Mat4<float>(1.0f), {6.5f, 6.5f, 6.5f});
+        Math::Mat4<float> gizemoModel = Math::Mat4<float>::identity();
+        //gizemoModel = Math::translate(gizemoModel, { 0.0f, 0.0f, -1.0f });
+
+        gizemoModel = cameraView;
+        auto gizmoMesh = nb::ResMan::ResourceManager::getInstance()
+            ->getResource<nb::Renderer::Mesh>("Cube22.obj");
+        
+
+        auto gizmoShader = nb::ResMan::ResourceManager::getInstance()
+            ->getResource<nb::Renderer::Shader>("gizmoShader.shader");
+
+        Pipeline pipeline = {};
+        pipeline.shader = gizmoShader;
+        pipeline.polygonMode = PolygonMode::FULL;
+        pipeline.isDepthTestEnable = true;
+        pipeline.isBlendEnable = false;
+
+        uint32 pso = api->getCache().getOrCreate(pipeline);
+        gizmoShader->use();
+        gizmoShader->setUniformMat4("model", gizemoModel);
+        gizmoShader->setUniformMat4("view", cameraView);
+        gizmoShader->setUniformMat4("projection", gizmoProj);
+
+        {
+            RendererCommand debugPassCommand{ gizmoMesh.get(), pso };
+            api->drawMesh(debugPassCommand);
+        }
+
+        //api->bindDefaultFrameBuffer();
+    }
 
     void Renderer::loadScene() noexcept
     {
@@ -384,7 +503,7 @@ namespace nb::Renderer
         auto dirLightNode = std::make_shared<LightNode>("DirLight", dirLightTransform, dirLight);
 
         Transform pointLightTransform;
-        pointLightTransform.translate = { -5.0f, 0.0f, -5.0f };
+        pointLightTransform.translate = { -5.0f, 19.0f, -5.0f };
         auto pointLight = std::make_shared<PointLight>(
             ambientColor,
             Math::Vector3<float>{1.0f, 1.0f, 1.0f},
@@ -409,18 +528,28 @@ namespace nb::Renderer
         Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
         //Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
         Transform cubeTransform;
-        cubeTransform.scale = { 0.25f,0.25f,0.25f };
+        cubeTransform.translate = { 0.0f, 0.0f, 0.0f };
+        cubeTransform.scale = { 2.25f,2.25f,2.25f };
 
         auto cubeNode = std::make_shared<ObjectNode>("cube", cubeTransform, cube, shader);
         scene->addChildren(cubeNode);
 
-        Ref<Mesh> surface = PrimitiveGenerators::createCube();
-        Transform surfaceTransform;
-        surfaceTransform.translate = {0.0f, -25.0f, 0.0f };
-        surfaceTransform.scale = { 2500.0f, 0.10f, 2500.0f };
 
-        auto surfaceNode = std::make_shared<ObjectNode>("surface", surfaceTransform, surface, shader);
-        scene->addChildren(surfaceNode);
+        Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
+        // Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
+        Transform surfTransform;
+        surfTransform.translate = {0.0f, 0.0f, 0.0f};
+
+        auto surfNode = std::make_shared<ObjectNode>("scene", surfTransform, surf, shader);
+        scene->addChildren(surfNode);
+
+        //Ref<Mesh> surface = PrimitiveGenerators::createCube();
+        //Transform surfaceTransform;
+        //surfaceTransform.translate = {0.0f, -25.0f, 0.0f };
+        //surfaceTransform.scale = { 2500.0f, 0.10f, 2500.0f };
+        //
+        //auto surfaceNode = std::make_shared<ObjectNode>("surface", surfaceTransform, surface, shader);
+        //scene->addChildren(surfaceNode);
 
         
         scene->addChildren(dirLightNode);

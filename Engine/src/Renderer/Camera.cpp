@@ -29,12 +29,13 @@ namespace nb
                 direction.y = 0.0f;
             }
 
-            auto rightDirection = direction.cross(up);
 
             if(deltaYaw != 0.0f || deltaPitch != 0.0f)
             {
+                auto rightDirection = direction.cross(up);
+
                 auto yawQuat = Math::Quaternion<float>::axisAngleToQuaternion(deltaYaw, up);
-                auto pitchQuat = Math::Quaternion<float>::axisAngleToQuaternion(-deltaPitch, rightDirection);
+                auto pitchQuat = Math::Quaternion<float>::axisAngleToQuaternion(deltaPitch, rightDirection);
 
                 auto q = yawQuat.cross(pitchQuat);
             
@@ -43,15 +44,14 @@ namespace nb
                 direction = Math::rotate(q, direction);
             }
 
-           
-
             lookAt = Math::lookAt(position, position + direction, up);
 
             projection = Math::projection(
                 Math::toRadians(Core::EngineSettings::getFov()),
                 Core::EngineSettings::getAspectRatio(),
                 NEAR_PLANE,
-                FAR_PLANE);
+                FAR_PLANE
+            );
         }
     };
 };

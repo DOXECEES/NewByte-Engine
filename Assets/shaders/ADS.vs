@@ -9,7 +9,10 @@ layout(location = 4) in vec4 aTangent;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
-uniform mat4 lightSpaceMatrix;
+
+uniform mat4 lightView;
+uniform mat4 lightProj;
+
 
 out vec3 oNormal;
 out vec3 FragPos;      // Мы будем передавать это в World Space
@@ -39,6 +42,7 @@ void main()
 
     // 4. ТЕНИ: Умножаем матрицу света на МИРОВЫЕ координаты
     // КРИТИЧНО: Используем worldPos, а не FragPos (который в View Space)
+	mat4 lightSpaceMatrix = lightProj * lightView;
     FragPosLightSpace = lightSpaceMatrix * worldPos;
 
     // 5. Позиция на экране (Clip Space)

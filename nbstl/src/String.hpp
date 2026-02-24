@@ -62,10 +62,8 @@ namespace nbstl
 
         void clearHeap() noexcept
         {
-            if (stringData.heap.buffer)
-            {
-                delete[] stringData.heap.buffer;
-            }
+            delete[] stringData.heap.buffer;
+            stringData.heap.buffer = nullptr;
             clearSSO();
         }
 
@@ -107,10 +105,9 @@ namespace nbstl
             std::memset(tempBuffer, 0, stringData.heap.capacity * 2);
             std::memcpy(tempBuffer, stringData.heap.buffer, stringData.heap.size * sizeof(T));
 
-            if (stringData.heap.buffer)
-            {
-                delete[] stringData.heap.buffer;
-            }
+            
+            delete[] stringData.heap.buffer;
+            stringData.heap.buffer = nullptr;
 
             stringData.heap.buffer = tempBuffer;
             stringData.heap.capacity = stringData.heap.capacity * 2;
@@ -373,7 +370,7 @@ namespace nbstl
             std::memcpy(ptr + pos, other.dataPtr(), count * sizeof(T));
 
             setSize(newSize);
-            ptr[newSize] = T(0);
+            ptr[newSize] = static_cast<T>(0);
         }
 
         void erase(size_t pos) noexcept
@@ -386,7 +383,7 @@ namespace nbstl
             std::memmove(ptr + pos, ptr + pos + 1, (oldSize - pos - 1) * sizeof(T));
 
             setSize(oldSize - 1);
-            ptr[size()] = T(0);
+            ptr[size()] = static_cast<T>(0);
         }
 
         void erase(size_t pos, size_t count) noexcept
@@ -402,7 +399,7 @@ namespace nbstl
             std::memmove(ptr + pos, ptr + pos + count, (oldSize - pos - count) * sizeof(T));
 
             setSize(oldSize - count);
-            ptr[size()] = T(0);
+            ptr[size()] = static_cast<T>(0);
         }
 
         void replace(const BasicString& pattern, const BasicString& replacement) noexcept
@@ -437,7 +434,7 @@ namespace nbstl
                 size_t oldSize = stringData.stack.size;
                 T* temp = new T[newCapacity + 1];
                 std::memcpy(temp, stringData.stack.buffer, oldSize * sizeof(T));
-                temp[oldSize] = T(0);
+                temp[oldSize] = static_cast<T>(0);
 
                 stringData.heap.buffer = temp;
                 stringData.heap.size = oldSize;
@@ -454,7 +451,7 @@ namespace nbstl
 
             T* newBuffer = new T[newCapacity + 1];
             std::memcpy(newBuffer, stringData.heap.buffer, stringData.heap.size * sizeof(T));
-            newBuffer[stringData.heap.size] = T(0);
+            newBuffer[stringData.heap.size] = static_cast<T>(0);
 
             delete[] stringData.heap.buffer;
 

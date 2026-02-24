@@ -15,7 +15,7 @@ namespace nb
             this->bindTexture(TextureType::COLOR);
             this->bindRenderBuffer(RenderBufferType::DEPTH_STENCIL);
         
-            this->unBind();
+            staticUnbind();
         }
 
         PostProcessFbo::~PostProcessFbo()

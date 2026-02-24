@@ -51,9 +51,20 @@ namespace nb
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept override final;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept override final;
 
-            virtual void setUniformVec2(std::string_view name, const Math::Vector2<float> value) const noexcept override final;
-            virtual void setUniformVec3(std::string_view name, const Math::Vector3<float> value) const noexcept override final;
-            virtual void setUniformVec4(std::string_view name, const Math::Vector4<float> value) const noexcept override final;
+            virtual void setUniformVec2(
+                std::string_view name,
+                const Math::Vector2<float>& value
+            ) const noexcept override final;
+
+            virtual void setUniformVec3(
+                std::string_view name,
+                const Math::Vector3<float>& value
+            ) const noexcept override final;
+            
+            virtual void setUniformVec4(
+                std::string_view name,
+                const Math::Vector4<float>& value
+            ) const noexcept override final;
 
             virtual void setUniformMat2(std::string_view name, const Math::Mat2<float>& value) const noexcept override final;
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept override final;
