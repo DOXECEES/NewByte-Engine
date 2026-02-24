@@ -7,6 +7,8 @@
 // ENGINE HEADERS
 #include <Error/ErrorConsolePrinter.hpp>
 
+#include <Renderer/TransformProxy.hpp>
+
 // NBUI HEADERS
 #include <Localization/LocaleManager.hpp>
 #include <Localization/LocaleLoader.hpp>
@@ -20,6 +22,9 @@
 #include <Widgets/SpinBox.hpp>
 #include <Widgets/Calendar.hpp>
 #include <Widgets/ComboBox.hpp>
+
+#include <Widgets/Section.hpp>
+
 
 void EditorApp::initSystems() noexcept
 {
@@ -159,6 +164,7 @@ void EditorApp::setupHierarchyUI() noexcept
                     activeNode = reinterpret_cast<nb::Renderer::BaseNode*>(
                         sceneModel->findById(index.getUuid())->getData()
                     );
+                    onActiveNodeChanged.emit();
                 }
             })
         )
@@ -217,70 +223,85 @@ void EditorApp::setupInspectorUI() noexcept
 
                 // Поле X
                 .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::SpinBox())
-                        .apply<Widgets::SpinBox>([](Widgets::SpinBox* c) {
-                            c->setRange(-100, 100);
+                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
+                           c->setRange(-100, 100);
+                            if (activeNode)
+                            {
+                                auto translate = activeNode->getTransform().translate;
+                                c->bind(&translate.x);
+                            }
                         })
                         .relativeWidth(1.0f)
                         .absoluteHeight(30)
                         .background(NbColor{ 25, 25, 25 })
                         .color(NbColor{ 255, 100, 100 })
-                        .onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value){
-                            errorManager.report(nb::Error::Type::INFO, std::to_string(value));
-                            
-                            if (!activeNode)
-                            {
-                                return;
-                            }
+                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value){
+                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
+                        //    
+                        //    if (!activeNode)
+                        //    {
+                        //        return;
+                        //    }
 
-                            activeNode->addTranslate({ static_cast<float>(value), 0.0f, 0.0f });
-                        })
+                        //    activeNode->addTranslate({ static_cast<float>(value), 0.0f, 0.0f });
+                        //})
                     )
                 )
 
                 // Поле Y
                 .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::SpinBox())
-                        .apply<Widgets::SpinBox>([](Widgets::SpinBox* c) {
-                            c->setRange(-100, 100);
+                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
+                           c->setRange(-100, 100);
+                            if (activeNode)
+                            {
+                                auto translate = activeNode->getTransform().translate;
+                                c->bind(&translate.y);
+                            }
                         })
                         .relativeWidth(1.0f)
                         .absoluteHeight(30)
                         .background(NbColor{ 25, 25, 25 })
                         .color(NbColor{ 100, 255, 100 })
-                        .onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                            errorManager.report(nb::Error::Type::INFO, std::to_string(value));
+                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
+                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
 
-                            if (!activeNode)
-                            {
-                                return;
-                            }
+                        //    if (!activeNode)
+                        //    {
+                        //        return;
+                        //    }
 
-                            activeNode->addTranslate({ 0.0f, static_cast<float>(value), 0.0f });
-                        })
+                        //    activeNode->addTranslate({ 0.0f, static_cast<float>(value), 0.0f });
+                        //})
                     )
                 )
 
                 // Поле Z
                 .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::SpinBox())
-                        .apply<Widgets::SpinBox>([](Widgets::SpinBox* c) {
-                            c->setRange(-100, 100);
+                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
+                           c->setRange(-100, 100);
+                            if (activeNode)
+                            {
+                                auto translate = activeNode->getTransform().translate;
+                                c->bind(&translate.z);
+                            }
                         })
                         .relativeWidth(1.0f)
                         .absoluteHeight(30)
                         .background(NbColor{ 25, 25, 25 })
                         .color(NbColor{ 100, 100, 255 }) 
-                        .onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                            nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
+                        //    nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
 
-                            if (!activeNode)
-                            {
-                                return;
-                            }
+                        //    if (!activeNode)
+                        //    {
+                        //        return;
+                        //    }
 
-                            activeNode->addTranslate({ 0.0f, 0.0f, static_cast<float>(value)});
-                        })
+                        //    activeNode->addTranslate({ 0.0f, 0.0f, static_cast<float>(value)});
+                        //})
                     )
                 )
             )
@@ -311,11 +332,17 @@ nbui::LayoutBuilder EditorApp::createSpinBox(std::function<void(int)> onChange, 
 {
     return nbui::LayoutBuilder::vBox()
         .relativeWidth(0.33f)
-        .child(nbui::LayoutBuilder::widget(new Widgets::SpinBox())
-            .apply<Widgets::SpinBox>([](auto* c) { c->setRange(-100, 100); })
+        .child(nbui::LayoutBuilder::widget(new Widgets::FloatSpinBox())
+            .apply<Widgets::FloatSpinBox>(
+                [](auto* c)
+                {
+                    c->setRange(-100, 100);
+                }
+            )
             .background({ 25, 25, 25 })
-            .color(color)
-            .onEvent(&Widgets::SpinBox::onValueChangedByStep, onChange));
+            .color(color));
+            //.onEvent(&Widgets::SpinBox::onValueChangedByStep, onChange));
+
 }
 
 void EditorApp::setupSettingsUI() noexcept
@@ -566,7 +593,7 @@ void EditorApp::setupSettingsUI() noexcept
                             s.margin = { 0, 0, 8, 0 };
                             })
 
-                        .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                        .child(LayoutBuilder::widget(new Widgets::IntSpinBox())
                             .relativeWidth(0.7f)
                             .absoluteHeight(35)
                             .color(NbColor{ 200, 200, 200 })
@@ -574,7 +601,7 @@ void EditorApp::setupSettingsUI() noexcept
                             .padding({ 0, 0, 0, 0 })
                         )
 
-                        .child(LayoutBuilder::widget(new Widgets::SpinBox())
+                        .child(LayoutBuilder::widget(new Widgets::IntSpinBox())
                             .relativeWidth(0.2f)
                             .absoluteHeight(35)
                             .background(NbColor{ 80, 80, 80 })
@@ -714,5 +741,231 @@ void EditorApp::setupDebugUI() noexcept
         .build();
 
     debugWindow->getLayoutRoot()->addChild(std::move(debugUI));
+}
+
+void EditorApp::rebuildInspector() noexcept
+{
+    using namespace nbui;
+    auto& errorManager = nb::Error::ErrorManager::instance();
+        auto inspector = LayoutBuilder::vBox()
+       .style([](NNsLayout::LayoutStyle& s) {
+            s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+            s.width = 1.0f; // Занимает всю ширину правой панели
+            s.padding = { 0, 0, 0, 0 };
+            s.color = NbColor{ 35, 35, 35 }; // Цвет фона инспектора
+        })
+        .child(LayoutBuilder::label(L"TRANSFORM")
+            .relativeWidth(1.0f)
+            .absoluteHeight(30)
+            .background(NbColor{ 60, 60, 60 })
+            .color(NbColor{ 220, 220, 220 })
+            .fontSize(14)
+            .textAlign(Widgets::TextAlign::LEFT)
+            .padding({ 0, 0, 0, 0 }))
+        .child(
+            LayoutBuilder::hBox()
+            .style([](NNsLayout::LayoutStyle& s) 
+            {
+                s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+                s.height = 30;
+                s.margin = { 0, 0, 5, 0 }; // Отступ снизу
+                s.padding = { 5, 0, 5, 0 };
+            })
+
+            .child(LayoutBuilder::label(L"Position")
+                .relativeWidth(0.35f) // Занимает 35% ширины
+                .color(NbColor{ 180, 180, 180 })
+                .textAlign(Widgets::TextAlign::LEFT)
+            )
+            .child(
+                LayoutBuilder::hBox()
+                .style([](NNsLayout::LayoutStyle& s) {
+                    s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+                    s.width= 0.65f; 
+                    //s.spacing = 4; // Расстояние между X, Y, Z (если поддерживается)
+                    })
+
+                // Поле X
+                .child(LayoutBuilder::vBox().relativeWidth(0.33f).child(
+                    LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
+                           c->setRange(-100, 100);
+                            if (activeNode)
+                            {
+                                c->bind(
+                                    [&]() -> float
+                                    {
+                                        return activeNode->getTransform().translate.x;
+                                    },
+                                    [&](float v)
+                                    {
+                                        activeNode->setTransformX(v);
+                                    }
+                                );
+                            }
+                        })
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background(NbColor{ 25, 25, 25 })
+                        .color(NbColor{ 255, 100, 100 })
+                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value){
+                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
+                        //    
+                        //    if (!activeNode)
+                        //    {
+                        //        return;
+                        //    }
+
+                        //    activeNode->addTranslate({ static_cast<float>(value), 0.0f, 0.0f });
+                        //})
+                    )
+                )
+
+                // Поле Y
+                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
+                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
+                           c->setRange(-100, 100);
+                            if (activeNode)
+                            {
+                                c->bind(
+                                    [&]() -> float
+                                    {
+                                        return activeNode->getTransform().translate.y;
+                                    },
+                                    [&](float v)
+                                    {
+                                        activeNode->setTransformY(v);
+                                    }
+                                );
+                            }
+                        })
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background(NbColor{ 25, 25, 25 })
+                        .color(NbColor{ 100, 255, 100 })
+                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
+                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
+
+                        //    if (!activeNode)
+                        //    {
+                        //        return;
+                        //    }
+
+                        //    activeNode->addTranslate({ 0.0f, static_cast<float>(value), 0.0f });
+                        //})
+                    )
+                )
+
+                // Поле Z
+                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
+                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
+                            c->setRange(-100, 100);
+                            if (activeNode)
+                            {
+                                c->bind(
+                                    [&]() -> float
+                                    {
+                                        return activeNode->getTransform().translate.z;
+                                    },
+                                    [&](float v)
+                                    {
+                                        activeNode->setTransformZ(v);
+                                    }
+                                );
+
+                            }
+                        })
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background(NbColor{ 25, 25, 25 })
+                        .color(NbColor{ 100, 100, 255 }) 
+                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
+                        //    nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
+
+                        //    if (!activeNode)
+                        //    {
+                        //        return;
+                        //    }
+
+                        //    activeNode->addTranslate({ 0.0f, 0.0f, static_cast<float>(value)});
+                        //})
+                    )
+                )
+            )
+         );
+
+        if (auto lightNode = dynamic_cast<nb::Renderer::LightNode*>(activeNode))
+        {
+            inspector = std::move(inspector).child(
+                LayoutBuilder::vBox()
+
+                    .child(LayoutBuilder::label(L"Light").relativeWidth(1.0f).absoluteHeight(30))
+
+                    .child(
+                        LayoutBuilder::widget(new Widgets::SectionWidget(L"Section", {}))
+                            .apply<Widgets::SectionWidget>(
+                                [&](Widgets::SectionWidget* c)
+                                {
+                                        
+                                    auto* w1 = new Widgets::FloatSpinBox();
+                                    //w1->setText(L"But1");
+
+                                    auto* w2 = new Widgets::FloatSpinBox();
+                                    
+                                    struct SectionGroup
+                                    {
+                                        std::wstring title;
+                                        std::vector<Widgets::IWidget*> widgets;
+                                    };
+
+                                    //w2->setText(L"But2");
+                                    
+                                    //subscribe<Widgets::Button>(
+                                    //    w2, &Widgets::Button::onPressedSignal,
+                                    //    []()
+                                    //    {
+                                    //        nb::Error::ErrorManager::instance().report(
+                                    //            nb::Error::Type::FATAL, "Clicked"
+                                    //        );
+                                    //    }
+                                    //);
+
+
+                                    c->addChildrenWidget(w1);
+                                    c->addChildrenWidget(w2);
+                                }
+                            )
+                            .relativeWidth(1.0f)
+                            .autoHeight()
+                    )
+                    .child(LayoutBuilder::label(L"THE END").relativeWidth(1.0f).absoluteHeight(30))
+
+
+                    .relativeWidth(1.0f)
+                    .relativeHeight(0.5f)
+            );
+
+
+           
+        }
+
+        
+
+    auto inspectorUi = std::move(inspector).build();
+
+
+    inspectorWindow->getLayoutRoot()->clearChilds();
+    inspectorWindow->getLayoutRoot()->addChild(std::move(inspectorUi));
+    inspectorWindow->show();
+    
+}
+
+void EditorApp::subscribeAll() noexcept
+{
+    subscribe(this, &EditorApp::onActiveNodeChanged, [&]() {
+            rebuildInspector();
+    });
 }
 

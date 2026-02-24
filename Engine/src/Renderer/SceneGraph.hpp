@@ -16,11 +16,13 @@
 
 #include "../Core.hpp"
 
+
 namespace nb
 {
     namespace Renderer
     {
         class SceneGraph;
+        class TransformProxy;
 
         class BaseVisitor
         {
@@ -63,7 +65,6 @@ namespace nb
 
             void moveAt(const Math::Vector3<float> &direction) noexcept;
 
-            // virtual void accept(BaseVisitor& visitor) const noexcept = 0;
             const std::vector<std::shared_ptr<BaseNode>> &getChildrens() const noexcept;
 
             std::shared_ptr<BaseNode> getChildren(const size_t index) const noexcept;
@@ -78,6 +79,10 @@ namespace nb
 
 
             void setTransform(const Transform &newTransform) noexcept;
+            void setTransformX(float value) noexcept;
+            void setTransformY(float value) noexcept;
+            void setTransformZ(float value) noexcept;
+
             Math::Mat4<float> getLocalTransform() const noexcept;
             Math::Mat4<float> getWorldTransform() const noexcept;
 
@@ -88,14 +93,21 @@ namespace nb
 
             std::shared_ptr<BaseNode> getParent() const noexcept;
 
-            const Transform &getTransform() const noexcept;
+            const Transform& getTransform() const noexcept;
+
+            TransformProxy getTransformView() noexcept;
+
             Math::Mat4<float> getLocalTransform() noexcept;
             void updateWorldTransform() noexcept;
             void updateWorldTransformForce() noexcept;
 
             virtual void onDirtyChange() noexcept {};
 
+            void markDirty() noexcept;
+
         protected:
+
+            
 
             Transform                               transform;
             

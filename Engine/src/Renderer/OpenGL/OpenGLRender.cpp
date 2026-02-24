@@ -22,8 +22,8 @@ namespace nb::OpenGl
         case nb::Renderer::PolygonMode::FULL:
             return GL_FILL;
         default:
-            Error::ErrorManager::instance()
-                .report(Error::Type::WARNING, "Unsupported polygon mode");
+            //Error::ErrorManager::instance()
+            //    .report(Error::Type::WARNING, "Unsupported polygon mode");
             return GL_FILL;
         }
     }

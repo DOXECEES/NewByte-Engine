@@ -42,6 +42,8 @@ public:
 
         showAllWindows();
 
+        subscribeAll();
+
         return mainLoop();
     }
 
@@ -61,8 +63,10 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> textureInspector;
 
     std::shared_ptr<SceneModel> sceneModel;
-    nb::Renderer::BaseNode* activeNode;
+    nb::Renderer::BaseNode* activeNode = nullptr;
     std::atomic<bool> running;
+
+    Signal<void()> onActiveNodeChanged;
 
     void initSystems() noexcept;
   
@@ -86,6 +90,9 @@ private:
 
     void setupDebugUI() noexcept;
    
+    void rebuildInspector() noexcept;
+
+    void subscribeAll() noexcept;
 
     void showAllWindows()
     {
@@ -112,13 +119,15 @@ private:
                 isEngineDependentUiInit = true;
             }
 
-            while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+            {
                 if (msg.message == WM_QUIT) {
                     running = false;
                     break;
                 }
 
-                if (msg.message == WM_INPUT) {
+                if (msg.message == WM_INPUT) 
+                {
                     engine->bufferizeInput(msg);
                 }
 

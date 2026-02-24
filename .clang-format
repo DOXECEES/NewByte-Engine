@@ -5,6 +5,7 @@ Language: Cpp
 IndentWidth: 4
 ColumnLimit: 100
 
+
 # СКОБКИ: Стиль Allman принудительно ставит все скобки на новые строки.
 # Это лучший способ гарантировать закрывающую скобку на новой строке в VS.
 BreakBeforeBraces: Allman
@@ -29,7 +30,8 @@ SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
 NamespaceIndentation: All
 
-
+IndentAccessModifiers: false
+AccessModifierOffset: -4
 
 # Инклюды
 SortIncludes: true

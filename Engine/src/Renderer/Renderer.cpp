@@ -143,17 +143,6 @@ namespace nb::Renderer
 
                 meshPtr->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
 
-                if (obj->getName() == "cube")
-                {
-                    auto pos = cam->getPosition();
-                    
-                    nb::Error::ErrorManager::instance()
-                        .report(nb::Error::Type::WARNING,"Pos")
-                        .with("X", pos.x)
-                        .with("Y", pos.y)
-                        .with("Z", pos.z);
-                }
-
                 mainQueue.pushBack({
                     meshPtr,
                     api->getCache().getOrCreate(mainP)
