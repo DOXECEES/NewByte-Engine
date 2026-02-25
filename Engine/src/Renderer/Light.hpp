@@ -13,7 +13,7 @@ namespace nb
         class IShadable
         {
         public:
-            virtual void applyUniforms(Ref<Renderer::Shader>& shader) = 0;
+            virtual void applyUniforms(Ref<Shader>& shader) = 0;
         };
 
         // все классы наследники должны определять в себе стстический индексатор
@@ -41,9 +41,12 @@ namespace nb
                 , position(_position)
             {}
 
-            virtual void applyUniforms(Ref<Renderer::Shader> &shader) = 0;
+            virtual void applyUniforms(Ref<Shader>& shader) = 0;
 
-            void applyBaseUniforms(Ref<Renderer::Shader>& shader, std::string_view base)
+            void applyBaseUniforms(
+                Ref<Shader>& shader,
+                std::string_view base
+            )
             {
                 const std::string ambientUniformName  = makeUniformName(base, id, AMBIENT_UNIFORM_NAME);
                 const std::string diffuseUniformName  = makeUniformName(base, id, DIFFUSE_UNIFORM_NAME);
@@ -147,7 +150,7 @@ namespace nb
                 id = indexator.index();
             }
 
-            void applyUniforms(Ref<Renderer::Shader>& shader) override
+            void applyUniforms(Ref<Shader>& shader) override
             {
                 Light::applyBaseUniforms(shader, GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME);
 
@@ -201,7 +204,7 @@ namespace nb
                 id = indexator.index();
             }
 
-            void applyUniforms(Ref<Renderer::Shader>& shader) override
+            void applyUniforms(Ref<Shader>& shader) override
             {
                 Light::applyBaseUniforms(shader, GLOBAL_LIGHTS_STORE_UNIFORM_NAME);
 

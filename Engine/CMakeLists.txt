@@ -61,8 +61,6 @@ src/main.cpp
         src/Renderer/IRenderAPI.cpp     
         src/Renderer/Shader.cpp
         src/Renderer/Shader.hpp
-        src/Renderer/SceneGraph.cpp
-        src/Renderer/SceneGraph.hpp
         src/Renderer/Camera.cpp
         src/Renderer/Camera.hpp
         src/Renderer/Mesh.cpp
@@ -114,8 +112,6 @@ src/main.cpp
         src/Renderer/Material.hpp
         src/Renderer/ContextMeshCache.cpp
         src/Renderer/ContextMeshCache.hpp
-        src/Renderer/TransformProxy.cpp
-        src/Renderer/TransformProxy.hpp
         src/Renderer/Scene.hpp
 
         src/Math/Constants.hpp

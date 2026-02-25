@@ -6,6 +6,7 @@
 #include "Material.hpp"
 
 #include <Renderer/Scene.hpp>
+#include "Light.hpp"
 
 namespace nb::Renderer
 {
@@ -520,83 +521,7 @@ namespace nb::Renderer
         //api->bindDefaultFrameBuffer();
     }
 
-    void Renderer::loadScene() noexcept
-    {
-        auto rm = ResMan::ResourceManager::getInstance();
-        auto shader = rm->getResource<Shader>("ADS.shader");
-
-        sceneGraph = SceneGraph::getInstance();
-        auto scene = sceneGraph->getScene();
-       
-        Math::Vector3<float> ambientColor = { 0.0f, 0.0f, 0.0f };
-        
-
-        Transform dirLightTransform;
-        auto dirLight = std::make_shared<DirectionalLight>(
-            ambientColor,
-            Math::Vector3<float>{1.0f, 1.0f, 1.0f},
-            Math::Vector3<float>{0.1f, 0.1f, 0.1f},
-            Math::Vector3<float>{-1.0f, -0.2f, -0.2f}
-        );
-        auto dirLightNode = std::make_shared<LightNode>("DirLight", dirLightTransform, dirLight);
-
-        Transform pointLightTransform;
-        pointLightTransform.translate = { -5.0f, 19.0f, -5.0f };
-        auto pointLight = std::make_shared<PointLight>(
-            ambientColor,
-            Math::Vector3<float>{1.0f, 1.0f, 1.0f},
-            Math::Vector3<float>{0.1f, 0.1f, 0.1f},
-            pointLightTransform.translate,
-            1.0f, 0.0f, 0.0f, 1.0f
-        );
-        auto pointLightNode = std::make_shared<LightNode>("PointLight", pointLightTransform, pointLight);
-
-        Transform pointLight2Transform;
-        pointLight2Transform.translate = { 5.0f, 0.0f, 5.0f };
-        auto pointLight2 = std::make_shared<PointLight>(
-            ambientColor,
-            Math::Vector3<float>{1.0f, 1.0f, 1.0f},
-            Math::Vector3<float>{0.1f, 0.1f, 0.1f},
-            pointLight2Transform.translate,
-            1.0f, 0.0f, 0.0f, 1.0f
-        );
-        auto pointLightNode2 = std::make_shared<LightNode>("PointLight1", pointLight2Transform, pointLight2);
-
-        PrimitiveGenerators::ParametricSegments segments{ 32, 32 };
-        Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
-        //Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
-        Transform cubeTransform;
-        cubeTransform.translate = { 0.0f, 0.0f, 0.0f };
-        cubeTransform.scale = { 2.25f,2.25f,2.25f };
-
-        auto cubeNode = std::make_shared<ObjectNode>("cube", cubeTransform, cube, shader);
-        scene->addChildren(cubeNode);
-
-
-        Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
-        // Ref<Mesh> cube = PrimitiveGenerators::createSphere(1.0f, 64, 64);
-        Transform surfTransform;
-        surfTransform.translate = {0.0f, 0.0f, 0.0f};
-
-        auto surfNode = std::make_shared<ObjectNode>("scene", surfTransform, surf, shader);
-        scene->addChildren(surfNode);
-
-        //Ref<Mesh> surface = PrimitiveGenerators::createCube();
-        //Transform surfaceTransform;
-        //surfaceTransform.translate = {0.0f, -25.0f, 0.0f };
-        //surfaceTransform.scale = { 2500.0f, 0.10f, 2500.0f };
-        //
-        //auto surfaceNode = std::make_shared<ObjectNode>("surface", surfaceTransform, surface, shader);
-        //scene->addChildren(surfaceNode);
-
-        
-        scene->addChildren(dirLightNode);
-        dirLightNode->addChildren(pointLightNode);
-        scene->addChildren(pointLightNode2);
-
-
-    }
-
+    
     void Renderer::loadSceneEcs() noexcept
     {
         auto rm = ResMan::ResourceManager::getInstance();

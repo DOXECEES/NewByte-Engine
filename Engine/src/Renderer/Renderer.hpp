@@ -8,7 +8,6 @@
 #include "../Math/Vector3.hpp"
 #include "../Math/Vector2.hpp"
 
-#include "SceneGraph.hpp"
 
 #include "IRenderAPI.hpp"
 #include "OpenGL/OpenGLRender.hpp"
@@ -36,8 +35,6 @@ namespace nb
 
             void setCamera(Camera* camera)                                      { this->cam = camera; };
             inline Camera *getCamera() const noexcept                           { return cam; };
-            inline const std::shared_ptr<SceneGraph>& getScene() const noexcept  { return sceneGraph; };
-            inline void setScenes(std::shared_ptr<SceneGraph> &s)               { sceneGraph = s; };
 
             void togglePolygonVisibilityMode(PolygonMode mode) const noexcept;
             inline void setPolygonVisibilityMode(PolygonMode mode) noexcept     { polygonMode = mode; };
@@ -140,7 +137,6 @@ namespace nb
             void renderNavigationalGizmo() noexcept;
 
             //TEMP
-            void loadScene() noexcept;
             void loadSceneEcs() noexcept;
           
             uint32_t checkedTextureId = 0;
@@ -169,7 +165,6 @@ namespace nb
 
             bool isResourceLoaded = false;
 
-            Ref<SceneGraph> sceneGraph;
             Camera* cam;
 
             Ref<IFrameBuffer> mainFrameBuffer;         

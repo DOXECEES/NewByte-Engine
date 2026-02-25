@@ -14,7 +14,7 @@ namespace nb::Reflect
 
     template <typename T> struct Reflect
     {
-        static constexpr bool isInternal = false;
+        static inline bool isInternal = false;
     };
 
     template <typename T, typename = void> struct hasReflection : std::false_type
@@ -165,17 +165,17 @@ namespace nb::Reflect
 #define NB_REFLECT_STRUCT(TYPE, ...)                                                               \
     template <> struct nb::Reflect::Reflect<TYPE>                                                  \
     {                                                                                              \
-        static constexpr const char* name = #TYPE;                                                 \
-        static constexpr auto fields = std::make_tuple(__VA_ARGS__);   \
-        static constexpr bool isInternal = false;   \
+        static inline const char* name = #TYPE;                                                 \
+        static inline auto fields = std::make_tuple(__VA_ARGS__);   \
+        static inline bool isInternal = false;   \
     };
 
 #define NB_REFLECT_STRUCT_CUSTOM_NAME(TYPE, NAME, ...)                                                               \
     template <> struct nb::Reflect::Reflect<TYPE>                                                  \
     {                                                                                              \
-        static constexpr const char* name = NAME;                                                 \
-        static constexpr auto fields = std::make_tuple(__VA_ARGS__);                               \
-        static constexpr bool isInternal = false;                                                  \
+        static inline const char* name = NAME;                                                 \
+        static inline auto fields = std::make_tuple(__VA_ARGS__);                               \
+        static inline bool isInternal = false;                                                  \
     };
 
 #define NB_FIELD(CLASS, FIELD_NAME)                                                          \

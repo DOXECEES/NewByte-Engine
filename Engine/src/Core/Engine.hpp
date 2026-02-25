@@ -140,7 +140,6 @@ namespace nb
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; }
             inline Math::Vector3<float> getCameraPos() const noexcept { return renderer->getCamera()->getPosition(); }
             inline Math::Vector3<float> getCameraDirection() const noexcept { return renderer->getCamera()->getDirection(); }
-            inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); }
             inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; }
 
 			template<typename F>

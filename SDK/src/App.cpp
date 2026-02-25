@@ -7,7 +7,6 @@
 // ENGINE HEADERS
 #include <Error/ErrorConsolePrinter.hpp>
 
-#include <Renderer/TransformProxy.hpp>
 
 // NBUI HEADERS
 #include <Localization/LocaleManager.hpp>
@@ -24,6 +23,8 @@
 #include <Widgets/ComboBox.hpp>
 
 #include <Widgets/Section.hpp>
+
+#include <Utils/Indexator.hpp>
 
 
 void EditorApp::initSystems() noexcept
@@ -899,7 +900,10 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
         row = std::move(row).child(std::move(fieldsBox));
         return std::move(parentBuilder).child(std::move(row));
     }
-    // --- Случай 2: Одиночный float ---
+    else if (typeName == "Color")
+    {
+
+    }
     else if (typeName == "float")
     {
         auto floatRow = LayoutBuilder::hBox()

@@ -13,7 +13,6 @@
 #include "../RendererStructures.hpp"
 #include "../Mesh.hpp"
 
-#include "../SceneGraph.hpp"
 
 #include "../IRenderAPI.hpp"
 
@@ -94,7 +93,6 @@ namespace nb
 
                 bool init(void* handle) noexcept override;
                 void initFail(std::string_view message, HGLRC context) noexcept;
-                void loadScene() noexcept;
 
                 static GLenum toOpenGlPolygonMode(Renderer::PolygonMode mode) noexcept;
 
@@ -104,7 +102,6 @@ namespace nb
 
 
 
-                void visualizeLight(std::shared_ptr<Renderer::LightNode> node) const noexcept;
                 void visualizeAabb(
                     const Math::AABB3D& aabb,
                     const Math::Mat4<float>& mat
@@ -127,12 +124,7 @@ namespace nb
                 static void applyDiffuseReflectionModel() noexcept;
                 static void applyAmbientDiffuseSpecularModel(Renderer::Camera* cam) noexcept;
                 
-                // bad movement -> refactor graph or sthl this
-                static void spawnGizmo(const Renderer::ObjectNode& node) noexcept
-                {
-                    Math::AABB3D aabb = node.mesh->getAabb3d();
-                    gizmoModelMat = Math::translate(Math::Mat4<float>::identity(), node.getPosition() + aabb.center());
-                }
+                
 
                 virtual void setpolygonModePoints() noexcept override;
                 virtual void setPolygonModeLines()  noexcept override;

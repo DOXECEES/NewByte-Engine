@@ -10,7 +10,6 @@
 #include "ContextMeshCache.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
-#include "SceneGraph.hpp"
 #include "PipelineCache.hpp"
 
 namespace nb
@@ -107,8 +106,6 @@ namespace nb
             inline Camera *getCamera() const noexcept { return cam; };
             void setCamera(Camera *c) { cam = c; };
             //virtual void render() = 0;
-            inline std::shared_ptr<SceneGraph> getScene() const noexcept { return sceneGraph; };
-            inline void setScene(const std::shared_ptr<SceneGraph>&s) { sceneGraph = s; };
 
             virtual void setpolygonModePoints() noexcept  = 0;
             virtual void setPolygonModeLines()  noexcept  = 0;
@@ -126,7 +123,6 @@ namespace nb
 
             PipelineHandle                          activePipeline  = 0;
             PipelineCache                           pipelineCache;
-            std::shared_ptr<Renderer::SceneGraph>   sceneGraph;
 
             bool shouldVisualizeLight = false;
         };
