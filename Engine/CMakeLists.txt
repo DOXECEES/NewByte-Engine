@@ -116,6 +116,7 @@ src/main.cpp
         src/Renderer/ContextMeshCache.hpp
         src/Renderer/TransformProxy.cpp
         src/Renderer/TransformProxy.hpp
+        src/Renderer/Scene.hpp
 
         src/Math/Constants.hpp
         src/Math/Vector2.cpp

@@ -5,7 +5,7 @@
 #include "Renderer/Objects/Objects.hpp"
 #include "Material.hpp"
 
-
+#include <Renderer/Scene.hpp>
 
 namespace nb::Renderer
 {
@@ -26,7 +26,8 @@ namespace nb::Renderer
             break;
         }
 
-        loadScene();
+        loadSceneEcs();
+        //loadScene();
 
         std::vector<Vertex> quadVertices = {
             {{-1.0f, 1.0f, 0.0f}, {}},
@@ -122,33 +123,47 @@ namespace nb::Renderer
 
         onResize(width, height);
 
-        sceneGraph->getScene()->updateWorldTransform();
+        auto& scene = nb::Scene::getInstance();
+        auto& registry = scene.getRegistry();
 
-        std::vector<LightNode*> lights;
+        // 1. Обновляем иерархию (вместо старого sceneGraph->updateWorldTransform)
+        scene.updateAllTransforms();
+
+        std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;
 
-        sceneGraph->traverse([&](std::shared_ptr<BaseNode> node)
-        {
-            if (auto l = std::dynamic_pointer_cast<LightNode>(node))
+        // 2. Обходим новый граф
+        scene.traverseAll(
+            [&](Ecs::EntityID entityId)
             {
-                lights.push_back(l.get());
+                Ecs::Entity entity{entityId};
+
+                // Проверка на свет (вместо LightNode)
+                if (registry.has<LightComponent>(entity))
+                {
+                    lights.push_back(entityId);
+                }
+
+                // Проверка на меш (вместо ObjectNode)
+                if (registry.has<MeshComponent>(entity))
+                {
+                    auto& meshComp = registry.get<MeshComponent>(entity);
+                    auto& transform = registry.get<TransformComponent>(entity);
+
+                    auto* meshPtr = meshComp.mesh.get();
+
+                    Pipeline mainP = {};
+                    mainP.shader = meshPtr->uniforms.shader;
+                    mainP.polygonMode = polygonMode;
+
+                    // Берем уже вычисленную в пункте 1 матрицу
+                    meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
+
+                    mainQueue.pushBack({meshPtr, api->getCache().getOrCreate(mainP)});
+                }
             }
-            else if (auto obj = std::dynamic_pointer_cast<ObjectNode>(node))
-            {
-                auto* meshPtr = obj->mesh.get();
+        );
 
-                Pipeline mainP = {};
-                mainP.shader = meshPtr->uniforms.shader;
-                mainP.polygonMode = polygonMode;
-
-                meshPtr->uniforms.mat4Uniforms["model"] = obj->getWorldTransform();
-
-                mainQueue.pushBack({
-                    meshPtr,
-                    api->getCache().getOrCreate(mainP)
-                });
-            }
-        });
 
         api->beginFrame();
 
@@ -169,8 +184,9 @@ namespace nb::Renderer
         float distance = 20.0f; 
         Math::Vector3<float> lightPos = -lightDir * distance; 
 
+
         Math::Mat4 lightView = Math::lookAt(
-            lights[1]->getPosition(),
+            registry.get<TransformComponent>(Ecs::Entity{lights[0]}).position,
             Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  
             Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   
         );
@@ -252,15 +268,37 @@ namespace nb::Renderer
             u.mat4Uniforms["lightProj"] = lightProj;
             u.intUniforms["shadowMap"] = 5;
 
-            
+            std::vector<PointLight> pointLightsStorage;
+            std::vector<DirectionalLight> dirLightsStorage;
 
-            u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = DirectionalLight::getCountOfDirectionalLights();
-            u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] = PointLight::getCountOfPointLights();
-
-            for (auto* lightNode : lights) 
+            for (auto lightEntityId : lights)
             {
-                lightNode->light->applyUniforms(u.shader);
+                Ecs::Entity entity{lightEntityId};
+                auto& light = registry.get<LightComponent>(entity);
+                auto& lightTransform = registry.get<TransformComponent>(entity);
+
+                if (light.type == LightType::DIRECTIONAL)
+                {
+                    // Используем emplace_back, чтобы объект жил до конца функции
+                    dirLightsStorage.emplace_back(
+                        light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+                        light.direction
+                    );
+                    dirLightsStorage.back().applyUniforms(u.shader);
+                }
+                else if (light.type == LightType::POINT)
+                {
+                    pointLightsStorage.emplace_back(
+                        light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+                        lightTransform.position, light.constant, light.linear, light.quadratic, 1.0f
+                    );
+                    pointLightsStorage.back().applyUniforms(u.shader);
+                }
             }
+
+
+            u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = dirLightsStorage.size();
+            u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] = pointLightsStorage.size();
 
             // Биндим текстуры ( brick, normal и т.д.)
             //u.intUniforms["ourTexture"] = 1;
@@ -274,27 +312,27 @@ namespace nb::Renderer
 
         if (isDebugPassEnabled)
         {
-            Pipeline debugP = {};
-            debugP.shader = debugLightShader;
-            debugP.polygonMode = PolygonMode::LINES; 
-            debugP.isDepthTestEnable = true;
-            debugP.isBlendEnable = false;
+            //Pipeline debugP = {};
+            //debugP.shader = debugLightShader;
+            //debugP.polygonMode = PolygonMode::LINES; 
+            //debugP.isDepthTestEnable = true;
+            //debugP.isBlendEnable = false;
 
-            uint32 debugPSO = api->getCache().getOrCreate(debugP);
-            debugLightShader->use();
-            debugLightShader->setUniformMat4("view", view);
-            debugLightShader->setUniformMat4("proj", proj);
+            //uint32 debugPSO = api->getCache().getOrCreate(debugP);
+            //debugLightShader->use();
+            //debugLightShader->setUniformMat4("view", view);
+            //debugLightShader->setUniformMat4("proj", proj);
 
-            for (auto* lightNode : lights)
-            {
-                Math::Mat4 model = Math::translate(Math::Mat4<float>::identity(), lightNode->getPosition());
-                debugLightShader->setUniformMat4("model", model);
+            //for (auto* lightNode : lights)
+            //{
+            //    Math::Mat4 model = Math::translate(Math::Mat4<float>::identity(), lightNode->getPosition());
+            //    debugLightShader->setUniformMat4("model", model);
 
-                debugLightShader->setUniformVec3("u_Color", lightNode->light->getAmbient());
+            //    debugLightShader->setUniformVec3("u_Color", lightNode->light->getAmbient());
 
-                RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
-                api->drawMesh(debugPassCommand);
-            }
+            //    RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
+            //    api->drawMesh(debugPassCommand);
+            //}
         }
 
         if (ctx.handle)
@@ -557,5 +595,117 @@ namespace nb::Renderer
         scene->addChildren(pointLightNode2);
 
 
+    }
+
+    void Renderer::loadSceneEcs() noexcept
+    {
+        auto rm = ResMan::ResourceManager::getInstance();
+        auto shader = rm->getResource<Shader>("ADS.shader");
+
+        auto& scene = nb::Scene::getInstance();
+
+        Math::Vector3<float> ambientColor{0.0f, 0.0f, 0.0f};
+
+        // =========================================================
+        // Directional Light
+        // =========================================================
+
+        
+
+        nb::Node dirLight = scene.createNode();
+        dirLight.setName("DirLight");
+
+        dirLight.addComponent(
+            LightComponent{
+                LightType::DIRECTIONAL,
+                Colors::BLACK,
+                Colors::WHITE,
+                Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
+                {-1.0f, -0.2f, -0.2f}
+            }
+        );
+
+        // =========================================================
+        // Point Light (child of dirLight)
+        // =========================================================
+
+        nb::Node pointLight = scene.createNode(dirLight.getId());
+        pointLight.setName("PointLight");
+
+        auto& plTransform = pointLight.getComponent<TransformComponent>();
+        plTransform.position = {-5.0f, 19.0f, -5.0f};
+        plTransform.dirty = true;
+
+        pointLight.addComponent(
+            LightComponent{
+                LightType::POINT,
+                Colors::BLACK,
+                Colors::WHITE,
+                Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
+                {0.0f,0.0f,0.0f},
+                1.0f,
+                0.0f,
+                0.0f,
+                1.0f
+            }
+        );
+
+        // =========================================================
+        // Second Point Light (child of root)
+        // =========================================================
+
+        nb::Node pointLight2 = scene.createNode();
+        pointLight2.setName("PointLight1");
+
+        auto& pl2Transform = pointLight2.getComponent<TransformComponent>();
+        pl2Transform.position = {5.0f, 0.0f, 5.0f};
+        pl2Transform.dirty = true;
+
+        pointLight2.addComponent(
+            LightComponent{
+                LightType::POINT,
+                Colors::BLACK,
+                Colors::WHITE,
+                Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
+                {0.0f,0.0f,0.0f},
+                1.0f,
+                0.0f,
+                0.0f,
+                1.0f
+            }
+        );
+
+        // =========================================================
+        // Cube
+        // =========================================================
+
+        Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
+
+        nb::Node cubeNode = scene.createNode();
+        cubeNode.setName("cube");
+
+        auto& cubeTransform = cubeNode.getComponent<TransformComponent>();
+        cubeTransform.position = {0.0f, 0.0f, 0.0f};
+        cubeTransform.scale = {2.25f, 2.25f, 2.25f};
+        cubeTransform.dirty = true;
+        cube->uniforms.shader = shader;
+
+        cubeNode.addComponent(MeshComponent{cube});
+
+        // =========================================================
+        // Scene mesh
+        // =========================================================
+
+        Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
+
+        nb::Node surfNode = scene.createNode();
+        surfNode.setName("scene");
+
+        auto& surfTransform = surfNode.getComponent<TransformComponent>();
+        surfTransform.position = {0.0f, 0.0f, 0.0f};
+        surfTransform.dirty = true;
+        surf->uniforms.shader = shader;
+
+        surfNode.addComponent(MeshComponent{surf});
     }
 }

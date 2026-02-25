@@ -16,6 +16,7 @@
 
 #include "../Core.hpp"
 
+#include "ECS/ecs.hpp"
 
 namespace nb
 {
@@ -58,7 +59,9 @@ namespace nb
         public:
             BaseNode() = delete;
             BaseNode(std::string_view nodeName, const Transform& nodeTransform)
-                : name(nodeName.data()), transform(nodeTransform) 
+                : name(nodeName.data())
+                , transform(nodeTransform) 
+                , ecsId()
             {
             }
             virtual ~BaseNode() = default;
@@ -107,7 +110,8 @@ namespace nb
 
         protected:
 
-            
+            Ecs::ECSRegistry ecs;
+            Ecs::EntityID ecsId;
 
             Transform                               transform;
             

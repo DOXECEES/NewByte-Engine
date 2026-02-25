@@ -99,7 +99,7 @@ void EditorApp::setupDocking() noexcept
         debugWindow,
         Temp::DockPosition::BOTTOM,
         inspectorWindow,
-        Temp::Percent(75)
+        Temp::Percent(60)
     );
 
     dockManager->dockRelative(
@@ -128,8 +128,10 @@ void EditorApp::setupDocking() noexcept
 void EditorApp::initEngine() noexcept
 {
     engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
-    sceneModel = std::make_shared<SceneModel>(engine->getRenderer()->getScene());
+    //sceneModel = std::make_shared<SceneModel>(engine->getRenderer()->getScene());
+    auto& scene = nb::Scene::getInstance();
 
+    sceneModel = std::make_shared<SceneModelEcs>(scene.getRegistry(), scene.getRootEntity().id);
     const auto& size = sceneWindow->getSize();
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
@@ -161,8 +163,11 @@ void EditorApp::setupHierarchyUI() noexcept
             .onEvent(&Widgets::TreeView::onItemClickSignal, [this](const auto& index) {
                 if (index.isValid())
                 {
-                    activeNode = reinterpret_cast<nb::Renderer::BaseNode*>(
-                        sceneModel->findById(index.getUuid())->getData()
+                    activeNode = 
+                        nb::Scene::getInstance().getNode(
+                            reinterpret_cast<nb::Ecs::EntityID>(sceneModel->findById(index.getUuid())->getData()
+                    )
+                    
                     );
                     onActiveNodeChanged.emit();
                 }
@@ -226,11 +231,11 @@ void EditorApp::setupInspectorUI() noexcept
                     .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
                         .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
                            c->setRange(-100, 100);
-                            if (activeNode)
-                            {
-                                auto translate = activeNode->getTransform().translate;
-                                c->bind(&translate.x);
-                            }
+                            //if (activeNode)
+                            //{
+                            //    auto translate = activeNode->getTransform().translate;
+                            //    c->bind(&translate.x);
+                            //}
                         })
                         .relativeWidth(1.0f)
                         .absoluteHeight(30)
@@ -254,11 +259,11 @@ void EditorApp::setupInspectorUI() noexcept
                     .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
                         .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
                            c->setRange(-100, 100);
-                            if (activeNode)
-                            {
-                                auto translate = activeNode->getTransform().translate;
-                                c->bind(&translate.y);
-                            }
+                            //if (activeNode)
+                            //{
+                            //    auto translate = activeNode->getTransform().translate;
+                            //    c->bind(&translate.y);
+                            //}
                         })
                         .relativeWidth(1.0f)
                         .absoluteHeight(30)
@@ -282,11 +287,11 @@ void EditorApp::setupInspectorUI() noexcept
                     .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
                         .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
                            c->setRange(-100, 100);
-                            if (activeNode)
-                            {
-                                auto translate = activeNode->getTransform().translate;
-                                c->bind(&translate.z);
-                            }
+                            //if (activeNode)
+                            //{
+                            //    auto translate = activeNode->getTransform().translate;
+                            //    c->bind(&translate.z);
+                            //}
                         })
                         .relativeWidth(1.0f)
                         .absoluteHeight(30)
@@ -746,220 +751,66 @@ void EditorApp::setupDebugUI() noexcept
 void EditorApp::rebuildInspector() noexcept
 {
     using namespace nbui;
-    auto& errorManager = nb::Error::ErrorManager::instance();
-        auto inspector = LayoutBuilder::vBox()
-       .style([](NNsLayout::LayoutStyle& s) {
-            s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-            s.width = 1.0f; // Занимает всю ширину правой панели
-            s.padding = { 0, 0, 0, 0 };
-            s.color = NbColor{ 35, 35, 35 }; // Цвет фона инспектора
-        })
-        .child(LayoutBuilder::label(L"TRANSFORM")
-            .relativeWidth(1.0f)
-            .absoluteHeight(30)
-            .background(NbColor{ 60, 60, 60 })
-            .color(NbColor{ 220, 220, 220 })
-            .fontSize(14)
-            .textAlign(Widgets::TextAlign::LEFT)
-            .padding({ 0, 0, 0, 0 }))
-        .child(
-            LayoutBuilder::hBox()
-            .style([](NNsLayout::LayoutStyle& s) 
-            {
-                s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
-                s.height = 30;
-                s.margin = { 0, 0, 5, 0 }; // Отступ снизу
-                s.padding = { 5, 0, 5, 0 };
-            })
 
-            .child(LayoutBuilder::label(L"Position")
-                .relativeWidth(0.35f) // Занимает 35% ширины
-                .color(NbColor{ 180, 180, 180 })
-                .textAlign(Widgets::TextAlign::LEFT)
-            )
-            .child(
-                LayoutBuilder::hBox()
-                .style([](NNsLayout::LayoutStyle& s) {
-                    s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-                    s.width= 0.65f; 
-                    //s.spacing = 4; // Расстояние между X, Y, Z (если поддерживается)
-                    })
+    if (activeNode.getId() == 0)
+    {
+        inspectorWindow->getLayoutRoot()->clearChilds();
+        return;
+    }
 
-                // Поле X
-                .child(LayoutBuilder::vBox().relativeWidth(0.33f).child(
-                    LayoutBuilder::widget(new Widgets::FloatSpinBox())
-                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
-                           c->setRange(-100, 100);
-                            if (activeNode)
-                            {
-                                c->bind(
-                                    [&]() -> float
-                                    {
-                                        return activeNode->getTransform().translate.x;
-                                    },
-                                    [&](float v)
-                                    {
-                                        activeNode->setTransformX(v);
-                                    }
-                                );
-                            }
-                        })
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background(NbColor{ 25, 25, 25 })
-                        .color(NbColor{ 255, 100, 100 })
-                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value){
-                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
-                        //    
-                        //    if (!activeNode)
-                        //    {
-                        //        return;
-                        //    }
-
-                        //    activeNode->addTranslate({ static_cast<float>(value), 0.0f, 0.0f });
-                        //})
-                    )
-                )
-
-                // Поле Y
-                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
-                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
-                           c->setRange(-100, 100);
-                            if (activeNode)
-                            {
-                                c->bind(
-                                    [&]() -> float
-                                    {
-                                        return activeNode->getTransform().translate.y;
-                                    },
-                                    [&](float v)
-                                    {
-                                        activeNode->setTransformY(v);
-                                    }
-                                );
-                            }
-                        })
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background(NbColor{ 25, 25, 25 })
-                        .color(NbColor{ 100, 255, 100 })
-                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
-
-                        //    if (!activeNode)
-                        //    {
-                        //        return;
-                        //    }
-
-                        //    activeNode->addTranslate({ 0.0f, static_cast<float>(value), 0.0f });
-                        //})
-                    )
-                )
-
-                // Поле Z
-                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
-                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
-                            c->setRange(-100, 100);
-                            if (activeNode)
-                            {
-                                c->bind(
-                                    [&]() -> float
-                                    {
-                                        return activeNode->getTransform().translate.z;
-                                    },
-                                    [&](float v)
-                                    {
-                                        activeNode->setTransformZ(v);
-                                    }
-                                );
-
-                            }
-                        })
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background(NbColor{ 25, 25, 25 })
-                        .color(NbColor{ 100, 100, 255 }) 
-                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                        //    nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
-
-                        //    if (!activeNode)
-                        //    {
-                        //        return;
-                        //    }
-
-                        //    activeNode->addTranslate({ 0.0f, 0.0f, static_cast<float>(value)});
-                        //})
-                    )
-                )
-            )
-         );
-
-        if (auto lightNode = dynamic_cast<nb::Renderer::LightNode*>(activeNode))
+    // Создаем начальный строитель (как в вашем setupInspectorUI)
+    auto inspectorBuilder = LayoutBuilder::vBox().style(
+        [](NNsLayout::LayoutStyle& s)
         {
-            inspector = std::move(inspector).child(
-                LayoutBuilder::vBox()
-
-                    .child(LayoutBuilder::label(L"Light").relativeWidth(1.0f).absoluteHeight(30))
-
-                    .child(
-                        LayoutBuilder::widget(new Widgets::SectionWidget(L"Section", {}))
-                            .apply<Widgets::SectionWidget>(
-                                [&](Widgets::SectionWidget* c)
-                                {
-                                        
-                                    auto* w1 = new Widgets::FloatSpinBox();
-                                    //w1->setText(L"But1");
-
-                                    auto* w2 = new Widgets::FloatSpinBox();
-                                    
-                                    struct SectionGroup
-                                    {
-                                        std::wstring title;
-                                        std::vector<Widgets::IWidget*> widgets;
-                                    };
-
-                                    //w2->setText(L"But2");
-                                    
-                                    //subscribe<Widgets::Button>(
-                                    //    w2, &Widgets::Button::onPressedSignal,
-                                    //    []()
-                                    //    {
-                                    //        nb::Error::ErrorManager::instance().report(
-                                    //            nb::Error::Type::FATAL, "Clicked"
-                                    //        );
-                                    //    }
-                                    //);
-
-
-                                    c->addChildrenWidget(w1);
-                                    c->addChildrenWidget(w2);
-                                }
-                            )
-                            .relativeWidth(1.0f)
-                            .autoHeight()
-                    )
-                    .child(LayoutBuilder::label(L"THE END").relativeWidth(1.0f).absoluteHeight(30))
-
-
-                    .relativeWidth(1.0f)
-                    .relativeHeight(0.5f)
-            );
-
-
-           
+            s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+            s.width = 1.0f;
+            s.color = NbColor{35, 35, 35};
         }
+    );
 
-        
+    auto& registry = nb::Scene::getInstance().getRegistry();
+    auto entityId = activeNode.getId();
 
-    auto inspectorUi = std::move(inspector).build();
+    // Проходим по всем хранилищам компонентов
+    for (auto& storage : registry.getAllStorages())
+    {
+        if (storage && storage->contains(entityId))
+        {
+            auto info = storage->getTypeInfo();
 
+            if (info->isInternal)
+            {
+                continue;
+            }
+
+            auto data = storage->getRaw(entityId);
+
+            // 1. Добавляем заголовок (TRANSFORM, и т.д.)
+            inspectorBuilder = std::move(inspectorBuilder)
+                                   .child(
+                                       LayoutBuilder::label(nb::Utils::toWString(info->name))
+                                           .relativeWidth(1.0f)
+                                           .absoluteHeight(30)
+                                           .background({60, 60, 60})
+                                           .color({220, 220, 220})
+                                           .textAlign(Widgets::TextAlign::LEFT)
+                                   );
+
+            // 2. Генерируем поля
+            for (const auto& field : info->fields)
+            {
+                // ВАЖНО: обновляем builder результатом функции
+                inspectorBuilder = buildFieldUI(std::move(inspectorBuilder), data, info, field);
+            }
+        }
+    }
+
+    // Собираем финальный виджет
+    auto finalUi = std::move(inspectorBuilder).build();
 
     inspectorWindow->getLayoutRoot()->clearChilds();
-    inspectorWindow->getLayoutRoot()->addChild(std::move(inspectorUi));
+    inspectorWindow->getLayoutRoot()->addChild(std::move(finalUi));
     inspectorWindow->show();
-    
 }
 
 void EditorApp::subscribeAll() noexcept
@@ -969,3 +820,148 @@ void EditorApp::subscribeAll() noexcept
     });
 }
 
+nbui::LayoutBuilder EditorApp::buildFieldUI(
+    nbui::LayoutBuilder parentBuilder,
+    void* componentPtr,
+    const nb::Reflect::TypeInfo* info,
+    const nb::Reflect::FieldInfo& field
+)
+{
+    using namespace nbui;
+
+    if (std::string(field.name) == "dirty")
+    {
+        return parentBuilder;
+    }
+
+
+    if (field.visibleIf && !field.visibleIf(componentPtr))
+    {
+        return parentBuilder;
+    }
+
+    void* fieldData = (char*)componentPtr + field.offset;
+    std::string typeName = field.type->name;
+
+    
+
+
+    // --- Случай 1: Vector3 (X, Y, Z в ряд) ---
+    if (typeName.find("Vector3") != std::string::npos)
+    {
+        auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
+
+        row = std::move(row).child(
+            LayoutBuilder::label(nb::Utils::toWString(field.name))
+                .relativeWidth(0.35f)
+                .color({180, 180, 180})
+                .textAlign(Widgets::TextAlign::LEFT)
+        );
+
+        auto fieldsBox = LayoutBuilder::hBox().relativeWidth(0.65f);
+        NbColor colors[] = {{255, 100, 100}, {100, 255, 100}, {100, 100, 255}};
+
+        for (int i = 0; i < 3 && i < (int)field.type->fields.size(); ++i)
+        {
+            auto& subField = field.type->fields[i];
+            void* subFieldData = (char*)fieldData + subField.offset;
+
+            fieldsBox = std::move(fieldsBox).child(
+                LayoutBuilder::vBox().relativeWidth(0.33f).child(
+                    LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>(
+                            [subFieldData, componentPtr, info, this, field](Widgets::FloatSpinBox* c)
+                            {
+                                c->setRange(-1000, 1000);
+                                c->setStep(field.step);
+                                c->bind(
+                                    [subFieldData]()
+                                    {
+                                        return *static_cast<float*>(subFieldData);
+                                    },
+                                    [subFieldData, componentPtr, info, this](float v)
+                                    {
+                                        *static_cast<float*>(subFieldData) = v;
+                                        markComponentDirty(componentPtr, info);
+                                        
+                                    }
+                                );
+                            }
+                        )
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background({25, 25, 25})
+                        .color(colors[i])
+                )
+            );
+        }
+
+        row = std::move(row).child(std::move(fieldsBox));
+        return std::move(parentBuilder).child(std::move(row));
+    }
+    // --- Случай 2: Одиночный float ---
+    else if (typeName == "float")
+    {
+        auto floatRow = LayoutBuilder::hBox()
+                            .relativeWidth(1.0f)
+                            .absoluteHeight(30)
+                            .child(
+                                LayoutBuilder::label(nb::Utils::toWString(field.name))
+                                    .relativeWidth(0.35f)
+                                    .color({180, 180, 180})
+                                    .textAlign(Widgets::TextAlign::LEFT)
+                            )
+                            .child(
+                                LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                                    .apply<Widgets::FloatSpinBox>(
+                                        [fieldData, componentPtr, info,
+                                         this, field](Widgets::FloatSpinBox* c)
+                                        {
+                                            c->setStep(field.step);
+                                            c->bind(
+                                                [fieldData]()
+                                                {
+                                                    return *static_cast<float*>(fieldData);
+                                                },
+                                                [fieldData, componentPtr, info, this](float v)
+                                                {
+                                                    *static_cast<float*>(fieldData) = v;
+                                                    markComponentDirty(componentPtr, info);
+                                                }
+                                            );
+                                        }
+                                    )
+                                    .relativeWidth(0.65f)
+                                    .absoluteHeight(30)
+                                    .background({25, 25, 25})
+                            );
+
+        return std::move(parentBuilder).child(std::move(floatRow));
+    }
+
+    return parentBuilder;
+}
+
+
+void EditorApp::markComponentDirty(
+    void* componentPtr,
+    const nb::Reflect::TypeInfo* typeInfo
+)
+{
+    if (!componentPtr || !typeInfo)
+    {
+        return;
+    }
+
+    for (const auto& field : typeInfo->fields)
+    {
+        if (std::string(field.name) == "dirty")
+        {
+            // Нашли поле dirty, записываем туда true
+            bool* dirtyPtr
+                = reinterpret_cast<bool*>(static_cast<char*>(componentPtr) + field.offset);
+            *dirtyPtr = true;
+            return;
+        }
+    }
+}

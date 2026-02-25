@@ -27,7 +27,7 @@ namespace nbui
 class EditorApp 
 {
 public:
-    EditorApp() : running(true), activeNode(nullptr) {}
+    EditorApp() : running(true), activeNode() {}
 
     int run(::HINSTANCE hInstance)
     {
@@ -62,8 +62,9 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> textureInspector;
 
-    std::shared_ptr<SceneModel> sceneModel;
-    nb::Renderer::BaseNode* activeNode = nullptr;
+    std::shared_ptr<SceneModelEcs> sceneModel;
+    //nb::Renderer::BaseNode* activeNode = nullptr;
+    nb::Node activeNode;
     std::atomic<bool> running;
 
     Signal<void()> onActiveNodeChanged;
@@ -93,6 +94,18 @@ private:
     void rebuildInspector() noexcept;
 
     void subscribeAll() noexcept;
+
+    void markComponentDirty(
+        void* componentPtr,
+        const nb::Reflect::TypeInfo* typeInfo
+    );
+
+    nbui::LayoutBuilder buildFieldUI(
+        nbui::LayoutBuilder parent,
+        void* componentPtr,
+        const nb::Reflect::TypeInfo* info,
+        const nb::Reflect::FieldInfo& field
+    );
 
     void showAllWindows()
     {
