@@ -17,14 +17,28 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y clang-tidy clang cmake ninja-build
+          sudo apt install -y \
+            clang \
+            clang-tidy \
+            cmake \
+            ninja-build \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev
 
       - name: Configure project
         run: |
           cmake -S . -B build \
             -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_CXX_CLANG_TIDY="clang-tidy"
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*"
 
       - name: Build (runs clang-tidy automatically)
-        run: cmake --build build
+        run: cmake --build build --parallel
