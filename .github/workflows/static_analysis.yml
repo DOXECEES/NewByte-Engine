@@ -1,4 +1,4 @@
-name: Static Code Analysis
+name: Static Code Analysis (Windows)
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   clang-tidy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -17,44 +17,33 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            clang \
-            clang-tidy \
-            cmake \
-            ninja-build \
-            libgl1-mesa-dev \
-            libglu1-mesa-dev \
-            mesa-common-dev \
-            libx11-dev \
-            libxrandr-dev \
-            libxinerama-dev \
-            libxcursor-dev \
-            libxi-dev
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18"
 
       - name: Configure project
         run: |
-          cmake -S . -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DBENCHMARK_ENABLE_TESTING=OFF \
+          cmake -S . -B build ^
+            -G "Visual Studio 17 2022" ^
+            -A x64 ^
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ^
+            -DBENCHMARK_ENABLE_TESTING=OFF ^
             -DBUILD_TESTING=OFF
 
       - name: Build project
-        run: cmake --build build --parallel
+        run: cmake --build build --config Release
 
       - name: Run clang-tidy
+        shell: pwsh
         run: |
-          echo "Collecting project sources..."
-          find Engine SDK \
-            -type f \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" \) \
-            > sources.txt
+          Write-Host "Collecting project sources..."
+          $sources = Get-ChildItem -Recurse -Include *.cpp,*.cc,*.cxx `
+                     -Path Engine,SDK | ForEach-Object { $_.FullName }
 
-          echo "Running clang-tidy..."
-          clang-tidy @sources.txt \
-            -p build \
-            --warnings-as-errors=*
+          Write-Host "Running clang-tidy..."
+          foreach ($file in $sources) {
+              clang-tidy $file `
+                -p build `
+                --warnings-as-errors=*
+          }
