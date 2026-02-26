@@ -41,9 +41,20 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*" \
             -DBENCHMARK_ENABLE_TESTING=OFF \
             -DBUILD_TESTING=OFF
 
-      - name: Build
+      - name: Build project
         run: cmake --build build --parallel
+
+      - name: Run clang-tidy
+        run: |
+          echo "Collecting project sources..."
+          find Engine SDK \
+            -type f \( -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" \) \
+            > sources.txt
+
+          echo "Running clang-tidy..."
+          clang-tidy @sources.txt \
+            -p build \
+            --warnings-as-errors=*
