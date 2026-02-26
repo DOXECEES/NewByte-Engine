@@ -6,6 +6,7 @@
 
 // ENGINE HEADERS
 #include <Error/ErrorConsolePrinter.hpp>
+#include <Common/StringUtils.hpp>
 
 
 // NBUI HEADERS
@@ -23,8 +24,6 @@
 #include <Widgets/ComboBox.hpp>
 
 #include <Widgets/Section.hpp>
-
-#include <Utils/Indexator.hpp>
 
 
 void EditorApp::initSystems() noexcept
@@ -48,26 +47,42 @@ void EditorApp::setAppLocale() noexcept
 
 void EditorApp::createWindows() noexcept
 {
+    using namespace Localization;
+
     mainWindow = std::make_shared<Win32Window::Window>();
-    mainWindow->setTitle(L"SDK");
+    mainWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.Title"))
+    );
 
     sceneWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
-    sceneWindow->setTitle(L"SCENE");
+    sceneWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.Scene.Title"))
+    );
 
     hierarchyWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    hierarchyWindow->setTitle(L"Hierarchy");
+    hierarchyWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.Hierarchy.Title"))
+    );
 
     inspectorWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    inspectorWindow->setTitle(L"Inspector");
+    inspectorWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.Inspector.Title"))
+    );
 
     settingsWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    settingsWindow->setTitle(L"Preferences");
+    settingsWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.Settings.Title"))
+    );
 
     textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
-    textureInspector->setTitle(L"Texture");
+    textureInspector->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
+    );
 
     debugWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    debugWindow->setTitle(L"Debug Controls");
+    debugWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.DebugWindow.Title"))
+    );
 }
 
 void EditorApp::setupDocking() noexcept
@@ -110,16 +125,7 @@ void EditorApp::setupDocking() noexcept
         Temp::Percent(40)
     );
 
-    std::wstring wstr = dockManager->dumpTreeW();
-    std::string str;
-    size_t size;
-    str.resize(wstr.length());
-    wcstombs_s(&size, &str[0], str.size() + 1, wstr.c_str(), wstr.size());
-
-    nb::Error::ErrorManager::instance()
-        .report(nb::Error::Type::WARNING, str);
     
-
     subscribe(*mainWindow, &Win32Window::Window::onRectChanged, [this](const NbRect<int>& rect) {
         dockManager->onSize(rect.width, rect.height);
     });
@@ -129,10 +135,10 @@ void EditorApp::setupDocking() noexcept
 void EditorApp::initEngine() noexcept
 {
     engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
-    //sceneModel = std::make_shared<SceneModel>(engine->getRenderer()->getScene());
     auto& scene = nb::Scene::getInstance();
 
     sceneModel = std::make_shared<SceneModelEcs>(scene.getRegistry(), scene.getRootEntity().id);
+    
     const auto& size = sceneWindow->getSize();
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
@@ -181,157 +187,7 @@ void EditorApp::setupHierarchyUI() noexcept
 
 void EditorApp::setupInspectorUI() noexcept
 {
-    using namespace nbui;
-    auto& errorManager = nb::Error::ErrorManager::instance();
-        auto inspector = LayoutBuilder::vBox()
-        .style([](NNsLayout::LayoutStyle& s) {
-        s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-        s.width = 1.0f; // Занимает всю ширину правой панели
-        s.padding = { 0, 0, 0, 0 };
-        s.color = NbColor{ 35, 35, 35 }; // Цвет фона инспектора
-            })
-
-        // Заголовок компонента (Transform)
-        .child(LayoutBuilder::label(L"TRANSFORM")
-            .relativeWidth(1.0f)
-            .absoluteHeight(30)
-            .background(NbColor{ 60, 60, 60 })
-            .color(NbColor{ 220, 220, 220 })
-            .fontSize(14)
-            .textAlign(Widgets::TextAlign::LEFT)
-            .padding({ 0, 0, 0, 0 }))
-
-        // Строка "Position"
-        .child(
-            LayoutBuilder::hBox()
-            .style([](NNsLayout::LayoutStyle& s) {
-                s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
-                s.height = 30;
-                s.margin = { 0, 0, 5, 0 }; // Отступ снизу
-                s.padding = { 5, 0, 5, 0 };
-                })
-
-            // Название свойства
-            .child(LayoutBuilder::label(L"Position")
-                .relativeWidth(0.35f) // Занимает 35% ширины
-                .color(NbColor{ 180, 180, 180 })
-                .textAlign(Widgets::TextAlign::LEFT)
-                )
-
-            // Контейнер для X, Y, Z
-            .child(
-                LayoutBuilder::hBox()
-                .style([](NNsLayout::LayoutStyle& s) {
-                    s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-                    s.width= 0.65f; 
-                    //s.spacing = 4; // Расстояние между X, Y, Z (если поддерживается)
-                    })
-
-                // Поле X
-                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
-                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
-                           c->setRange(-100, 100);
-                            //if (activeNode)
-                            //{
-                            //    auto translate = activeNode->getTransform().translate;
-                            //    c->bind(&translate.x);
-                            //}
-                        })
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background(NbColor{ 25, 25, 25 })
-                        .color(NbColor{ 255, 100, 100 })
-                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value){
-                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
-                        //    
-                        //    if (!activeNode)
-                        //    {
-                        //        return;
-                        //    }
-
-                        //    activeNode->addTranslate({ static_cast<float>(value), 0.0f, 0.0f });
-                        //})
-                    )
-                )
-
-                // Поле Y
-                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
-                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
-                           c->setRange(-100, 100);
-                            //if (activeNode)
-                            //{
-                            //    auto translate = activeNode->getTransform().translate;
-                            //    c->bind(&translate.y);
-                            //}
-                        })
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background(NbColor{ 25, 25, 25 })
-                        .color(NbColor{ 100, 255, 100 })
-                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                        //    errorManager.report(nb::Error::Type::INFO, std::to_string(value));
-
-                        //    if (!activeNode)
-                        //    {
-                        //        return;
-                        //    }
-
-                        //    activeNode->addTranslate({ 0.0f, static_cast<float>(value), 0.0f });
-                        //})
-                    )
-                )
-
-                // Поле Z
-                .child(LayoutBuilder::vBox().relativeWidth(0.33f)
-                    .child(LayoutBuilder::widget(new Widgets::FloatSpinBox())
-                        .apply<Widgets::FloatSpinBox>([&](Widgets::FloatSpinBox* c) {
-                           c->setRange(-100, 100);
-                            //if (activeNode)
-                            //{
-                            //    auto translate = activeNode->getTransform().translate;
-                            //    c->bind(&translate.z);
-                            //}
-                        })
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background(NbColor{ 25, 25, 25 })
-                        .color(NbColor{ 100, 100, 255 }) 
-                        //.onEvent(&Widgets::SpinBox::onValueChangedByStep, [&](int value) {
-                        //    nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, std::to_string(value));
-
-                        //    if (!activeNode)
-                        //    {
-                        //        return;
-                        //    }
-
-                        //    activeNode->addTranslate({ 0.0f, 0.0f, static_cast<float>(value)});
-                        //})
-                    )
-                )
-            )
-        )
-
-        // Можно добавить Rotation аналогично
-        //.child(
-        //    LayoutBuilder::hBox()
-        //    .absoluteHeight(30)
-        //    .margin({ 0, 0, 5, 0 })
-        //    .child(LayoutBuilder::label(L"Rotation")
-        //        .relativeWidth(0.35f)
-        //        .color(NbColor{ 180, 180, 180 })
-        //    )
-        //    .child(LayoutBuilder::hBox()
-        //        .relativeWidth(0.65f)
-        //        //.child(LayoutBuilder::widget(new Widgets::SpinBox()).relativeWidth(0.33f).background(NbColor{ 25, 25, 25 }))
-        //        //.child(LayoutBuilder::widget(new Widgets::SpinBox()).relativeWidth(0.33f).background(NbColor{ 25, 25, 25 }))
-        //        //.child(LayoutBuilder::widget(new Widgets::SpinBox()).relativeWidth(0.33f).background(NbColor{ 25, 25, 25 }))
-        //    )
-        //)
-        .build();
-
-    inspectorWindow->getLayoutRoot()->addChild(std::move(inspector));
+    
 }
 
 nbui::LayoutBuilder EditorApp::createSpinBox(std::function<void(int)> onChange, const NbColor& color)
@@ -635,7 +491,6 @@ void EditorApp::setupSettingsUI() noexcept
 
 void EditorApp::setupEngineDependentUi() noexcept
 {
-    //if()
     setupDebugUI();
     debugWindow->show();
 }
@@ -759,7 +614,6 @@ void EditorApp::rebuildInspector() noexcept
         return;
     }
 
-    // Создаем начальный строитель (как в вашем setupInspectorUI)
     auto inspectorBuilder = LayoutBuilder::vBox().style(
         [](NNsLayout::LayoutStyle& s)
         {
@@ -772,7 +626,6 @@ void EditorApp::rebuildInspector() noexcept
     auto& registry = nb::Scene::getInstance().getRegistry();
     auto entityId = activeNode.getId();
 
-    // Проходим по всем хранилищам компонентов
     for (auto& storage : registry.getAllStorages())
     {
         if (storage && storage->contains(entityId))
@@ -786,27 +639,28 @@ void EditorApp::rebuildInspector() noexcept
 
             auto data = storage->getRaw(entityId);
 
-            // 1. Добавляем заголовок (TRANSFORM, и т.д.)
             inspectorBuilder = std::move(inspectorBuilder)
-                                   .child(
-                                       LayoutBuilder::label(nb::Utils::toWString(info->name))
-                                           .relativeWidth(1.0f)
-                                           .absoluteHeight(30)
-                                           .background({60, 60, 60})
-                                           .color({220, 220, 220})
-                                           .textAlign(Widgets::TextAlign::LEFT)
-                                   );
+                .child(
+                    LayoutBuilder::label(nb::Utils::toWString(info->name))
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30)
+                        .background({60, 60, 60})
+                        .color({220, 220, 220})
+                        .textAlign(Widgets::TextAlign::LEFT)
+                );
 
-            // 2. Генерируем поля
             for (const auto& field : info->fields)
             {
-                // ВАЖНО: обновляем builder результатом функции
-                inspectorBuilder = buildFieldUI(std::move(inspectorBuilder), data, info, field);
+                inspectorBuilder = buildFieldUI(
+                    std::move(inspectorBuilder),
+                    data,
+                    info,
+                    field
+                );
             }
         }
     }
 
-    // Собираем финальный виджет
     auto finalUi = std::move(inspectorBuilder).build();
 
     inspectorWindow->getLayoutRoot()->clearChilds();
@@ -826,7 +680,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     void* componentPtr,
     const nb::Reflect::TypeInfo* info,
     const nb::Reflect::FieldInfo& field
-)
+) noexcept
 {
     using namespace nbui;
 
@@ -834,7 +688,6 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     {
         return parentBuilder;
     }
-
 
     if (field.visibleIf && !field.visibleIf(componentPtr))
     {
@@ -844,10 +697,6 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     void* fieldData = (char*)componentPtr + field.offset;
     std::string typeName = field.type->name;
 
-    
-
-
-    // --- Случай 1: Vector3 (X, Y, Z в ряд) ---
     if (typeName.find("Vector3") != std::string::npos)
     {
         auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
@@ -950,7 +799,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 void EditorApp::markComponentDirty(
     void* componentPtr,
     const nb::Reflect::TypeInfo* typeInfo
-)
+) noexcept
 {
     if (!componentPtr || !typeInfo)
     {
@@ -961,9 +810,9 @@ void EditorApp::markComponentDirty(
     {
         if (std::string(field.name) == "dirty")
         {
-            // Нашли поле dirty, записываем туда true
-            bool* dirtyPtr
-                = reinterpret_cast<bool*>(static_cast<char*>(componentPtr) + field.offset);
+            void* bytePtr = static_cast<char*>(componentPtr) + field.offset;
+            bool* dirtyPtr = reinterpret_cast<bool*>(bytePtr);
+
             *dirtyPtr = true;
             return;
         }

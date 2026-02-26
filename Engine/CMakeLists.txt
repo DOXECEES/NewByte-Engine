@@ -16,8 +16,11 @@ file(GLOB RESOURCE_FILES
     "shaders/*")
 
 set (SRC 
-src/main.cpp
+        src/main.cpp
         
+        src/Common/StringUtils.cpp
+        src/Common/StringUtils.hpp
+
         src/Fatal.cpp
         src/Fatal.hpp
 
@@ -112,6 +115,7 @@ src/main.cpp
         src/Renderer/Material.hpp
         src/Renderer/ContextMeshCache.cpp
         src/Renderer/ContextMeshCache.hpp
+        src/Renderer/Scene.cpp
         src/Renderer/Scene.hpp
 
         src/Math/Constants.hpp

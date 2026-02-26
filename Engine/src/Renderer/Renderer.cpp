@@ -127,25 +127,21 @@ namespace nb::Renderer
         auto& scene = nb::Scene::getInstance();
         auto& registry = scene.getRegistry();
 
-        // 1. Обновляем иерархию (вместо старого sceneGraph->updateWorldTransform)
         scene.updateAllTransforms();
 
         std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;
 
-        // 2. Обходим новый граф
         scene.traverseAll(
             [&](Ecs::EntityID entityId)
             {
                 Ecs::Entity entity{entityId};
 
-                // Проверка на свет (вместо LightNode)
                 if (registry.has<LightComponent>(entity))
                 {
                     lights.push_back(entityId);
                 }
 
-                // Проверка на меш (вместо ObjectNode)
                 if (registry.has<MeshComponent>(entity))
                 {
                     auto& meshComp = registry.get<MeshComponent>(entity);
@@ -280,7 +276,6 @@ namespace nb::Renderer
 
                 if (light.type == LightType::DIRECTIONAL)
                 {
-                    // Используем emplace_back, чтобы объект жил до конца функции
                     dirLightsStorage.emplace_back(
                         light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
                         light.direction

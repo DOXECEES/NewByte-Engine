@@ -37,7 +37,6 @@ public:
         initEngine();
 
         setupHierarchyUI();
-        setupInspectorUI();
         setupSettingsUI();
 
         showAllWindows();
@@ -98,14 +97,14 @@ private:
     void markComponentDirty(
         void* componentPtr,
         const nb::Reflect::TypeInfo* typeInfo
-    );
+    ) noexcept;
 
     nbui::LayoutBuilder buildFieldUI(
         nbui::LayoutBuilder parent,
         void* componentPtr,
         const nb::Reflect::TypeInfo* info,
         const nb::Reflect::FieldInfo& field
-    );
+    ) noexcept;
 
     void showAllWindows()
     {
