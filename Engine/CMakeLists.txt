@@ -191,8 +191,8 @@ src/main.cpp
         src/Error/ErrorConsolePrinter.cpp
         src/Error/ErrorConsolePrinter.hpp
 
-        src/Ecs/Ecs.hpp
-        src/Ecs/Ecs.cpp
+        src/ECS/Ecs.hpp
+        src/ECS/Ecs.cpp
 
         dependencies/lodepng/lodepng.cpp
 
