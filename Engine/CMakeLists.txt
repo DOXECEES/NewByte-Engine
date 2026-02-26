@@ -103,8 +103,8 @@ src/main.cpp
         src/Renderer/OpenGL/DepthBuffer.hpp
         src/Renderer/OpenGL/ShadowMapFbo.cpp
         src/Renderer/OpenGL/ShadowMapFbo.hpp
-        src/Renderer/OpenGl/PostProcessFbo.cpp
-        src/Renderer/OpenGl/PostProcessFbo.hpp
+        src/Renderer/OpenGL/PostProcessFbo.cpp
+        src/Renderer/OpenGL/PostProcessFbo.hpp
         src/Renderer/Color.cpp
         src/Renderer/Color.hpp
         src/Renderer/PipelineCache.cpp
