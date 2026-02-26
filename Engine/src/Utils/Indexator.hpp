@@ -5,6 +5,10 @@
 
 #include <stack>
 #include <limits>
+#undef min
+#undef max
+
+
 namespace nb
 {
     namespace Utils
@@ -26,6 +30,7 @@ namespace nb
             int             min             = 0;
             int max; //= std::numeric_limits<int>::max();
         };
+
     };
 };
 

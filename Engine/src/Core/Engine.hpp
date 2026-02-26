@@ -85,25 +85,25 @@ namespace nb
                     Math::Vector3<float> position;
                 };
 
-                Ecs::ECSRegistry ecs;
-                auto ent1 = ecs.createEntity();
-                ecs.add(ent1, Helth(1.0f));
-                ecs.add(ent1, Speed(1));
-                auto ent2 = ecs.createEntity();
-                ecs.add(ent2, Helth(2));
+                //Ecs::ECSRegistry ecs;
+                //auto ent1 = ecs.createEntity();
+                //ecs.add(ent1, Helth(1.0f));
+                //ecs.add(ent1, Speed(1));
+                //auto ent2 = ecs.createEntity();
+                //ecs.add(ent2, Helth(2));
 
 
-                auto& helthStore = ecs.getStorage<Helth>();
+                //auto& helthStore = ecs.getStorage<Helth>();
 
-                for (auto& i : helthStore.entitiesView())
-                {
-                    auto h = helthStore.get(i);
-                    nb::Error::ErrorManager::instance()
-                        .report(nb::Error::Type::INFO, "Helth")
-                        .with("id", i)
-                        .with("value", h.hp);
-                }
-                
+                //for (auto& i : helthStore.entitiesView())
+                //{
+                //    auto h = helthStore.get(i);
+                //    nb::Error::ErrorManager::instance()
+                //        .report(nb::Error::Type::INFO, "Helth")
+                //        .with("id", i)
+                //        .with("value", h.hp);
+                //}
+                //
 
                 Renderer::Color color = Renderer::Color::fromRgb(92, 82, 14);
                 auto hsv = color.toHsv();
@@ -140,7 +140,6 @@ namespace nb
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; }
             inline Math::Vector3<float> getCameraPos() const noexcept { return renderer->getCamera()->getPosition(); }
             inline Math::Vector3<float> getCameraDirection() const noexcept { return renderer->getCamera()->getDirection(); }
-            inline std::shared_ptr<Renderer::SceneGraph> getScene() const noexcept { return renderer->getScene(); }
             inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; }
 
 			template<typename F>

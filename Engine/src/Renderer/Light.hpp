@@ -1,10 +1,11 @@
 #ifndef SRC_RENDERER_LIGHT_HPP
 #define SRC_RENDERER_LIGHT_HPP
 
-#include "../Math/Vector3.hpp"
-#include "../Utils/Indexator.hpp"
+#include "Math/Vector3.hpp"
+#include "Utils/Indexator.hpp"
 
 #include "Shader.hpp"
+#include "Color.hpp"
 
 namespace nb
 {
@@ -13,7 +14,43 @@ namespace nb
         class IShadable
         {
         public:
-            virtual void applyUniforms(Ref<Renderer::Shader>& shader) = 0;
+            virtual void applyUniforms(Ref<Shader>& shader) = 0;
+        };
+
+        enum class LightType
+        {
+            DIRECTIONAL,
+            POINT,
+            SPOT,
+        };
+
+        struct LightComponent
+        {
+            LightType type = LightType::POINT;
+            Color ambient = Colors::BLACK;
+            Color diffuse = Colors::WHITE;
+            Color specular = Colors::WHITE;
+
+            nb::Math::Vector3<float> direction{0.0f, -1.0f, 0.0f};
+
+            // Point / Spot
+            float constant = 1.0f;
+            float linear = 0.0f;
+            float quadratic = 0.0f;
+
+            // Spot
+            float innerCutoff = 0.0f;
+            float outerCutoff = 0.0f;
+
+            bool isPointLight()
+            {
+                return type == LightType::POINT;
+            }
+
+            bool isDirectionLight()
+            {
+                return type == LightType::DIRECTIONAL;
+            }
         };
 
         // все классы наследники должны определять в себе стстический индексатор
@@ -41,9 +78,12 @@ namespace nb
                 , position(_position)
             {}
 
-            virtual void applyUniforms(Ref<Renderer::Shader> &shader) = 0;
+            virtual void applyUniforms(Ref<Shader>& shader) = 0;
 
-            void applyBaseUniforms(Ref<Renderer::Shader>& shader, std::string_view base)
+            void applyBaseUniforms(
+                Ref<Shader>& shader,
+                std::string_view base
+            )
             {
                 const std::string ambientUniformName  = makeUniformName(base, id, AMBIENT_UNIFORM_NAME);
                 const std::string diffuseUniformName  = makeUniformName(base, id, DIFFUSE_UNIFORM_NAME);
@@ -147,7 +187,7 @@ namespace nb
                 id = indexator.index();
             }
 
-            void applyUniforms(Ref<Renderer::Shader>& shader) override
+            void applyUniforms(Ref<Shader>& shader) override
             {
                 Light::applyBaseUniforms(shader, GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME);
 
@@ -201,7 +241,7 @@ namespace nb
                 id = indexator.index();
             }
 
-            void applyUniforms(Ref<Renderer::Shader>& shader) override
+            void applyUniforms(Ref<Shader>& shader) override
             {
                 Light::applyBaseUniforms(shader, GLOBAL_LIGHTS_STORE_UNIFORM_NAME);
 
@@ -243,5 +283,39 @@ namespace nb
         };
     };
 };
+
+
+NB_REFLECT_STRUCT_CUSTOM_NAME(
+    nb::Renderer::LightComponent,
+    "Light",
+    NB_FIELD(
+        nb::Renderer::LightComponent,
+        ambient
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Renderer::LightComponent,
+        constant,
+        isPointLight,
+        0.1f
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Renderer::LightComponent,
+        linear,
+        isPointLight,
+        0.1f
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Renderer::LightComponent,
+        quadratic,
+        isPointLight,
+        0.1f
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Renderer::LightComponent,
+        direction,
+        isDirectionLight,
+        1.0
+    )
+)
 
 #endif
