@@ -308,27 +308,32 @@ namespace nb::Renderer
 
         if (isDebugPassEnabled)
         {
-            //Pipeline debugP = {};
-            //debugP.shader = debugLightShader;
-            //debugP.polygonMode = PolygonMode::LINES; 
-            //debugP.isDepthTestEnable = true;
-            //debugP.isBlendEnable = false;
+            Pipeline debugP = {};
+            debugP.shader = debugLightShader;
+            debugP.polygonMode = PolygonMode::LINES; 
+            debugP.isDepthTestEnable = true;
+            debugP.isBlendEnable = false;
 
-            //uint32 debugPSO = api->getCache().getOrCreate(debugP);
-            //debugLightShader->use();
-            //debugLightShader->setUniformMat4("view", view);
-            //debugLightShader->setUniformMat4("proj", proj);
+            uint32 debugPSO = api->getCache().getOrCreate(debugP);
+            debugLightShader->use();
+            debugLightShader->setUniformMat4("view", view);
+            debugLightShader->setUniformMat4("proj", proj);
 
-            //for (auto* lightNode : lights)
-            //{
-            //    Math::Mat4 model = Math::translate(Math::Mat4<float>::identity(), lightNode->getPosition());
-            //    debugLightShader->setUniformMat4("model", model);
+            for (auto lightId : lights)
+            {
+                const auto& lightTransform = registry.get<TransformComponent>(Ecs::Entity{lightId});
+                const auto& lightComponent = registry.get<LightComponent>(Ecs::Entity{lightId});
 
-            //    debugLightShader->setUniformVec3("u_Color", lightNode->light->getAmbient());
+                Math::Mat4 model = Math::translate(
+                    Math::Mat4<float>::identity(), lightTransform.position
+                );
+                
+                debugLightShader->setUniformMat4("model", model);
+                debugLightShader->setUniformVec3("u_Color", lightComponent.ambient.asVec3());
 
-            //    RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
-            //    api->drawMesh(debugPassCommand);
-            //}
+                RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
+                api->drawMesh(debugPassCommand);
+            }
         }
 
         if (ctx.handle)
@@ -338,9 +343,7 @@ namespace nb::Renderer
 
         renderNavigationalGizmo();
 
-        // =========================================================================
-        // ШАГ 3: POST-PROCESS (Вывод FBO на экран монитора)
-        // =========================================================================
+
         api->bindDefaultFrameBuffer(); 
         api->setViewport({ 0, 0, (float)width, (float)height });
         api->setClearColor(Colors::WHITE, 1.0f, 0);
@@ -526,9 +529,6 @@ namespace nb::Renderer
 
         Math::Vector3<float> ambientColor{0.0f, 0.0f, 0.0f};
 
-        // =========================================================
-        // Directional Light
-        // =========================================================
 
         
 
@@ -545,9 +545,6 @@ namespace nb::Renderer
             }
         );
 
-        // =========================================================
-        // Point Light (child of dirLight)
-        // =========================================================
 
         nb::Node pointLight = scene.createNode(dirLight.getId());
         pointLight.setName("PointLight");
@@ -570,9 +567,6 @@ namespace nb::Renderer
             }
         );
 
-        // =========================================================
-        // Second Point Light (child of root)
-        // =========================================================
 
         nb::Node pointLight2 = scene.createNode();
         pointLight2.setName("PointLight1");
@@ -595,9 +589,6 @@ namespace nb::Renderer
             }
         );
 
-        // =========================================================
-        // Cube
-        // =========================================================
 
         Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
 
@@ -612,9 +603,6 @@ namespace nb::Renderer
 
         cubeNode.addComponent(MeshComponent{cube});
 
-        // =========================================================
-        // Scene mesh
-        // =========================================================
 
         Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
 
