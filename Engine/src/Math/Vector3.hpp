@@ -3,7 +3,7 @@
 #define SRC_MATH_VECTOR3_HPP
 
 #include <cmath>
-
+#include <Reflection/Reflection.hpp>
 #include "Constants.hpp"
 #include <Math/NbMath.hpp>
 
@@ -265,8 +265,43 @@ namespace nb
             T y = { };
             T z = { };
         };
-
     };
+};
+
+namespace nb::Reflect
+{
+
+    template <typename T> struct Reflect<nb::Math::Vector3<T>>
+    {
+        inline static const char* name = []()
+        {
+            if constexpr (std::is_same_v<T, float>)
+            {
+                return "Vector3<float>";
+            }
+            else if constexpr (std::is_same_v<T, double>)
+            {
+                return "Vector3<double>";
+            }
+            else if constexpr (std::is_same_v<T, int>)
+            {
+                return "Vector3<int>";
+            }
+            else
+            {
+                return "Vector3<unknown>";
+            }
+        }();
+
+        static constexpr auto fields = std::make_tuple(
+            NB_FIELD(nb::Math::Vector3<T>, x),
+            NB_FIELD(nb::Math::Vector3<T>, y),
+            NB_FIELD(nb::Math::Vector3<T>, z)
+        );
+
+        static constexpr bool isInternal = false;
+    };
+
 };
 
 #endif

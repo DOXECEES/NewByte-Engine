@@ -3,7 +3,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Objects.hpp"
 
-#include "Renderer/Color.hpp"
+#include <Color.hpp>
 
  namespace nb
  {
@@ -151,7 +151,7 @@
                              (R + r * cosV)* sinU,
                              r* sinV
                          },
-                         Colors::GOLD.asVec3(),
+                         nb::Colors::GOLD.asVec3(),
 						 normal,
 						 Math::Vector2<float>{ u / (float)(2.0f * nb::Math::Constants::PI), v / (float)(2.0f * nb::Math::Constants::PI) }
 					 };

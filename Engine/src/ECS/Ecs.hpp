@@ -1,12 +1,11 @@
 #ifndef SRC_ECS_ECS_HPP
 #define SRC_ECS_ECS_HPP
 
-#include <unordered_map>
-#include <typeindex>
-#include <vector>
-#include <memory>
 #include <functional>
-#include "../Utils/Indexator.hpp"
+#include <memory>
+#include <typeindex>
+#include <unordered_map>
+#include <vector>
 
 #include <cstdint>
 #include <memory>
@@ -14,12 +13,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include <Reflection/Reflection.hpp>
+
 namespace nb::Ecs
 {
     using EntityID = uint32_t;
     using ComponentTypeID = uint32_t;
 
-    
     struct Entity
     {
         EntityID id = 0;
@@ -49,7 +49,6 @@ namespace nb::Ecs
             return value;
         }
     };
-
 
     template <typename T> class ComponentStorage
     {
@@ -122,6 +121,11 @@ namespace nb::Ecs
     {
         virtual ~StorageWrapperBase() = default;
         virtual void remove(EntityID entity) = 0;
+
+        // --- НОВЫЕ МЕТОДЫ ДЛЯ АВТО-ИНСПЕКЦИИ ---
+        virtual bool contains(EntityID entity) const = 0;
+        virtual void* getRaw(EntityID entity) = 0;
+        virtual Reflect::TypeInfo* getTypeInfo() = 0;
     };
 
     template <typename T> struct StorageWrapper : StorageWrapperBase
@@ -132,9 +136,23 @@ namespace nb::Ecs
         {
             storage.remove(entity);
         }
+
+        // Реализация новых методов
+        bool contains(EntityID entity) const override
+        {
+            return storage.contains(entity);
+        }
+
+        void* getRaw(EntityID entity) override
+        {
+            return &storage.get(entity);
+        }
+
+        Reflect::TypeInfo* getTypeInfo() override
+        {
+            return Reflect::getType<T>();
+        }
     };
-
-
 
     class ECSRegistry
     {
@@ -173,6 +191,30 @@ namespace nb::Ecs
             return getStorage<T>().contains(entity.id);
         }
 
+        /// --------------------------------------------------
+        /// Component Type Metadata
+        /// --------------------------------------------------
+
+        std::vector<ComponentTypeID> getComponentTypes() const noexcept
+        {
+            return componentTypes;
+        }
+
+        const std::vector<std::unique_ptr<StorageWrapperBase>>& getAllStorages() const
+        {
+            return storages;
+        }
+
+    private:
+        void registerComponentType(ComponentTypeID id)
+        {
+            if (std::find(componentTypes.begin(), componentTypes.end(), id) == componentTypes.end())
+            {
+                componentTypes.push_back(id);
+            }
+        }
+
+    public:
         template <typename T> ComponentStorage<T>& getStorage()
         {
             ComponentTypeID id = ComponentType<T>::id();
@@ -185,6 +227,7 @@ namespace nb::Ecs
             if (!storages[id])
             {
                 storages[id] = std::make_unique<StorageWrapper<T>>();
+                registerComponentType(id);
             }
 
             return static_cast<StorageWrapper<T>*>(storages[id].get())->storage;
@@ -196,24 +239,13 @@ namespace nb::Ecs
         }
 
     private:
-        struct IStorage
-        {
-            virtual ~IStorage() = default;
-            virtual void remove(EntityID entity) = 0;
-        };
-
         EntityID nextEntityID = 1;
 
         std::vector<std::unique_ptr<StorageWrapperBase>> storages;
 
-        template <typename T> using StorageIndexMap = std::unordered_map<EntityID, size_t>;
-
-        template <typename T> StorageIndexMap<T>& storageIndexMap()
-        {
-            return getStorage<T>().indexMap;
-        }
+        std::vector<ComponentTypeID> componentTypes;
     };
 
-};
+}; 
 
 #endif

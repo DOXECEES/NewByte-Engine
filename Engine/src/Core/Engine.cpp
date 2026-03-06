@@ -234,6 +234,8 @@ namespace nb
 
         void Engine::rayPick(const uint32_t x, const uint32_t y) const noexcept
         {
+            // not impl 
+#if 0
             if (mode == Mode::GAME)
                 return;
 
@@ -289,7 +291,7 @@ namespace nb
                 
             }
 
-
+#endif
            
         }
 
