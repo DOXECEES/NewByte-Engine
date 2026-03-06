@@ -106,7 +106,6 @@ set (SRC
         src/Renderer/OpenGL/ShadowMapFbo.hpp
         src/Renderer/OpenGL/PostProcessFbo.cpp
         src/Renderer/OpenGL/PostProcessFbo.hpp
-
         src/Renderer/PipelineCache.cpp
         src/Renderer/PipelineCache.hpp
         src/Renderer/IFrameBuffer.hpp
@@ -191,8 +190,8 @@ set (SRC
         src/Error/ErrorConsolePrinter.cpp
         src/Error/ErrorConsolePrinter.hpp
 
-        src/Ecs/Ecs.hpp
-        src/Ecs/Ecs.cpp
+        src/ECS/Ecs.hpp
+        src/ECS/Ecs.cpp
 
         dependencies/lodepng/lodepng.cpp
 
