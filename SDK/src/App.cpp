@@ -25,6 +25,52 @@
 
 #include <Widgets/Section.hpp>
 
+#include <Widgets/ColorPicker.hpp>
+
+
+void EditorApp::openColorPickerWindow()
+{
+    colorPickerWindow = std::make_shared<Win32Window::ModalWindow>(NbSize<int>{300,300}, inspectorWindow.get());
+    colorPickerWindow->setTitle(L"Color picker");
+
+    using namespace nbui;
+    auto ui =
+        LayoutBuilder::vBox()
+            .style(
+                [this](auto& s)
+                {
+                    // s.padding = {10, 10, 10, 10};
+                    s.color = {30, 30, 30};
+                }
+            )
+            .child(
+                LayoutBuilder::widget(new Widgets::ColorPicker({}))
+                    .relativeHeight(1.0f)
+                    .relativeWidth(1.0f)
+                    .onEvent(
+                        &Widgets::ColorPicker::onCancelButtonPressed,
+                        [this]()
+                        {
+                            SendMessage(colorPickerWindow->getHandle().as<HWND>(), WM_CLOSE, 0, 0);
+                        }
+                    )
+                    .onEvent(
+                        &Widgets::ColorPicker::onOkButtonPressed,
+                        [this](const nb::Color& color)
+                        {
+                            nb::Error::ErrorManager::instance()
+                                .report(nb::Error::Type::INFO, "Color")
+                                .with("X", color.asVec4().x)
+                                .with("Y", color.asVec4().y)
+                                .with("Z", color.asVec4().z)
+                                .with("A", color.asVec4().w);
+                        }
+                    )
+
+            )
+            .build();
+    colorPickerWindow->getLayoutRoot()->addChild(std::move(ui));
+}
 
 void EditorApp::initSystems() noexcept
 {
@@ -751,7 +797,144 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     }
     else if (typeName == "Color")
     {
+        nb::Color* colorPtr = static_cast<nb::Color*>(fieldData);
 
+        auto colorRow =
+            LayoutBuilder::hBox()
+                .relativeWidth(1.0f)
+                .absoluteHeight(30)
+                .child(
+                    LayoutBuilder::label(nb::Utils::toWString(field.name))
+                        .relativeWidth(0.35f)
+                        .color({180, 180, 180})
+                        .textAlign(Widgets::TextAlign::LEFT)
+                )
+                .child(
+                    LayoutBuilder::widget(new Widgets::Button())
+                        .relativeWidth(0.65f)
+                        .absoluteHeight(25)
+                        .background(NbColor(colorPtr->toRgb().r, colorPtr->toRgb().g, colorPtr->toRgb().b
+                        ))
+                        .apply<Widgets::Button>(
+                            [this, colorPtr, componentPtr, info](Widgets::Button* btn)
+                            {
+                                btn->setText(L"");
+
+                                subscribe(
+                                    btn, &Widgets::Button::onReleasedSignal,
+                                    [this, colorPtr, btn, componentPtr, info]()
+                                    {
+                                        // 1. ГАРАНТИРОВАННОЕ ПЕРЕСОЗДАНИЕ:
+                                        // Если старое окно было, сбрасываем его.
+                                        // Но внимание: если мы в модальном цикле, старое окно
+                                        // должно быть уже закрыто.
+                                        if (colorPickerWindow)
+                                        {
+                                            colorPickerWindow = nullptr;
+                                        }
+
+                                        // 2. Создаем новое окно и сохраняем его в локальную
+                                        // переменную
+                                        NbSize<int> size = {300, 600}; // 400?
+
+                                        auto newWin = std::make_shared<Win32Window::ModalWindow>(
+                                            size,
+                                            inspectorWindow.get()
+                                        );
+                                        colorPickerWindow = newWin; // Сохраняем в член класса
+
+                                        newWin->setTitle(L"Color Picker");
+
+                                        auto ui =
+                                            LayoutBuilder::vBox()
+                                                .style(
+                                                    [](auto& s)
+                                                    {
+                                                        s.color = {45, 45, 45};
+                                                    }
+                                                )
+                                                .child(
+                                                    LayoutBuilder::widget(
+                                                        new Widgets::ColorPicker({0, 0, 300, 500})
+                                                    )
+                                                        .relativeHeight(1.0f)
+                                                        .relativeWidth(1.0f)
+                                                        .apply<Widgets::ColorPicker>(
+                                                            [colorPtr](Widgets::ColorPicker* p)
+                                                            {
+                                                                p->setColor(*colorPtr);
+                                                            }
+                                                        )
+                                                        .onEvent(
+                                                            &Widgets::ColorPicker::onColorChanged,
+                                                            [this, colorPtr, btn, componentPtr,
+                                                             info,
+                                                             newWin](const nb::Color& newColor)
+                                                            {
+                                                                // ФИКС nullptr: захватываем newWin
+                                                                // (shared_ptr) по значению. Теперь,
+                                                                // даже если кто-то обнулит
+                                                                // this->colorPickerWindow, текущее
+                                                                // окно и его виджеты будут жить,
+                                                                // пока мы не выйдем из этой
+                                                                // функции.
+
+                                                                //*colorPtr = newColor;
+
+                                                                
+                                                            }
+                                                        )
+                                                        .onEvent(
+                                                            &Widgets::ColorPicker::
+                                                                onOkButtonPressed,
+                                                            [this, colorPtr, btn, componentPtr,
+                                                             info, newWin](const nb::Color& color)
+                                                            {
+                                                                *colorPtr = color;
+                                                                if (btn)
+                                                                {
+                                                                    btn->setColor(NbColor(
+                                                                        color.toRgb().r,
+                                                                        color.toRgb().g,
+                                                                        color.toRgb().b
+                                                                    ));
+                                                                }
+
+                                                                PostMessage(
+                                                                    (HWND)newWin->getHandle()
+                                                                        .as<HWND>(),
+                                                                    WM_CLOSE, 0, 0
+                                                                );
+
+                                                                markComponentDirty(
+                                                                    componentPtr, info
+                                                                );
+                                                            }
+                                                        )
+                                                        .onEvent(
+                                                            &Widgets::ColorPicker::
+                                                                onCancelButtonPressed,
+                                                            [this, newWin]()
+                                                            {
+                                                                PostMessage(
+                                                                    (HWND)newWin->getHandle()
+                                                                        .as<HWND>(),
+                                                                    WM_CLOSE, 0, 0
+                                                                );
+                                                            }
+                                                        )
+                                                )
+                                                .build();
+
+                                        newWin->getLayoutRoot()->addChild(std::move(ui));
+                                        newWin->show();
+                                    }
+                                );
+                            }
+                        )
+                );
+
+        return std::move(parentBuilder).child(std::move(colorRow));
     }
     else if (typeName == "float")
     {

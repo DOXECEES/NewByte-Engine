@@ -5,7 +5,7 @@
 #include <Windows.h>
 
 #include <vector>
-#include "Color.hpp"
+#include <Color.hpp>
 #include "IFrameBuffer.hpp"
 #include "ContextMeshCache.hpp"
 #include "Camera.hpp"

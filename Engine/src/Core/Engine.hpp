@@ -27,7 +27,7 @@
 
 #include "Renderer/Color.hpp"
 #include <Alghorithm.hpp>
-
+#include <Color.hpp>
 
 #include <memory>
 #include <mutex>
@@ -105,7 +105,7 @@ namespace nb
                 //}
                 //
 
-                Renderer::Color color = Renderer::Color::fromRgb(92, 82, 14);
+                Color color = Color::fromRgb(92, 82, 14);
                 auto hsv = color.toHsv();
 
 #endif            

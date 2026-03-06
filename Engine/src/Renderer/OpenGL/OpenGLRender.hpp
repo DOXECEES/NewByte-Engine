@@ -33,6 +33,7 @@
 
 #include "../../Utils/Timer.hpp"
 
+#include <Color.hpp>
 #include <memory>
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
@@ -89,7 +90,7 @@ namespace nb
 
                 void clear(bool color, bool depth, bool stencil) noexcept override;
 
-                void setClearColor(const Renderer::Color& color, float depthValue, int32 stencilValue) noexcept override;
+                void setClearColor(const Color& color, float depthValue, int32 stencilValue) noexcept override;
 
                 bool init(void* handle) noexcept override;
                 void initFail(std::string_view message, HGLRC context) noexcept;

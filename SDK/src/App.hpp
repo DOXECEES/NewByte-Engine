@@ -19,6 +19,10 @@
 
 #include "SceneModel.hpp"
 
+//
+#include <Win32Window/Win32ModalWindow.hpp>
+//
+
 namespace nbui
 {
     class LayoutBuilder;
@@ -43,6 +47,11 @@ public:
 
         subscribeAll();
 
+        //openColorPickerWindow();
+
+      
+
+
         return mainLoop();
     }
 
@@ -61,6 +70,11 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> textureInspector;
 
+    //
+    std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
+
+    void openColorPickerWindow();
+    //
     std::shared_ptr<SceneModelEcs> sceneModel;
     //nb::Renderer::BaseNode* activeNode = nullptr;
     nb::Node activeNode;

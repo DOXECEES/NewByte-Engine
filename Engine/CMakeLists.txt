@@ -106,8 +106,7 @@ set (SRC
         src/Renderer/OpenGL/ShadowMapFbo.hpp
         src/Renderer/OpenGL/PostProcessFbo.cpp
         src/Renderer/OpenGL/PostProcessFbo.hpp
-        src/Renderer/Color.cpp
-        src/Renderer/Color.hpp
+
         src/Renderer/PipelineCache.cpp
         src/Renderer/PipelineCache.hpp
         src/Renderer/IFrameBuffer.hpp

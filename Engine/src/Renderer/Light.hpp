@@ -5,7 +5,7 @@
 #include "Utils/Indexator.hpp"
 
 #include "Shader.hpp"
-#include "Color.hpp"
+#include <Color.hpp>
 
 namespace nb
 {
@@ -291,6 +291,10 @@ NB_REFLECT_STRUCT_CUSTOM_NAME(
     NB_FIELD(
         nb::Renderer::LightComponent,
         ambient
+    ),
+    NB_FIELD(
+        nb::Renderer::LightComponent,
+        diffuse
     ),
     NB_FIELD_VISIBLE_IF(
         nb::Renderer::LightComponent,

@@ -93,7 +93,7 @@ namespace nb::OpenGl
 
     void OpenGLRender::beginFrame() noexcept
     {
-        setClearColor(Renderer::Colors::WHITE, 1.0f, 0);
+        setClearColor(nb::Colors::WHITE, 1.0f, 0);
         clear(true, true, false);
     }
 
@@ -203,7 +203,7 @@ namespace nb::OpenGl
         glClear(clearFlag);
     }
 
-    void OpenGLRender::setClearColor(const Renderer::Color& color, float depthValue,  int32 stencilValue) noexcept
+    void OpenGLRender::setClearColor(const Color& color, float depthValue,  int32 stencilValue) noexcept
     {
         const Math::Vector4<GLfloat>& clearColor = color.asVec4();
         glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
