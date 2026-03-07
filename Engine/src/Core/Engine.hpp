@@ -133,7 +133,7 @@ namespace nb
             void handleEditorMode() noexcept;
 
 
-            void rayPick(const uint32_t x, const uint32_t y) const noexcept;
+            void rayPick(uint32_t x, uint32_t y) const noexcept;
             
             Mode getMode() const noexcept;
 

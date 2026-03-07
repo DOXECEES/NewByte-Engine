@@ -192,25 +192,25 @@ namespace nb
             }
 
             template <typename Vec>
-            friend constexpr Vec operator*(const Matrix<T, Rows, Cols> &mat, const Vec &vec) noexcept
+            friend constexpr Vec operator*(
+                const Matrix<
+                    T,
+                    Rows,
+                    Cols>& mat,
+                const Vec& vec
+            ) noexcept
             {
-                static_assert((std::is_same<Vec, Vector2<T>>::value ||
-                               std::is_same<Vec, Vector3<T>>::value ||
-                               std::is_same<Vec, Vector4<T>>::value),
-                              "Vector type must be Vector2, Vector3, or Vector4.");
 
                 Vec result;
-
-                for (size_t i = 0; i < Cols; ++i)
+                for (size_t i = 0; i < Rows; ++i)
                 {
-                    result[i] = T{0};
-
-                    for (size_t j = 0; j < Rows; ++j)
+                    T sum = T{0};
+                    for (size_t j = 0; j < Cols; ++j)
                     {
-                        result[i] += vec[j] * mat[j][i];
+                        sum += mat[i][j] * vec[j];
                     }
+                    result[i] = sum;
                 }
-
                 return result;
             }
 

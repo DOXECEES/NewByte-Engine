@@ -4,6 +4,7 @@
 #include "../../Renderer/Camera.hpp"
 
 #include "../../Core.hpp"
+#include "Math/Math.hpp"
 
 namespace nb
 {
@@ -15,7 +16,7 @@ namespace nb
         public:
             RayPicker() = default;
 
-            Math::Vector3<float> cast(Renderer::Camera* cam, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) noexcept;
+            Ray cast(Renderer::Camera* cam, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height) noexcept;
 
         private:
 

@@ -111,6 +111,36 @@ namespace nb::Renderer
     }
 
 
+    Math::AABB3D transformAABB(
+        const Math::AABB3D& aabb,
+        const Math::Mat4<float>& model
+    )
+    {
+        Math::Vector3<float> min = {model[3].x, model[3].y, model[3].z}; // Translation
+        Math::Vector3<float> max = {model[3].x, model[3].y, model[3].z};
+
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                float a = model[j][i] * aabb.minPoint[j];
+                float b = model[j][i] * aabb.maxPoint[j];
+                if (a < b)
+                {
+                    min[i] += a;
+                    max[i] += b;
+                }
+                else
+                {
+                    min[i] += b;
+                    max[i] += a;
+                }
+            }
+        }
+        return {min, max};
+    }
+
+
     void Renderer::render() noexcept
     {
         const int width = nb::Core::EngineSettings::getWidth();
@@ -204,7 +234,6 @@ namespace nb::Renderer
 
             lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
 
-            // Используем команду для теней: тот же меш, но другой пайплайн (шейдер)
             RendererCommand shadowCmd = { cmd.mesh, shadowPSO };
             api->drawMesh(shadowCmd);
         }
@@ -334,6 +363,47 @@ namespace nb::Renderer
                 RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
                 api->drawMesh(debugPassCommand);
             }
+        }
+        if (isBoundingBoxVisualizationEnabled)
+        {
+            Ref<Shader> aabbShader = rm->getResource<Shader>("aabb.shader");
+            
+            Ref<Mesh> unitCubeMesh = rm->getResource<Mesh>("unit_cube.obj");
+            
+            Pipeline aabbVisualisation = {};
+            aabbVisualisation.shader = aabbShader;
+            aabbVisualisation.polygonMode = PolygonMode::LINES;
+            aabbVisualisation.isDepthTestEnable = false;
+
+            uint32 aabbPSO = api->getCache().getOrCreate(aabbVisualisation);
+
+            aabbShader->use();
+            aabbShader->setUniformMat4("view", view);
+            aabbShader->setUniformMat4("projection", proj);
+
+            for (auto& cmd : mainQueue)
+            {
+                Math::AABB3D localAabb = cmd.mesh->getAabb3d();
+
+                
+            
+                localAabb = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                    localAabb, cmd.mesh->uniforms.mat4Uniforms["model"]
+                );
+                auto model = Math::Mat4<float>::identity();
+                model = Math::scale(model, localAabb.size() * 0.5f);
+                model = Math::translate(model, localAabb.center());
+
+                // 5. Отрисовка
+                aabbShader->setUniformMat4("model", model);
+
+
+                RendererCommand command{unitCubeMesh.get(), aabbPSO};
+                api->drawMesh(command);
+
+
+            }
+
         }
 
         if (ctx.handle)

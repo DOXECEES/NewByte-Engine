@@ -56,6 +56,8 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
 #include "../Loaders/PngLoader.hpp"
 #include "Error/ErrorManager.hpp"
 
+#include "Renderer/Scene.hpp"
+
 namespace nb
 {
     namespace Core
@@ -137,6 +139,7 @@ namespace nb
                     Resource::resourceTo<nb::Renderer::Shader>(i.second.get())->recompile();
                 }
             }
+
         }
 
 
@@ -232,66 +235,32 @@ namespace nb
             }
         }
 
-        void Engine::rayPick(const uint32_t x, const uint32_t y) const noexcept
+        void Engine::rayPick(uint32_t x, uint32_t y) const noexcept
         {
             // not impl 
-#if 0
             if (mode == Mode::GAME)
                 return;
 
-            nb::Math::RayPicker rp;
-            auto a = rp.cast(renderer->getCamera(), x, y, EngineSettings::getWidth(), EngineSettings::getHeight());
-            auto scene = renderer->getScene()->getScene(); // the fuck is that
-            
+            Math::RayPicker picker;
+            auto ray = picker.cast(
+                renderer->getCamera(), x, y, EngineSettings::getWidth(),
+                EngineSettings::getHeight()
+            );
 
-            std::stack<std::shared_ptr<Renderer::BaseNode>> stk;
-            stk.push(scene);
-            bool interFind = false;
+  
 
-            while (!stk.empty())
+            auto result = nb::Scene::getInstance().pickNode(ray);
+
+            if (result != 0)
             {
-                std::shared_ptr<Renderer::BaseNode> top = stk.top();
-                stk.pop();
-                for (auto& i : top->getChildrens())
-                {
-                    stk.push(i);
-                }
-
-
-                if (auto n = std::dynamic_pointer_cast<Renderer::ObjectNode>(top); n != nullptr)
-                {
-                    auto aabb = n->mesh->getAabb3d();
-                    auto naabb = Math::AABB3D::recalculateAabb3dByModelMatrix(aabb, n->getWorldTransform());
-                    
-                    auto camPos = renderer->getCamera()->getPosition();
-                    Ray ray;
-                    ray.direction = a;
-                    ray.origin = camPos;
-                    
-
-                    if (rayIntersectsAABB(ray, naabb.minPoint, naabb.maxPoint))
-                    {
-                        OpenGl::OpenGLRender::setAmbientLight({255, 120, 100});
-                        interFind = true;
-                        nb::OpenGl::OpenGLRender::spawnGizmo(*n);
-
-                        if (buttons & 0x0001) // magic???
-                        {
-                            OpenGl::OpenGLRender::setAmbientLight({255, 0, 0});
-                        }   
-                    }
-                    else
-                    {
-                        if(interFind == false)
-                            OpenGl::OpenGLRender::setAmbientLight({0, 0, 0});
-                    }
-                }
-
+                Node selectedNode = nb::Scene::getInstance().getNode(result);
                 
-                
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Selected")
+                    .with("Name", selectedNode.getComponent<NameComponent>().name);
+
             }
 
-#endif
            
         }
 

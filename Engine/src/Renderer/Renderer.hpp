@@ -43,6 +43,10 @@ namespace nb
             void showVertexColor(bool flag) noexcept;
 
             inline void toggleDebugPass() noexcept { isDebugPassEnabled = !isDebugPassEnabled; }
+            inline void toggleBoundingBoxVisualization() noexcept
+            {
+                isBoundingBoxVisualizationEnabled = !isBoundingBoxVisualizationEnabled;
+            }
 
             bool isResourceReady() const noexcept;
         
@@ -114,6 +118,7 @@ namespace nb
             Ref<Shader> debugLightShader = nullptr;
 
             bool isDebugPassEnabled = false;
+            bool isBoundingBoxVisualizationEnabled = false;
 
             SharedWindowContext ctx;
             Ref<ContextMeshCache> contextMeshCache = nullptr;

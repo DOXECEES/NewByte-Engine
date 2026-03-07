@@ -11,6 +11,9 @@
 
 #include <Renderer/Mesh.hpp>
 
+#include <algorithm>
+#undef min
+#undef max
 
 struct TransformComponent
 {
@@ -142,6 +145,92 @@ namespace nb
 
         void traverseAll(const std::function<void(Ecs::EntityID)>& action) noexcept;
 
+        struct PickingResult
+        {
+            Ecs::EntityID entityId = 0;
+            //float distance = std::numeric_limits<float>::max();
+        };
+
+        Ecs::EntityID pickNode(const Math::Ray& ray)
+        {
+            Ecs::EntityID selectedId = 0;
+            float closestDist = std::numeric_limits<float>::max();
+
+            traverseAll(
+                [&](Ecs::EntityID id)
+                {
+                    if (!hasComponent<MeshComponent>(id) || !hasComponent<TransformComponent>(id))
+                    {
+                        return;
+                    }
+
+                    auto& transform = getComponent<TransformComponent>(id);
+                    auto& meshComp = getComponent<MeshComponent>(id);
+
+                    // 1. Берем локальный AABB меша (рассчитанный при загрузке модели)
+                    Math::AABB3D localAABB = meshComp.mesh->getAabb3d();
+
+                    // 2. Генерируем 8 углов локального бокса
+                    Math::Vector3<float> corners[8] = {
+                        {localAABB.minPoint.x, localAABB.minPoint.y, localAABB.minPoint.z},
+                        {localAABB.maxPoint.x, localAABB.minPoint.y, localAABB.minPoint.z},
+                        {localAABB.minPoint.x, localAABB.maxPoint.y, localAABB.minPoint.z},
+                        {localAABB.maxPoint.x, localAABB.maxPoint.y, localAABB.minPoint.z},
+                        {localAABB.minPoint.x, localAABB.minPoint.y, localAABB.maxPoint.z},
+                        {localAABB.maxPoint.x, localAABB.minPoint.y, localAABB.maxPoint.z},
+                        {localAABB.minPoint.x, localAABB.maxPoint.y, localAABB.maxPoint.z},
+                        {localAABB.maxPoint.x, localAABB.maxPoint.y, localAABB.maxPoint.z}
+                    };
+
+                    // 3. Находим границы мирового AABB, трансформируя каждый угол
+                    Math::Vector3<float> worldMin(std::numeric_limits<float>::max());
+                    Math::Vector3<float> worldMax(-std::numeric_limits<float>::max());
+
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        auto& m = transform.worldMatrix;
+                        auto& c = corners[i];
+
+                        // Трансформируем точку через мировую матрицу
+                        // Учитывая ваш Row-Major оператор*: Vector4(v, 1.0) * worldMatrix
+                        Math::Vector4<float> worldCorner4(
+                            c.x * m[0][0] + c.y * m[1][0] + c.z * m[2][0] + m[3][0],
+                            c.x * m[0][1] + c.y * m[1][1] + c.z * m[2][1] + m[3][1],
+                            c.x * m[0][2] + c.y * m[1][2] + c.z * m[2][2] + m[3][2],
+                            1.0f // w компонент
+                        );
+
+
+                        // Если у вас Column-Major: worldMatrix * Vector4(corners[i], 1.0f)
+                        // Но судя по вашему inverse, у вас Row-Major.
+
+                        worldMin.x = std::min(worldMin.x, worldCorner4.x);
+                        worldMin.y = std::min(worldMin.y, worldCorner4.y);
+                        worldMin.z = std::min(worldMin.z, worldCorner4.z);
+
+                        worldMax.x = std::max(worldMax.x, worldCorner4.x);
+                        worldMax.y = std::max(worldMax.y, worldCorner4.y);
+                        worldMax.z = std::max(worldMax.z, worldCorner4.z);
+                    }
+
+                    Math::AABB3D worldAABB = {worldMin, worldMax};
+
+                    // 4. Проверка пересечения луча с мировым боксом
+                    float t = 0.0f;
+                    if (intersectRayAABB(ray, worldAABB, t))
+                    {
+                        if (t > 0.0f && t < closestDist)
+                        {
+                            closestDist = t;
+                            selectedId = id;
+                        }
+                    }
+                }
+            );
+
+            return selectedId;
+        }
+
     private:
         Scene() noexcept;
 
@@ -167,6 +256,12 @@ namespace nb
     {
         return scene->hasComponent<T>(entity);
     }
+
+
+ 
+
+    
+
 
 }; 
 

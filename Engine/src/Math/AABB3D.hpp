@@ -13,6 +13,7 @@ namespace nb
     {
         struct AABB3D
         {
+        public:
             constexpr AABB3D() = default;
 
             constexpr AABB3D(const float x1, const float y1, const float z1, const float x2, const float y2, const float z2) noexcept
@@ -33,22 +34,27 @@ namespace nb
 
             constexpr nb::Math::Vector3<float> center() const noexcept
             {
-                return {width() / 2, heigth() / 2, depth() / 2};
+                return (minPoint + maxPoint) * 0.5f;
             }
 
             constexpr float width() const noexcept
             {
-                return (maxPoint.x + minPoint.x);
+                return (maxPoint.x - minPoint.x);
             }
 
             constexpr float heigth() const noexcept
             {
-                return (maxPoint.y + minPoint.y);
+                return (maxPoint.y - minPoint.y);
             }
 
             constexpr float depth() const noexcept
             {
-                return (maxPoint.z + minPoint.z);
+                return (maxPoint.z - minPoint.z);
+            }
+
+            constexpr Math::Vector3<float> size() const noexcept
+            {
+                return maxPoint - minPoint;
             }
 
             static AABB3D recalculateAabb3dByModelMatrix(const AABB3D& aabb, const Math::Mat4<float> &modelMatrix) noexcept

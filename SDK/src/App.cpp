@@ -597,9 +597,9 @@ void EditorApp::setupDebugUI() noexcept
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
             .text(L"Show Bounding Boxes")
             .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-                //g_engine->getRenderer()->setDrawAABB(checked);
-                }))
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+                            engine->getRenderer()->toggleBoundingBoxVisualization();
+            }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
             .text(L"Enable Shadows")

@@ -160,7 +160,19 @@ namespace nb
             T Dot1 = (Dot0[0] + Dot0[1]) + (Dot0[2] + Dot0[3]);
 
             T OneOverDeterminant = static_cast<T>(1) / Dot1;
-            return Inverse * OneOverDeterminant;
+
+            auto finalInv = Inverse * OneOverDeterminant;
+
+            // Добавьте транспонирование вручную или вызовом функции:
+            Matrix<T, 4, 4> result;
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    result[i][j] = finalInv[j][i];
+                }
+            }
+            return result;
         }
 
 

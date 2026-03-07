@@ -152,6 +152,17 @@ private:
                     break;
                 }
 
+                if (msg.hwnd == sceneWindow->getHandle().as<HWND>())
+                {
+                    if (msg.message == WM_LBUTTONDOWN)
+                    {
+                        NbPoint<int> point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
+
+                        engine->rayPick(point.x, point.y);
+
+                    }
+                }
+
                 if (msg.message == WM_INPUT) 
                 {
                     engine->bufferizeInput(msg);
