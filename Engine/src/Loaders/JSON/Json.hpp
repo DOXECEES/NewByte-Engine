@@ -56,6 +56,7 @@ namespace nb
             {
                 //parser.setJson()
                 writer.write(root);
+                writer.saveOutputInFile(path);
             }
 
             void readFromMemory(const std::string &json)
@@ -70,13 +71,13 @@ namespace nb
             }
 
             template<typename T>
-            auto operator[](const T& index) const
+            auto& operator[](const T& index) const
             {
                 return root[index];
             }
 
             template<typename T>
-            auto operator[](const T& index)
+            auto& operator[](const T& index)
             {
                 return root[index];  
             }

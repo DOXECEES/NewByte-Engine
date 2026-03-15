@@ -62,6 +62,7 @@ private:
     std::shared_ptr<Win32Window::ModalWindow> textureEditorWindow;
 
     nb::Renderer::Renderer::TexturePreviewRequest settings;
+    nbstl::NonOwningPtr<nb::Resource::TextureAsset> targetTexture;
     
     nb::Renderer::SharedWindowContext sharedContext;
 };

@@ -67,6 +67,8 @@ namespace nb
                 return pool.at(type);
             }
 
+            void updateMetaData(Resource::IResource* resource) noexcept;
+
             void registerLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept;
             void createConcretePoolIfNotExists(std::type_index resourceType) noexcept;
 

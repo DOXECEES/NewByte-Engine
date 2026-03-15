@@ -33,10 +33,10 @@ namespace nb
 
 
             inline Node(std::nullptr_t value) noexcept : data(value) {}
-            inline Node(bool value) noexcept : data(value) {}
-            inline Node(int value) noexcept : data(value) {}
-            inline Node(float value) noexcept : data(value) {}
-            inline Node(const std::string &value) noexcept : data(value) {}
+            inline Node(bool value) noexcept : data(Value(value)) {}
+            inline Node(int value) noexcept : data(Value(value)) {}
+            inline Node(float value) noexcept : data(Value(value)) {}
+            inline Node(const std::string &value) noexcept : data(Value(value)) {}
             inline Node(const char *value) noexcept : data(std::string(value)) {}
 
             inline Node(const Map &map) noexcept : data(map) {}
@@ -59,6 +59,28 @@ namespace nb
              * @return Ссылка на дочерний узел.
              */
             auto operator[](const size_t index);
+
+            Node& operator=(float v)
+            {
+                data = Value(v);
+                return *this;
+            }
+            Node& operator=(int v)
+            {
+                data = Value(v);
+                return *this;
+            }
+            Node& operator=(bool v)
+            {
+                data = Value(v);
+                return *this;
+            }
+            Node& operator=(const std::string& v)
+            {
+                data = Value(v);
+                return *this;
+            }
+
 
             /**
              * @brief Получение значения узла указанного типа.

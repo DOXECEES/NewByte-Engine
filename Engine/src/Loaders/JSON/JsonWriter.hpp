@@ -34,6 +34,9 @@ namespace nb
                 return travel(node);
             }
 
+            void saveOutputInFile(const std::filesystem::path& savePath) noexcept;
+
+
         private:
             void travel(const Node &root);
 
@@ -69,6 +72,7 @@ namespace nb
              * @param count Количество табуляций
              */
             void repeatTabs(size_t count) noexcept;
+
 
 
         private:

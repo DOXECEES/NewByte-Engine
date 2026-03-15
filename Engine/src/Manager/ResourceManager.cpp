@@ -24,6 +24,13 @@ namespace nb
             return &rm;
         }
 
+        void ResourceManager::updateMetaData(Resource::IResource* resource) noexcept
+        {
+            resource->updateMetaData();
+        }
+
+
+
         void ResourceManager::registerLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept
         {
             loaders[extention.data()] = loader;

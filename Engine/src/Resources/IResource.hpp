@@ -15,6 +15,9 @@ namespace nb
         {
         public:
             virtual ~IResource() = default;
+
+            virtual void updateMetaData() noexcept {}; 
+
         };
 
 

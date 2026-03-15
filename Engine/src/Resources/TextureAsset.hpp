@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "Loaders/JSON/Json.hpp"
 #include "Renderer/Texture.hpp"
 
 #include <NonOwningPtr.hpp>
@@ -43,7 +44,16 @@ namespace nb::Resource
             return texture.get();
         }
 
+        void updateMetaData() noexcept override
+        {
+            Loaders::Json json;
+            json["exposure"] = settings.exposure;
+            json["gamma"] = settings.gamma;
+            json.writeToFile(path.string() + ".nbmeta");
+        }
+
         const TextureSettings& getSettings() const { return settings; }
+        void setSettings(const TextureSettings& settings) { this->settings = settings; }
 
     private:
         std::filesystem::path path;     

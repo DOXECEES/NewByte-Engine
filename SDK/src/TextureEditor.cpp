@@ -1,4 +1,5 @@
 #include "TextureEditor.hpp"
+#include "Widgets/IWidget.hpp"
 
 #include <Widgets/Button.hpp>
 #include <Widgets/Label.hpp>
@@ -44,6 +45,9 @@ TextureEditor::TextureEditor(
     inspectorWindow->getLayoutRoot()->addChild(std::move(buildInspectorUI()));
 
     settings.source = texture->getInternalTexture().get();
+    settings.exposure = texture->getSettings().exposure;
+    settings.gamma = texture->getSettings().gamma;
+    targetTexture = texture;
 }
 
 void TextureEditor::handleResize(const NbSize<int>& size)
@@ -145,50 +149,8 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildEditorUI()
                             .endGroup()
 
                       )
-
-                    
-            
-                
-
-            //// Верхний Тулбар
-            //.child(
-            //    LayoutBuilder::hBox()
-            //        .absoluteHeight(50)
-            //        .background(NbColor{45, 45, 45})
-                    
-                    
-            
-            // Область со скроллом (наш FlowLayout)
-            // .child(
-            //     LayoutBuilder::vBox()
-            //         .style(
-            //             [](NNsLayout::LayoutStyle& s)
-            //             {
-            //                 s.width = 1.0f;
-            //                 s.height = 1.0f;
-            //                 s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-            //                 s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-            //             }
-            //         )
-            //         .child(std::move(assetFlow))       // Добавляем готовую сетку ассетов
-            //         .child(LayoutBuilder::spacer()) // Прижимает сетку к верху
-            // )
-            // Статус-бар
-            // .child(
-            //     LayoutBuilder::hBox()
-            //         .absoluteHeight(30)
-            //         .relativeWidth(1.0f)
-            //         .background(NbColor{20, 20, 20})
-            //         .child(
-            //             LayoutBuilder::label(L"  Total Resources Loaded: ...")
-            //                 .fontSize(11)
-            //                 .absoluteHeight(30)
-            //                 .relativeWidth(1.0f)
-            //         )
-            // )
             .build();
 
-    // 6. Устанавливаем UI в окно и показываем
     
     return rootUI;
 }
@@ -199,14 +161,13 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
        auto inspectorUi =
         LayoutBuilder::vBox()
             .padding({10, 10, 0, 10})
-            .relativeWidth(1.0f)  // Растягиваем на всю ширину окна инспектора
-            .relativeHeight(1.0f) // Растягиваем на всю высоту
+            .relativeWidth(1.0f)  
+            .relativeHeight(1.0f) 
 
-            // --- СЕКЦИЯ: ИНФОРМАЦИЯ ---
             .child(
                 LayoutBuilder::vBox()
                     .relativeWidth(1.0f)
-                    .autoHeight() // Высота всей секции метаданных
+                    .autoHeight() 
                     .child(
                         LayoutBuilder::label(L"METADATA")
                             .fontSize(12)
@@ -234,16 +195,14 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                     )
             )
 
-            // Разделитель (фиксированная высота 2 пикселя)
             .child(
                 LayoutBuilder::hBox()
                     .relativeWidth(1.0f)
                     .absoluteHeight(2)
                     .background({60, 60, 60})
-                    .margin({10, 0, 10, 0}) // Отступы сверху и снизу
+                    .margin({10, 0, 10, 0}) 
             )
 
-            // --- СЕКЦИЯ: КАНАЛЫ (RGBA) ---
             .child(
                 LayoutBuilder::vBox()
                     .relativeWidth(1.0f)
@@ -294,21 +253,19 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                     )
             )
 
-            // Еще один разделитель
             .child(
                 LayoutBuilder::hBox()
                     .relativeWidth(1.0f)
                     .absoluteHeight(2)
                     .background({60, 60, 60})
-                    .margin({10, 0, 10, 0}) // Отступы сверху и снизу
+                    .margin({10, 0, 10, 0}) 
 
             )
 
-            // --- СЕКЦИЯ: ПАРАМЕТРЫ (Exposure, Gamma, Filtering) ---
             .child(
                 LayoutBuilder::vBox()
                     .relativeWidth(1.0f)
-                    .absoluteHeight(110) // Достаточно места для заголовка и 3 строк
+                    .absoluteHeight(110) 
                     .child(
                         LayoutBuilder::label(L"VISUALS")
                             .fontSize(12)
@@ -316,7 +273,6 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                             .absoluteHeight(20)
                             .relativeWidth(1.0f)
                     )
-                    // Exposure
                     .child(
                         LayoutBuilder::hBox()
                             .relativeWidth(1.0f)
@@ -339,7 +295,6 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                     .relativeHeight(1.0f)
                             )
                     )
-                    // Gamma
                     .child(
                         LayoutBuilder::hBox()
                             .relativeWidth(1.0f)
@@ -356,7 +311,6 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                         {
                                             c->setRange(0.1f, 5.0f, 0.05f);
 
-                                            // 2. Биндим данные
                                             c->bind(
                                                 [this]()
                                                 {
@@ -365,9 +319,6 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                                 [this](float v)
                                                 {
                                                     settings.gamma = v;
-                                                    // 3. Здесь можно вызвать принудительную
-                                                    // перерисовку окна превью
-                                                    // modalTexturePreview->update();
                                                 }
                                             );
                                         }
@@ -376,7 +327,6 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                     .relativeHeight(1.0f)
                             )
                     )
-                    // Filtering
                     .child(
                         LayoutBuilder::hBox()
                             .relativeWidth(1.0f)
@@ -402,10 +352,8 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                     )
             )
 
-            // Пружина (занимает всё оставшееся свободное место, выталкивая кнопки вниз)
             .child(LayoutBuilder::spacer().relativeWidth(1.0f).relativeHeight(1.0f))
 
-            // --- СЕКЦИЯ: КНОПКИ ДЕЙСТВИЙ ---
             .child(
                 LayoutBuilder::hBox()
                     .relativeWidth(1.0f)
@@ -415,6 +363,16 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                             .text(L"REIMPORT")
                             .relativeWidth(0.5f)
                             .relativeHeight(1.0f)
+                            .onEvent(&Widgets::IWidget::onReleasedSignal, [this](){
+                                targetTexture->setSettings({
+                                    .exposure = settings.exposure,
+                                    .gamma = settings.gamma
+                                });
+                                
+                                nb::ResMan::ResourceManager::getInstance()
+                                    ->updateMetaData(targetTexture.get());
+                                    
+                            })
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())

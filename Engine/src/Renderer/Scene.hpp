@@ -2,6 +2,7 @@
 #define SRC_RENDERER_SCENE_HPP
 
 #include "Ecs/ecs.hpp"
+#include "Renderer/RendererStructures.hpp"
 
 #include <Reflection/Reflection.hpp>
 
@@ -48,13 +49,18 @@ struct NameComponent
 };
 NB_REFLECT_INTERNAL_STRUCT(NameComponent)
 
+
 //
 
 struct MeshComponent
 {
     std::shared_ptr<nb::Renderer::Mesh> mesh;
+    Ref<nb::Renderer::Material> material;
 };
-NB_REFLECT_STRUCT(MeshComponent)
+NB_REFLECT_STRUCT(MeshComponent,
+NB_FIELD(MeshComponent, material)
+)
+
 
 
 
