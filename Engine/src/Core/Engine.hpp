@@ -36,6 +36,8 @@
 
 #include <Uuid.hpp>
 
+#include "Renderer/Scene.hpp"
+
 namespace nb
 {
     namespace Core
@@ -133,7 +135,7 @@ namespace nb
             void handleEditorMode() noexcept;
 
 
-            void rayPick(uint32_t x, uint32_t y) const noexcept;
+            Node rayPick(uint32_t x, uint32_t y) const noexcept;
             
             Mode getMode() const noexcept;
 

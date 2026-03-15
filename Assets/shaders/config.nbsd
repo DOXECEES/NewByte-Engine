@@ -76,5 +76,11 @@
 		"sources": [
 			"Assets/shaders/lightPass.vs"
 		]
+	},
+    "grid.shader" : {
+		"sources": [
+			"Assets/shaders/grid.vs",
+            "Assets/shaders/grid.fs"
+		]
 	}
 }

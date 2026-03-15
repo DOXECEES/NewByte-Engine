@@ -5,6 +5,11 @@
 
 namespace nb
 {
+    Node::Node() noexcept
+    {
+        entity = ~uint32_t(0);
+    }
+
     Node::Node(
         Ecs::EntityID id,
         Scene* scene
@@ -22,6 +27,11 @@ namespace nb
     void Node::setName(std::string_view name)
     {
         scene->addComponent(entity, NameComponent{std::string(name)});
+    }
+
+    bool Node::isValid() const noexcept
+    {
+        return entity != ~uint32_t(0);
     }
 
     Node Scene::createNode(Ecs::EntityID parent) noexcept

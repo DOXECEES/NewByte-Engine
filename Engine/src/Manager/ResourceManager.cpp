@@ -3,6 +3,8 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "ResourceManager.hpp"
 
+#include "Loaders/Factory/TextureFactory.hpp"
+
 namespace nb
 {
     namespace ResMan
@@ -13,6 +15,7 @@ namespace nb
             registerLoader(".nbsd", createRef<nb::Loaders::JsonFactory>());
             registerLoader(".shader", createRef<nb::Loaders::Factory::ShaderFactory>());
             registerLoader(".obj", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
         }
 
         ResourceManager *nb::ResMan::ResourceManager::getInstance() noexcept

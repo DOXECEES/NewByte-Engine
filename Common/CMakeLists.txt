@@ -19,4 +19,5 @@ target_sources(NbCommon
         NbCore.hpp
         Color.cpp
         Color.hpp
+        NbRect.hpp
 )

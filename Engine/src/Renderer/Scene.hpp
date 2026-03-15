@@ -57,6 +57,7 @@ struct MeshComponent
 NB_REFLECT_STRUCT(MeshComponent)
 
 
+
 namespace nb
 {
 
@@ -65,7 +66,7 @@ namespace nb
     class Node
     {
     public:
-        Node() noexcept = default;
+        Node() noexcept;
 
         Node(
             Ecs::EntityID id,
@@ -84,6 +85,8 @@ namespace nb
         bool hasComponent() noexcept;
 
         void setName(std::string_view name);
+
+        bool isValid() const noexcept;
 
     private:
         Ecs::EntityID entity = 0;

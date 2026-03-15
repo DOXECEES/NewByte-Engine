@@ -56,7 +56,6 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
 #include "../Loaders/PngLoader.hpp"
 #include "Error/ErrorManager.hpp"
 
-#include "Renderer/Scene.hpp"
 
 namespace nb
 {
@@ -235,11 +234,14 @@ namespace nb
             }
         }
 
-        void Engine::rayPick(uint32_t x, uint32_t y) const noexcept
+        Node Engine::rayPick(
+            uint32_t x,
+            uint32_t y
+        ) const noexcept
         {
             // not impl 
             if (mode == Mode::GAME)
-                return;
+                return Node();
 
             Math::RayPicker picker;
             auto ray = picker.cast(
@@ -258,10 +260,11 @@ namespace nb
                 nb::Error::ErrorManager::instance()
                     .report(nb::Error::Type::INFO, "Selected")
                     .with("Name", selectedNode.getComponent<NameComponent>().name);
+                return selectedNode;
 
             }
 
-           
+            return Node();
         }
 
         Engine::Mode Engine::getMode() const noexcept

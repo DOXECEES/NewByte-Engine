@@ -10,6 +10,7 @@
 
 
 #include "IRenderAPI.hpp"
+#include "Math/Vector4.hpp"
 #include "OpenGL/OpenGLRender.hpp"
 #include "Renderer/ContextMeshCache.hpp"
 
@@ -51,7 +52,18 @@ namespace nb
             bool isResourceReady() const noexcept;
         
             SharedWindowContext createSharedContextForWindow(HWND handle) noexcept;
-            void blitToWindow(const SharedWindowContext& out, uint32 textureId);
+
+
+            struct TexturePreviewRequest
+            {
+                Texture* source = nullptr;
+                nb::Math::Vector3<float> channelMask = {1.0f, 1.0f, 1.0f};
+                float gamma = 2.2f;
+                float exposure = 1.0f;
+            };
+
+
+            void blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request);
 
             // TEMP
 

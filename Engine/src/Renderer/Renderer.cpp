@@ -2,6 +2,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Renderer.hpp"
+#include "Math/Vector3.hpp"
 #include "Renderer/Objects/Objects.hpp"
 #include "Material.hpp"
 
@@ -109,37 +110,6 @@ namespace nb::Renderer
 
         isResourceLoaded = true;
     }
-
-
-    Math::AABB3D transformAABB(
-        const Math::AABB3D& aabb,
-        const Math::Mat4<float>& model
-    )
-    {
-        Math::Vector3<float> min = {model[3].x, model[3].y, model[3].z}; // Translation
-        Math::Vector3<float> max = {model[3].x, model[3].y, model[3].z};
-
-        for (int i = 0; i < 3; ++i)
-        {
-            for (int j = 0; j < 3; ++j)
-            {
-                float a = model[j][i] * aabb.minPoint[j];
-                float b = model[j][i] * aabb.maxPoint[j];
-                if (a < b)
-                {
-                    min[i] += a;
-                    max[i] += b;
-                }
-                else
-                {
-                    min[i] += b;
-                    max[i] += a;
-                }
-            }
-        }
-        return {min, max};
-    }
-
 
     void Renderer::render() noexcept
     {
@@ -385,31 +355,25 @@ namespace nb::Renderer
             {
                 Math::AABB3D localAabb = cmd.mesh->getAabb3d();
 
-                
-            
-                localAabb = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                Math::AABB3D worldAabb = Math::AABB3D::recalculateAabb3dByModelMatrix(
                     localAabb, cmd.mesh->uniforms.mat4Uniforms["model"]
                 );
                 auto model = Math::Mat4<float>::identity();
-                model = Math::scale(model, localAabb.size() * 0.5f);
-                model = Math::translate(model, localAabb.center());
+                model = Math::scale(model, worldAabb.size() * 0.5f);
+                model = Math::translate(model, worldAabb.center());
 
-                // 5. Отрисовка
                 aabbShader->setUniformMat4("model", model);
-
 
                 RendererCommand command{unitCubeMesh.get(), aabbPSO};
                 api->drawMesh(command);
-
-
             }
 
         }
 
-        if (ctx.handle)
-        {
-            blitToWindow(ctx, checkedTextureId);
-        }
+        // if (ctx.handle)
+        // {
+        //     blitToWindow(ctx, checkedTextureId);
+        // }
 
         renderNavigationalGizmo();
 
@@ -485,47 +449,63 @@ namespace nb::Renderer
         return ctx;
     }
 
-    void Renderer::blitToWindow(const SharedWindowContext& out, uint32 textureId)
+    void Renderer::blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request)
     {
-        if (!api->setContext(out.hdc, out.hglrc))
-        {
-            return;
-        }
+        if (!api->setContext(out.hdc, out.hglrc)) return;
 
+        // Используем GetClientRect вместо GetWindowRect, чтобы не учитывать рамки окна
         RECT rc;
-        GetWindowRect(out.handle, &rc); 
+        GetClientRect(out.handle, &rc); 
         int width = rc.right - rc.left;
         int height = rc.bottom - rc.top;
 
         api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
-        api->setClearColor(Colors::BLUE, 1.0f, 0);
         api->clear(true, false, false);
+        // 1. Отрисовка сетки (Background)
+        auto gridShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("grid.shader");
+        gridShader->use();
+        
+        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
+        if (!mesh) mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
 
+        Pipeline gridPipeline = {};
+        gridPipeline.shader = std::move(gridShader);
+        gridPipeline.isDepthTestEnable = false;
+        gridPipeline.polygonMode = PolygonMode::FULL;
+        uint32 gridPso = api->getCache().getOrCreate(gridPipeline);
+        
+        api->drawContextMesh(*mesh, gridPso);
+
+        // 2. Настройка смешивания для текстуры (Alpha Blending)
+        // ВАЖНО: Убедитесь, что в вашем API методе установки Pipeline 
+        // реализована поддержка BlendMode или включена прозрачность
+        
+        // 3. Отрисовка основной текстуры
         auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("quadShader2.shader");
         quadShader->use();
         quadShader->setUniformInt("sceneTexture", 0);
+        quadShader->setUniformVec3("channelMask", request.channelMask);
+        quadShader->setUniformFloat("gamma", request.gamma);
+        quadShader->setUniformFloat("exposure", request.exposure);
 
-        api->bindTexture(0, textureId);
+         
+        api->bindTexture(0, request.source->getId());
 
-        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
-        if (!mesh)
-        {
-            mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
-        }
+        Pipeline texPipeline = {};
+        texPipeline.shader = std::move(quadShader);
+        texPipeline.isDepthTestEnable = false;
+        texPipeline.polygonMode = PolygonMode::FULL;
+        // Включаем прозрачность (в зависимости от реализации вашего API)
+        texPipeline.isBlendEnable = true; // Добавьте это поле в структуру Pipeline, если его нет
+        
+        uint32 texPso = api->getCache().getOrCreate(texPipeline);
 
-        Pipeline pipeline = {};
-        pipeline.shader = std::move(quadShader);
-        pipeline.isDepthTestEnable = false;
-        pipeline.polygonMode = PolygonMode::FULL;
-        uint32 pso = api->getCache().getOrCreate(pipeline);
-
-    
-        RendererCommand shadowCmd = { mesh->source.get(),  pso };
-        api->drawContextMesh(*mesh, pso);
+        api->drawContextMesh(*mesh, texPso);
 
         SwapBuffers(out.hdc);
         api->setDefaultContext();
     }
+
 
 
     void Renderer::renderNavigationalGizmo() noexcept

@@ -56,6 +56,8 @@ set (SRC
         src/Resources/ShaderSource.cpp
         src/Resources/ShaderSource.hpp
 
+        src/Resources/TextureAsset.hpp
+
         src/Renderer/Renderer2D.hpp
         src/Renderer/Renderer2D.cpp
         src/Renderer/Renderer.hpp
@@ -146,6 +148,8 @@ set (SRC
         src/Loaders/Factory/ShaderFactory.hpp
         src/Loaders/Factory/ObjFactory.cpp
         src/Loaders/Factory/ObjFactory.hpp
+        src/Loaders/Factory/TextureFactory.cpp
+        src/Loaders/Factory/TextureFactory.hpp
 
         src/Loaders/BitmapLoader.cpp
         src/Loaders/BitmapLoader.hpp
@@ -153,6 +157,8 @@ set (SRC
         src/Loaders/PngLoader.hpp
         src/Loaders/ShaderLoader.cpp
         src/Loaders/ShaderLoader.hpp
+        src/Loaders/TextureLoader.cpp
+        src/Loaders/TextureLoader.hpp
 
         src/Loaders/ObjLoader.cpp
         src/Loaders/ObjLoader.hpp

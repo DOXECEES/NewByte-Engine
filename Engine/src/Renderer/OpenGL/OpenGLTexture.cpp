@@ -38,7 +38,7 @@ namespace nb
             glBindTexture(GL_TEXTURE_2D, texture);
         }
 
-        GLuint OpenGlTexture::getId() const noexcept
+        uint32_t OpenGlTexture::getId() const noexcept
         {
             return texture;
         }
