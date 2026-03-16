@@ -52,6 +52,7 @@ namespace nb::OpenGl
                 }
             }
         }
+        wglMakeCurrent(this->hdc, this->hglrc); // Активируем главный контекст
 
         auto wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
 
@@ -83,6 +84,28 @@ namespace nb::OpenGl
             return wglMakeCurrent(this->hdc, this->hglrc);
         }
         return wglMakeCurrent(hdc, hglrc);
+    }
+
+    void OpenGLRender::releaseContext(const Renderer::SharedWindowContext& context) noexcept
+    {
+        if (!context.hglrc)
+        {
+            return;
+        }
+
+        //if (wglGetCurrentContext() == hglrc)
+        //{
+        //    wglMakeCurrent(NULL, NULL);
+        //}
+
+        if (!wglDeleteContext(context.hglrc))
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::FATAL, "Failed to release Opengl context"
+            );
+        }
+
+        ReleaseDC(context.handle, context.hdc);
     }
 
     bool OpenGLRender::setDefaultContext() noexcept

@@ -52,7 +52,7 @@ namespace nb
             bool isResourceReady() const noexcept;
         
             SharedWindowContext createSharedContextForWindow(HWND handle) noexcept;
-
+            void releaseSharedContextForWindow(const SharedWindowContext& context) noexcept;
 
             struct TexturePreviewRequest
             {

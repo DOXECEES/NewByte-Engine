@@ -30,9 +30,12 @@ public:
 
     ~TextureEditor()
     {
+        previewWindow.reset();
+        inspectorWindow.reset();
         nb::Error::ErrorManager::instance().report(
             nb::Error::Type::INFO, "Texture Editor destroyed"
         );
+        engine->getRenderer()->releaseSharedContextForWindow(sharedContext);
     }
     
     void show();

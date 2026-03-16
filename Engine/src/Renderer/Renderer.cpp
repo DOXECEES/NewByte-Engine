@@ -449,6 +449,11 @@ namespace nb::Renderer
         return ctx;
     }
 
+    void Renderer::releaseSharedContextForWindow(const SharedWindowContext& context) noexcept
+    {
+        api->releaseContext(context);
+    }
+
     void Renderer::blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request)
     {
         if (!api->setContext(out.hdc, out.hglrc)) return;

@@ -100,6 +100,7 @@ namespace nb
             }
 
             virtual SharedWindowContext shareContext(void* handle) const noexcept = 0;
+            virtual void releaseContext(const SharedWindowContext& context) noexcept = 0;
             virtual bool setContext(HDC hdc, HGLRC hglrc) noexcept = 0;
             virtual bool setDefaultContext() noexcept = 0;
         public:
