@@ -73,7 +73,6 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> assetManager;
 
-    std::shared_ptr<TextureEditor> textureEditor;
 
     //
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
@@ -186,16 +185,10 @@ private:
             }
 
             if (engine)
-            {
-                
+            {               
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
-
-                if (textureEditor)
-                {
-                    //textureEditor->onRender();
-                }
-                
+ 
                 if (engine->getMode() == nb::Core::Engine::Mode::EDITOR)
                     mainWindow->showCursor();
                 else

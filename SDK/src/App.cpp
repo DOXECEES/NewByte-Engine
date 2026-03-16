@@ -657,9 +657,9 @@ void EditorApp::setupAssetManager() noexcept
     
     auto res = nb::ResMan::ResourceManager::getInstance();
 
-    textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
+    //textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
     // auto* resMan = nb::ResMan::ResourceManager::getInstance();
-    textureEditor->show();
+    //textureEditor->show();
     // // 1. Создаем модальное окно (сохраняем в поле класса, чтобы не удалилось)
     // modal =
     //     std::make_shared<Win32Window::ModalWindow>(NbSize<int>{1100, 700}, debugWindow.get());
