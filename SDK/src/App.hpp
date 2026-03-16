@@ -149,7 +149,7 @@ private:
                 && !isEngineDependentUiInit)
             {
                 setupEngineDependentUi();
-                assetManagerWindow = std::make_shared<AssetManager>();
+                assetManagerWindow = std::make_shared<AssetManager>(engine.get());
                 isEngineDependentUiInit = true;
             }
 
@@ -193,7 +193,7 @@ private:
 
                 if (textureEditor)
                 {
-                    textureEditor->onRender();
+                    //textureEditor->onRender();
                 }
                 
                 if (engine->getMode() == nb::Core::Engine::Mode::EDITOR)

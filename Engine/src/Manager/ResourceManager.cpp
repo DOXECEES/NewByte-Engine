@@ -65,6 +65,24 @@ namespace nb
             pool[type][path.string()] = loaderIterator->second->create(path);
         }
 
+        void ResourceManager::loadIfNotExists(const std::filesystem::path &path) noexcept
+        {
+            std::string extension = path.extension().string();
+            auto loaderIterator = loaders.find(extension);
+            if (loaderIterator == loaders.end())
+            {
+                Debug::debug("Loader not found for extension: " + extension);
+                abort();
+            }
+
+            std::type_index type = loaderIterator->second->getResourceType();   
+            if(pool[type].contains(path.string()))
+            {
+                return;
+            }
+            pool[type][path.string()] = loaderIterator->second->create(path);
+        }
+
         void ResourceManager::unload() noexcept
         {
             for(auto& concretePool : pool)

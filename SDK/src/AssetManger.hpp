@@ -3,6 +3,11 @@
 
 #include "Core.hpp"
 
+#include <NonOwningPtr.hpp>
+#include <Core/Engine.hpp>
+
+#include <string>
+#include "Loaders/JSON/Json.hpp"
 #include "Widgets/TreeView.hpp"
 #include <Win32Window/Win32Window.hpp>
 
@@ -22,11 +27,32 @@
 #include "FileSystemModel.hpp"
 #include "Widgets/WidgetStyle.hpp"
 
+#include <Loaders/JSON/Json.hpp>
+
+#include "TextureEditor.hpp"
+
 class AssetManager
 {
 public:
-    AssetManager();
+    
+    AssetManager(nbstl::NonOwningPtr<nb::Core::Engine> engine);
     ~AssetManager() = default;
+
+    void importAsset(std::filesystem::path path) noexcept
+    {
+        if (path.extension() == ".png")
+        {
+            path.replace_extension(".texture");
+        }
+        nb::ResMan::ResourceManager* rm = nb::ResMan::ResourceManager::getInstance();
+        rm->loadIfNotExists(path);
+
+        assetsJson["NEW_ASSET"]["PATH"] = path.string();
+        assetsJson["NEW_ASSET"]["Type"] = "TEXTURE";
+
+        assetsJson.writeToFile("Assets/Assets.json");
+    }
+
 
     std::unique_ptr<NNsLayout::LayoutNode> buildUI()
     {
@@ -175,10 +201,52 @@ public:
                     //         //})
                     // );
 
-                    std::move(grid).child(LayoutBuilder::thumbnail()
-                    .margin({0, 10, 10, 0})
-                    .absoluteWidth(400)
-                    .absoluteHeight(400));
+                    if (supportedExtensions.contains(entry.path().extension().string()))
+                    {
+                        std::move(grid).child(
+                            LayoutBuilder::thumbnail(fileName, ext)
+                                .margin({0, 10, 10, 0})
+                                .background(accent)
+                                .absoluteWidth(120)
+                                .absoluteHeight(150)
+                                .onEvent(
+                                    &Widgets::IWidget::onReleasedSignal,
+                                    [this, entry]()
+                                    {
+                                        if (supportedExtensions[entry.path().extension().string()] == AssetType::TEXTURE)
+                                        {
+                                            auto copyPath = entry.path();
+                                            copyPath = copyPath.replace_extension(".texture");
+                                            auto asset = nb::ResMan::ResourceManager::getInstance()
+                                                ->getResource<nb::Resource::TextureAsset>(
+                                                    copyPath.string()
+                                                );
+
+                                            if (asset)
+                                            {
+                                                auto e = std::make_shared<TextureEditor>(
+                                                    window.get(), engine.get(), asset.get()
+                                                );
+
+                                                
+                                                subscribe(
+                                                    e->getRawWindow(), 
+                                                    &Win32Window::ModalWindow::onClose,
+                                                    [e]()
+                                                    {
+                                                        auto o = e.use_count();
+                                                    }
+                                                );
+                                                
+                                                e->show();
+                                            }
+
+                                        }
+                                        
+                                    }
+                                )
+                        );
+                    }
                 }
             }
         } catch (...) {}
@@ -194,8 +262,25 @@ public:
     }
 
 
+     
 
 private:
+
+    enum class AssetType
+    {
+        TEXTURE,
+        MODEL,
+        SHADER
+    };
+
+    std::unordered_map<std::string, AssetType> supportedExtensions = {
+        {".png", AssetType::TEXTURE}
+        //{".jpg", AssetType::TEXTURE},
+        //{".texture", AssetType::TEXTURE},
+        //{".fbx", AssetType::MODEL},
+        //{".glsl", AssetType::SHADER}
+    };
+     
 
     NNsLayout::LayoutNode* assetGridNode = nullptr;
     std::shared_ptr<FileSystemModel> model = std::make_shared<FileSystemModel>("Assets");
@@ -203,7 +288,9 @@ private:
 
 
     std::shared_ptr<Win32Window::ChildWindow> window;
+    nbstl::NonOwningPtr<nb::Core::Engine> engine;
 
+    inline static nb::Loaders::Json assetsJson = nb::Loaders::Json(std::filesystem::path("Assets/Assets.json"));
 };
 
 #endif

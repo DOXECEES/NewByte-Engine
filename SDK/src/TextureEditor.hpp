@@ -27,6 +27,13 @@ public:
         nb::Core::Engine* engine,
         nbstl::NonOwningPtr<nb::Resource::TextureAsset> texture
     );
+
+    ~TextureEditor()
+    {
+        nb::Error::ErrorManager::instance().report(
+            nb::Error::Type::INFO, "Texture Editor destroyed"
+        );
+    }
     
     void show();
     void setVisible(bool visible);
@@ -36,6 +43,14 @@ public:
     void onRender();
 
     void handleResize(const NbSize<int>& parentSize);
+
+    Win32Window::ModalWindow* getRawWindow()
+    {
+        return textureEditorWindow.get();
+    }
+
+public:
+    Signal<void()> onClose;
 
 private:
     std::unique_ptr<NNsLayout::LayoutNode> buildInspectorUI();

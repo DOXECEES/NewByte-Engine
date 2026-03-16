@@ -71,11 +71,14 @@ namespace nb
 
             void registerLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept;
             void createConcretePoolIfNotExists(std::type_index resourceType) noexcept;
+            
+            void loadIfNotExists(const std::filesystem::path &path) noexcept;
 
         private:
             std::string_view extractExtension(std::string_view path) const noexcept;
 
             void load(const std::filesystem::path &path) noexcept;
+
             void unload() noexcept;
 
             bool isAbsolutePath(std::string_view path) const noexcept;

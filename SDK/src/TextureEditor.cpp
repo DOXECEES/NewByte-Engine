@@ -48,6 +48,8 @@ TextureEditor::TextureEditor(
     settings.exposure = texture->getSettings().exposure;
     settings.gamma = texture->getSettings().gamma;
     targetTexture = texture;
+
+    onRender();
 }
 
 void TextureEditor::handleResize(const NbSize<int>& size)
@@ -63,6 +65,8 @@ void TextureEditor::handleResize(const NbSize<int>& size)
 
     inspectorWindow->setSize({size.width - previewWidth + Metrics::padding, contentHeight});
     inspectorWindow->setPosition({previewWidth, topOffset});
+
+    onRender();
 }
 
 std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildEditorUI()
@@ -288,7 +292,11 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                         s->setRange(0.0f, 10.0f, 0.1f);
                                         s->bind(
                                             [this]() { return settings.exposure; },
-                                            [this](float v) { settings.exposure = v; }
+                                            [this](float v)
+                                            {
+                                                settings.exposure = v;
+                                                onRender();
+                                            }
                                         );
                                     })
                                     .relativeWidth(0.6f)
@@ -319,6 +327,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                                 [this](float v)
                                                 {
                                                     settings.gamma = v;
+                                                    onRender();
                                                 }
                                             );
                                         }
@@ -379,6 +388,12 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                             .text(L"EXPORT...")
                             .relativeWidth(0.5f)
                             .relativeHeight(1.0f)
+                            .onEvent(&Widgets::Button::onReleasedSignal, [this]() {
+                                //textureEditorWindow->close();
+                                textureEditorWindow.reset();
+                                //onClose.emit();
+                                //onClose.disconnectAll();
+                            })
                     )
             )
             .build();
@@ -393,9 +408,9 @@ void TextureEditor::setTargetTexture(nb::Renderer::Texture* tex) {
 
 void TextureEditor::onRender()
 {
-    //if (settings.source) {
+    if (settings.source) {
         engine->getRenderer()->blitToWindow(sharedContext, settings);
-    //}
+    }
 }
 
 void TextureEditor::show()
