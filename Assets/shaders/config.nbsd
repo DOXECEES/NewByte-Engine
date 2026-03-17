@@ -82,5 +82,11 @@
 			"Assets/shaders/grid.vs",
             "Assets/shaders/grid.fs"
 		]
+	},
+	"pbr_lit.shader" : {
+		"sources": [
+			"Assets/shaders/pbr_lit.vs",
+            "Assets/shaders/pbr_lit.fs"
+		]
 	}
 }

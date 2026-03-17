@@ -656,7 +656,11 @@ void EditorApp::setupAssetManager() noexcept
     using namespace nbui;
     
     auto res = nb::ResMan::ResourceManager::getInstance();
-
+    materialEditor = std::make_shared<MaterialEditor>(
+        debugWindow.get(), engine.get(),
+        res->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material").get()
+    );
+    materialEditor->show();
     //textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
     // auto* resMan = nb::ResMan::ResourceManager::getInstance();
     //textureEditor->show();

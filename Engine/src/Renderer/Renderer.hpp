@@ -17,6 +17,7 @@
 #include "Mesh.hpp"
 
 #include "Camera.hpp"
+#include "Resources/MaterialAsset.hpp"
 
 namespace nb
 {
@@ -64,6 +65,14 @@ namespace nb
 
 
             void blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request);
+
+            struct MaterialPreviewRequest
+            {
+                Resource::MaterialAsset* material;
+                float x = 0.0f;
+                float y = 0.0f;
+            };
+            void renderMaterialPreview(const SharedWindowContext& out, MaterialPreviewRequest& request);
 
             // TEMP
 

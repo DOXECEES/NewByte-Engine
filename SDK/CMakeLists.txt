@@ -20,6 +20,9 @@ add_executable(${PROJECT_NAME} WIN32
     src/AssetManger.cpp
     src/AssetManger.hpp
 
+    src/MaterialEditor.cpp
+    src/MaterialEditor.hpp
+
     src/FileSystemModel.hpp
 )
 

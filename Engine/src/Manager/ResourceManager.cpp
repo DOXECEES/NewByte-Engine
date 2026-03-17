@@ -4,6 +4,7 @@
 #include "ResourceManager.hpp"
 
 #include "Loaders/Factory/TextureFactory.hpp"
+#include "Loaders/Factory/MaterialFactory.hpp"
 
 namespace nb
 {
@@ -16,6 +17,8 @@ namespace nb
             registerLoader(".shader", createRef<nb::Loaders::Factory::ShaderFactory>());
             registerLoader(".obj", createRef<nb::Loaders::Factory::ObjFactory>());
             registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
+            registerLoader(".material", createRef<nb::Loaders::Factory::MaterialFactory>());
+
         }
 
         ResourceManager *nb::ResMan::ResourceManager::getInstance() noexcept

@@ -22,6 +22,7 @@
 #include "SceneModel.hpp"
 #include "TextureEditor.hpp"
 #include "AssetManger.hpp"
+#include "MaterialEditor.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
 //
@@ -77,6 +78,7 @@ private:
     //
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
     std::shared_ptr<AssetManager> assetManagerWindow;
+    std::shared_ptr<MaterialEditor> materialEditor;
 
 
     void openColorPickerWindow();

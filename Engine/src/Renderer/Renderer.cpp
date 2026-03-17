@@ -2,6 +2,8 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Renderer.hpp"
+#include "Manager/ResourceManager.hpp"
+#include "Math/Matrix/Transformation.hpp"
 #include "Math/Vector3.hpp"
 #include "Renderer/Objects/Objects.hpp"
 #include "Material.hpp"
@@ -506,6 +508,88 @@ namespace nb::Renderer
         uint32 texPso = api->getCache().getOrCreate(texPipeline);
 
         api->drawContextMesh(*mesh, texPso);
+
+        SwapBuffers(out.hdc);
+        api->setDefaultContext();
+    }
+
+    void Renderer::renderMaterialPreview(
+        const SharedWindowContext& out,
+        MaterialPreviewRequest& request
+    )
+    {
+        
+
+        if (!api->setContext(out.hdc, out.hglrc))
+        {
+            return;
+        }
+
+        RECT rc;
+        GetClientRect(out.handle, &rc);
+        int width = rc.right - rc.left;
+        int height = rc.bottom - rc.top;
+        float aspect = (float)width / (float)height;
+
+        api->setViewport({0.0f, 0.0f, (float)width, (float)height});
+        api->clear(true, true, false);
+
+        Ref<Mesh> primitiveMesh =
+            ResMan::ResourceManager::getInstance()->getResource<Mesh>("Untitled.obj");
+        auto mesh = contextMeshCache->get(out.hglrc, primitiveMesh.get());
+        if (!mesh)
+        {
+            mesh = contextMeshCache->insertMesh(out.hglrc, primitiveMesh);
+        }
+
+        Math::Vector3<float> cameraPos = {0.0f, 0.0f, -3.5f};
+        Math::Vector3<float> lightPos = {0.0f, 0.0f, -3.5f};     
+        Math::Vector3<float> lightColor = {15.0f, 15.0f, 15.0f}; 
+        static Camera cam;
+        cam.moveTo(cameraPos);
+        cam.updateOrbit(request.x, request.y);
+
+        request.x = 0.0f;
+        request.y = 0.0f;
+        
+
+        Math::Mat4<float> projection = Math::projection(45.0f, aspect, 0.1f, 100.0f);
+        Math::Mat4<float> view = cam.getLookAt();
+        Math::Mat4<float> model = Math::Mat4<float>::identity();
+
+
+
+        request.material->bind();
+        auto shader = request.material->getShader();
+        api->bindTexture(
+            0, std::get<Ref<nb::Resource::TextureAsset>>(
+                   request.material->getProperties()["u_NormalMap"].value
+               )
+                   ->getInternalTexture()
+                   ->getId()
+        );
+
+        shader->setUniformMat4("u_Projection", projection);
+        shader->setUniformMat4("u_View", view);
+        shader->setUniformMat4("u_Model", model);
+
+
+
+
+
+
+        shader->setUniformVec3("u_CameraPos", cameraPos);
+        shader->setUniformVec3("u_LightPos", lightPos);
+        shader->setUniformVec3("u_LightColor", lightColor);
+        
+        Pipeline matPipeline = {};
+        matPipeline.shader = shader;
+        matPipeline.isDepthTestEnable = true;
+        matPipeline.isBlendEnable = true;
+        matPipeline.polygonMode = PolygonMode::FULL;
+
+        uint32 matPso = api->getCache().getOrCreate(matPipeline);
+        api->drawContextMesh(*mesh, matPso);
 
         SwapBuffers(out.hdc);
         api->setDefaultContext();
