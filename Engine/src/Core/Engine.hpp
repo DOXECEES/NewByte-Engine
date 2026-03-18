@@ -115,13 +115,15 @@ namespace nb
 
                 hwnd = windowHwnd;
                 subSystems->Init(hwnd);
+                renderer = subSystems->getRenderer();
+                renderer->setCamera(&cam);
+                ResMan::ResourceManager::init(renderer->getApi());
                 keyboard = subSystems->getKeyboard();
                 mouse = subSystems->getMouse();
                 input = createRef<Input::Input>();
                 input->linkKeyboard(keyboard);
                 input->linkMouse(mouse);
-                renderer = subSystems->getRenderer();
-                renderer->setCamera(&cam);
+             
                 Utils::Timer::init();
             }
             ~Engine() = default;

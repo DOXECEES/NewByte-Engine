@@ -2,10 +2,17 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <Windows.h>
+#include <memory>
 #include "OpenGLRender.hpp"
 
 #include "../Objects/Objects.hpp"
+#include "Core.hpp"
 #include "DepthBuffer.hpp"
+#include "Manager/ResourceManager.hpp"
+#include "Math/Matrix/Transformation.hpp"
+#include "OpenGLCubemap.hpp"
+#include "Renderer/Cubemap.hpp"
+#include "Renderer/OpenGL/OpenGLTexture.hpp"
 
 
 namespace nb::OpenGl
@@ -196,6 +203,97 @@ namespace nb::OpenGl
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
+    Ref<Renderer::Texture> OpenGLRender::createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept
+    {
+        GLint internalFormat = GL_RGB;
+        GLenum dataFormat = GL_RGB;
+        GLenum dataType = GL_UNSIGNED_BYTE;
+
+        switch (descriptor.format)
+        {
+            case Renderer::TextureFormat::RGB:
+                internalFormat = GL_RGB;
+                dataFormat = GL_RGB;
+                dataType = GL_UNSIGNED_BYTE;
+                break;
+            case Renderer::TextureFormat::RGBA:
+                internalFormat = GL_RGBA;
+                dataFormat = GL_RGBA;
+                dataType = GL_UNSIGNED_BYTE;
+                break;
+            case Renderer::TextureFormat::RGB16F:
+                internalFormat = GL_RGB16F; 
+                dataFormat = GL_RGB;        
+                dataType = GL_FLOAT;        
+                break;
+        }
+
+
+        return createRef<OpenGlTexture>(
+            descriptor.width,
+            descriptor.height,
+            internalFormat,
+            dataFormat,
+            dataType,
+            descriptor.data
+        );
+    }
+
+    Ref<Renderer::Cubemap> OpenGLRender::bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept
+    {
+        Ref<OpenGLCubemap> cubemap = std::make_shared<OpenGLCubemap>(texture2d->getWidth(),GL_RGB16F);
+
+        Math::Mat4<float> captureProjection = Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+        Math::Mat4<float> captureViews[] = {
+            Math::lookAt<float>({0,0,0}, { 1, 0, 0}, {0,-1, 0}), // +X
+            Math::lookAt<float>({0,0,0}, {-1, 0, 0}, {0,-1, 0}), // -X
+            Math::lookAt<float>({0,0,0}, { 0, 1, 0}, {0, 0, 1}), // +Y
+            Math::lookAt<float>({0,0,0}, { 0,-1, 0}, {0, 0,-1}), // -Y
+            Math::lookAt<float>({0,0,0}, { 0, 0, 1}, {0,-1, 0}), // +Z
+            Math::lookAt<float>({0,0,0}, { 0, 0,-1}, {0,-1, 0})  // -Z
+        };
+
+        auto equiToCubeShader = ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>("equi_to_cube.shader"); 
+
+        auto frameBuffer = std::dynamic_pointer_cast<FBO>(createFrameBuffer(texture2d->getWidth(), texture2d->getWidth()));
+        frameBuffer->addRenderBufferAttachment(
+            Renderer::IFrameBuffer::RenderBufferAttachment::DEPTH
+        );
+        frameBuffer->finalize();
+
+        //shader
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
+
+        Ref<Renderer::Mesh> cube =
+            nb::ResMan::ResourceManager::getInstance()->getResource<Renderer::Mesh>(
+                "unit_cube.obj"
+            );
+
+        equiToCubeShader->setUniformMat4("projection", captureProjection);
+        equiToCubeShader->setUniformInt("equirectangularMap", 0);
+
+        setViewport({0,0,(float)texture2d->getWidth(),(float)texture2d->getWidth()});
+        
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            equiToCubeShader->setUniformMat4("view", captureViews[i]);
+
+            frameBuffer->attachTextureId(
+                cubemap->getId(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i
+            );
+
+            clear(true, true,false);
+            cube->draw(GL_TRIANGLES, equiToCubeShader);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+        return cubemap;
+    }
+    
 
     void OpenGLRender::setViewport(const Renderer::Viewport& viewport) noexcept
     {

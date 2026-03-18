@@ -70,6 +70,29 @@ namespace nb
                 colorTextureCount++;
                 break;
             }
+            case TextureType::COLOR_HDR: 
+            {
+                if (colorTextureCount >= getMaxCountOfColorAttachments())
+                {
+                    errorMessage("Max attachments!");
+                    return;
+                }
+
+                glTexImage2D(
+                    GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, nullptr
+                );
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorTextureCount, GL_TEXTURE_2D,
+                    texture, 0
+                );
+                colorTextureCount++;
+                break;
+            }
+
             case TextureType::DEPTH:
             {
                 if (isDepthBufferAttached)
@@ -158,6 +181,16 @@ namespace nb
                 errorMessage("Framebuffer RenderBuffer finalize failed!");
             }
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        }
+
+        void FBO::attachTextureId(
+            uint32_t textureId,
+            GLenum attachment,
+            GLenum target
+        ) noexcept
+        {
+            bind();
+            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, target, textureId, 0);
         }
 
         bool FBO::finalize() noexcept

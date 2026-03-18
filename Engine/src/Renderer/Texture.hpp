@@ -15,6 +15,9 @@ namespace nb
 
             virtual uint32_t getId() const noexcept = 0;
 
+            virtual int getWidth() const noexcept = 0;
+            virtual int getHeight() const noexcept = 0;
+
         private:
         };
     };

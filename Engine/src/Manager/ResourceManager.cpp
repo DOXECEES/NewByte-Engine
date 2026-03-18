@@ -5,6 +5,9 @@
 
 #include "Loaders/Factory/TextureFactory.hpp"
 #include "Loaders/Factory/MaterialFactory.hpp"
+#include "Loaders/Factory/IhdrFactory.hpp"
+
+#include "Renderer/IRenderApi.hpp"
 
 namespace nb
 {
@@ -21,7 +24,14 @@ namespace nb
 
         }
 
-        ResourceManager *nb::ResMan::ResourceManager::getInstance() noexcept
+        void ResourceManager::init(nb::Renderer::IRenderAPI* renderApi) noexcept
+        {
+            api = renderApi;
+            getInstance()->registerLoader(".hdr", createRef<nb::Loaders::Factory::IhdrFactory>(api));
+
+        }
+
+        ResourceManager* nb::ResMan::ResourceManager::getInstance() noexcept
         {
             static ResourceManager rm;
             return &rm;

@@ -84,7 +84,8 @@ namespace nb
                 void bindFrameBuffer(const Ref<Renderer::IFrameBuffer>& frameBuffer) noexcept override;
 
                 void bindTexture(uint8 slot, uint32 textureId) noexcept override;
-
+                Ref<Renderer::Texture> createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept override;
+                Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept override;
 
                 void setViewport(const Renderer::Viewport& viewport) noexcept override;
 

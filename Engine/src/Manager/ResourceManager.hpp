@@ -21,6 +21,11 @@
 
 // shader
 
+namespace nb::Renderer
+{
+    class IRenderAPI;
+};
+
 namespace nb
 {
     namespace ResMan
@@ -30,6 +35,7 @@ namespace nb
         public:
             using ResourcePool = std::unordered_map<std::string, Ref<nb::Resource::IResource>>; 
 
+            static void init(nb::Renderer::IRenderAPI* renderApi) noexcept;
             static ResourceManager *getInstance() noexcept;
 
             template <typename T>
@@ -93,6 +99,8 @@ namespace nb
             std::unordered_map<std::type_index, ResourcePool> pool;
 
             std::unordered_map<std::string, Ref<nb::Loaders::Factory::IFactoryLoader>> loaders;
+
+            inline static Renderer::IRenderAPI* api = nullptr;
         };
     };
 };

@@ -59,6 +59,8 @@ set (SRC
         src/Resources/TextureAsset.hpp
 
         src/Resources/MaterialAsset.hpp
+        src/Resources/IhdrResource.hpp
+
 
 
         src/Renderer/Renderer2D.hpp
@@ -111,6 +113,9 @@ set (SRC
         src/Renderer/OpenGL/ShadowMapFbo.hpp
         src/Renderer/OpenGL/PostProcessFbo.cpp
         src/Renderer/OpenGL/PostProcessFbo.hpp
+        src/Renderer/OpenGL/OpenGLCubemap.cpp
+        src/Renderer/OpenGL/OpenGLCubemap.hpp
+        
         src/Renderer/PipelineCache.cpp
         src/Renderer/PipelineCache.hpp
         src/Renderer/IFrameBuffer.hpp
@@ -120,6 +125,8 @@ set (SRC
         src/Renderer/ContextMeshCache.hpp
         src/Renderer/Scene.cpp
         src/Renderer/Scene.hpp
+        src/Renderer/Cubemap.cpp
+        src/Renderer/Cubemap.hpp
 
         src/Math/Constants.hpp
         src/Math/Vector2.cpp
@@ -155,7 +162,8 @@ set (SRC
         src/Loaders/Factory/TextureFactory.hpp
         src/Loaders/Factory/MaterialFactory.cpp
         src/Loaders/Factory/MaterialFactory.hpp
-
+        src/Loaders/Factory/IhdrFactory.cpp
+        src/Loaders/Factory/IhdrFactory.hpp
 
         src/Loaders/BitmapLoader.cpp
         src/Loaders/BitmapLoader.hpp
@@ -167,6 +175,9 @@ set (SRC
         src/Loaders/TextureLoader.hpp
         src/Loaders/MaterialLoader.cpp
         src/Loaders/MaterialLoader.hpp
+        src/Loaders/IhdrLoader.cpp
+        src/Loaders/IhdrLoader.hpp
+      
 
         src/Loaders/ObjLoader.cpp
         src/Loaders/ObjLoader.hpp
@@ -208,6 +219,7 @@ set (SRC
         src/ECS/Ecs.cpp
 
         dependencies/lodepng/lodepng.cpp
+        dependencies/stb/stb_image.h
 
         src/MemoryTracker.cpp
         src/MemoryTracker.hpp

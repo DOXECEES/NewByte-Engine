@@ -111,6 +111,10 @@ namespace nb
                 return shadowFrameBuffer->getTexture();
             }
 
+            IRenderAPI* getApi() const noexcept
+            {
+                return api;
+            }
 
             void setCheckedTextureId(uint32_t id) { checkedTextureId = id; }
 

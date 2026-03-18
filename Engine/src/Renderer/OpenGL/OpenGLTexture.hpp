@@ -17,6 +17,15 @@ namespace nb
         {
             public:
                 OpenGlTexture(const std::filesystem::path& path) noexcept;
+                OpenGlTexture(
+                    int width,
+                    int height,
+                    GLint internalFormat,
+                    GLenum dataFormat,
+                    GLenum dataType,
+                    void* data
+                ) noexcept;
+
                 ~OpenGlTexture() noexcept;
 
                 NB_NON_COPYABLE(OpenGlTexture);
@@ -26,8 +35,13 @@ namespace nb
 
                 uint32_t getId() const noexcept override;
 
+                int getWidth() const noexcept override;
+                int getHeight() const noexcept override;
+
             private:
                 GLuint texture;
+                uint32_t width;
+                uint32_t height;
         };
     };
 };

@@ -88,5 +88,11 @@
 			"Assets/shaders/pbr_lit.vs",
             "Assets/shaders/pbr_lit.fs"
 		]
+	},
+	"equi_to_cube.shader" : {
+		"sources": [
+			"Assets/shaders/equi_to_cube.vs",
+			"Assets/shaders/equi_to_cube.fs"
+		]
 	}
 }
