@@ -11,6 +11,7 @@
 #include "Shader.hpp"
 #include "../Core/EngineSettings.hpp"
 #include "Mesh.hpp"
+#include "Cubemap.hpp"
 
 #include "../../dependencies/lodepng/lodepng.h"
 
@@ -29,6 +30,11 @@ namespace nb
             
                 Skybox();
                 ~Skybox();
+
+                void bindCubemap(Ref<Renderer::Cubemap> cube)
+                {
+                    cubemapTexture = cube->getId();
+                }
             
                 void render(Ref<Renderer::Shader> shader);
 

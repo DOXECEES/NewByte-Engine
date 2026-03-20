@@ -13,6 +13,8 @@ namespace nb
         public:
             virtual ~Texture() noexcept = default;
 
+            virtual void bind(uint32_t slot) = 0;
+
             virtual uint32_t getId() const noexcept = 0;
 
             virtual int getWidth() const noexcept = 0;

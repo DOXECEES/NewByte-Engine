@@ -7,6 +7,7 @@
 #include "Math/Vector3.hpp"
 #include "Renderer/Objects/Objects.hpp"
 #include "Material.hpp"
+#include "Resources/IhdrResource.hpp"
 
 #include <Renderer/Scene.hpp>
 #include "Light.hpp"
@@ -520,10 +521,21 @@ namespace nb::Renderer
     {
         
 
+
         if (!api->setContext(out.hdc, out.hglrc))
         {
             return;
         }
+        api->clear(true, true, false);
+
+
+        auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
+            "Assets/res/grasslands_sunset_4k.hdr"
+        );
+
+       
+
+
 
         RECT rc;
         GetClientRect(out.handle, &rc);
@@ -557,17 +569,94 @@ namespace nb::Renderer
         Math::Mat4<float> view = cam.getLookAt();
         Math::Mat4<float> model = Math::Mat4<float>::identity();
 
+        static Skybox sky;
+        auto skyboxShader =
+            nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Shader>(
+                "skybox.shader"
+            );
+        sky.bindCubemap(ibl->getCubemap());
+        skyboxShader->setUniformInt("skybox", 0);
+        skyboxShader->setUniformMat4("view", view);
+        skyboxShader->setUniformMat4("projection", projection);
+        sky.render(skyboxShader);
+
+        for (int i = 0; i < 7; i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, 0); // Привязываем 0 к 2D таргету
+        }
+
+        for (int i = 0; i < 7; i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, 0); // Привязываем 0 к 2D таргету
+        }
 
 
-        request.material->bind();
         auto shader = request.material->getShader();
-        api->bindTexture(
-            0, std::get<Ref<nb::Resource::TextureAsset>>(
-                   request.material->getProperties()["u_NormalMap"].value
-               )
-                   ->getInternalTexture()
-                   ->getId()
+        request.material->bind();
+        //shader->use(); // Явно биндим шейдер перед установкой юниформов
+
+        // --- 1. ТЕКСТУРЫ МАТЕРИАЛА ---
+        // Слот 0: Albedo
+        auto albedoTex = std::get<Ref<nb::Resource::TextureAsset>>(
+            request.material->getProperties()["u_AlbedoMap"].value
         );
+        //shader->setUniformInt("u_AlbedoMap", 0);
+        api->bindTexture(0, albedoTex->getInternalTexture()->getId());
+
+        // Слот 1: Normal
+        auto normalTex = std::get<Ref<nb::Resource::TextureAsset>>(
+            request.material->getProperties()["u_NormalMap"].value
+        );
+        //shader->setUniformInt("u_NormalMap", 1);
+        api->bindTexture(1, normalTex->getInternalTexture()->getId());
+
+        // Слот 2: ORM (Убедись, что это не HDR панорама!)
+        auto ormTex = std::get<Ref<nb::Resource::TextureAsset>>(
+            request.material->getProperties()["u_ORMMap"].value
+        );
+        //shader->setUniformInt("u_ORMMap", 2);
+
+        api->bindTexture(2, ormTex->getInternalTexture()->getId());
+
+        // --- 2. СИСТЕМНЫЕ ТЕКСТУРЫ IBL ---
+        
+
+
+
+
+        // Слот 3: Irradiance (CUBE)
+        //shader->setUniformInt("u_IrradianceMap", 3);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+
+        // Слот 4: Prefilter (CUBE)
+        //shader->setUniformInt("u_PrefilterMap", 4);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+        // Слот 5: BRDF LUT (2D)
+        //shader->setUniformInt("u_BrdfLUT", 5);
+        //api->bindTexture(5, ibl->getBrdfTexture()->getId());
+        api->bindTexture(0, albedoTex->getInternalTexture()->getId());
+        api->bindTexture(1, normalTex->getInternalTexture()->getId());
+        api->bindTexture(2, ormTex->getInternalTexture()->getId());
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+
+        // Слот 4: Prefilter (CUBE)
+        // shader->setUniformInt("u_PrefilterMap", 4);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+        // Слот 5: BRDF LUT (2D)
+        // shader->setUniformInt("u_BrdfLUT", 5);
+        api->bindTexture(5, ibl->getBrdfTexture()->getId());
+
+
+        
+
 
         shader->setUniformMat4("u_Projection", projection);
         shader->setUniformMat4("u_View", view);

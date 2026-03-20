@@ -26,12 +26,26 @@ namespace nb
                     void* data
                 ) noexcept;
 
+                OpenGlTexture(GLuint id, uint32_t w, uint32_t h) noexcept
+                    : texture(id),
+                      width(w),
+                      height(h)
+                {
+                    
+                }
+
+
                 ~OpenGlTexture() noexcept;
 
                 NB_NON_COPYABLE(OpenGlTexture);
                 NB_MOVABLE(OpenGlTexture);
 
-                void bind(const uint32_t slotId) const noexcept;
+                void bind(uint32_t slotId) override
+                {
+                    glActiveTexture(GL_TEXTURE0 + slotId);
+                    glBindTexture(GL_TEXTURE_2D, texture);
+                }
+                
 
                 uint32_t getId() const noexcept override;
 

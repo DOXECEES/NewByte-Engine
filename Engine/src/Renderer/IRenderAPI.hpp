@@ -97,6 +97,9 @@ namespace nb
             virtual void bindTexture(uint8 slot, uint32 textureId) noexcept = 0;
             virtual Ref<Texture> createTexture2d(const TextureDescriptor& descriptor) noexcept = 0; 
             virtual Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Texture> texture2d) noexcept = 0;
+            virtual Ref<Renderer::Cubemap> bakeIrradiance(Ref<Renderer::Cubemap> enviromentCubemap) noexcept = 0;
+            virtual Ref<Renderer::Cubemap> bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept = 0;
+            virtual Ref<Renderer::Texture> bakeBRDF() noexcept = 0;
 
             virtual void setViewport(const Viewport& viewport) noexcept = 0;
             virtual void clear(bool color, bool depth, bool stencil) noexcept = 0;

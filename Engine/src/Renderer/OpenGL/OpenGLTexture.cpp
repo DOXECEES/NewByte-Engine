@@ -58,11 +58,11 @@ namespace nb
             glDeleteTextures(1, &texture);
         }
 
-        void OpenGlTexture::bind(const uint32_t slotId) const noexcept
-        {
-            glActiveTexture(GL_TEXTURE0 + slotId);
-            glBindTexture(GL_TEXTURE_2D, texture);
-        }
+        //void OpenGlTexture::bind(const uint32_t slotId)
+        //{
+        //    glActiveTexture(GL_TEXTURE0 + slotId);
+        //    glBindTexture(GL_TEXTURE_2D, texture);
+        //}
 
         uint32_t OpenGlTexture::getId() const noexcept
         {

@@ -36,7 +36,16 @@ namespace nb::Loaders::Factory
 
         auto cubemap = renderApi->bakeTextureIntoCubeMap(texture2d);
 
-        return createRef<nb::Resource::IhdrResource>(path, cubemap);
+        auto irradiance = renderApi->bakeIrradiance(cubemap);
+
+        auto prefilter = renderApi->bakePrefilter(cubemap);
+
+        auto brdfTexture = renderApi->bakeBRDF();
+
+
+        return createRef<nb::Resource::IhdrResource>(
+            path, cubemap, irradiance, prefilter, brdfTexture
+        );
     }
 
     std::type_index IhdrFactory::getResourceType() const noexcept

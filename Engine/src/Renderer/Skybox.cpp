@@ -93,15 +93,15 @@ namespace nb
             glDepthMask(GL_FALSE);
             glDisable(GL_DEPTH_TEST);
             shader->use();
-            auto s =
-                nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::IhdrResource>(
-                    "Assets/res/lobby.hdr"
-                );
+            //auto s =
+            //    nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::IhdrResource>(
+            //        "Assets/res/lobby.hdr"
+            //    );
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, s->getCubemap()->getId());
+            //glBindTexture(GL_TEXTURE_CUBE_MAP, s->getPrefilterCubemap()->getId());
 
-            //glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
             mesh->draw(GL_TRIANGLES, shader);
             glDepthFunc(GL_LESS);
             glDepthMask(GL_TRUE);

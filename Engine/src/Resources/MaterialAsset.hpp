@@ -44,9 +44,8 @@ namespace nb::Resource
                 }
                 else if (std::holds_alternative<Ref<TextureAsset>>(prop.value)) {
                     auto texAsset = std::get<Ref<TextureAsset>>(prop.value);
-                    // Биндим текстуру в слот (0, 1, 2...)
                     //texAsset->getInternalTexture()->bind(textureSlot);
-                    m_shader->setUniformInt(name, textureSlot);
+                    //m_shader->setUniformInt(name, textureSlot);
                     textureSlot++;
                 }
             }

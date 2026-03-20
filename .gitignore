@@ -56,5 +56,5 @@ out
 TestResults
 bb
 
-!Assets/
+Assets/
 !Assets/**/*.obj
