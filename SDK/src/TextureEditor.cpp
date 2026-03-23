@@ -114,8 +114,9 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildEditorUI()
                                       .relativeHeight(1.0f)
                                       .background({180, 60, 60}, LayoutBuilder::StateStyle::ACTIVE)
                                       .onEvent(&Widgets::Button::onCheckedChangedSignal, [this](bool flag) {
-                                         settings.channelMask.x = flag ? 1.0f : 0.0f;
-                                        })
+                                          settings.channelMask.x = flag ? 1.0f : 0.0f;
+                                          onRender();
+                                      })
                               )
                               .child(
                                   LayoutBuilder::widget(new Widgets::Button())
@@ -125,6 +126,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildEditorUI()
                                       .background({60, 150, 80}, LayoutBuilder::StateStyle::ACTIVE)
                                         .onEvent(&Widgets::Button::onCheckedChangedSignal, [this](bool flag) {
                                             settings.channelMask.y = flag ? 1.0f : 0.0f;
+                                            onRender();
                                         })
                               )
                               .child(
@@ -135,6 +137,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildEditorUI()
                                       .background({60, 100, 180}, LayoutBuilder::StateStyle::ACTIVE)
                                         .onEvent(&Widgets::Button::onCheckedChangedSignal, [this](bool flag) {
                                             settings.channelMask.z = flag ? 1.0f : 0.0f;
+                                            onRender();
                                         })
                               )
                               .child(

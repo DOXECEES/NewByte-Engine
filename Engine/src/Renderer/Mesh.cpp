@@ -240,7 +240,13 @@ namespace nb
                 sub->attachShader(shader);
                 applyMaterial(*sub);
 
-                VAO.draw(static_cast<uint32_t>(sub->indices.size()), mode, byteOffset);
+
+                //VAO.draw(static_cast<GLsizei>(sub->indices.size()), mode, byteOffset);
+                glDrawElements(
+                    mode, static_cast<GLsizei>(sub->indices.size()), GL_UNSIGNED_INT,
+                    reinterpret_cast<void*>(0)
+                );
+
 
                 byteOffset += sub->indices.size() * sizeof(uint32_t);
             }

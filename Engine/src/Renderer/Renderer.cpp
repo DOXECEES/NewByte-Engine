@@ -97,11 +97,11 @@ namespace nb::Renderer
 
         if (!albedo)
         {
-            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\albedo (2).png"); 
+            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_diff_1k.png"); 
             metal       = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\metal (2).png");
             roughtness  = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\rough (2).png");
             ao          = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\ao (3).png");
-            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\normal.png");
+            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_nor_gl_1k.png");
         }
 
 
@@ -519,8 +519,7 @@ namespace nb::Renderer
         MaterialPreviewRequest& request
     )
     {
-        
-
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
 
         if (!api->setContext(out.hdc, out.hglrc))
         {
@@ -530,10 +529,8 @@ namespace nb::Renderer
 
 
         auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
-            "Assets/res/grasslands_sunset_4k.hdr"
+            "Assets/res/glasshouse_interior_4k.hdr"
         );
-
-       
 
 
 
@@ -545,6 +542,7 @@ namespace nb::Renderer
 
         api->setViewport({0.0f, 0.0f, (float)width, (float)height});
         api->clear(true, true, false);
+
 
         Ref<Mesh> primitiveMesh =
             ResMan::ResourceManager::getInstance()->getResource<Mesh>("Untitled.obj");
@@ -563,8 +561,8 @@ namespace nb::Renderer
 
         request.x = 0.0f;
         request.y = 0.0f;
-        
 
+        
         Math::Mat4<float> projection = Math::projection(45.0f, aspect, 0.1f, 100.0f);
         Math::Mat4<float> view = cam.getLookAt();
         Math::Mat4<float> model = Math::Mat4<float>::identity();
@@ -574,6 +572,9 @@ namespace nb::Renderer
             nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Shader>(
                 "skybox.shader"
             );
+
+
+
         sky.bindCubemap(ibl->getCubemap());
         skyboxShader->setUniformInt("skybox", 0);
         skyboxShader->setUniformMat4("view", view);
@@ -655,7 +656,10 @@ namespace nb::Renderer
         api->bindTexture(5, ibl->getBrdfTexture()->getId());
 
 
+
+
         
+
 
 
         shader->setUniformMat4("u_Projection", projection);
@@ -666,8 +670,7 @@ namespace nb::Renderer
 
 
 
-
-        shader->setUniformVec3("u_CameraPos", cameraPos);
+        shader->setUniformVec3("u_CameraPos", cam.getPosition());
         shader->setUniformVec3("u_LightPos", lightPos);
         shader->setUniformVec3("u_LightColor", lightColor);
         

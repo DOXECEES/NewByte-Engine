@@ -203,6 +203,7 @@ namespace nb::OpenGl
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
+
     Ref<Renderer::Texture> OpenGLRender::createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept
     {
         GLint internalFormat = GL_RGB;
@@ -241,6 +242,8 @@ namespace nb::OpenGl
 
     Ref<Renderer::Cubemap> OpenGLRender::bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept
     {
+
+
         Ref<OpenGLCubemap> cubemap = std::make_shared<OpenGLCubemap>(texture2d->getWidth(),GL_RGB16F);
 
         Math::Mat4<float> captureProjection = Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -255,7 +258,9 @@ namespace nb::OpenGl
 
         auto equiToCubeShader = ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>("equi_to_cube.shader"); 
 
-        auto frameBuffer = std::dynamic_pointer_cast<FBO>(this->createFrameBuffer(texture2d->getWidth(), texture2d->getWidth()));
+        auto frameBuffer = std::dynamic_pointer_cast<FBO>(
+            this->createFrameBuffer(texture2d->getWidth(), texture2d->getWidth())
+        );
         frameBuffer->addRenderBufferAttachment(
             Renderer::IFrameBuffer::RenderBufferAttachment::DEPTH
         );
@@ -263,7 +268,7 @@ namespace nb::OpenGl
 
         //shader
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
+        glBindTexture(GL_TEXTURE_2D, texture2d->getId());
 
         Ref<Renderer::Mesh> cube =
             nb::ResMan::ResourceManager::getInstance()->getResource<Renderer::Mesh>(
@@ -275,7 +280,7 @@ namespace nb::OpenGl
 
         setViewport({0,0,(float)texture2d->getWidth(),(float)texture2d->getWidth()});
         
-        for (unsigned int i = 0; i < 6; ++i)
+        for (int i = 0; i < 6; ++i)
         {
             equiToCubeShader->setUniformMat4("view", captureViews[i]);
 
@@ -299,6 +304,7 @@ namespace nb::OpenGl
     {
         Math::Mat4<float> captureProjection =
             Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+
         Math::Mat4<float> captureViews[] = {
             Math::lookAt<float>({0, 0, 0}, {1, 0, 0}, {0, -1, 0}),  // +X
             Math::lookAt<float>({0, 0, 0}, {-1, 0, 0}, {0, -1, 0}), // -X
@@ -320,9 +326,16 @@ namespace nb::OpenGl
                 "unit_cube.obj"
             );
 
-        uint32_t captureFBO;
-        glGenFramebuffers(1, &captureFBO);
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        auto equiToCubeShader =
+            ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>(
+                "equi_to_cube.shader"
+            );
+
+        auto frameBuffer = std::dynamic_pointer_cast<FBO>(
+            this->createFrameBuffer(0,0)
+        );
+        
+        frameBuffer->bind();
 
         irradianceShader->setUniformMat4("projection", captureProjection); 
 
@@ -336,17 +349,17 @@ namespace nb::OpenGl
         for (unsigned int i = 0; i < 6; ++i)
         {
             irradianceShader->setUniformMat4("view", captureViews[i]);
-            glFramebufferTexture2D(
-                GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                irradianceMap->getId(), 0
+            frameBuffer->attachTextureId(
+                irradianceMap->getId(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i
             );
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                 
+            clear(true, true, false);
             unitCube->draw(GL_TRIANGLES, irradianceShader);
         }
 
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &captureFBO);
+
 
         return irradianceMap;
 
@@ -354,71 +367,114 @@ namespace nb::OpenGl
 
     Ref<Renderer::Cubemap> OpenGLRender::bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept
     {
-        Math::Mat4<float> captureProjection =
-            Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+        Math::Mat4<float> projection = Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
-         Math::Mat4<float> captureViews[] = {
-            Math::lookAt<float>({0, 0, 0}, {1, 0, 0}, {0, -1, 0}),  // +X
-            Math::lookAt<float>({0, 0, 0}, {-1, 0, 0}, {0, -1, 0}), // -X
-            Math::lookAt<float>({0, 0, 0}, {0, 1, 0}, {0, 0, 1}),   // +Y
-            Math::lookAt<float>({0, 0, 0}, {0, -1, 0}, {0, 0, -1}), // -Y
-            Math::lookAt<float>({0, 0, 0}, {0, 0, 1}, {0, -1, 0}),  // +Z
-            Math::lookAt<float>({0, 0, 0}, {0, 0, -1}, {0, -1, 0})  // -Z
+        Math::Mat4<float> views[] = {
+            Math::lookAt<float>({0, 0, 0}, {1, 0, 0}, {0, -1, 0}),
+            Math::lookAt<float>({0, 0, 0}, {-1, 0, 0}, {0, -1, 0}),
+            Math::lookAt<float>({0, 0, 0}, {0, 1, 0}, {0, 0, 1}),
+            Math::lookAt<float>({0, 0, 0}, {0, -1, 0}, {0, 0, -1}),
+            Math::lookAt<float>({0, 0, 0}, {0, 0, 1}, {0, -1, 0}),
+            Math::lookAt<float>({0, 0, 0}, {0, 0, -1}, {0, -1, 0})
         };
 
-        uint32_t baseSize = 128; 
-        auto prefilterMap = createRef<OpenGl::OpenGLCubemap>(baseSize, GL_RGB16F);
-
-        glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap->getId());
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-        auto prefilterShader =
-            ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>(
-                "prefilter.shader"
-            );
-        auto unitCube = nb::ResMan::ResourceManager::getInstance()->getResource<Renderer::Mesh>(
-            "unit_cube.obj"
-        );
-
-        uint32_t captureFBO;
-        glGenFramebuffers(1, &captureFBO);
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-
-        //prefilterShader->bind();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap->getId());
-        prefilterShader->setUniformInt("environmentMap", 0);
-        prefilterShader->setUniformMat4("projection", captureProjection);
-
+        uint32_t baseSize = 512;
         uint32_t maxMipLevels = 5;
+
+        auto map = createRef<OpenGl::OpenGLCubemap>();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, map->getId());
+
+        // 🔥 ПОЛНАЯ АЛЛОКАЦИЯ ВСЕХ MIP УРОВНЕЙ
         for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
         {
-            uint32_t mipWidth = static_cast<uint32_t>(baseSize * std::pow(0.5, mip));
-            glViewport(0, 0, mipWidth, mipWidth);
-
-            float roughness = (float)mip / (float)(maxMipLevels - 1);
-            prefilterShader->setUniformFloat("roughness", roughness);
+            uint32_t size = baseSize >> mip;
 
             for (uint32_t i = 0; i < 6; ++i)
             {
-                prefilterShader->setUniformMat4("view", captureViews[i]);
+                glTexImage2D(
+                    GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mip, GL_RGB16F, size, size, 0, GL_RGB,
+                    GL_FLOAT, nullptr
+                );
+            }
+        }
+
+        // 🔒 Фикс уровней
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, maxMipLevels - 1);
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        auto shader = ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>(
+            "prefilter.shader"
+        );
+
+        auto cube =
+            ResMan::ResourceManager::getInstance()->getResource<Renderer::Mesh>("unit_cube.obj");
+
+        // --- FBO ---
+        GLuint fbo, rbo;
+        glGenFramebuffers(1, &fbo);
+        glGenRenderbuffers(1, &rbo);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, baseSize, baseSize);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+        // --- входная кубмапа ---
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap->getId());
+
+        //shader->bind();
+        shader->setUniformInt("environmentMap", 0);
+        shader->setUniformMat4("projection", projection);
+
+        for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
+        {
+            uint32_t size = baseSize >> mip;
+
+            glViewport(0, 0, size, size);
+
+            float roughness = (float)mip / (float)(maxMipLevels - 1);
+            shader->setUniformFloat("roughness", roughness);
+
+            // resize depth под mip
+            glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size, size);
+
+            for (uint32_t i = 0; i < 6; ++i)
+            {
+                shader->setUniformMat4("view", views[i]);
 
                 glFramebufferTexture2D(
                     GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                    prefilterMap->getId(), mip
+                    map->getId(), mip
                 );
 
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                unitCube->draw(GL_TRIANGLES, prefilterShader);
+                // 🔍 проверка FBO
+                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                {
+                    printf("FBO ERROR\n");
+                }
 
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                cube->draw(GL_TRIANGLES, shader);
             }
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &captureFBO);
 
-        return prefilterMap;
+        glDeleteRenderbuffers(1, &rbo);
+        glDeleteFramebuffers(1, &fbo);
+
+        return map;
     }
 
     Ref<Renderer::Texture> OpenGLRender::bakeBRDF() noexcept

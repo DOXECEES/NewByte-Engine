@@ -55,7 +55,8 @@ namespace nb
             void attachTextureId(
                 uint32_t textureId,
                 GLenum attachment,
-                GLenum target
+                GLenum target,
+                uint32_t mipLevel = 0
             ) noexcept;
 
 

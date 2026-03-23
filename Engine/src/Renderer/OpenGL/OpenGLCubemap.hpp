@@ -9,6 +9,7 @@ namespace nb::OpenGl
     class OpenGLCubemap : public Renderer::Cubemap
     {
     public:
+        OpenGLCubemap() noexcept;
         OpenGLCubemap(uint32_t size, int internalFormat) noexcept;
         ~OpenGLCubemap();
 

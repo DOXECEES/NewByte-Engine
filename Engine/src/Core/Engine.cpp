@@ -52,6 +52,7 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
     return true;
 }
 
+
 #include "../ECS/Ecs.hpp"
 #include "../Loaders/PngLoader.hpp"
 #include "Error/ErrorManager.hpp"

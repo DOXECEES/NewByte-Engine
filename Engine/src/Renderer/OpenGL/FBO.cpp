@@ -186,11 +186,12 @@ namespace nb
         void FBO::attachTextureId(
             uint32_t textureId,
             GLenum attachment,
-            GLenum target
+            GLenum target,
+            uint32_t mipLevel
         ) noexcept
         {
             bind();
-            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, target, textureId, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, target, textureId, mipLevel);
         }
 
         bool FBO::finalize() noexcept
