@@ -14,12 +14,10 @@ using uint32 = std::uint32_t;
 using uint64 = std::uint64_t;
 
 
-namespace nbstl
-{
-    using Size = unsigned long long;
+
+using Size = unsigned long long;
 
 
 
-};
 
 #endif

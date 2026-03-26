@@ -134,6 +134,7 @@ namespace nb::Renderer
 
         std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;
+        auto shader = rm->getResource<Shader>("ADS.shader");
 
         scene.traverseAll(
             [&](Ecs::EntityID entityId)
@@ -153,7 +154,7 @@ namespace nb::Renderer
                     auto* meshPtr = meshComp.mesh.get();
 
                     Pipeline mainP = {};
-                    mainP.shader = meshPtr->uniforms.shader;
+                    mainP.shader = shader;
                     mainP.polygonMode = polygonMode;
 
                     // Берем уже вычисленную в пункте 1 матрицу
@@ -243,7 +244,8 @@ namespace nb::Renderer
         for (auto& cmd : mainQueue) 
         {
             auto& u = cmd.mesh->uniforms;
-            PBRMaterial mat(cmd.mesh->uniforms.shader);
+            cmd.mesh->uniforms.shader = shader;
+            PBRMaterial mat(shader);
             mat.setAlbedoMap(albedo);
             mat.setNormalMap(normal);
             mat.setMetallicMap(metal);

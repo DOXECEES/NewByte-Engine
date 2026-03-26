@@ -25,6 +25,7 @@
 #include "MaterialEditor.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
+
 //
 
 
@@ -81,6 +82,8 @@ private:
     std::shared_ptr<MaterialEditor> materialEditor;
 
 
+
+
     void openColorPickerWindow();
     //
     std::shared_ptr<SceneModelEcs> sceneModel;
@@ -100,6 +103,8 @@ private:
 
     void initEngine() noexcept;
     
+    void setupMainWindow() noexcept;
+
     void setupHierarchyUI() noexcept;
     
     void setupInspectorUI() noexcept;

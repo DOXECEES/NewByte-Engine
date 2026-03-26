@@ -57,6 +57,10 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
 #include "../Loaders/PngLoader.hpp"
 #include "Error/ErrorManager.hpp"
 
+extern "C"
+{
+    _declspec(dllexport) DWORD NvOptimusEnablement = 1;
+}
 
 namespace nb
 {

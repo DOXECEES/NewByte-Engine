@@ -37,7 +37,11 @@
 #include <Renderer/Material.hpp>
 #include <Renderer/Texture.hpp>
 #include <Renderer/Mesh.hpp>
+
+#include <Renderer/Objects/Objects.hpp>
+#include <Renderer/Scene.hpp>
 #include <memory>
+
 
 
 
@@ -112,6 +116,8 @@ void EditorApp::createWindows() noexcept
     mainWindow->setTitle(
         Utils::toWstring(Translation::fromKey("Ui.Editor.Title"))
     );
+    mainWindow->excludeFromClientRect({32, 0, 0, 0});
+
 
     sceneWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
     sceneWindow->setTitle(
@@ -137,6 +143,9 @@ void EditorApp::createWindows() noexcept
     debugWindow->setTitle(
         Utils::toWstring(Translation::fromKey("Ui.Editor.DebugWindow.Title"))
     );
+
+    
+
 }
 
 void EditorApp::setupDocking() noexcept
@@ -198,6 +207,110 @@ void EditorApp::initEngine() noexcept
 
 }
 
+void EditorApp::setupMainWindow() noexcept
+{
+    using namespace nbui;
+    auto rootUI =
+        LayoutBuilder::vBox()
+            .style(
+                [](NNsLayout::LayoutStyle& s)
+                {
+                    s.width = 1.0f;
+                    s.height = 1.0f;
+                    s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+                    s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+                    s.color = NbColor{30, 30, 30};
+                }
+            )
+            .child(
+                LayoutBuilder::toolbar()
+                    .buttonGroupOnlyOne()
+                    .relativeHeight(1.0f)
+                    .absoluteWidth(120)
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"2D")
+                            .absoluteWidth(50)
+                            .relativeHeight(1.0f)
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"3D")
+                            .absoluteWidth(50)
+                            .relativeHeight(1.0f)
+                    )
+
+                    .endGroup()
+
+                    .buttonGroupMultiple()
+                    .relativeHeight(1.0f)
+                    .relativeWidth(0.5f)
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"R")
+                            .absoluteWidth(50)
+                            .relativeHeight(1.0f)
+                            .background({180, 60, 60}, LayoutBuilder::StateStyle::ACTIVE)
+                            .onEvent(
+                                &Widgets::Button::onCheckedChangedSignal,
+                                [this](bool flag)
+                                {
+                                    //settings.channelMask.x = flag ? 1.0f : 0.0f;
+                                    //onRender();
+                                }
+                            )
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"G")
+                            .absoluteWidth(50)
+                            .relativeHeight(1.0f)
+                            .background({60, 150, 80}, LayoutBuilder::StateStyle::ACTIVE)
+                            .onEvent(
+                                &Widgets::Button::onCheckedChangedSignal,
+                                [this](bool flag)
+                                {
+                                    //settings.channelMask.y = flag ? 1.0f : 0.0f;
+                                    //onRender();
+                                }
+                            )
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"B")
+                            .absoluteWidth(50)
+                            .relativeHeight(1.0f)
+                            .background({60, 100, 180}, LayoutBuilder::StateStyle::ACTIVE)
+                            .onEvent(
+                                &Widgets::Button::onCheckedChangedSignal,
+                                [this](bool flag)
+                                {
+                                    //settings.channelMask.z = flag ? 1.0f : 0.0f;
+                                    //onRender();
+                                }
+                            )
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"A")
+                            .absoluteWidth(50)
+                            .relativeHeight(1.0f)
+                            .background({150, 150, 150}, LayoutBuilder::StateStyle::ACTIVE)
+
+                    )
+                    .checkedGroupIndex(true, 0)
+                    .checkedGroupIndex(true, 1)
+                    .checkedGroupIndex(true, 2)
+                    .checkedGroupIndex(true, 3)
+
+                    .endGroup()
+
+            )
+            .build();
+
+    mainWindow->getLayoutRoot()->addChild(std::move(rootUI));
+}
+
 void EditorApp::setupHierarchyUI() noexcept
 {
     using namespace nbui;
@@ -208,9 +321,91 @@ void EditorApp::setupHierarchyUI() noexcept
             }
         )
         .child(LayoutBuilder::treeView()
-            .apply<Widgets::TreeView>([&](auto* tv)
+            .apply<Widgets::TreeView>([&, this](auto* tv)
                 { 
                     tv->setModel(sceneModel);
+
+                    auto popup = std::make_unique<nbui::PopupMenu>();
+                    popup->addItem(
+                        L"Удалить",
+                        [&]()
+                        {
+                           
+                        }
+                    );
+                    popup->addItem(L"Копировать", []() {  });
+
+                    mainWindow->attachMenuToWidget(tv, popup.get());
+                    subscribe(
+                        tv, &Widgets::TreeView::onItemRightClickSignal,
+                        [&, tv](const Widgets::ModelIndex& index)
+                        {
+                            auto popup = new nbui::PopupMenu();
+
+                            popup->addItem(
+                                L"Удалить",
+                                []()
+                                {
+                                    nb::Error::ErrorManager::instance().report(
+                                        nb::Error::Type::INFO, "CLICKED"
+                                    );
+
+                                    
+                                }
+                            );
+
+                            
+
+                             popup->addItem(
+                                L"Добавить куб",
+                                [this, index, tv]()
+                                {
+                                    if (!index.isValid())
+                                    {
+                                        return;
+                                    }
+
+                                    auto* parentItem = sceneModel->findById(index.getUuid());
+                                    if (!parentItem)
+                                    {
+                                        return;
+                                    }
+
+                                    auto& scene = nb::Scene::getInstance();
+
+                                    auto parentEntity =
+                                        reinterpret_cast<nb::Ecs::EntityID>(parentItem->getData());
+
+                                    auto entity = scene.createNode(parentEntity);
+                                    entity.addComponent<MeshComponent>({
+                                        .mesh = nb::Renderer::PrimitiveGenerators::createCube(),
+                                        .material = nullptr
+                                    });
+                                    entity.addComponent<TransformComponent>({});
+                                
+                                    sceneModel->addEntity(parentEntity, entity.getId());
+
+                                    tv->refresh();
+                                    onActiveNodeChanged.emit();
+                                }
+                            );
+
+                             
+
+                             popup->addItem(
+                                 L"Переименовать",
+                                 [tv, index]()
+                                 {
+                                     tv->startEditing(index);
+                                 }
+                             );
+                           
+
+                            auto pos = this->mainWindow->getMousePosition();
+
+                            this->hierarchyWindow->getPopupManager().show(popup, pos.x, pos.y);
+                        }
+                    );
                 }
             )
             .onEvent(&Widgets::TreeView::onItemClickSignal, [this](const auto& index) {
@@ -227,6 +422,9 @@ void EditorApp::setupHierarchyUI() noexcept
             })
             .relativeHeight(1.0f)
             .relativeWidth(1.0f)
+             
+             
+            
         )
         .build();
 

@@ -8,14 +8,13 @@
 
 #include <Widgets/TreeView.hpp>
 
-#include <stack>
 #include <memory>
-
+#include <stack>
+#include <unordered_map>
 
 class SceneModelEcs final : public Widgets::ITreeModel
 {
 public:
-
     explicit SceneModelEcs(
         nb::Ecs::ECSRegistry& registry,
         nb::Ecs::EntityID rootEntity
@@ -77,6 +76,31 @@ public:
         return ecs.get<NameComponent>(entity).name;
     }
 
+    void setData(
+        const nbstl::Uuid& uuid,
+        const std::string& name
+    ) noexcept override
+    {
+        if (!uuidMap.contains(uuid))
+        {
+            return;
+        }
+
+        auto& item = uuidMap[uuid];
+        nb::Ecs::EntityID id = getEntity(*item);
+        nb::Ecs::Entity entity{id};
+
+        if (ecs.has<NameComponent>(entity))
+        {
+            auto& nameComponent = ecs.get<NameComponent>(entity);
+            nameComponent.name = name;
+        }
+        else
+        {
+            ecs.add<NameComponent>(entity, {name});
+        }
+    }
+
     size_t size() const noexcept override
     {
         return uuidMap.size();
@@ -88,7 +112,34 @@ public:
     {
         rootItems.clear();
         uuidMap.clear();
+        entityMap.clear();
         buildModel();
+    }
+
+    void addEntity(
+        nb::Ecs::EntityID parent,
+        nb::Ecs::EntityID child
+    ) noexcept
+    {
+        auto parentIt = entityMap.find(parent);
+        if (parentIt == entityMap.end())
+        {
+            return;
+        }
+
+        Widgets::ModelItem* parentItem = parentIt->second;
+
+        auto childItem = std::make_unique<Widgets::ModelItem>(
+            reinterpret_cast<void*>(static_cast<uintptr_t>(child)), parentItem,
+            parentItem->getDepth() + 1
+        );
+
+        Widgets::ModelItem* rawPtr = childItem.get();
+
+        parentItem->children.push_back(std::move(childItem));
+
+        uuidMap[rawPtr->getUuid()] = rawPtr;
+        entityMap[child] = rawPtr;
     }
 
     nb::Ecs::EntityID getEntity(const Widgets::ModelIndex& index) const noexcept
@@ -107,17 +158,13 @@ private:
     nb::Ecs::EntityID root;
 
     std::vector<std::unique_ptr<Widgets::ModelItem>> rootItems;
+
     std::unordered_map<nbstl::Uuid, Widgets::ModelItem*> uuidMap;
+    std::unordered_map<nb::Ecs::EntityID, Widgets::ModelItem*> entityMap;
 
 private:
     void buildModel() noexcept
     {
-        //if (!ecs.iisValid(root))
-        //{
-        //    return;
-        //}
-
-        // создаём корень
         rootItems.push_back(
             std::make_unique<Widgets::ModelItem>(
                 reinterpret_cast<void*>(static_cast<uintptr_t>(root)), nullptr, 0
@@ -125,7 +172,9 @@ private:
         );
 
         Widgets::ModelItem* rootItem = rootItems.back().get();
+
         uuidMap[rootItem->getUuid()] = rootItem;
+        entityMap[root] = rootItem;
 
         nb::Ecs::Entity entity{root};
         if (!ecs.has<HierarchyComponent>(entity))
@@ -165,14 +214,14 @@ private:
                 Widgets::ModelItem* rawPtr = childItem.get();
 
                 modelItem->children.push_back(std::move(childItem));
+
                 uuidMap[rawPtr->getUuid()] = rawPtr;
+                entityMap[child] = rawPtr;
 
                 stk.push({child, rawPtr, depth + 1});
             }
         }
     }
 };
-
-
 
 #endif
