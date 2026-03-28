@@ -12,7 +12,6 @@
 #endif
 
 
-
 #include "../Subsystems.hpp"
 
 #include "ShaderSystem.hpp"
@@ -37,6 +36,7 @@
 #include <Uuid.hpp>
 
 #include "Renderer/Scene.hpp"
+
 
 namespace nb
 {
@@ -65,12 +65,6 @@ namespace nb
                 Math::Ray r2({ 5.0f, 2.0f, 0.0f }, { -1.0f, 0.0f, 0.0f });
                 auto res = Math::distanceBetweenRays(r, r2);
 
-                //auto v = nb::Math::projectVectorToVector(v1, v2);
-
-
-                //Loaders::PngLoader loader("C:\\Users\\isymo\\Pictures\\Screenshots\\1.png");
-
-             
 
                 struct Helth
                 {
@@ -111,7 +105,9 @@ namespace nb
                 auto hsv = color.toHsv();
 
 #endif            
+                 
 
+                
 
                 hwnd = windowHwnd;
                 subSystems->Init(hwnd);
