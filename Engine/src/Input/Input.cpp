@@ -100,7 +100,33 @@ namespace nb
                     }
 
 
-                    deviceFlags = rawInput.data.mouse.usButtonFlags;
+                    auto buttons = rawInput.data.mouse.usButtonFlags;
+                    if (buttons & RI_MOUSE_LEFT_BUTTON_DOWN)
+                    {
+                        deviceFlags |= Mouse::ButtonCodes::LEFT_BUTTON_DOWN;
+                    }
+                    if (buttons & RI_MOUSE_LEFT_BUTTON_UP)
+                    {
+                        deviceFlags &= ~Mouse::ButtonCodes::LEFT_BUTTON_DOWN;
+                    }
+
+                    if (buttons & RI_MOUSE_RIGHT_BUTTON_DOWN)
+                    {
+                        deviceFlags |= Mouse::ButtonCodes::RIGHT_BUTTON_DOWN;
+                    }
+                    if (buttons & RI_MOUSE_RIGHT_BUTTON_UP)
+                    {
+                        deviceFlags &= ~Mouse::ButtonCodes::RIGHT_BUTTON_DOWN;
+                    }
+
+                    if (buttons & RI_MOUSE_MIDDLE_BUTTON_DOWN)
+                    {
+                        deviceFlags |= Mouse::ButtonCodes::MIDDLE_BUTTON_DOWN;
+                    }
+                    if (buttons & RI_MOUSE_MIDDLE_BUTTON_UP)
+                    {
+                        deviceFlags &= ~Mouse::ButtonCodes::MIDDLE_BUTTON_DOWN;
+                    }
 
                     break;
                 }

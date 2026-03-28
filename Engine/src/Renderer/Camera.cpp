@@ -10,6 +10,41 @@ namespace nb
 {
     namespace Renderer
     {
+        void Camera::updateOrbit(
+            const float deltaX,
+            const float deltaY
+        ) noexcept
+        {
+            float sensitivity = 0.003f;
+
+            Math::Vector3<float> cameraRight = Math::rotate(totalRotation, Math::Vector3<float>{1.0f, 0.0f, 0.0f});
+            Math::Vector3<float> cameraUp = Math::rotate(totalRotation, Math::Vector3<float>{0.0f, 1.0f, 0.0f});
+
+            auto qX = Math::Quaternion<float>::axisAngleToQuaternion(-deltaX * sensitivity, cameraUp);
+            auto qY = Math::Quaternion<float>::axisAngleToQuaternion(-deltaY * sensitivity, cameraRight);
+
+            auto deltaRotation = qX.cross(qY); 
+            totalRotation = deltaRotation.cross(totalRotation);
+            totalRotation.normalize();
+
+            Math::Vector3<float> startOffset(0.0f, 0.0f, distance);
+            Math::Vector3<float> offset = Math::rotate(totalRotation, startOffset);
+
+            position = target + offset;
+
+            direction = (target - position);
+            direction.normalize();
+
+            Math::Vector3<float> upVector =
+                Math::rotate(totalRotation, Math::Vector3<float>{0.0f, 1.0f, 0.0f});
+            lookAt = Math::lookAt(position, target, upVector);
+
+            projection = Math::projection(
+                Math::toRadians(Core::EngineSettings::getFov()),
+                Core::EngineSettings::getAspectRatio(), NEAR_PLANE, FAR_PLANE
+            );
+        }
+
         void Camera::update(const float newYaw, const float newPitch) noexcept
         {
             float deltaYaw = (yaw - newYaw) * 0.003f;

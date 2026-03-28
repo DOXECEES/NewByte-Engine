@@ -3,6 +3,9 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Skybox.hpp"
 
+#include "Manager/ResourceManager.hpp"
+#include "Resources/IhdrResource.hpp"
+
 namespace nb
 {
     namespace Renderer
@@ -76,7 +79,7 @@ namespace nb
             std::vector<std::unique_ptr<Renderer::SubMesh>> m;
             auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
             m.push_back(std::move(p));
-            mesh = new Mesh(std::move(m), std::move(skyboxVertices));
+            mesh = new Mesh(std::move(m), std::move(skyboxVertices), "");
         }
 
         Skybox::~Skybox()
@@ -90,7 +93,14 @@ namespace nb
             glDepthMask(GL_FALSE);
             glDisable(GL_DEPTH_TEST);
             shader->use();
+            //auto s =
+            //    nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::IhdrResource>(
+            //        "Assets/res/lobby.hdr"
+            //    );
+
             glActiveTexture(GL_TEXTURE0);
+            //glBindTexture(GL_TEXTURE_CUBE_MAP, s->getPrefilterCubemap()->getId());
+
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
             mesh->draw(GL_TRIANGLES, shader);
             glDepthFunc(GL_LESS);

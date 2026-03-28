@@ -3,6 +3,8 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "JsonWriter.hpp"
 
+#include <fstream>
+
 namespace nb
 {
     namespace Loaders
@@ -202,6 +204,16 @@ namespace nb
             {
                 output << '\t';
             }
+        }
+
+        void JsonWriter::saveOutputInFile(const std::filesystem::path& savePath) noexcept
+        {
+            std::ofstream file(savePath);
+            if (file.is_open())
+            {
+                file << output.str();
+            }
+
         }
     };
 };

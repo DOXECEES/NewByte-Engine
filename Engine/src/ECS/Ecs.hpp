@@ -126,6 +126,12 @@ namespace nb::Ecs
         virtual bool contains(EntityID entity) const = 0;
         virtual void* getRaw(EntityID entity) = 0;
         virtual Reflect::TypeInfo* getTypeInfo() = 0;
+
+        virtual void addRaw(
+            EntityID entity,
+            void* component
+        ) = 0;
+
     };
 
     template <typename T> struct StorageWrapper : StorageWrapperBase
@@ -152,6 +158,15 @@ namespace nb::Ecs
         {
             return Reflect::getType<T>();
         }
+
+        void addRaw(
+            EntityID entity,
+            void* component
+        ) override
+        {
+            storage.add(entity, *static_cast<T*>(component));
+        }
+
     };
 
     class ECSRegistry

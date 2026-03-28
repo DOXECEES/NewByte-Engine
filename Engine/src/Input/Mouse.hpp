@@ -33,6 +33,9 @@ namespace nb
         {
             inline static constexpr float POSITIVE_PITCH_LIMIT = 89.0f;
             inline static constexpr float NEGATIVE_PITCH_LIMIT = -89.0f;
+          
+        public:
+
             // copied from winapi struct;
             enum ButtonCodes
             {
@@ -48,7 +51,6 @@ namespace nb
                 BUTTON_5_UP         = 0x0200
             };
 
-        public:
             Mouse() = default;
             ~Mouse() = default;
 

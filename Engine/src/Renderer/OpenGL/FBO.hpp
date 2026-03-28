@@ -24,9 +24,10 @@ namespace nb
             enum class TextureType
             {
                 COLOR           = 0,
-                DEPTH           = 1,
-                STENCIL         = 2,
-                DEPTH_STENCIL   = 3,
+                COLOR_HDR       = 1, 
+                DEPTH           = 2,
+                STENCIL         = 3,
+                DEPTH_STENCIL   = 4,
             };
 
             enum class RenderBufferType
@@ -50,6 +51,14 @@ namespace nb
 
             void bindTexture(TextureType type) noexcept;
             void bindRenderBuffer(RenderBufferType renderBufferType) noexcept;
+            
+            void attachTextureId(
+                uint32_t textureId,
+                GLenum attachment,
+                GLenum target,
+                uint32_t mipLevel = 0
+            ) noexcept;
+
 
             void setSize(const GLuint width, const GLuint height) noexcept;
 

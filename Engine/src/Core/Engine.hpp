@@ -36,6 +36,8 @@
 
 #include <Uuid.hpp>
 
+#include "Renderer/Scene.hpp"
+
 namespace nb
 {
     namespace Core
@@ -113,13 +115,15 @@ namespace nb
 
                 hwnd = windowHwnd;
                 subSystems->Init(hwnd);
+                renderer = subSystems->getRenderer();
+                renderer->setCamera(&cam);
+                ResMan::ResourceManager::init(renderer->getApi());
                 keyboard = subSystems->getKeyboard();
                 mouse = subSystems->getMouse();
                 input = createRef<Input::Input>();
                 input->linkKeyboard(keyboard);
                 input->linkMouse(mouse);
-                renderer = subSystems->getRenderer();
-                renderer->setCamera(&cam);
+             
                 Utils::Timer::init();
             }
             ~Engine() = default;
@@ -133,7 +137,7 @@ namespace nb
             void handleEditorMode() noexcept;
 
 
-            void rayPick(const uint32_t x, const uint32_t y) const noexcept;
+            Node rayPick(uint32_t x, uint32_t y) const noexcept;
             
             Mode getMode() const noexcept;
 

@@ -50,19 +50,35 @@ namespace nb::OpenGl
         glBindBuffer(GL_ARRAY_BUFFER, mesh->getVboId());
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->getEboId());
 
+        glVertexAttribPointer(
+            0, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex),
+            reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, position))
+        );
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(
-            0, 3, GL_FLOAT, GL_FALSE,
-            sizeof(Renderer::Vertex),
-            (void*)0
-        );
 
-        glEnableVertexAttribArray(3);
         glVertexAttribPointer(
-            3, 2, GL_FLOAT, GL_FALSE,
-            sizeof(Renderer::Vertex),
-            (void*)offsetof(Renderer::Vertex, textureCoordinates)
+            1, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex),
+            reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, normal))
         );
+        glEnableVertexAttribArray(1);
+
+        glVertexAttribPointer(
+            2, 3, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex),
+            reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, color))
+        );
+        glEnableVertexAttribArray(2);
+
+        glVertexAttribPointer(
+            3, 2, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex),
+            reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, textureCoordinates))
+        );
+        glEnableVertexAttribArray(3);
+
+        glVertexAttribPointer(
+            4, 4, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex),
+            reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, tangent))
+        );
+        glEnableVertexAttribArray(4);
 
         glBindVertexArray(0);
 

@@ -13,6 +13,17 @@ add_executable(${PROJECT_NAME} WIN32
     src/App.cpp
     src/App.hpp
     src/SceneModel.hpp
+
+    src/TextureEditor.cpp
+    src/TextureEditor.hpp
+
+    src/AssetManger.cpp
+    src/AssetManger.hpp
+
+    src/MaterialEditor.cpp
+    src/MaterialEditor.hpp
+
+    src/FileSystemModel.hpp
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")

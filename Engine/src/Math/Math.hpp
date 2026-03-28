@@ -16,6 +16,12 @@
 #include "Plane.hpp"
 
 #include "Matrix/Matrix.hpp"
+#include "AABB3D.hpp"
+
+#include <algorithm>
+
+#undef min
+#undef max
 
 namespace nb
 {
@@ -51,7 +57,7 @@ namespace nb
                 return direction;
             }
 
-        private:
+        //private:
             Math::Vector3<float> origin     = {};
             Math::Vector3<float> direction  = {};
         };
@@ -235,6 +241,31 @@ namespace nb
                 , Plane(toVector3(_near), _near.w)
                 , Plane(toVector3(_far), _far.w)     
             };
+        }
+
+        inline bool intersectRayAABB(
+            const Ray& ray,
+            const AABB3D& aabb,
+            float& tOut
+        )
+        {
+            float t1 = (aabb.minPoint.x - ray.getOrigin().x) / ray.getDirection().x;
+            float t2 = (aabb.maxPoint.x - ray.getOrigin().x) / ray.getDirection().x;
+            float t3 = (aabb.minPoint.y - ray.getOrigin().y) / ray.getDirection().y;
+            float t4 = (aabb.maxPoint.y - ray.getOrigin().y) / ray.getDirection().y;
+            float t5 = (aabb.minPoint.z - ray.getOrigin().z) / ray.getDirection().z;
+            float t6 = (aabb.maxPoint.z - ray.getOrigin().z) / ray.getDirection().z;
+
+            float tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
+            float tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
+
+            if (tmax < 0 || tmin > tmax)
+            {
+                return false;
+            }
+
+            tOut = tmin;
+            return true;
         }
 
        

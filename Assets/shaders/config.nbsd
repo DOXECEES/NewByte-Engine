@@ -76,5 +76,41 @@
 		"sources": [
 			"Assets/shaders/lightPass.vs"
 		]
-	}
+	},
+    "grid.shader" : {
+		"sources": [
+			"Assets/shaders/grid.vs",
+            "Assets/shaders/grid.fs"
+		]
+	},
+	"pbr_lit.shader" : {
+		"sources": [
+			"Assets/shaders/pbr_lit.vs",
+            "Assets/shaders/pbr_lit.fs"
+		]
+	},
+	"equi_to_cube.shader" : {
+		"sources": [
+			"Assets/shaders/equi_to_cube.vs",
+			"Assets/shaders/equi_to_cube.fs"
+		]
+	},
+	"irradiance.shader" : {
+		"sources": [
+			"Assets/shaders/irradiance.vs",
+			"Assets/shaders/irradiance.fs"
+		]
+	},	
+	"prefilter.shader" : {
+		"sources": [
+			"Assets/shaders/prefilter.vs",
+			"Assets/shaders/prefilter.fs"
+		]
+	},
+	"brdf.shader" : {
+		"sources": [
+			"Assets/shaders/brdf.vs",
+			"Assets/shaders/brdf.fs"
+		]
+	}		
 }

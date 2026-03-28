@@ -84,6 +84,16 @@ namespace nb
                 void bindFrameBuffer(const Ref<Renderer::IFrameBuffer>& frameBuffer) noexcept override;
 
                 void bindTexture(uint8 slot, uint32 textureId) noexcept override;
+                Ref<Renderer::Texture> createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept override;
+                Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept override;
+                
+                Ref<Renderer::Cubemap>
+                bakeIrradiance(Ref<Renderer::Cubemap> enviromentCubemap) noexcept override;
+
+                Ref<Renderer::Cubemap>
+                bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept override;
+
+                Ref<Renderer::Texture> bakeBRDF() noexcept override;
 
 
                 void setViewport(const Renderer::Viewport& viewport) noexcept override;
@@ -99,6 +109,8 @@ namespace nb
 
                 Renderer::SharedWindowContext shareContext(void* handle) const noexcept override;
                 bool setContext(HDC hdc, HGLRC hglrc) noexcept override;
+                void releaseContext(const Renderer::SharedWindowContext& context) noexcept override;
+
                 bool setDefaultContext() noexcept override;
 
 

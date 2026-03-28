@@ -2,11 +2,18 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Renderer.hpp"
+#include "Manager/ResourceManager.hpp"
+#include "Math/Matrix/Transformation.hpp"
+#include "Math/Vector3.hpp"
 #include "Renderer/Objects/Objects.hpp"
 #include "Material.hpp"
+#include "Resources/IhdrResource.hpp"
 
 #include <Renderer/Scene.hpp>
 #include "Light.hpp"
+
+#include "Serialize/JsonArchive.hpp"
+
 
 namespace nb::Renderer
 {
@@ -48,7 +55,7 @@ namespace nb::Renderer
 
         std::vector<uint32> quadIndices = { 0, 1, 2, 3, 4, 5 };
 
-        quadScreenMesh = createRef<Mesh>(quadVertices, quadIndices);
+        quadScreenMesh = createRef<Mesh>(quadVertices, quadIndices, "");
         contextMeshCache = createRef<OpenGl::OpenglContextMeshCache>();
     }
 
@@ -93,11 +100,11 @@ namespace nb::Renderer
 
         if (!albedo)
         {
-            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\albedo (2).png"); 
+            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_diff_1k.png"); 
             metal       = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\metal (2).png");
             roughtness  = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\rough (2).png");
             ao          = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\ao (3).png");
-            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\normal.png");
+            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_nor_gl_1k.png");
         }
 
 
@@ -109,7 +116,6 @@ namespace nb::Renderer
 
         isResourceLoaded = true;
     }
-
 
     void Renderer::render() noexcept
     {
@@ -131,6 +137,7 @@ namespace nb::Renderer
 
         std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;
+        auto shader = rm->getResource<Shader>("ADS.shader");
 
         scene.traverseAll(
             [&](Ecs::EntityID entityId)
@@ -150,7 +157,7 @@ namespace nb::Renderer
                     auto* meshPtr = meshComp.mesh.get();
 
                     Pipeline mainP = {};
-                    mainP.shader = meshPtr->uniforms.shader;
+                    mainP.shader = shader;
                     mainP.polygonMode = polygonMode;
 
                     // Берем уже вычисленную в пункте 1 матрицу
@@ -204,7 +211,6 @@ namespace nb::Renderer
 
             lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
 
-            // Используем команду для теней: тот же меш, но другой пайплайн (шейдер)
             RendererCommand shadowCmd = { cmd.mesh, shadowPSO };
             api->drawMesh(shadowCmd);
         }
@@ -241,7 +247,8 @@ namespace nb::Renderer
         for (auto& cmd : mainQueue) 
         {
             auto& u = cmd.mesh->uniforms;
-            PBRMaterial mat(cmd.mesh->uniforms.shader);
+            cmd.mesh->uniforms.shader = shader;
+            PBRMaterial mat(shader);
             mat.setAlbedoMap(albedo);
             mat.setNormalMap(normal);
             mat.setMetallicMap(metal);
@@ -335,11 +342,46 @@ namespace nb::Renderer
                 api->drawMesh(debugPassCommand);
             }
         }
-
-        if (ctx.handle)
+        if (isBoundingBoxVisualizationEnabled)
         {
-            blitToWindow(ctx, checkedTextureId);
+            Ref<Shader> aabbShader = rm->getResource<Shader>("aabb.shader");
+            
+            Ref<Mesh> unitCubeMesh = rm->getResource<Mesh>("unit_cube.obj");
+            
+            Pipeline aabbVisualisation = {};
+            aabbVisualisation.shader = aabbShader;
+            aabbVisualisation.polygonMode = PolygonMode::LINES;
+            aabbVisualisation.isDepthTestEnable = false;
+
+            uint32 aabbPSO = api->getCache().getOrCreate(aabbVisualisation);
+
+            aabbShader->use();
+            aabbShader->setUniformMat4("view", view);
+            aabbShader->setUniformMat4("projection", proj);
+
+            for (auto& cmd : mainQueue)
+            {
+                Math::AABB3D localAabb = cmd.mesh->getAabb3d();
+
+                Math::AABB3D worldAabb = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                    localAabb, cmd.mesh->uniforms.mat4Uniforms["model"]
+                );
+                auto model = Math::Mat4<float>::identity();
+                model = Math::scale(model, worldAabb.size() * 0.5f);
+                model = Math::translate(model, worldAabb.center());
+
+                aabbShader->setUniformMat4("model", model);
+
+                RendererCommand command{unitCubeMesh.get(), aabbPSO};
+                api->drawMesh(command);
+            }
+
         }
+
+        // if (ctx.handle)
+        // {
+        //     blitToWindow(ctx, checkedTextureId);
+        // }
 
         renderNavigationalGizmo();
 
@@ -415,47 +457,241 @@ namespace nb::Renderer
         return ctx;
     }
 
-    void Renderer::blitToWindow(const SharedWindowContext& out, uint32 textureId)
+    void Renderer::releaseSharedContextForWindow(const SharedWindowContext& context) noexcept
     {
-        if (!api->setContext(out.hdc, out.hglrc))
-        {
-            return;
-        }
+        api->releaseContext(context);
+    }
 
+    void Renderer::blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request)
+    {
+        if (!api->setContext(out.hdc, out.hglrc)) return;
+
+        // Используем GetClientRect вместо GetWindowRect, чтобы не учитывать рамки окна
         RECT rc;
-        GetWindowRect(out.handle, &rc); 
+        GetClientRect(out.handle, &rc); 
         int width = rc.right - rc.left;
         int height = rc.bottom - rc.top;
 
         api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
-        api->setClearColor(Colors::BLUE, 1.0f, 0);
         api->clear(true, false, false);
+        // 1. Отрисовка сетки (Background)
+        auto gridShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("grid.shader");
+        gridShader->use();
+        
+        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
+        if (!mesh) mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
 
+        Pipeline gridPipeline = {};
+        gridPipeline.shader = std::move(gridShader);
+        gridPipeline.isDepthTestEnable = false;
+        gridPipeline.polygonMode = PolygonMode::FULL;
+        uint32 gridPso = api->getCache().getOrCreate(gridPipeline);
+        
+        api->drawContextMesh(*mesh, gridPso);
+
+        // 2. Настройка смешивания для текстуры (Alpha Blending)
+        // ВАЖНО: Убедитесь, что в вашем API методе установки Pipeline 
+        // реализована поддержка BlendMode или включена прозрачность
+        
+        // 3. Отрисовка основной текстуры
         auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("quadShader2.shader");
         quadShader->use();
         quadShader->setUniformInt("sceneTexture", 0);
+        quadShader->setUniformVec3("channelMask", request.channelMask);
+        quadShader->setUniformFloat("gamma", request.gamma);
+        quadShader->setUniformFloat("exposure", request.exposure);
 
-        api->bindTexture(0, textureId);
+         
+        api->bindTexture(0, request.source->getId());
 
-        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
-        if (!mesh)
-        {
-            mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
-        }
+        Pipeline texPipeline = {};
+        texPipeline.shader = std::move(quadShader);
+        texPipeline.isDepthTestEnable = false;
+        texPipeline.polygonMode = PolygonMode::FULL;
+        // Включаем прозрачность (в зависимости от реализации вашего API)
+        texPipeline.isBlendEnable = true; // Добавьте это поле в структуру Pipeline, если его нет
+        
+        uint32 texPso = api->getCache().getOrCreate(texPipeline);
 
-        Pipeline pipeline = {};
-        pipeline.shader = std::move(quadShader);
-        pipeline.isDepthTestEnable = false;
-        pipeline.polygonMode = PolygonMode::FULL;
-        uint32 pso = api->getCache().getOrCreate(pipeline);
-
-    
-        RendererCommand shadowCmd = { mesh->source.get(),  pso };
-        api->drawContextMesh(*mesh, pso);
+        api->drawContextMesh(*mesh, texPso);
 
         SwapBuffers(out.hdc);
         api->setDefaultContext();
     }
+
+    void Renderer::renderMaterialPreview(
+        const SharedWindowContext& out,
+        MaterialPreviewRequest& request
+    )
+    {
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
+
+        if (!api->setContext(out.hdc, out.hglrc))
+        {
+            return;
+        }
+        api->clear(true, true, false);
+
+
+        auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
+            "Assets/res/glasshouse_interior_4k.hdr"
+        );
+
+
+
+        RECT rc;
+        GetClientRect(out.handle, &rc);
+        int width = rc.right - rc.left;
+        int height = rc.bottom - rc.top;
+        float aspect = (float)width / (float)height;
+
+        api->setViewport({0.0f, 0.0f, (float)width, (float)height});
+        api->clear(true, true, false);
+
+
+        Ref<Mesh> primitiveMesh =
+            ResMan::ResourceManager::getInstance()->getResource<Mesh>("Untitled.obj");
+        auto mesh = contextMeshCache->get(out.hglrc, primitiveMesh.get());
+        if (!mesh)
+        {
+            mesh = contextMeshCache->insertMesh(out.hglrc, primitiveMesh);
+        }
+
+        Math::Vector3<float> cameraPos = {0.0f, 0.0f, -3.5f};
+        Math::Vector3<float> lightPos = {0.0f, 0.0f, -3.5f};     
+        Math::Vector3<float> lightColor = {15.0f, 15.0f, 15.0f}; 
+        static Camera cam;
+        cam.moveTo(cameraPos);
+        cam.updateOrbit(request.x, request.y);
+
+        request.x = 0.0f;
+        request.y = 0.0f;
+
+        
+        Math::Mat4<float> projection = Math::projection(45.0f, aspect, 0.1f, 100.0f);
+        Math::Mat4<float> view = cam.getLookAt();
+        Math::Mat4<float> model = Math::Mat4<float>::identity();
+
+        static Skybox sky;
+        auto skyboxShader =
+            nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Shader>(
+                "skybox.shader"
+            );
+
+
+
+        sky.bindCubemap(ibl->getCubemap());
+        skyboxShader->setUniformInt("skybox", 0);
+        skyboxShader->setUniformMat4("view", view);
+        skyboxShader->setUniformMat4("projection", projection);
+        sky.render(skyboxShader);
+
+        for (int i = 0; i < 7; i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, 0); // Привязываем 0 к 2D таргету
+        }
+
+        for (int i = 0; i < 7; i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, 0); // Привязываем 0 к 2D таргету
+        }
+
+
+        auto shader = request.material->getShader();
+        request.material->bind();
+        //shader->use(); // Явно биндим шейдер перед установкой юниформов
+
+        // --- 1. ТЕКСТУРЫ МАТЕРИАЛА ---
+        // Слот 0: Albedo
+        auto albedoTex = std::get<Ref<nb::Resource::TextureAsset>>(
+            request.material->getProperties()["u_AlbedoMap"].value
+        );
+        //shader->setUniformInt("u_AlbedoMap", 0);
+        api->bindTexture(0, albedoTex->getInternalTexture()->getId());
+
+        // Слот 1: Normal
+        auto normalTex = std::get<Ref<nb::Resource::TextureAsset>>(
+            request.material->getProperties()["u_NormalMap"].value
+        );
+        //shader->setUniformInt("u_NormalMap", 1);
+        api->bindTexture(1, normalTex->getInternalTexture()->getId());
+
+        // Слот 2: ORM (Убедись, что это не HDR панорама!)
+        auto ormTex = std::get<Ref<nb::Resource::TextureAsset>>(
+            request.material->getProperties()["u_ORMMap"].value
+        );
+        //shader->setUniformInt("u_ORMMap", 2);
+
+        api->bindTexture(2, ormTex->getInternalTexture()->getId());
+
+        // --- 2. СИСТЕМНЫЕ ТЕКСТУРЫ IBL ---
+        
+
+
+
+
+        // Слот 3: Irradiance (CUBE)
+        //shader->setUniformInt("u_IrradianceMap", 3);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+
+        // Слот 4: Prefilter (CUBE)
+        //shader->setUniformInt("u_PrefilterMap", 4);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+        // Слот 5: BRDF LUT (2D)
+        //shader->setUniformInt("u_BrdfLUT", 5);
+        //api->bindTexture(5, ibl->getBrdfTexture()->getId());
+        api->bindTexture(0, albedoTex->getInternalTexture()->getId());
+        api->bindTexture(1, normalTex->getInternalTexture()->getId());
+        api->bindTexture(2, ormTex->getInternalTexture()->getId());
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+
+        // Слот 4: Prefilter (CUBE)
+        // shader->setUniformInt("u_PrefilterMap", 4);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+        // Слот 5: BRDF LUT (2D)
+        // shader->setUniformInt("u_BrdfLUT", 5);
+        api->bindTexture(5, ibl->getBrdfTexture()->getId());
+
+
+
+
+        
+
+
+
+        shader->setUniformMat4("u_Projection", projection);
+        shader->setUniformMat4("u_View", view);
+        shader->setUniformMat4("u_Model", model);
+
+
+
+
+
+        shader->setUniformVec3("u_CameraPos", cam.getPosition());
+        shader->setUniformVec3("u_LightPos", lightPos);
+        shader->setUniformVec3("u_LightColor", lightColor);
+        
+        Pipeline matPipeline = {};
+        matPipeline.shader = shader;
+        matPipeline.isDepthTestEnable = true;
+        matPipeline.isBlendEnable = true;
+        matPipeline.polygonMode = PolygonMode::FULL;
+
+        uint32 matPso = api->getCache().getOrCreate(matPipeline);
+        api->drawContextMesh(*mesh, matPso);
+
+        SwapBuffers(out.hdc);
+        api->setDefaultContext();
+    }
+
 
 
     void Renderer::renderNavigationalGizmo() noexcept
@@ -522,15 +758,13 @@ namespace nb::Renderer
     
     void Renderer::loadSceneEcs() noexcept
     {
-        auto rm = ResMan::ResourceManager::getInstance();
+        /*auto rm = ResMan::ResourceManager::getInstance();
         auto shader = rm->getResource<Shader>("ADS.shader");
 
         auto& scene = nb::Scene::getInstance();
 
         Math::Vector3<float> ambientColor{0.0f, 0.0f, 0.0f};
 
-
-        
 
         nb::Node dirLight = scene.createNode();
         dirLight.setName("DirLight");
@@ -615,5 +849,18 @@ namespace nb::Renderer
         surf->uniforms.shader = shader;
 
         surfNode.addComponent(MeshComponent{surf});
+
+        nb::Serialize::IArchive* archive =
+            new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+        Scene::getInstance().serialize(archive);
+        delete archive;*/
+        
+
+        nb::Serialize::IArchive* archive =
+            new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+        archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
+        archive->load();
+        Scene::getInstance().deserialize(archive);
+        delete archive;
     }
 }

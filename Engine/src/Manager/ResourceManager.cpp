@@ -3,6 +3,12 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "ResourceManager.hpp"
 
+#include "Loaders/Factory/TextureFactory.hpp"
+#include "Loaders/Factory/MaterialFactory.hpp"
+#include "Loaders/Factory/IhdrFactory.hpp"
+
+#include "Renderer/IRenderApi.hpp"
+
 namespace nb
 {
     namespace ResMan
@@ -13,13 +19,30 @@ namespace nb
             registerLoader(".nbsd", createRef<nb::Loaders::JsonFactory>());
             registerLoader(".shader", createRef<nb::Loaders::Factory::ShaderFactory>());
             registerLoader(".obj", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
+            registerLoader(".material", createRef<nb::Loaders::Factory::MaterialFactory>());
+
         }
 
-        ResourceManager *nb::ResMan::ResourceManager::getInstance() noexcept
+        void ResourceManager::init(nb::Renderer::IRenderAPI* renderApi) noexcept
+        {
+            api = renderApi;
+            getInstance()->registerLoader(".hdr", createRef<nb::Loaders::Factory::IhdrFactory>(api));
+
+        }
+
+        ResourceManager* nb::ResMan::ResourceManager::getInstance() noexcept
         {
             static ResourceManager rm;
             return &rm;
         }
+
+        void ResourceManager::updateMetaData(Resource::IResource* resource) noexcept
+        {
+            resource->updateMetaData();
+        }
+
+
 
         void ResourceManager::registerLoader(std::string_view extention, Ref<nb::Loaders::Factory::IFactoryLoader> loader) noexcept
         {
@@ -52,6 +75,24 @@ namespace nb
             }
 
             std::type_index type = loaderIterator->second->getResourceType();   
+            pool[type][path.string()] = loaderIterator->second->create(path);
+        }
+
+        void ResourceManager::loadIfNotExists(const std::filesystem::path &path) noexcept
+        {
+            std::string extension = path.extension().string();
+            auto loaderIterator = loaders.find(extension);
+            if (loaderIterator == loaders.end())
+            {
+                Debug::debug("Loader not found for extension: " + extension);
+                abort();
+            }
+
+            std::type_index type = loaderIterator->second->getResourceType();   
+            if(pool[type].contains(path.string()))
+            {
+                return;
+            }
             pool[type][path.string()] = loaderIterator->second->create(path);
         }
 

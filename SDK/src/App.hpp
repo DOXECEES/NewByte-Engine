@@ -17,11 +17,17 @@
 #include <vector>
 #include <atomic>
 
+#include "Renderer/IRenderAPI.hpp"
+#include "Renderer/Renderer.hpp"
 #include "SceneModel.hpp"
-
+#include "TextureEditor.hpp"
+#include "AssetManger.hpp"
+#include "MaterialEditor.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
+
 //
+
 
 namespace nbui
 {
@@ -41,7 +47,7 @@ public:
         initEngine();
 
         setupHierarchyUI();
-        setupSettingsUI();
+        //setupSettingsUI();
 
         showAllWindows();
 
@@ -66,12 +72,17 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> sceneWindow;
     std::shared_ptr<Win32Window::ChildWindow> hierarchyWindow;
     std::shared_ptr<Win32Window::ChildWindow> inspectorWindow;
-    std::shared_ptr<Win32Window::ChildWindow> settingsWindow;
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
-    std::shared_ptr<Win32Window::ChildWindow> textureInspector;
+    std::shared_ptr<Win32Window::ChildWindow> assetManager;
+
 
     //
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
+    std::shared_ptr<AssetManager> assetManagerWindow;
+    std::shared_ptr<MaterialEditor> materialEditor;
+
+
+
 
     void openColorPickerWindow();
     //
@@ -92,6 +103,8 @@ private:
 
     void initEngine() noexcept;
     
+    void setupMainWindow() noexcept;
+
     void setupHierarchyUI() noexcept;
     
     void setupInspectorUI() noexcept;
@@ -103,6 +116,7 @@ private:
     void setupEngineDependentUi() noexcept;
 
     void setupDebugUI() noexcept;
+    void setupAssetManager() noexcept;
    
     void rebuildInspector() noexcept;
 
@@ -125,9 +139,8 @@ private:
         sceneWindow->show();
         hierarchyWindow->show();
         inspectorWindow->show();
-        settingsWindow->show();
         debugWindow->show();
-        textureInspector->show();
+        //textureInspector->show();
         mainWindow->show();
         mainWindow->repaint();
     }
@@ -142,6 +155,7 @@ private:
                 && !isEngineDependentUiInit)
             {
                 setupEngineDependentUi();
+                assetManagerWindow = std::make_shared<AssetManager>(engine.get());
                 isEngineDependentUiInit = true;
             }
 
@@ -150,6 +164,22 @@ private:
                 if (msg.message == WM_QUIT) {
                     running = false;
                     break;
+                }
+
+                if (msg.hwnd == sceneWindow->getHandle().as<HWND>())
+                {
+                    if (msg.message == WM_LBUTTONDOWN)
+                    {
+                        NbPoint<int> point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
+
+                        nb::Node node = engine->rayPick(point.x, point.y);
+                        if (node.isValid())
+                        {
+                            activeNode = node;
+                            onActiveNodeChanged.emit();
+                        }
+
+                    }
                 }
 
                 if (msg.message == WM_INPUT) 
@@ -162,11 +192,10 @@ private:
             }
 
             if (engine)
-            {
-                
+            {               
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
-
+ 
                 if (engine->getMode() == nb::Core::Engine::Mode::EDITOR)
                     mainWindow->showCursor();
                 else

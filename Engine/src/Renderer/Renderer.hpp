@@ -10,12 +10,14 @@
 
 
 #include "IRenderAPI.hpp"
+#include "Math/Vector4.hpp"
 #include "OpenGL/OpenGLRender.hpp"
 #include "Renderer/ContextMeshCache.hpp"
 
 #include "Mesh.hpp"
 
 #include "Camera.hpp"
+#include "Resources/MaterialAsset.hpp"
 
 namespace nb
 {
@@ -43,11 +45,34 @@ namespace nb
             void showVertexColor(bool flag) noexcept;
 
             inline void toggleDebugPass() noexcept { isDebugPassEnabled = !isDebugPassEnabled; }
+            inline void toggleBoundingBoxVisualization() noexcept
+            {
+                isBoundingBoxVisualizationEnabled = !isBoundingBoxVisualizationEnabled;
+            }
 
             bool isResourceReady() const noexcept;
         
             SharedWindowContext createSharedContextForWindow(HWND handle) noexcept;
-            void blitToWindow(const SharedWindowContext& out, uint32 textureId);
+            void releaseSharedContextForWindow(const SharedWindowContext& context) noexcept;
+
+            struct TexturePreviewRequest
+            {
+                Texture* source = nullptr;
+                nb::Math::Vector3<float> channelMask = {1.0f, 1.0f, 1.0f};
+                float gamma = 2.2f;
+                float exposure = 1.0f;
+            };
+
+
+            void blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request);
+
+            struct MaterialPreviewRequest
+            {
+                Resource::MaterialAsset* material;
+                float x = 0.0f;
+                float y = 0.0f;
+            };
+            void renderMaterialPreview(const SharedWindowContext& out, MaterialPreviewRequest& request);
 
             // TEMP
 
@@ -86,6 +111,10 @@ namespace nb
                 return shadowFrameBuffer->getTexture();
             }
 
+            IRenderAPI* getApi() const noexcept
+            {
+                return api;
+            }
 
             void setCheckedTextureId(uint32_t id) { checkedTextureId = id; }
 
@@ -114,6 +143,7 @@ namespace nb
             Ref<Shader> debugLightShader = nullptr;
 
             bool isDebugPassEnabled = false;
+            bool isBoundingBoxVisualizationEnabled = false;
 
             SharedWindowContext ctx;
             Ref<ContextMeshCache> contextMeshCache = nullptr;

@@ -8,7 +8,8 @@ namespace nb
     namespace Renderer
     {
         Shader::Shader() noexcept
-            : id(globalId++)
+            : id(globalId++),
+              IResource("")
         {
             
         }

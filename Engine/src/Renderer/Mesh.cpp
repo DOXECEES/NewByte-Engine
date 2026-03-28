@@ -95,8 +95,9 @@ namespace nb
 
         // }
 
-        Mesh::Mesh(const std::vector<Vertex> &vert, const std::vector<uint32_t> &ind)
+        Mesh::Mesh(const std::vector<Vertex> &vert, const std::vector<uint32_t> &ind, const std::filesystem::path& pathToFile)
             : verticies(vert)
+            , IResource(pathToFile)
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
             calculateTagnentArray();
@@ -240,7 +241,13 @@ namespace nb
                 sub->attachShader(shader);
                 applyMaterial(*sub);
 
-                VAO.draw(static_cast<uint32_t>(sub->indices.size()), mode, byteOffset);
+
+                //VAO.draw(static_cast<GLsizei>(sub->indices.size()), mode, byteOffset);
+                glDrawElements(
+                    mode, static_cast<GLsizei>(sub->indices.size()), GL_UNSIGNED_INT,
+                    reinterpret_cast<void*>(0)
+                );
+
 
                 byteOffset += sub->indices.size() * sizeof(uint32_t);
             }

@@ -6,11 +6,14 @@
 
 #include <vector>
 #include <Color.hpp>
+#include "Core.hpp"
 #include "IFrameBuffer.hpp"
 #include "ContextMeshCache.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
 #include "PipelineCache.hpp"
+#include "Renderer/Cubemap.hpp"
+#include "Renderer/Texture.hpp"
 
 namespace nb
 {
@@ -55,6 +58,20 @@ namespace nb
             float maxDepth  = 1.0f;
         };
 
+        enum class TextureFormat
+        {
+            RGB,
+            RGBA,
+            RGB16F,            
+        };
+        struct TextureDescriptor
+        {
+            int width;
+            int height;
+            TextureFormat format;
+            void* data;
+        };
+
         class IRenderAPI
         {
         public:
@@ -78,7 +95,11 @@ namespace nb
             virtual void bindFrameBuffer(const Ref<IFrameBuffer>& frameBuffer) noexcept = 0;
 
             virtual void bindTexture(uint8 slot, uint32 textureId) noexcept = 0;
-
+            virtual Ref<Texture> createTexture2d(const TextureDescriptor& descriptor) noexcept = 0; 
+            virtual Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Texture> texture2d) noexcept = 0;
+            virtual Ref<Renderer::Cubemap> bakeIrradiance(Ref<Renderer::Cubemap> enviromentCubemap) noexcept = 0;
+            virtual Ref<Renderer::Cubemap> bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept = 0;
+            virtual Ref<Renderer::Texture> bakeBRDF() noexcept = 0;
 
             virtual void setViewport(const Viewport& viewport) noexcept = 0;
             virtual void clear(bool color, bool depth, bool stencil) noexcept = 0;
@@ -100,6 +121,7 @@ namespace nb
             }
 
             virtual SharedWindowContext shareContext(void* handle) const noexcept = 0;
+            virtual void releaseContext(const SharedWindowContext& context) noexcept = 0;
             virtual bool setContext(HDC hdc, HGLRC hglrc) noexcept = 0;
             virtual bool setDefaultContext() noexcept = 0;
         public:

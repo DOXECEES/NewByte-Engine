@@ -168,7 +168,7 @@ namespace nb
                 index++;
             }
             
-            return createRef<Renderer::Mesh>(std::move(subs), std::move(vert));
+            return createRef<Renderer::Mesh>(std::move(subs), std::move(vert), path);
         }
 
         std::map<std::string, Renderer::Material> ObjLoader::loadMaterial(const std::string &path) noexcept

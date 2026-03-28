@@ -22,7 +22,7 @@ namespace nb
         public:
 
             using Map   = std::map<std::string, Node>;
-            using Value = std::variant<int, float, bool, std::string, std::nullptr_t>;
+            using Value = std::variant<int, float, bool, std::string, std::nullptr_t, uint32_t>;
             using Array = std::vector<Node>;
 
             inline Node() = default;
@@ -33,11 +33,13 @@ namespace nb
 
 
             inline Node(std::nullptr_t value) noexcept : data(value) {}
-            inline Node(bool value) noexcept : data(value) {}
-            inline Node(int value) noexcept : data(value) {}
-            inline Node(float value) noexcept : data(value) {}
-            inline Node(const std::string &value) noexcept : data(value) {}
+            inline Node(bool value) noexcept : data(Value(value)) {}
+            inline Node(int value) noexcept : data(Value(value)) {}
+            inline Node(float value) noexcept : data(Value(value)) {}
+            inline Node(const std::string &value) noexcept : data(Value(value)) {}
             inline Node(const char *value) noexcept : data(std::string(value)) {}
+            inline Node(uint32_t value) noexcept : data(Value(value)){}
+
 
             inline Node(const Map &map) noexcept : data(map) {}
             inline Node(const Array &arr) noexcept: data(arr) {}
@@ -45,21 +47,70 @@ namespace nb
             inline Node(std::initializer_list<std::pair<const std::string, Node>> init_list) noexcept
                 :data(Map{init_list}) {}
 
-
+            bool contains(const std::string& key) const noexcept;
             /**
              * @brief Получение дочернего узла по ключу.
              * @param key Ключ узла.
              * @return Ссылка на дочерний узел.
              */
             Node &operator[](const std::string &key);
+            const Node& operator[](const std::string& key) const;
+
+            Node& operator[](size_t index);
+            const Node& operator[](size_t index) const;
 
             /**
              * @brief Получение дочернего узла по индексу.
              * @param index Индекс узла.
              * @return Ссылка на дочерний узел.
              */
-            auto operator[](const size_t index);
 
+            Node& operator=(float v)
+            {
+                data = Value(v);
+                return *this;
+            }
+            Node& operator=(int v)
+            {
+                data = Value(v);
+                return *this;
+            }
+            Node& operator=(uint32_t v)
+            {
+                data = Value(v);
+                return *this;
+            }
+
+            Node& operator=(bool v)
+            {
+                data = Value(v);
+                return *this;
+            }
+            Node& operator=(const std::string& v)
+            {
+                data = Value(v);
+                return *this;
+            }
+
+            void pushBack(Node&& node)
+            {
+                if (!isArray())
+                {
+                    data = Array{};
+                }
+                std::get<Array>(data).push_back(std::move(node));
+            }
+
+            size_t size() const noexcept
+            {
+                if (isArray())
+                {
+                    return std::get<Array>(data).size();
+                }
+                return 0;
+            }
+
+            
             /**
              * @brief Получение значения узла указанного типа.
              * @tparam T Тип значения.

@@ -4,7 +4,8 @@
 #include "ShaderSource.hpp"
 
 nb::Resource::ShaderSource::ShaderSource(const std::string &str) noexcept
-    : source(str)
+    : source(str),
+      IResource("")
 {
 }
 

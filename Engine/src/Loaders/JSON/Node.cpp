@@ -7,28 +7,60 @@ namespace nb
 {
     namespace Loaders
     {
-        Node &Node::operator[](const std::string &key)
+        bool Node::contains(const std::string& key) const noexcept
         {
             if (isObject())
             {
-                return std::get<Map>(data)[key];
+                return std::get<Map>(data).contains(key);
             }
-            else
+            return false;
+        }
+
+        Node& Node::operator[](const std::string& key)
+        {
+            if (!isObject())
+            {
+                data = Map{};
+            }
+
+            return std::get<Map>(data)[key];
+        }
+
+        const Node& Node::operator[](const std::string& key) const
+        {
+            if (!isObject())
             {
                 throw std::runtime_error("This node isnt object");
             }
+
+            return std::get<Map>(data).at(key);
         }
 
-        auto Node::operator[](const size_t index)
+        Node& Node::operator[](size_t index)
         {
-            if (isArray())
+            if (!isArray())
             {
-                return std::get<Array>(data)[index];
+                data = Array{};
             }
-            else
+
+            auto& arr = std::get<Array>(data);
+
+            if (index >= arr.size())
             {
-                throw std::runtime_error("This isnt array");
+                arr.resize(index + 1);
             }
+
+            return arr[index];
+        }
+
+        const Node& Node::operator[](size_t index) const
+        {
+            if (!isArray())
+            {
+                throw std::runtime_error("This node isnt array");
+            }
+
+            return std::get<Array>(data).at(index);
         }
 
     };

@@ -38,6 +38,12 @@ namespace nb
             inline const Math::Mat4<float> &getLookAt() const noexcept { return lookAt; };
             inline const Math::Mat4<float> &getProjection() const noexcept { return projection; };
             inline const Math::Mat4<float> getOrtho() const noexcept { return Math::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); };
+            
+            void updateOrbit(
+                const float deltaX,
+                const float deltaY
+            ) noexcept;
+
             void update(const float newYaw, const float newPitch) noexcept;
 
             inline Math::Vector3<float> getPosition() const noexcept { return position; };
@@ -57,6 +63,11 @@ namespace nb
             Math::Vector3<float>    up          = { 0.0f, 1.0f, 0.0f };
             float                   yaw         =   0.0f;
             float                   pitch       =   0.0f;
+
+            Math::Vector3<float> target = {0.0f, 0.0f, 0.0f};
+            float distance = 5.0f;
+            Math::Quaternion<float> totalRotation = {0.0f, 0.0f, 0.0f, 1.0f};
+
 
         };
     };

@@ -2,15 +2,23 @@
 #define SRC_RENDERER_SCENE_HPP
 
 #include "Ecs/ecs.hpp"
+#include "Renderer/RendererStructures.hpp"
+#include "Serialize/ISerializable.hpp"
 
 #include <Reflection/Reflection.hpp>
-
+#include "Loaders/JSON/Node.hpp"
 #include <Math/Math.hpp>
 #include <Math/Matrix/Matrix.hpp>
 #include <Math/Vector3.hpp>
 
 #include <Renderer/Mesh.hpp>
+#include <Reflection/Reflection.hpp>
 
+#include <Manager/ResourceManager.hpp>
+
+#include <algorithm>
+#undef min
+#undef max
 
 struct TransformComponent
 {
@@ -43,26 +51,77 @@ struct NameComponent
 {
     std::string name;
 };
-NB_REFLECT_INTERNAL_STRUCT(NameComponent)
+NB_REFLECT_INTERNAL_STRUCT(NameComponent,
+    NB_FIELD(
+        NameComponent,
+        name
+    )
+
+)
+
 
 //
 
 struct MeshComponent
 {
     std::shared_ptr<nb::Renderer::Mesh> mesh;
+    Ref<nb::Renderer::Material> material;
 };
-NB_REFLECT_STRUCT(MeshComponent)
+
+NB_REFLECT_PTR(
+    std::shared_ptr<nb::Renderer::Mesh>,
+    "std::shared_ptr<nb::Renderer::Mesh>"
+)
+NB_REFLECT_PTR(
+    Ref<nb::Renderer::Material>,
+    "Ref<nb::Renderer::Material>"
+)
+
+NB_REFLECT_RESOURCE_PTR(
+    std::shared_ptr<nb::Renderer::Mesh>,
+    "MeshPtr",
+    [](std::shared_ptr<nb::Renderer::Mesh>* field,
+       const std::string& path)
+    {
+        *field = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(path);
+    }
+)
+
+// ResourceLoader для Ref<Material>
+NB_REFLECT_RESOURCE_PTR(
+    Ref<nb::Renderer::Material>,
+    "Material",
+    [](Ref<nb::Renderer::Material>* field,
+       const std::string& path)
+    {
+        //*field = makeRef<nb::Renderer::Material>(path); // твоя фабрика Ref
+    }
+)
+
+// Рефлексия самой структуры
+NB_REFLECT_STRUCT(
+    MeshComponent,
+    NB_FIELD(
+        MeshComponent,
+        mesh
+    ),
+    NB_FIELD(
+        MeshComponent,
+        material
+    )
+)
+
+
 
 
 namespace nb
 {
-
     class Scene;
 
     class Node
     {
     public:
-        Node() noexcept = default;
+        Node() noexcept;
 
         Node(
             Ecs::EntityID id,
@@ -82,6 +141,8 @@ namespace nb
 
         void setName(std::string_view name);
 
+        bool isValid() const noexcept;
+
     private:
         Ecs::EntityID entity = 0;
         Scene* scene = nullptr;
@@ -89,7 +150,7 @@ namespace nb
         friend class Scene;
     };
 
-    class Scene
+    class Scene : public nb::Serialize::ISerializable
     {
     public:
         static Scene& getInstance() noexcept
@@ -142,12 +203,129 @@ namespace nb
 
         void traverseAll(const std::function<void(Ecs::EntityID)>& action) noexcept;
 
+        struct PickingResult
+        {
+            Ecs::EntityID entityId = 0;
+            //float distance = std::numeric_limits<float>::max();
+        };
+
+        Ecs::EntityID pickNode(const Math::Ray& ray)
+        {
+            Ecs::EntityID selectedId = 0;
+            float closestDist = std::numeric_limits<float>::max();
+
+            traverseAll(
+                [&](Ecs::EntityID id)
+                {
+                    if (!hasComponent<MeshComponent>(id) || !hasComponent<TransformComponent>(id))
+                    {
+                        return;
+                    }
+
+                    auto& transform = getComponent<TransformComponent>(id);
+                    auto& meshComp = getComponent<MeshComponent>(id);
+
+                    // 1. Берем локальный AABB меша (рассчитанный при загрузке модели)
+                    Math::AABB3D localAABB = meshComp.mesh->getAabb3d();
+
+                    // 2. Генерируем 8 углов локального бокса
+                    Math::Vector3<float> corners[8] = {
+                        {localAABB.minPoint.x, localAABB.minPoint.y, localAABB.minPoint.z},
+                        {localAABB.maxPoint.x, localAABB.minPoint.y, localAABB.minPoint.z},
+                        {localAABB.minPoint.x, localAABB.maxPoint.y, localAABB.minPoint.z},
+                        {localAABB.maxPoint.x, localAABB.maxPoint.y, localAABB.minPoint.z},
+                        {localAABB.minPoint.x, localAABB.minPoint.y, localAABB.maxPoint.z},
+                        {localAABB.maxPoint.x, localAABB.minPoint.y, localAABB.maxPoint.z},
+                        {localAABB.minPoint.x, localAABB.maxPoint.y, localAABB.maxPoint.z},
+                        {localAABB.maxPoint.x, localAABB.maxPoint.y, localAABB.maxPoint.z}
+                    };
+
+                    // 3. Находим границы мирового AABB, трансформируя каждый угол
+                    Math::Vector3<float> worldMin(std::numeric_limits<float>::max());
+                    Math::Vector3<float> worldMax(-std::numeric_limits<float>::max());
+
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        auto& m = transform.worldMatrix;
+                        auto& c = corners[i];
+
+                        // Трансформируем точку через мировую матрицу
+                        // Учитывая ваш Row-Major оператор*: Vector4(v, 1.0) * worldMatrix
+                        Math::Vector4<float> worldCorner4(
+                            c.x * m[0][0] + c.y * m[1][0] + c.z * m[2][0] + m[3][0],
+                            c.x * m[0][1] + c.y * m[1][1] + c.z * m[2][1] + m[3][1],
+                            c.x * m[0][2] + c.y * m[1][2] + c.z * m[2][2] + m[3][2],
+                            1.0f // w компонент
+                        );
+
+
+                        // Если у вас Column-Major: worldMatrix * Vector4(corners[i], 1.0f)
+                        // Но судя по вашему inverse, у вас Row-Major.
+
+                        worldMin.x = std::min(worldMin.x, worldCorner4.x);
+                        worldMin.y = std::min(worldMin.y, worldCorner4.y);
+                        worldMin.z = std::min(worldMin.z, worldCorner4.z);
+
+                        worldMax.x = std::max(worldMax.x, worldCorner4.x);
+                        worldMax.y = std::max(worldMax.y, worldCorner4.y);
+                        worldMax.z = std::max(worldMax.z, worldCorner4.z);
+                    }
+
+                    Math::AABB3D worldAABB = {worldMin, worldMax};
+
+                    // 4. Проверка пересечения луча с мировым боксом
+                    float t = 0.0f;
+                    if (intersectRayAABB(ray, worldAABB, t))
+                    {
+                        if (t > 0.0f && t < closestDist)
+                        {
+                            closestDist = t;
+                            selectedId = id;
+                        }
+                    }
+                }
+            );
+
+            return selectedId;
+        }
+
+        void serialize(nb::Serialize::IArchive* archive) noexcept override;
+        void deserialize(nb::Serialize::IArchive* archive) noexcept override;
+        void serializeFields(
+            nb::Serialize::IArchive* archive,
+            void* object,
+            nb::Reflect::TypeInfo* type
+        ) noexcept;
+
+        void serializeComponents(
+            nb::Serialize::IArchive* archive,
+            Ecs::Entity entity
+        ) noexcept;
+
+        void deserializeFields(
+            const nb::Loaders::Node& node,
+            void* object,
+            nb::Reflect::TypeInfo* type
+        ) noexcept;
+
+        void deserializeComponents(
+            const nb::Loaders::Node& node,
+            Ecs::Entity entity
+        ) noexcept;
+
+        void addComponentRaw(
+            Ecs::Entity entity,
+            Ecs::StorageWrapperBase* storage,
+            void* component
+        ) noexcept;
     private:
         Scene() noexcept;
 
         Ecs::ECSRegistry ecs;
 
         Ecs::EntityID rootEntity;
+
+       
     };
 
     template <typename T>
@@ -167,6 +345,12 @@ namespace nb
     {
         return scene->hasComponent<T>(entity);
     }
+
+
+ 
+
+    
+
 
 }; 
 

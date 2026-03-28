@@ -25,7 +25,11 @@ namespace nb
         {
         public:
 
-            Json() = default;
+            Json()
+                : IResource("")
+            {
+
+            }
             ~Json() = default;
             Json(const Json&) = default;
             Json& operator=(const Json&) = default;
@@ -35,6 +39,7 @@ namespace nb
             inline explicit Json(const std::filesystem::path& path)
                 : parser()
                 , writer()
+                , IResource(path)
             {
                 readFromFile(path);
             }
@@ -42,6 +47,8 @@ namespace nb
             inline explicit Json(const std::string &json)
                 : parser()
                 , writer()
+                , IResource("")
+
             {
                 readFromMemory(json);
             }
@@ -56,6 +63,7 @@ namespace nb
             {
                 //parser.setJson()
                 writer.write(root);
+                writer.saveOutputInFile(path);
             }
 
             void readFromMemory(const std::string &json)
@@ -70,15 +78,24 @@ namespace nb
             }
 
             template<typename T>
-            auto operator[](const T& index) const
+            auto& operator[](const T& index) const
             {
                 return root[index];
             }
 
             template<typename T>
-            auto operator[](const T& index)
+            auto& operator[](const T& index)
             {
                 return root[index];  
+            }
+
+            Node& getRoot() noexcept
+            {
+                return root;
+            }
+            const Node& getRoot() const noexcept
+            {
+                return root;
             }
 
         private:
