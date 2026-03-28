@@ -3,14 +3,18 @@
 
 #include "Ecs/ecs.hpp"
 #include "Renderer/RendererStructures.hpp"
+#include "Serialize/ISerializable.hpp"
 
 #include <Reflection/Reflection.hpp>
-
+#include "Loaders/JSON/Node.hpp"
 #include <Math/Math.hpp>
 #include <Math/Matrix/Matrix.hpp>
 #include <Math/Vector3.hpp>
 
 #include <Renderer/Mesh.hpp>
+#include <Reflection/Reflection.hpp>
+
+#include <Manager/ResourceManager.hpp>
 
 #include <algorithm>
 #undef min
@@ -47,7 +51,13 @@ struct NameComponent
 {
     std::string name;
 };
-NB_REFLECT_INTERNAL_STRUCT(NameComponent)
+NB_REFLECT_INTERNAL_STRUCT(NameComponent,
+    NB_FIELD(
+        NameComponent,
+        name
+    )
+
+)
 
 
 //
@@ -57,8 +67,48 @@ struct MeshComponent
     std::shared_ptr<nb::Renderer::Mesh> mesh;
     Ref<nb::Renderer::Material> material;
 };
-NB_REFLECT_STRUCT(MeshComponent,
-NB_FIELD(MeshComponent, material)
+
+NB_REFLECT_PTR(
+    std::shared_ptr<nb::Renderer::Mesh>,
+    "std::shared_ptr<nb::Renderer::Mesh>"
+)
+NB_REFLECT_PTR(
+    Ref<nb::Renderer::Material>,
+    "Ref<nb::Renderer::Material>"
+)
+
+NB_REFLECT_RESOURCE_PTR(
+    std::shared_ptr<nb::Renderer::Mesh>,
+    "MeshPtr",
+    [](std::shared_ptr<nb::Renderer::Mesh>* field,
+       const std::string& path)
+    {
+        *field = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(path);
+    }
+)
+
+// ResourceLoader для Ref<Material>
+NB_REFLECT_RESOURCE_PTR(
+    Ref<nb::Renderer::Material>,
+    "Material",
+    [](Ref<nb::Renderer::Material>* field,
+       const std::string& path)
+    {
+        //*field = makeRef<nb::Renderer::Material>(path); // твоя фабрика Ref
+    }
+)
+
+// Рефлексия самой структуры
+NB_REFLECT_STRUCT(
+    MeshComponent,
+    NB_FIELD(
+        MeshComponent,
+        mesh
+    ),
+    NB_FIELD(
+        MeshComponent,
+        material
+    )
 )
 
 
@@ -66,7 +116,6 @@ NB_FIELD(MeshComponent, material)
 
 namespace nb
 {
-
     class Scene;
 
     class Node
@@ -101,7 +150,7 @@ namespace nb
         friend class Scene;
     };
 
-    class Scene
+    class Scene : public nb::Serialize::ISerializable
     {
     public:
         static Scene& getInstance() noexcept
@@ -240,12 +289,43 @@ namespace nb
             return selectedId;
         }
 
+        void serialize(nb::Serialize::IArchive* archive) noexcept override;
+        void deserialize(nb::Serialize::IArchive* archive) noexcept override;
+        void serializeFields(
+            nb::Serialize::IArchive* archive,
+            void* object,
+            nb::Reflect::TypeInfo* type
+        ) noexcept;
+
+        void serializeComponents(
+            nb::Serialize::IArchive* archive,
+            Ecs::Entity entity
+        ) noexcept;
+
+        void deserializeFields(
+            const nb::Loaders::Node& node,
+            void* object,
+            nb::Reflect::TypeInfo* type
+        ) noexcept;
+
+        void deserializeComponents(
+            const nb::Loaders::Node& node,
+            Ecs::Entity entity
+        ) noexcept;
+
+        void addComponentRaw(
+            Ecs::Entity entity,
+            Ecs::StorageWrapperBase* storage,
+            void* component
+        ) noexcept;
     private:
         Scene() noexcept;
 
         Ecs::ECSRegistry ecs;
 
         Ecs::EntityID rootEntity;
+
+       
     };
 
     template <typename T>

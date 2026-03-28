@@ -51,6 +51,11 @@ namespace nb
             {
                 return type == LightType::DIRECTIONAL;
             }
+
+            bool isSpotLight()
+            {
+                return type == LightType::SPOT;
+            }
         };
 
         // все классы наследники должны определять в себе стстический индексатор
@@ -285,9 +290,20 @@ namespace nb
 };
 
 
-NB_REFLECT_STRUCT_CUSTOM_NAME(
+NB_REFLECT_ENUM(
+    nb::Renderer::LightType,
+    NB_ENUM_VALUE(nb::Renderer::LightType::POINT),
+    NB_ENUM_VALUE(nb::Renderer::LightType::DIRECTIONAL),
+    NB_ENUM_VALUE(nb::Renderer::LightType::SPOT)
+)
+
+NB_REFLECT_STRUCT(
     nb::Renderer::LightComponent,
-    "Light",
+    NB_FIELD(
+        nb::Renderer::LightComponent,
+        type
+    ),
+
     NB_FIELD(
         nb::Renderer::LightComponent,
         ambient
@@ -296,29 +312,48 @@ NB_REFLECT_STRUCT_CUSTOM_NAME(
         nb::Renderer::LightComponent,
         diffuse
     ),
+    NB_FIELD(
+        nb::Renderer::LightComponent,
+        specular
+    ),
+
+    NB_FIELD_VISIBLE_IF(
+        nb::Renderer::LightComponent,
+        direction,
+        isDirectionLight,
+        0.1f
+    ),
+
     NB_FIELD_VISIBLE_IF(
         nb::Renderer::LightComponent,
         constant,
         isPointLight,
-        0.1f
+        0.01f
     ),
     NB_FIELD_VISIBLE_IF(
         nb::Renderer::LightComponent,
         linear,
         isPointLight,
-        0.1f
+        0.01f
     ),
     NB_FIELD_VISIBLE_IF(
         nb::Renderer::LightComponent,
         quadratic,
         isPointLight,
-        0.1f
+        0.01f
+    ),
+
+    NB_FIELD_VISIBLE_IF(
+        nb::Renderer::LightComponent,
+        innerCutoff,
+        isSpotLight,
+        0.01f
     ),
     NB_FIELD_VISIBLE_IF(
         nb::Renderer::LightComponent,
-        direction,
-        isDirectionLight,
-        1.0
+        outerCutoff,
+        isSpotLight,
+        0.01f
     )
 )
 

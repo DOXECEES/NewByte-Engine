@@ -79,7 +79,7 @@ namespace nb
             std::vector<std::unique_ptr<Renderer::SubMesh>> m;
             auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
             m.push_back(std::move(p));
-            mesh = new Mesh(std::move(m), std::move(skyboxVertices));
+            mesh = new Mesh(std::move(m), std::move(skyboxVertices), "");
         }
 
         Skybox::~Skybox()

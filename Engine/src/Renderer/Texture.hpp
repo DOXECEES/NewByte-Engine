@@ -11,6 +11,12 @@ namespace nb
         class Texture : public Resource::IResource
         {
         public:
+
+            Texture() noexcept 
+                : IResource("")
+            {
+
+            }
             virtual ~Texture() noexcept = default;
 
             virtual void bind(uint32_t slot) = 0;

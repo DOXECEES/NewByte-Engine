@@ -436,6 +436,8 @@ namespace nb
             }
 
             RGBA rgba;
+
+            friend class nb::Reflect::Reflect<nb::Color>;
         };
 
         namespace Colors
@@ -475,10 +477,37 @@ namespace nb::Reflect
     struct Reflect<nb::Color>
     {
         static inline const char* name = "Color";
-        static inline auto fields = std::make_tuple();
+        static inline auto fields = std::make_tuple(
+            nb::Reflect::FieldDesc<nb::Color, std::remove_reference_t<decltype(nb::Color::rgba)>>{
+                "rgba", &nb::Color::rgba, nullptr, 0.1f
+            }
+        );
         static inline bool isInternal = false;
+
+        
     };
 }
+
+template <>
+struct nb::Reflect::Reflect<nb::RGBA>
+{
+    static inline const char* name = "nb::RGBA";
+    static inline auto fields = std::make_tuple(
+        nb::Reflect::FieldDesc<nb::RGBA, std::remove_reference_t<decltype(nb::RGBA::r)>>{
+            "r", &nb::RGBA::r, nullptr, 0.1f
+        },
+        nb::Reflect::FieldDesc<nb::RGBA, std::remove_reference_t<decltype(nb::RGBA::g)>>{
+            "g", &nb::RGBA::g, nullptr, 0.1f
+        },
+        nb::Reflect::FieldDesc<nb::RGBA, std::remove_reference_t<decltype(nb::RGBA::b)>>{
+            "b", &nb::RGBA::b, nullptr, 0.1f
+        },
+        nb::Reflect::FieldDesc<nb::RGBA, std::remove_reference_t<decltype(nb::RGBA::alpha)>>{
+            "alpha", &nb::RGBA::alpha, nullptr, 0.1f
+        }
+    );
+    static inline bool isInternal = false;
+};
 
 
 

@@ -55,10 +55,16 @@ namespace nb
         {
             public:
             
-                Mesh(const std::vector<Vertex>& vert, const std::vector<uint32_t>& ind);
-                explicit Mesh(std::vector<std::unique_ptr<SubMesh>> &&meshes, std::vector<Vertex>&& vertex)
+                Mesh(const std::vector<Vertex>& vert, const std::vector<uint32_t>& ind, const std::filesystem::path& path);
+
+                explicit Mesh(
+                    std::vector<std::unique_ptr<SubMesh>>&& meshes,
+                    std::vector<Vertex>&& vertex,
+                    const std::filesystem::path& path
+                )
                     : meshes(std::move(meshes))
-                    , verticies(std::move(vertex))
+                    , verticies(std::move(vertex)),
+                      IResource(path)
                 {
                     ind = uniteIndicies();
                     calculateTagnentArray();
@@ -158,6 +164,8 @@ namespace nb
                 
                 GLuint getVboId() const noexcept;
                 GLuint getEboId() const noexcept;
+
+               
 
             private:
                 std::vector<uint32_t> uniteIndicies() noexcept;

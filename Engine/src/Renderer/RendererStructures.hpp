@@ -49,9 +49,14 @@ namespace nb
             }
         };
 
-        struct Material
+        class Material : public Resource::IResource
         {
-            Material() = default;
+        public:
+            Material() 
+                : IResource("")
+            {
+
+            }
 
             std::string             name                = "";
             Math::Vector3<float>    ambient             = {};
@@ -79,6 +84,7 @@ namespace nb
                 specular.z += (target.specular.z - specular.z) * alpha;
                 shininess += (target.shininess - shininess) * alpha;
             }
+
         };
 
         struct MaterialNode

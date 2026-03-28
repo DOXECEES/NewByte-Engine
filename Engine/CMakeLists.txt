@@ -61,6 +61,12 @@ set (SRC
         src/Resources/MaterialAsset.hpp
         src/Resources/IhdrResource.hpp
 
+        src/Serialize/ISerializable.cpp
+        src/Serialize/ISerializable.hpp
+        src/Serialize/IArchive.cpp
+        src/Serialize/IArchive.hpp
+        src/Serialize/JsonArchive.cpp
+        src/Serialize/JsonArchive.hpp
 
 
         src/Renderer/Renderer2D.hpp

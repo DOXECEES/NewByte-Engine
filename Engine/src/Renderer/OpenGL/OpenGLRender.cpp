@@ -798,7 +798,7 @@ void nb::OpenGl::OpenGLRender::visualizeAabb(
         7, 4
     };
 
-    Renderer::Mesh m(vertices, edges);
+    Renderer::Mesh m(vertices, edges, "");
     m.uniforms.mat4Uniforms["model"] = Math::Mat4<float>::identity();
     m.uniforms.mat4Uniforms["view"] = cam->getLookAt();
     m.uniforms.mat4Uniforms["projection"] = cam->getProjection();

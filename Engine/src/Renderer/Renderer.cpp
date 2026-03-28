@@ -12,6 +12,9 @@
 #include <Renderer/Scene.hpp>
 #include "Light.hpp"
 
+#include "Serialize/JsonArchive.hpp"
+
+
 namespace nb::Renderer
 {
     Renderer::Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept
@@ -52,7 +55,7 @@ namespace nb::Renderer
 
         std::vector<uint32> quadIndices = { 0, 1, 2, 3, 4, 5 };
 
-        quadScreenMesh = createRef<Mesh>(quadVertices, quadIndices);
+        quadScreenMesh = createRef<Mesh>(quadVertices, quadIndices, "");
         contextMeshCache = createRef<OpenGl::OpenglContextMeshCache>();
     }
 
@@ -755,15 +758,13 @@ namespace nb::Renderer
     
     void Renderer::loadSceneEcs() noexcept
     {
-        auto rm = ResMan::ResourceManager::getInstance();
+        /*auto rm = ResMan::ResourceManager::getInstance();
         auto shader = rm->getResource<Shader>("ADS.shader");
 
         auto& scene = nb::Scene::getInstance();
 
         Math::Vector3<float> ambientColor{0.0f, 0.0f, 0.0f};
 
-
-        
 
         nb::Node dirLight = scene.createNode();
         dirLight.setName("DirLight");
@@ -848,5 +849,18 @@ namespace nb::Renderer
         surf->uniforms.shader = shader;
 
         surfNode.addComponent(MeshComponent{surf});
+
+        nb::Serialize::IArchive* archive =
+            new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+        Scene::getInstance().serialize(archive);
+        delete archive;*/
+        
+
+        nb::Serialize::IArchive* archive =
+            new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+        archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
+        archive->load();
+        Scene::getInstance().deserialize(archive);
+        delete archive;
     }
 }

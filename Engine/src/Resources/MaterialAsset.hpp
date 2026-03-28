@@ -26,6 +26,7 @@ namespace nb::Resource
     public:
         MaterialAsset(const std::filesystem::path& path)
             : m_path(path)
+            , IResource(path)
         {
 
         }

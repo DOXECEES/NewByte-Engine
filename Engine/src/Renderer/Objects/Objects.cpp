@@ -39,7 +39,8 @@
 
              return createRef<Mesh>(
                  verticies,
-                 indicies
+                 indicies,
+                 ""
              );
          }
 
@@ -104,7 +105,7 @@
                  }
              }
 
-             return std::make_shared<Mesh>(vertices, indices);
+             return std::make_shared<Mesh>(vertices, indices, "");
          }
 
          /*u in[0, 2pi], v in[0, 2pi]
@@ -183,7 +184,7 @@
 				 }
 			 }
 
-			 return createRef<Mesh>(vertices, indices);
+			 return createRef<Mesh>(vertices, indices, "");
 		 }
 
       

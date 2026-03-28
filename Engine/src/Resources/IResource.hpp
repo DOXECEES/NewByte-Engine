@@ -14,10 +14,17 @@ namespace nb
         class IResource
         {
         public:
+            IResource(const std::filesystem::path& pathToFile) noexcept
+                : path(pathToFile)
+            {}
             virtual ~IResource() = default;
 
             virtual void updateMetaData() noexcept {}; 
 
+            std::string getPath() noexcept { return path.string(); };
+
+        protected:
+            std::filesystem::path path;
         };
 
 

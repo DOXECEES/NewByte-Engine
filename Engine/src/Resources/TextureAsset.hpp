@@ -33,6 +33,7 @@ namespace nb::Resource
         ) 
             : path(path)
             , settings(settings)
+            , IResource(path)
         {}
 
         nbstl::NonOwningPtr<nb::Renderer::Texture> getInternalTexture()

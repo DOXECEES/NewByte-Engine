@@ -22,9 +22,10 @@ namespace nb::Resource
             )
 		 : path(path)
 		 , cubemap(cubemapTexture)
-		 , irradiance(irradianceTexture),
-           prefilter(prefilterTexture),
-            brdf(brdfTexture)
+		 , irradiance(irradianceTexture)
+         , prefilter(prefilterTexture)
+         , brdf(brdfTexture)
+         , IResource(path)
 		{}
 		virtual ~IhdrResource() = default;
 

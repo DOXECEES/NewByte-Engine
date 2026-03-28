@@ -95,8 +95,9 @@ namespace nb
 
         // }
 
-        Mesh::Mesh(const std::vector<Vertex> &vert, const std::vector<uint32_t> &ind)
+        Mesh::Mesh(const std::vector<Vertex> &vert, const std::vector<uint32_t> &ind, const std::filesystem::path& pathToFile)
             : verticies(vert)
+            , IResource(pathToFile)
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
             calculateTagnentArray();
