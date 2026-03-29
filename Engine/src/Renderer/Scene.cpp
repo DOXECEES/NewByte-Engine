@@ -153,7 +153,7 @@ namespace nb
         ecs.getStorage<HierarchyComponent>();
         ecs.getStorage<NameComponent>();
         ecs.getStorage<MeshComponent>();
-        ecs.getStorage<ScriptComponent>();
+        ecs.getStorage<nb::Script::ScriptComponent>();
 
 
         ecs.getStorage<nb::Renderer::LightComponent>();
@@ -595,22 +595,16 @@ void Scene::deserializeFields(
             {
                 *reinterpret_cast<uint8_t*>(fieldPtr) = static_cast<uint8_t>(fieldJson.get<int>());
             }
-
-            // ---- Enum ----
             else if (fieldType->isEnum && fieldJson.isValue())
             {
                 int value = fieldJson.get<int>();
                 std::memcpy(fieldPtr, &value, sizeof(int));
             }
-
-            // ---- Ресурсы ----
             if (fieldJson.isValue() && field.loadResource)
             {
                 std::string path = fieldJson.get<std::string>();
                 field.loadResource(fieldPtr, path); 
             }
-
-            // ---- Структуры с полями ----
             else if (!fieldType->fields.empty() && fieldJson.isObject())
             {
                 deserializeFields(fieldJson, fieldPtr, fieldType);

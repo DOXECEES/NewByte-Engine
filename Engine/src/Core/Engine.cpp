@@ -158,7 +158,23 @@ namespace nb
 
             static float yaw;
             static float pitch;
-            ScriptEngineSingleton::instance().callFunction("move");
+            auto& scene = Scene::getInstance();
+            auto& registry = scene.getRegistry();
+
+            scene.traverseAll(
+                [&](Ecs::EntityID entityId)
+                {
+                    Ecs::Entity entity{entityId};
+
+                    if (registry.has<nb::Script::ScriptComponent>(entity))
+                    {
+                        auto& script = registry.get<nb::Script::ScriptComponent>(entity);
+                        script.script->onUpdate(entity, deltaTime);
+
+                    }
+                }
+            );
+
 
             cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
             if (mode == Mode::GAME)

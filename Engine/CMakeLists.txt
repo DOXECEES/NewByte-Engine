@@ -266,7 +266,9 @@ set (SRC
         src/ECS/Ecs.hpp
         src/ECS/Ecs.cpp
 
+        src/Scripting/ScriptComponent.cpp
         src/Scripting/ScriptComponent.hpp
+        src/Scripting/ScriptEngine.cpp
         src/Scripting/ScriptEngine.hpp
 
         dependencies/lodepng/lodepng.cpp

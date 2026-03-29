@@ -14,6 +14,8 @@
 
 #include "Serialize/JsonArchive.hpp"
 
+#include "Scripting/ScriptComponent.hpp"
+
 
 namespace nb::Renderer
 {
@@ -755,7 +757,6 @@ namespace nb::Renderer
         //api->bindDefaultFrameBuffer();
     }
 
-    
     void Renderer::loadSceneEcs() noexcept
     {
         /*auto rm = ResMan::ResourceManager::getInstance();
@@ -849,12 +850,13 @@ namespace nb::Renderer
         surf->uniforms.shader = shader;
 
         surfNode.addComponent(MeshComponent{surf});
+        surfNode.addComponent(nb::Script::ScriptComponent())
 
         nb::Serialize::IArchive* archive =
             new nb::Serialize::JsonArchive("Assets/res/Scene.json");
         Scene::getInstance().serialize(archive);
-        delete archive;*/
-        
+        delete archive;
+        */
 
         nb::Serialize::IArchive* archive =
             new nb::Serialize::JsonArchive("Assets/res/Scene.json");

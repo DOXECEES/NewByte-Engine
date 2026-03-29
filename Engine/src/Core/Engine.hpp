@@ -37,6 +37,7 @@
 
 #include "Renderer/Scene.hpp"
 
+#include "Scripting/ScriptEngine.hpp"
 
 namespace nb
 {
@@ -120,6 +121,10 @@ namespace nb
                 input->linkKeyboard(keyboard);
                 input->linkMouse(mouse);
              
+
+                nb::Script::ScriptEngineSingleton::instance().getLuaState()["Keyboard"] = keyboard;
+                
+
                 Utils::Timer::init();
             }
             ~Engine() = default;
