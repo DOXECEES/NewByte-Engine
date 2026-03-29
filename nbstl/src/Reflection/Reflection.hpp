@@ -82,6 +82,8 @@ namespace nb::Reflect
         float step = 0.1f;
 
         std::function<std::string(void*)> getResourcePath = nullptr;
+        std::function<void(void*, const std::string&)> loadResource = nullptr;
+
     };
 
     struct TypeInfo
@@ -181,6 +183,11 @@ namespace nb::Reflect
                                     info.getResourcePath = [](void* ptr) -> std::string
                                     {
                                         return ResourceLoader<MemberType>::getPath(ptr);
+                                    };
+
+                                    info.loadResource = [](void* ptr, const std::string& path)
+                                    {
+                                        ResourceLoader<MemberType>::load(ptr, path);
                                     };
                                 }
 

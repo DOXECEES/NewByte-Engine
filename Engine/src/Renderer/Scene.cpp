@@ -7,6 +7,8 @@
 
 #include "Manager/ResourceManager.hpp"
 
+#include "Scripting/ScriptComponent.hpp"
+
 namespace nb
 {
     Node::Node() noexcept
@@ -151,6 +153,7 @@ namespace nb
         ecs.getStorage<HierarchyComponent>();
         ecs.getStorage<NameComponent>();
         ecs.getStorage<MeshComponent>();
+        ecs.getStorage<ScriptComponent>();
 
 
         ecs.getStorage<nb::Renderer::LightComponent>();
@@ -601,22 +604,10 @@ void Scene::deserializeFields(
             }
 
             // ---- Ресурсы ----
-            else if (fieldJson.isValue())
+            if (fieldJson.isValue() && field.loadResource)
             {
                 std::string path = fieldJson.get<std::string>();
-                if (std::strcmp(typeName, "std::shared_ptr<nb::Renderer::Mesh>") == 0)
-                {
-                    *reinterpret_cast<std::shared_ptr<nb::Renderer::Mesh>*>(fieldPtr) =
-                        nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(
-                            path
-                        );
-                }
-                else if (std::strcmp(typeName, "Ref<nb::Renderer::Material>") == 0)
-                {
-                    //*reinterpret_cast<Ref<nb::Renderer::Material>*>(fieldPtr) =
-                    //    nb::ResMan::ResourceManager::getInstance()
-                    //        ->getResource<nb::Renderer::Material>(path);
-                }
+                field.loadResource(fieldPtr, path); 
             }
 
             // ---- Структуры с полями ----

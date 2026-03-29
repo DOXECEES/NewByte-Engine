@@ -56,7 +56,7 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
 #include "../ECS/Ecs.hpp"
 #include "../Loaders/PngLoader.hpp"
 #include "Error/ErrorManager.hpp"
-
+#include "Scripting/ScriptComponent.hpp"
 extern "C"
 {
     _declspec(dllexport) DWORD NvOptimusEnablement = 1;
@@ -93,7 +93,6 @@ namespace nb
             using namespace nb::Input;
             input->stopHandlingPosition();
 
-            // show cursor
             ClipCursor(nullptr);
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
@@ -159,7 +158,7 @@ namespace nb
 
             static float yaw;
             static float pitch;
-
+            ScriptEngineSingleton::instance().callFunction("move");
 
             cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
             if (mode == Mode::GAME)
