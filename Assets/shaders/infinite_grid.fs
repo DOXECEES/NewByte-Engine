@@ -18,16 +18,16 @@
 
 #version 330
 
-in vec3 WorldPos;
+in vec3 worldPos;
 
 layout(location = 0) out vec4 FragColor;
 
-uniform vec3 gCameraWorldPos;
-uniform float gGridSize = 100.0;
-uniform float gGridMinPixelsBetweenCells = 2.0;
-uniform float gGridCellSize = 0.025;
-uniform vec4 gGridColorThin = vec4(0.5, 0.5, 0.5, 1.0);
-uniform vec4 gGridColorThick = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec3 uCameraWorldPosition;
+uniform float uGridSize = 100.0;
+uniform float uGridMinPixelsBetweenCells = 2.0;
+uniform float uGridCellSize = 0.025;
+uniform vec4 uGridColorThin = vec4(0.5, 0.5, 0.5, 1.0);
+uniform vec4 uGridColorThick = vec4(0.0, 0.0, 0.0, 1.0);
 
 
 float log10(float x)
@@ -60,8 +60,8 @@ float max2(vec2 v)
 
 void main()
 {
-    vec2 dvx = vec2(dFdx(WorldPos.x), dFdy(WorldPos.x));
-    vec2 dvy = vec2(dFdx(WorldPos.z), dFdy(WorldPos.z));
+    vec2 dvx = vec2(dFdx(worldPos.x), dFdy(worldPos.x));
+    vec2 dvy = vec2(dFdx(worldPos.z), dFdy(worldPos.z));
 
     float lx = length(dvx);
     float ly = length(dvy);
@@ -70,40 +70,40 @@ void main()
 
     float l = length(dudv);
 
-    float LOD = max(0.0, log10(l * gGridMinPixelsBetweenCells / gGridCellSize) + 1.0);
+    float LOD = max(0.0, log10(l * uGridMinPixelsBetweenCells / uGridCellSize) + 1.0);
 
-    float GridCellSizeLod0 = gGridCellSize * pow(10.0, floor(LOD));
+    float GridCellSizeLod0 = uGridCellSize * pow(10.0, floor(LOD));
     float GridCellSizeLod1 = GridCellSizeLod0 * 10.0;
     float GridCellSizeLod2 = GridCellSizeLod1 * 10.0;
 
     dudv *= 4.0;
 
-    vec2 mod_div_dudv = mod(WorldPos.xz, GridCellSizeLod0) / dudv;
+    vec2 mod_div_dudv = mod(worldPos.xz, GridCellSizeLod0) / dudv;
     float Lod0a = max2(vec2(1.0) - abs(satv(mod_div_dudv) * 2.0 - vec2(1.0)) );
 
-    mod_div_dudv = mod(WorldPos.xz, GridCellSizeLod1) / dudv;
+    mod_div_dudv = mod(worldPos.xz, GridCellSizeLod1) / dudv;
     float Lod1a = max2(vec2(1.0) - abs(satv(mod_div_dudv) * 2.0 - vec2(1.0)) );
     
-    mod_div_dudv = mod(WorldPos.xz, GridCellSizeLod2) / dudv;
+    mod_div_dudv = mod(worldPos.xz, GridCellSizeLod2) / dudv;
     float Lod2a = max2(vec2(1.0) - abs(satv(mod_div_dudv) * 2.0 - vec2(1.0)) );
 
     float LOD_fade = fract(LOD);
     vec4 Color;
 
     if (Lod2a > 0.0) {
-        Color = gGridColorThick;
+        Color = uGridColorThick;
         Color.a *= Lod2a;
     } else {
         if (Lod1a > 0.0) {
-            Color = mix(gGridColorThick, gGridColorThin, LOD_fade);
+            Color = mix(uGridColorThick, uGridColorThin, LOD_fade);
 	        Color.a *= Lod1a;
         } else {
-            Color = gGridColorThin;
+            Color = uGridColorThin;
 	        Color.a *= (Lod0a * (1.0 - LOD_fade));
         }
     }
     
-    float OpacityFalloff = (1.0 - satf(length(WorldPos.xz - gCameraWorldPos.xz) / gGridSize));
+    float OpacityFalloff = (1.0 - satf(length(worldPos.xz - uCameraWorldPosition.xz) / uGridSize));
 
     Color.a *= OpacityFalloff;
 

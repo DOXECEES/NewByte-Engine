@@ -251,8 +251,8 @@ namespace nb::Renderer
         glGenVertexArrays(1, &gridVAO);
 
         auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
-        gridShader->setUniformVec3("gCameraWorldPos", cam->getPosition());
-        gridShader->setUniformMat4("gVP", cam->getLookAt() * cam->getProjection());
+        gridShader->setUniformVec3("uCameraWorldPosition", cam->getPosition());
+        gridShader->setUniformMat4("uViewProjection", cam->getLookAt() * cam->getProjection());
         
         gridShader->use();
 
