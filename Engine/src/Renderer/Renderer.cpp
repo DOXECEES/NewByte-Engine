@@ -14,6 +14,8 @@
 
 #include "Serialize/JsonArchive.hpp"
 
+#include "Scripting/ScriptComponent.hpp"
+#include "Physics/Physics.hpp"
 
 namespace nb::Renderer
 {
@@ -755,10 +757,9 @@ namespace nb::Renderer
         //api->bindDefaultFrameBuffer();
     }
 
-    
     void Renderer::loadSceneEcs() noexcept
     {
-        /*auto rm = ResMan::ResourceManager::getInstance();
+        auto rm = ResMan::ResourceManager::getInstance();
         auto shader = rm->getResource<Shader>("ADS.shader");
 
         auto& scene = nb::Scene::getInstance();
@@ -830,12 +831,29 @@ namespace nb::Renderer
         cubeNode.setName("cube");
 
         auto& cubeTransform = cubeNode.getComponent<TransformComponent>();
-        cubeTransform.position = {0.0f, 0.0f, 0.0f};
+        cubeTransform.position = {0.0f, 990.0f, 0.0f};
         cubeTransform.scale = {2.25f, 2.25f, 2.25f};
         cubeTransform.dirty = true;
         cube->uniforms.shader = shader;
 
         cubeNode.addComponent(MeshComponent{cube});
+        cubeNode.addComponent(Collider{.halfSize = {1.0f * 2.25f, 1.0f * 2.25f, 1.0f * 2.25f}});
+
+        cubeNode.addComponent(
+            Rigidbody{
+                .velocity = {0.0f, 0.0f, 0.0f},
+                .acceleration = {0.0f, 0.0f, 0.0f},
+                .mass = 1.0f,
+                .useGravity = true
+            }
+        );
+        cubeNode.addComponent(
+            nb::Script::ScriptComponent{
+                .script = std::make_shared<nb::Script::Script>(
+                    nb::Script::ScriptEngineSingleton::instance(), "aa.lua"
+                )
+            }
+        );
 
 
         Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
@@ -849,18 +867,21 @@ namespace nb::Renderer
         surf->uniforms.shader = shader;
 
         surfNode.addComponent(MeshComponent{surf});
+        surfNode.addComponent(Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
+        surfNode.addComponent(GroundTag());
+        //surfNode.addComponent(nb::Script::ScriptComponent())
 
-        nb::Serialize::IArchive* archive =
-            new nb::Serialize::JsonArchive("Assets/res/Scene.json");
-        Scene::getInstance().serialize(archive);
-        delete archive;*/
-        
+        //nb::Serialize::IArchive* archive =
+        //    new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+        //Scene::getInstance().serialize(archive);
+        //delete archive;
+        //
 
-        nb::Serialize::IArchive* archive =
+       /* nb::Serialize::IArchive* archive =
             new nb::Serialize::JsonArchive("Assets/res/Scene.json");
         archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
         archive->load();
         Scene::getInstance().deserialize(archive);
-        delete archive;
+        delete archive;*/
     }
 }

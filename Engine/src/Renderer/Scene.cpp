@@ -7,6 +7,8 @@
 
 #include "Manager/ResourceManager.hpp"
 
+#include "Scripting/ScriptComponent.hpp"
+
 namespace nb
 {
     Node::Node() noexcept
@@ -151,6 +153,7 @@ namespace nb
         ecs.getStorage<HierarchyComponent>();
         ecs.getStorage<NameComponent>();
         ecs.getStorage<MeshComponent>();
+        ecs.getStorage<nb::Script::ScriptComponent>();
 
 
         ecs.getStorage<nb::Renderer::LightComponent>();
@@ -592,34 +595,16 @@ void Scene::deserializeFields(
             {
                 *reinterpret_cast<uint8_t*>(fieldPtr) = static_cast<uint8_t>(fieldJson.get<int>());
             }
-
-            // ---- Enum ----
             else if (fieldType->isEnum && fieldJson.isValue())
             {
                 int value = fieldJson.get<int>();
                 std::memcpy(fieldPtr, &value, sizeof(int));
             }
-
-            // ---- Ресурсы ----
-            else if (fieldJson.isValue())
+            if (fieldJson.isValue() && field.loadResource)
             {
                 std::string path = fieldJson.get<std::string>();
-                if (std::strcmp(typeName, "std::shared_ptr<nb::Renderer::Mesh>") == 0)
-                {
-                    *reinterpret_cast<std::shared_ptr<nb::Renderer::Mesh>*>(fieldPtr) =
-                        nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(
-                            path
-                        );
-                }
-                else if (std::strcmp(typeName, "Ref<nb::Renderer::Material>") == 0)
-                {
-                    //*reinterpret_cast<Ref<nb::Renderer::Material>*>(fieldPtr) =
-                    //    nb::ResMan::ResourceManager::getInstance()
-                    //        ->getResource<nb::Renderer::Material>(path);
-                }
+                field.loadResource(fieldPtr, path); 
             }
-
-            // ---- Структуры с полями ----
             else if (!fieldType->fields.empty() && fieldJson.isObject())
             {
                 deserializeFields(fieldJson, fieldPtr, fieldType);

@@ -5,6 +5,9 @@
 #include "Engine.hpp"
 
 #include "Math/RayCast/RayPicker.hpp"
+
+        #include "Physics/Physics.hpp"
+
 struct Ray
 {
     nb::Math::Vector3<float> origin;
@@ -56,7 +59,7 @@ bool rayIntersectsAABB(const Ray &ray, const nb::Math::Vector3<float> &boxMin, c
 #include "../ECS/Ecs.hpp"
 #include "../Loaders/PngLoader.hpp"
 #include "Error/ErrorManager.hpp"
-
+#include "Scripting/ScriptComponent.hpp"
 extern "C"
 {
     _declspec(dllexport) DWORD NvOptimusEnablement = 1;
@@ -93,7 +96,6 @@ namespace nb
             using namespace nb::Input;
             input->stopHandlingPosition();
 
-            // show cursor
             ClipCursor(nullptr);
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
@@ -146,7 +148,6 @@ namespace nb
 
         }
 
-
         bool Engine::run(bool shouldRender) 
         {
             using namespace nb::Input;
@@ -157,8 +158,28 @@ namespace nb
             //this->mouseDelta = mouseDelta;
             renderer->setCamera(&cam);
 
+           
+
+
+
             static float yaw;
             static float pitch;
+            auto& scene = Scene::getInstance();
+            auto& registry = scene.getRegistry();
+
+            scene.traverseAll(
+                [&](Ecs::EntityID entityId)
+                {
+                    Ecs::Entity entity{entityId};
+
+                    if (registry.has<nb::Script::ScriptComponent>(entity))
+                    {
+                        auto& script = registry.get<nb::Script::ScriptComponent>(entity);
+                        script.script->onUpdate(entity, deltaTime);
+
+                    }
+                }
+            );
 
 
             cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
@@ -202,12 +223,18 @@ namespace nb
             if (shouldRender)
             {
             }
+
+          
             return true;
         }
 
         void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept
         {
             using namespace nb::Input;
+
+            PhysicsSystem physics;
+            physics.update(Scene::getInstance(), deltaTime);
+
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
