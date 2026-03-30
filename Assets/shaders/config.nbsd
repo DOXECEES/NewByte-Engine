@@ -112,5 +112,11 @@
 			"Assets/shaders/brdf.vs",
 			"Assets/shaders/brdf.fs"
 		]
+	},
+	"infinite_grid.shader" : {
+		"sources": [
+			"Assets/shaders/infinite_grid.vs",
+			"Assets/shaders/infinite_grid.fs"
+		]
 	}		
 }

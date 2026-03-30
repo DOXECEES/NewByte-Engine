@@ -859,6 +859,8 @@ void EditorApp::setupAssetManager() noexcept
     //    res->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material").get()
     //);
     //materialEditor->show();
+    // 
+    // 
     //textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
     // auto* resMan = nb::ResMan::ResourceManager::getInstance();
     //textureEditor->show();

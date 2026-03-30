@@ -242,9 +242,26 @@ namespace nb::Renderer
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
 
+        //
         
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        GLuint gridVAO;
+        glGenVertexArrays(1, &gridVAO);
 
-       
+        auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
+        gridShader->setUniformVec3("gCameraWorldPos", cam->getPosition());
+        gridShader->setUniformMat4("gVP", cam->getLookAt() * cam->getProjection());
+        
+        gridShader->use();
+
+        glBindVertexArray(gridVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+
+
+        //
 
         for (auto& cmd : mainQueue) 
         {
