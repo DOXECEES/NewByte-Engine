@@ -46,6 +46,7 @@ namespace nb
         {
             Mesh*           mesh;
             PipelineHandle  pipeline;
+            uint32 vertexCount = 0;
         };
 
         struct Viewport
@@ -85,6 +86,8 @@ namespace nb
             virtual void endFrame() noexcept = 0;
 
             virtual void drawMesh(RendererCommand& command) noexcept = 0;
+            virtual void drawVertexless(RendererCommand& command) noexcept = 0;
+
             virtual void drawContextMesh(const ContextMesh& contextMesh, PipelineHandle pipeline) noexcept = 0;
 
             virtual void bindPipeline(PipelineHandle pipelineHandle) noexcept = 0;

@@ -243,23 +243,29 @@ namespace nb::Renderer
         glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
 
         //
-        
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        GLuint gridVAO;
-        glGenVertexArrays(1, &gridVAO);
 
         auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
+
+        Pipeline gridPipeline
+        {
+            .shader = gridShader,
+            .isDepthTestEnable = true,
+            .isBlendEnable = true
+        };
+
+        uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
+
+        RendererCommand gridRenderCommand
+        {
+            .mesh = nullptr,
+            .pipeline = gridPSO,
+            .vertexCount = 6
+        };
+
         gridShader->setUniformVec3("uCameraWorldPosition", cam->getPosition());
         gridShader->setUniformMat4("uViewProjection", cam->getLookAt() * cam->getProjection());
         
-        gridShader->use();
-
-        glBindVertexArray(gridVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-
+        api->drawVertexless(gridRenderCommand);
 
         //
 
