@@ -242,9 +242,36 @@ namespace nb::Renderer
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
 
-        
+        //
 
-       
+        if (isShowGridEnabled)
+        {
+            auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
+
+            Pipeline gridPipeline
+            {
+                .shader = gridShader,
+                .isDepthTestEnable = false,
+                .isBlendEnable = true
+            };
+
+            uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
+
+            RendererCommand gridRenderCommand
+            {
+                .mesh = nullptr,
+                .pipeline = gridPSO,
+                .vertexCount = 6
+            };
+
+            gridShader->setUniformVec3("uCameraWorldPosition", cam->getPosition());
+            gridShader->setUniformMat4("uViewProjection", cam->getLookAt() * cam->getProjection());
+
+            api->drawVertexless(gridRenderCommand);
+        }
+
+ 
+        //
 
         for (auto& cmd : mainQueue) 
         {

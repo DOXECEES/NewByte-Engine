@@ -50,6 +50,12 @@ namespace nb
                 isBoundingBoxVisualizationEnabled = !isBoundingBoxVisualizationEnabled;
             }
 
+            inline void toggleGridShow() noexcept
+            {
+                isShowGridEnabled = !isShowGridEnabled;
+            }
+
+
             bool isResourceReady() const noexcept;
         
             SharedWindowContext createSharedContextForWindow(HWND handle) noexcept;
@@ -144,6 +150,7 @@ namespace nb
 
             bool isDebugPassEnabled = false;
             bool isBoundingBoxVisualizationEnabled = false;
+            bool isShowGridEnabled = true;
 
             SharedWindowContext ctx;
             Ref<ContextMeshCache> contextMeshCache = nullptr;

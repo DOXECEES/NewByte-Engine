@@ -138,6 +138,26 @@ namespace nb::OpenGl
         command.mesh->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader);
     }
 
+    void nb::OpenGl::OpenGLRender::drawVertexless(Renderer::RendererCommand& command) noexcept
+    {
+        bindPipeline(command.pipeline);
+        if (command.mesh != nullptr)
+        {
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::INFO, "Mesh passed to vertexless draw call");
+        }
+        glBindVertexArray(emptyVao);
+
+        glDrawArrays(
+            GL_TRIANGLES,
+            0,
+            command.vertexCount 
+        );
+
+        glBindVertexArray(0);
+
+    }
+
     void OpenGLRender::drawContextMesh(const Renderer::ContextMesh& contextMesh, Renderer::PipelineHandle pipeline) noexcept
     {
         bindPipeline(pipeline);
@@ -598,6 +618,9 @@ nb::OpenGl::OpenGLRender::~OpenGLRender() noexcept
 {
     delete t;
     delete tn;
+
+    glDeleteVertexArrays(1, &emptyVao);
+
     wglMakeCurrent(nullptr, nullptr);
     ReleaseDC(getNativeHandleAs<HWND>(), hdc);
 }
@@ -740,6 +763,8 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     ReleaseDC(dummyWindow, dummyHDC);
     DestroyWindow(dummyWindow);
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
+
+    glGenVertexArrays(1, &emptyVao);
 
     //loadScene();
     return true;
@@ -901,6 +926,7 @@ void nb::OpenGl::OpenGLRender::refreshPolygonMode() const noexcept
 {
     glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 }
+
 
 
 

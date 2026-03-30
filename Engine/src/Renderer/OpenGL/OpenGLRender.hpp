@@ -74,6 +74,8 @@ namespace nb
                 void endFrame() noexcept override;
 
                 void drawMesh(Renderer::RendererCommand& command) noexcept override;
+                void drawVertexless(Renderer::RendererCommand& command) noexcept override;
+
                 void drawContextMesh(const Renderer::ContextMesh& contextMesh, Renderer::PipelineHandle pipeline) noexcept override;
 
 
@@ -181,9 +183,10 @@ namespace nb
                 std::shared_ptr<PostProcessFbo>     postProcessFbo          = nullptr;
 
               
-                
+                GLuint emptyVao = 0;
 
-};
+
+        };
     };
 };
 

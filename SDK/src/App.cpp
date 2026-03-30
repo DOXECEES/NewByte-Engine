@@ -765,10 +765,16 @@ void EditorApp::setupDebugUI() noexcept
             }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show vertex color")
+            .text(L"Show grid")
             .relativeWidth(1.0f).absoluteHeight(30)
+            .apply<Widgets::CheckBox>(
+                [](Widgets::CheckBox* checkbox)
+                {
+                    checkbox->setChecked(true);
+                }
+            )
             .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                engine->getRenderer()->showVertexColor(checked);
+                engine->getRenderer()->toggleGridShow();
             }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
@@ -859,6 +865,8 @@ void EditorApp::setupAssetManager() noexcept
     //    res->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material").get()
     //);
     //materialEditor->show();
+    // 
+    // 
     //textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
     // auto* resMan = nb::ResMan::ResourceManager::getInstance();
     //textureEditor->show();
