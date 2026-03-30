@@ -244,29 +244,33 @@ namespace nb::Renderer
 
         //
 
-        auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
-
-        Pipeline gridPipeline
+        if (isShowGridEnabled)
         {
-            .shader = gridShader,
-            .isDepthTestEnable = true,
-            .isBlendEnable = true
-        };
+            auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
 
-        uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
+            Pipeline gridPipeline
+            {
+                .shader = gridShader,
+                .isDepthTestEnable = false,
+                .isBlendEnable = true
+            };
 
-        RendererCommand gridRenderCommand
-        {
-            .mesh = nullptr,
-            .pipeline = gridPSO,
-            .vertexCount = 6
-        };
+            uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
 
-        gridShader->setUniformVec3("uCameraWorldPosition", cam->getPosition());
-        gridShader->setUniformMat4("uViewProjection", cam->getLookAt() * cam->getProjection());
-        
-        api->drawVertexless(gridRenderCommand);
+            RendererCommand gridRenderCommand
+            {
+                .mesh = nullptr,
+                .pipeline = gridPSO,
+                .vertexCount = 6
+            };
 
+            gridShader->setUniformVec3("uCameraWorldPosition", cam->getPosition());
+            gridShader->setUniformMat4("uViewProjection", cam->getLookAt() * cam->getProjection());
+
+            api->drawVertexless(gridRenderCommand);
+        }
+
+ 
         //
 
         for (auto& cmd : mainQueue) 

@@ -765,10 +765,16 @@ void EditorApp::setupDebugUI() noexcept
             }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show vertex color")
+            .text(L"Show grid")
             .relativeWidth(1.0f).absoluteHeight(30)
+            .apply<Widgets::CheckBox>(
+                [](Widgets::CheckBox* checkbox)
+                {
+                    checkbox->setChecked(true);
+                }
+            )
             .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                engine->getRenderer()->showVertexColor(checked);
+                engine->getRenderer()->toggleGridShow();
             }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
