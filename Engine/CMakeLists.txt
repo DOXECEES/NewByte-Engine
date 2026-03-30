@@ -271,6 +271,8 @@ set (SRC
         src/Scripting/ScriptEngine.cpp
         src/Scripting/ScriptEngine.hpp
 
+        src/Physics/Physics.hpp
+
         dependencies/lodepng/lodepng.cpp
         dependencies/stb/stb_image.h
 

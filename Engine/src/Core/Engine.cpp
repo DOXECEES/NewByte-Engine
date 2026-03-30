@@ -5,6 +5,9 @@
 #include "Engine.hpp"
 
 #include "Math/RayCast/RayPicker.hpp"
+
+        #include "Physics/Physics.hpp"
+
 struct Ray
 {
     nb::Math::Vector3<float> origin;
@@ -145,7 +148,6 @@ namespace nb
 
         }
 
-
         bool Engine::run(bool shouldRender) 
         {
             using namespace nb::Input;
@@ -155,6 +157,10 @@ namespace nb
              
             //this->mouseDelta = mouseDelta;
             renderer->setCamera(&cam);
+
+           
+
+
 
             static float yaw;
             static float pitch;
@@ -217,12 +223,18 @@ namespace nb
             if (shouldRender)
             {
             }
+
+          
             return true;
         }
 
         void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept
         {
             using namespace nb::Input;
+
+            PhysicsSystem physics;
+            physics.update(Scene::getInstance(), deltaTime);
+
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {

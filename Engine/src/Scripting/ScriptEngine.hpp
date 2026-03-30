@@ -104,6 +104,10 @@ namespace nb::Script
                     {
                         code = nb::Input::Keyboard::KeyCode::NB_D;
                     }
+                    else if (key == "F")
+                    {
+                        code = nb::Input::Keyboard::KeyCode::NB_F;
+                    }
                     else if (key == "SPACE")
                     {
                         code = nb::Input::Keyboard::KeyCode::NB_SPACE;

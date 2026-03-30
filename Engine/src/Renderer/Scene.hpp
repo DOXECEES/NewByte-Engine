@@ -182,6 +182,26 @@ namespace nb
             return ecs.has<T>(Ecs::Entity{entity});
         }
 
+        template <typename... Args>
+        std::vector<Ecs::Entity> getEntitiesWith()
+        {
+            std::vector<Ecs::Entity> result;
+
+            traverse(
+                rootEntity,
+                [this, &result](Ecs::EntityID id)
+                {
+                    if ((ecs.has<Args>({id}) && ...))
+                    {
+                        result.push_back(Ecs::Entity{id});
+                    }
+                }
+            );
+
+            return result;
+        }
+
+
         Node getNode(Ecs::EntityID id) noexcept;
 
         Ecs::ECSRegistry& getRegistry() noexcept;

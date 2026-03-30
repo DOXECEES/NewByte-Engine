@@ -854,11 +854,11 @@ void EditorApp::setupAssetManager() noexcept
     using namespace nbui;
     
     auto res = nb::ResMan::ResourceManager::getInstance();
-    materialEditor = std::make_shared<MaterialEditor>(
-        debugWindow.get(), engine.get(),
-        res->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material").get()
-    );
-    materialEditor->show();
+    //materialEditor = std::make_shared<MaterialEditor>(
+    //    debugWindow.get(), engine.get(),
+    //    res->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material").get()
+    //);
+    //materialEditor->show();
     //textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
     // auto* resMan = nb::ResMan::ResourceManager::getInstance();
     //textureEditor->show();
@@ -1376,23 +1376,18 @@ void EditorApp::rebuildInspector() noexcept
             auto data = storage->getRaw(entityId);
 
             inspectorBuilder = std::move(inspectorBuilder)
-                .child(
-                    LayoutBuilder::label(nb::Utils::toWString(info->name))
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30)
-                        .background({60, 60, 60})
-                        .color({220, 220, 220})
-                        .textAlignment({.textAlignment = TextAlignment::LEFT})
-                );
+                                   .child(
+                                       LayoutBuilder::label(nb::Utils::toWString(info->name))
+                                           .relativeWidth(1.0f)
+                                           .absoluteHeight(30)
+                                           .background({60, 60, 60})
+                                           .color({220, 220, 220})
+                                           .textAlignment({.textAlignment = TextAlignment::LEFT})
+                                   );
 
             for (const auto& field : info->fields)
             {
-                inspectorBuilder = buildFieldUI(
-                    std::move(inspectorBuilder),
-                    data,
-                    info,
-                    field
-                );
+                inspectorBuilder = buildFieldUI(std::move(inspectorBuilder), data, info, field);
             }
         }
     }
@@ -1667,6 +1662,39 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 
         return std::move(parentBuilder).child(std::move(floatRow));
     }
+    else if (typeName == "bool")
+    {
+        auto boolRow = LayoutBuilder::hBox()
+                           .relativeWidth(1.0f)
+                           .absoluteHeight(30)
+                           .child(
+                               LayoutBuilder::label(nb::Utils::toWString(field.name))
+                                   .relativeWidth(0.35f)
+                                   .color({180, 180, 180})
+                                   .textAlignment({.textAlignment = TextAlignment::LEFT})
+                           )
+                           .child(
+                               LayoutBuilder::widget(new Widgets::CheckBox())
+                                   .apply<Widgets::CheckBox>(
+                                       [fieldData, componentPtr, info, this](Widgets::CheckBox* c)
+                                       {
+                                           c->setChecked(*static_cast<bool*>(fieldData));
+                                           c->onToggled(
+                                               [fieldData, componentPtr, info, this](bool value)
+                                               {
+                                                   *static_cast<bool*>(fieldData) = value;
+                                                   markComponentDirty(componentPtr, info);
+                                               }
+                                           );
+                                       }
+                                   )
+                                   .relativeWidth(0.65f)
+                                   .absoluteHeight(30)
+                           );
+
+        return std::move(parentBuilder).child(std::move(boolRow));
+    }
+
 
     return parentBuilder;
 }
