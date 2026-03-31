@@ -101,7 +101,9 @@ namespace nb
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
             calculateTagnentArray();
-            
+
+            this->ind = uniteIndicies();
+
             VAO.linkData(verticies, ind);
             recalculateAabb3dForce();
         }
