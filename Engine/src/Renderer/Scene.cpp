@@ -137,6 +137,249 @@ namespace nb
     {
         traverse(rootEntity, action);
     }
+    using namespace Math;
+    bool intersectRayTriangle(
+        const Ray& ray,
+        const Vector3<float>& v0,
+        const Vector3<float>& v1,
+        const Vector3<float>& v2,
+        float& t
+    )
+    {
+        const float EPSILON = 1e-7f;
+        Vector3<float> edge1 = v1 - v0;
+        Vector3<float> edge2 = v2 - v0;
+        Vector3<float> h = ray.direction.cross(edge2);
+        float a = edge1.dot(h);
+
+        if (a > -EPSILON && a < EPSILON)
+        {
+            return false; // Луч параллелен
+        }
+
+        float f = 1.0f / a;
+        Vector3<float> s = ray.origin - v0;
+        float u = f * s.dot(h);
+
+        if (u < 0.0f || u > 1.0f)
+        {
+            return false;
+        }
+
+        Vector3<float> q = s.cross(edge1);
+        float v = f * ray.direction.dot(q);
+
+        if (v < 0.0f || u + v > 1.0f)
+        {
+            return false;
+        }
+
+        float tempT = f * edge2.dot(q);
+        if (tempT > EPSILON)
+        {
+            t = tempT;
+            return true;
+        }
+        return false;
+    }
+
+    inline Vector3<float> transformPoint(
+        const Mat4<float>& m,
+        const Vector3<float>& v
+    )
+    {
+        float x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z + m[0][3];
+        float y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z + m[1][3];
+        float z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z + m[2][3];
+        float w = m[3][0] * v.x + m[3][1] * v.y + m[3][2] * v.z + m[3][3];
+        return Vector3<float>(x / w, y / w, z / w);
+    }
+
+    // Умножение вектора на матрицу 4x4 (w = 0, без переноса)
+    inline Vector3<float> transformVector(
+        const Mat4<float>& m,
+        const Vector3<float>& v
+    )
+    {
+        float x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z;
+        float y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z;
+        float z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z;
+        return Vector3<float>(x, y, z);
+    }
+
+
+    Ecs::EntityID Scene::pickNode(const Math::Ray& ray) noexcept
+    {
+        std::vector<Math::BVHItem> items;
+        traverseAll(
+            [&](Ecs::EntityID id)
+            {
+                if (hasComponent<MeshComponent>(id) && hasComponent<TransformComponent>(id))
+                {
+                    auto& transform = getComponent<TransformComponent>(id);
+                    auto& meshComp = getComponent<MeshComponent>(id);
+
+                    // ВАЖНО: Матрицу инвертируем один раз здесь или храним заранее
+                    // Используем вашу функцию инверсии матрицы (например, Math::inverse(m))
+
+                    Math::AABB3D worldAABB = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                        meshComp.mesh->getAabb3d(), transform.worldMatrix
+                    );
+
+                    items.push_back({id, worldAABB});
+                }
+            }
+        );
+
+        if (items.empty())
+        {
+            return 0;
+        }
+
+        // Рекомендуется вынести build из этой функции (строить только при изменении сцены)
+        sceneBVH.build(std::move(items));
+
+        uint32_t stack[64];
+        uint32_t stackPtr = 0;
+        uint32_t currentNodeIdx = 0;
+
+        Ecs::EntityID closestEntity = 0;
+        float closestT = std::numeric_limits<float>::max();
+
+        while (true)
+        {
+            const auto& node = sceneBVH.nodes[currentNodeIdx];
+
+            float tNode;
+            if (!intersectRayAABB(ray, node.bounds, tNode) || tNode > closestT)
+            {
+                if (stackPtr == 0)
+                {
+                    break;
+                }
+                currentNodeIdx = stack[--stackPtr];
+                continue;
+            }
+
+            if (node.isLeaf())
+            {
+                for (uint32_t i = 0; i < node.count; i++)
+                {
+                    const auto& item = sceneBVH.items[node.leftFirst + i];
+                    float tAABB;
+
+                    if (intersectRayAABB(ray, item.worldAABB, tAABB) && tAABB < closestT)
+                    {
+                        auto& transform = getComponent<TransformComponent>(item.entityId);
+                        auto& meshComp = getComponent<MeshComponent>(item.entityId);
+
+                        // 1. Берем инвертированную матрицу (в идеале хранить её в
+                        // TransformComponent) Если нет функции inverse, её нужно реализовать для
+                        // Mat4
+                        Mat4<float> invModel = Math::inverse(transform.worldMatrix);
+
+                        // 2. Локальный луч
+                        Math::Ray localRay;
+                        localRay.origin = transformPoint(invModel, ray.origin);
+                        localRay.direction =
+                            transformVector(invModel, ray.direction);
+                        localRay.direction.normalize();
+
+                        // 3. Проверка треугольников меша
+                        const auto& vertices = meshComp.mesh->getVertices();
+                        const auto& indices = meshComp.mesh->getIndices();
+
+                        float minMeshT = std::numeric_limits<float>::max();
+                        bool hit = false;
+
+                        for (size_t j = 0; j < indices.size(); j += 3)
+                        {
+                            float tTri;
+                            if (intersectRayTriangle(
+                                    localRay, vertices[indices[j]].position,
+                                    vertices[indices[j + 1]].position,
+                                    vertices[indices[j + 2]].position, tTri
+                                ))
+                            {
+                                if (tTri < minMeshT)
+                                {
+                                    minMeshT = tTri;
+                                    hit = true;
+                                }
+                            }
+                        }
+
+                        if (hit)
+                        {
+                            // Переводим дистанцию обратно в мировой масштаб
+                            Math::Vector3<float> worldHitPos = transformPoint(
+                                transform.worldMatrix,
+                                localRay.origin + localRay.direction * minMeshT
+                            );
+                            float worldT = (worldHitPos - ray.origin).length();
+
+                            if (worldT < closestT)
+                            {
+                                closestT = worldT;
+                                closestEntity = item.entityId;
+                            }
+                        }
+                    }
+                }
+
+
+                if (stackPtr == 0)
+                {
+                    break;
+                }
+                currentNodeIdx = stack[--stackPtr];
+            }
+            else
+            {
+                uint32_t leftIdx = node.leftFirst;
+                uint32_t rightIdx = node.leftFirst + 1;
+
+                float tLeft, tRight;
+                bool hitLeft = intersectRayAABB(ray, sceneBVH.nodes[leftIdx].bounds, tLeft);
+                bool hitRight = intersectRayAABB(ray, sceneBVH.nodes[rightIdx].bounds, tRight);
+
+                if (!hitLeft && !hitRight)
+                {
+                    if (stackPtr == 0)
+                    {
+                        break;
+                    }
+                    currentNodeIdx = stack[--stackPtr];
+                    continue;
+                }
+
+                if (hitLeft && !hitRight)
+                {
+                    currentNodeIdx = leftIdx;
+                    continue;
+                }
+                if (!hitLeft && hitRight)
+                {
+                    currentNodeIdx = rightIdx;
+                    continue;
+                }
+
+                if (tLeft < tRight)
+                {
+                    currentNodeIdx = leftIdx;
+                    stack[stackPtr++] = rightIdx;
+                }
+                else
+                {
+                    currentNodeIdx = rightIdx;
+                    stack[stackPtr++] = leftIdx;
+                }
+            }
+        }
+
+        return closestEntity;
+    }
+
 
 
     Scene::Scene() noexcept

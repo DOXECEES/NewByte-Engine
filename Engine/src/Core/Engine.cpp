@@ -281,8 +281,6 @@ namespace nb
                 EngineSettings::getHeight()
             );
 
-  
-
             auto result = nb::Scene::getInstance().pickNode(ray);
 
             if (result != 0)
@@ -291,7 +289,11 @@ namespace nb
                 
                 nb::Error::ErrorManager::instance()
                     .report(nb::Error::Type::INFO, "Selected")
-                    .with("Name", selectedNode.getComponent<NameComponent>().name);
+                    .with(
+                        "Name", selectedNode.hasComponent<NameComponent>()
+                                    ? selectedNode.getComponent<NameComponent>().name
+                                    : "No name component"
+                    );
                 return selectedNode;
 
             }

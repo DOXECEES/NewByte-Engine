@@ -66,6 +66,8 @@ set (SRC
         src/Fatal.cpp
         src/Fatal.hpp
 
+        src/BVH.hpp
+
         src/Input/Input.cpp
         src/Input/Input.hpp
         src/Input/Keyboard.cpp

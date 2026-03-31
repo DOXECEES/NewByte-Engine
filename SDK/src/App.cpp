@@ -386,6 +386,7 @@ void EditorApp::setupHierarchyUI() noexcept
                                     sceneModel->addEntity(parentEntity, entity.getId());
 
                                     tv->refresh();
+                                    activeNode = nb::Scene::getInstance().getNode(parentEntity);
                                     onActiveNodeChanged.emit();
                                 }
                             );
@@ -408,18 +409,22 @@ void EditorApp::setupHierarchyUI() noexcept
                     );
                 }
             )
-            .onEvent(&Widgets::TreeView::onItemClickSignal, [this](const auto& index) {
-                if (index.isValid())
-                {
-                    activeNode = 
-                        nb::Scene::getInstance().getNode(
-                            reinterpret_cast<nb::Ecs::EntityID>(sceneModel->findById(index.getUuid())->getData()
+                    .onEvent(
+                        &Widgets::TreeView::onItemClickSignal,
+                        [this](const auto& index)
+                        {
+                            if (index.isValid())
+                            {
+                                auto* item = sceneModel->findById(index.getUuid());
+                                if (item)
+                                { 
+                                    auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+                                    activeNode = nb::Scene::getInstance().getNode(id);
+                                    onActiveNodeChanged.emit();
+                                }
+                            }
+                        }
                     )
-                    
-                    );
-                    onActiveNodeChanged.emit();
-                }
-            })
             .relativeHeight(1.0f)
             .relativeWidth(1.0f)
              

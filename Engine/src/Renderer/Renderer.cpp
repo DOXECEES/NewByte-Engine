@@ -244,6 +244,7 @@ namespace nb::Renderer
 
         //
 
+
         if (isShowGridEnabled)
         {
             auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
@@ -405,6 +406,66 @@ namespace nb::Renderer
                 api->drawMesh(command);
             }
 
+        }
+
+        if (true)
+        {
+            auto bvh = Scene::getInstance().getBvh();
+            if (!bvh->items.empty())
+            {
+                Ref<Shader> aabbShader = rm->getResource<Shader>("aabb.shader");
+
+                Ref<Mesh> unitCubeMesh = rm->getResource<Mesh>("unit_cube.obj");
+
+                Pipeline aabbVisualisation = {};
+                aabbVisualisation.shader = aabbShader;
+                aabbVisualisation.polygonMode = PolygonMode::LINES;
+                aabbVisualisation.isDepthTestEnable = false;
+
+                uint32 aabbPSO = api->getCache().getOrCreate(aabbVisualisation);
+
+                aabbShader->use();
+                aabbShader->setUniformMat4("view", view);
+                aabbShader->setUniformMat4("projection", proj);
+
+               // ... ваш код настройки шейдера ...
+
+                // Итерируемся по УЗЛАМ дерева, а не по объектам
+                for (const auto& node : bvh->nodes)
+                {
+                    // Пропускаем пустые узлы (на случай, если они есть) или
+                    // рисуем все узлы подряд
+                    Math::AABB3D bounds = node.bounds;
+
+                    // Вычисляем размер и центр
+                    Math::Vector3<float> size = bounds.size();
+                    Math::Vector3<float> center = bounds.center();
+
+                    auto model = Math::Mat4<float>::identity();
+
+                    // ВАЖНО: Если ваш unitCubeMesh имеет размер от -1 до 1 (длина стороны 2),
+                    // то scale на size * 0.5 корректен.
+                    // Если меш от 0 до 1 (длина 1), то scale(size).
+                    model = Math::scale(model, size * 0.5f);
+                    model = Math::translate(model, center);
+
+                    aabbShader->setUniformMat4("model", model);
+
+                    // Опционально: можно менять цвет шейдера в зависимости от того,
+                    // лист это (node.isLeaf()) или родительский узел.
+                    if (node.isLeaf())
+                    {
+                        // aabbShader->setUniformVec3("color", {0, 1, 0}); // Зеленый для объектов
+                    }
+                    else
+                    {
+                        // aabbShader->setUniformVec3("color", {1, 1, 1}); // Белый для контейнеров
+                    }
+
+                    RendererCommand command{unitCubeMesh.get(), aabbPSO};
+                    api->drawMesh(command);
+                }
+            }
         }
 
         // if (ctx.handle)
@@ -890,6 +951,7 @@ namespace nb::Renderer
 
         auto& surfTransform = surfNode.getComponent<TransformComponent>();
         surfTransform.position = {0.0f, 0.0f, 0.0f};
+        surfTransform.scale = {0.1f, 0.1f, 0.1f};
         surfTransform.dirty = true;
         surf->uniforms.shader = shader;
 

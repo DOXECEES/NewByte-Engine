@@ -243,28 +243,133 @@ namespace nb
             };
         }
 
-        inline bool intersectRayAABB(
-            const Ray& ray,
-            const AABB3D& aabb,
-            float& tOut
+        //inline bool intersectRayAABB(
+        //    const Ray& ray,
+        //    const AABB3D& aabb,
+        //    float& tOut
+        //)
+        //{
+        //    float t1 = (aabb.minPoint.x - ray.getOrigin().x) / ray.getDirection().x;
+        //    float t2 = (aabb.maxPoint.x - ray.getOrigin().x) / ray.getDirection().x;
+        //    float t3 = (aabb.minPoint.y - ray.getOrigin().y) / ray.getDirection().y;
+        //    float t4 = (aabb.maxPoint.y - ray.getOrigin().y) / ray.getDirection().y;
+        //    float t5 = (aabb.minPoint.z - ray.getOrigin().z) / ray.getDirection().z;
+        //    float t6 = (aabb.maxPoint.z - ray.getOrigin().z) / ray.getDirection().z;
+
+        //    float tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
+        //    float tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
+
+        //    if (tmax < 0 || tmin > tmax)
+        //    {
+        //        return false;
+        //    }
+
+        //    tOut = tmin;
+        //    return true;
+        //}
+
+        static bool intersectRayAABB(
+            const Math::Ray& ray,
+            const Math::AABB3D& aabb,
+            float& t
         )
         {
-            float t1 = (aabb.minPoint.x - ray.getOrigin().x) / ray.getDirection().x;
-            float t2 = (aabb.maxPoint.x - ray.getOrigin().x) / ray.getDirection().x;
-            float t3 = (aabb.minPoint.y - ray.getOrigin().y) / ray.getDirection().y;
-            float t4 = (aabb.maxPoint.y - ray.getOrigin().y) / ray.getDirection().y;
-            float t5 = (aabb.minPoint.z - ray.getOrigin().z) / ray.getDirection().z;
-            float t6 = (aabb.maxPoint.z - ray.getOrigin().z) / ray.getDirection().z;
+            constexpr float EPS = 1e-8f;
 
-            float tmin = std::max(std::max(std::min(t1, t2), std::min(t3, t4)), std::min(t5, t6));
-            float tmax = std::min(std::min(std::max(t1, t2), std::max(t3, t4)), std::max(t5, t6));
+            float tmin = 0.0f;
+            float tmax = std::numeric_limits<float>::max();
 
-            if (tmax < 0 || tmin > tmax)
+            if (std::abs(ray.direction.x) < EPS)
+            {
+                if (ray.origin.x < aabb.minPoint.x || ray.origin.x > aabb.maxPoint.x)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                float invD = 1.0f / ray.direction.x;
+                float t1 = (aabb.minPoint.x - ray.origin.x) * invD;
+                float t2 = (aabb.maxPoint.x - ray.origin.x) * invD;
+
+                if (t1 > t2)
+                {
+                    std::swap(t1, t2);
+                }
+
+                tmin = std::max(tmin, t1);
+                tmax = std::min(tmax, t2);
+
+                if (tmin > tmax)
+                {
+                    return false;
+                }
+            }
+
+            // Y
+            if (std::abs(ray.direction.y) < EPS)
+            {
+                if (ray.origin.y < aabb.minPoint.y || ray.origin.y > aabb.maxPoint.y)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                float invD = 1.0f / ray.direction.y;
+                float t1 = (aabb.minPoint.y - ray.origin.y) * invD;
+                float t2 = (aabb.maxPoint.y - ray.origin.y) * invD;
+
+                if (t1 > t2)
+                {
+                    std::swap(t1, t2);
+                }
+
+                tmin = std::max(tmin, t1);
+                tmax = std::min(tmax, t2);
+
+                if (tmin > tmax)
+                {
+                    return false;
+                }
+            }
+
+            // Z
+            if (std::abs(ray.direction.z) < EPS)
+            {
+                if (ray.origin.z < aabb.minPoint.z || ray.origin.z > aabb.maxPoint.z)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                float invD = 1.0f / ray.direction.z;
+                float t1 = (aabb.minPoint.z - ray.origin.z) * invD;
+                float t2 = (aabb.maxPoint.z - ray.origin.z) * invD;
+
+                if (t1 > t2)
+                {
+                    std::swap(t1, t2);
+                }
+
+                tmin = std::max(tmin, t1);
+                tmax = std::min(tmax, t2);
+
+                if (tmin > tmax)
+                {
+                    return false;
+                }
+            }
+
+            // Если весь AABB позади луча
+            if (tmax < 0.0f)
             {
                 return false;
             }
 
-            tOut = tmin;
+            // Если луч стартует внутри коробки, tmin будет отрицательным
+            t = (tmin >= 0.0f) ? tmin : tmax;
             return true;
         }
 
