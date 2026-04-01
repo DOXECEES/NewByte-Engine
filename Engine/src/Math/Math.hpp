@@ -362,17 +362,59 @@ namespace nb
                 }
             }
 
-            // Если весь AABB позади луча
             if (tmax < 0.0f)
             {
                 return false;
             }
 
-            // Если луч стартует внутри коробки, tmin будет отрицательным
             t = (tmin >= 0.0f) ? tmin : tmax;
             return true;
         }
 
+        inline bool intersectRayTriangle(
+            const Ray& ray,
+            const Vector3<float>& v0,
+            const Vector3<float>& v1,
+            const Vector3<float>& v2,
+            float& t
+        )
+        {
+            const float EPSILON = 1e-7f;
+            Vector3<float> edge1 = v1 - v0;
+            Vector3<float> edge2 = v2 - v0;
+            Vector3<float> h = ray.direction.cross(edge2);
+            float a = edge1.dot(h);
+
+            if (a > -EPSILON && a < EPSILON)
+            {
+                return false; // Луч параллелен
+            }
+
+            float f = 1.0f / a;
+            Vector3<float> s = ray.origin - v0;
+            float u = f * s.dot(h);
+
+            if (u < 0.0f || u > 1.0f)
+            {
+                return false;
+            }
+
+            Vector3<float> q = s.cross(edge1);
+            float v = f * ray.direction.dot(q);
+
+            if (v < 0.0f || u + v > 1.0f)
+            {
+                return false;
+            }
+
+            float tempT = f * edge2.dot(q);
+            if (tempT > EPSILON)
+            {
+                t = tempT;
+                return true;
+            }
+            return false;
+        }
        
 
         //template<typename Vec>

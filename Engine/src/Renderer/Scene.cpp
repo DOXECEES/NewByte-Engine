@@ -138,76 +138,6 @@ namespace nb
     {
         traverse(rootEntity, action);
     }
-    using namespace Math;
-    bool intersectRayTriangle(
-        const Ray& ray,
-        const Vector3<float>& v0,
-        const Vector3<float>& v1,
-        const Vector3<float>& v2,
-        float& t
-    )
-    {
-        const float EPSILON = 1e-7f;
-        Vector3<float> edge1 = v1 - v0;
-        Vector3<float> edge2 = v2 - v0;
-        Vector3<float> h = ray.direction.cross(edge2);
-        float a = edge1.dot(h);
-
-        if (a > -EPSILON && a < EPSILON)
-        {
-            return false; // Луч параллелен
-        }
-
-        float f = 1.0f / a;
-        Vector3<float> s = ray.origin - v0;
-        float u = f * s.dot(h);
-
-        if (u < 0.0f || u > 1.0f)
-        {
-            return false;
-        }
-
-        Vector3<float> q = s.cross(edge1);
-        float v = f * ray.direction.dot(q);
-
-        if (v < 0.0f || u + v > 1.0f)
-        {
-            return false;
-        }
-
-        float tempT = f * edge2.dot(q);
-        if (tempT > EPSILON)
-        {
-            t = tempT;
-            return true;
-        }
-        return false;
-    }
-
-    inline Vector3<float> transformPoint(
-        const Mat4<float>& m,
-        const Vector3<float>& v
-    )
-    {
-        float x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z + m[0][3];
-        float y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z + m[1][3];
-        float z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z + m[2][3];
-        float w = m[3][0] * v.x + m[3][1] * v.y + m[3][2] * v.z + m[3][3];
-        return Vector3<float>(x / w, y / w, z / w);
-    }
-
-    // Умножение вектора на матрицу 4x4 (w = 0, без переноса)
-    inline Vector3<float> transformVector(
-        const Mat4<float>& m,
-        const Vector3<float>& v
-    )
-    {
-        float x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z;
-        float y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z;
-        float z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z;
-        return Vector3<float>(x, y, z);
-    }
-
 
     Ecs::EntityID Scene::pickNode(const Math::Ray& ray) noexcept
     {
@@ -249,12 +179,12 @@ namespace nb
                         auto& transform = getComponent<TransformComponent>(item.entityId);
                         auto& meshComp = getComponent<MeshComponent>(item.entityId);
 
-                        Mat4<float> invModel = Math::inverse(transform.worldMatrix);
+                        Math::Mat4<float> invModel = Math::inverse(transform.worldMatrix);
 
                         Math::Ray localRay;
-                        localRay.origin = transformPoint(invModel, ray.origin);
+                        localRay.origin = Math::transformPoint(invModel, ray.origin);
 
-                        localRay.direction = transformVector(invModel, ray.direction);
+                        localRay.direction = Math::transformVector(invModel, ray.direction);
 
                         const auto& vertices = meshComp.mesh->getVertices();
                         const auto& indices = meshComp.mesh->getIndices();
@@ -262,7 +192,7 @@ namespace nb
                         for (size_t j = 0; j < indices.size(); j += 3)
                         {
                             float tTri;
-                            if (intersectRayTriangle(
+                            if (Math::intersectRayTriangle(
                                     localRay, vertices[indices[j]].position,
                                     vertices[indices[j + 1]].position,
                                     vertices[indices[j + 2]].position, tTri
@@ -290,8 +220,8 @@ namespace nb
                 uint32_t rightIdx = node.leftFirst + 1;
 
                 float tLeft, tRight;
-                bool hitLeft = intersectRayAABB(ray, sceneBVH.nodes[leftIdx].bounds, tLeft);
-                bool hitRight = intersectRayAABB(ray, sceneBVH.nodes[rightIdx].bounds, tRight);
+                bool hitLeft = Math::intersectRayAABB(ray, sceneBVH.nodes[leftIdx].bounds, tLeft);
+                bool hitRight = Math::intersectRayAABB(ray, sceneBVH.nodes[rightIdx].bounds, tRight);
 
                 if (hitLeft && tLeft > closestT)
                 {
@@ -378,7 +308,10 @@ namespace nb
         bvhDirty = true;
     }
 
-
+    Math::BVH* Scene::getBvh() noexcept
+    {
+        return &sceneBVH;
+    }
 
     Scene::Scene() noexcept
     {

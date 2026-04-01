@@ -223,24 +223,14 @@ namespace nb
 
         void traverseAll(const std::function<void(Ecs::EntityID)>& action) noexcept;
 
-        struct PickingResult
-        {
-            Ecs::EntityID entityId = 0;
-            //float distance = std::numeric_limits<float>::max();
-        };
-
-        // В классе Scene добавь поле: Math::BVH sceneBVH;
-
         Ecs::EntityID pickNode(const Math::Ray& ray) noexcept;
         
         void updateBvh() noexcept;
 
         void invalidateBvh() noexcept;
 
-        Math::BVH* getBvh()
-        {
-            return &sceneBVH;
-        }
+        Math::BVH* getBvh() noexcept;
+
 
         void serialize(nb::Serialize::IArchive* archive) noexcept override;
         void deserialize(nb::Serialize::IArchive* archive) noexcept override;
