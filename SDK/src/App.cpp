@@ -388,6 +388,7 @@ void EditorApp::setupHierarchyUI() noexcept
                                     tv->refresh();
                                     activeNode = nb::Scene::getInstance().getNode(parentEntity);
                                     onActiveNodeChanged.emit();
+                                    nb::Scene::getInstance().invalidateBvh();
                                 }
                             );
 

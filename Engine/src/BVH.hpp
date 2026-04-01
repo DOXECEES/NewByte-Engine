@@ -54,6 +54,12 @@ namespace nb::Math
             subdivide(0);
         }
 
+        void clear() noexcept
+        {
+            nodes.clear();
+            items.clear();
+        }
+
     private:
         void updateNodeBounds(uint32_t nodeIdx)
         {

@@ -106,6 +106,7 @@ namespace nb
             transform.worldMatrix = parentTransform * transform.localMatrix;
 
             transform.dirty = false;
+            invalidateBvh();
         }
 
         for (auto childId : hierarchy.children)
@@ -210,35 +211,9 @@ namespace nb
 
     Ecs::EntityID Scene::pickNode(const Math::Ray& ray) noexcept
     {
-        // 1. Сбор данных и построение BVH (как вы и просили, внутри функции)
-        std::vector<Math::BVHItem> items;
-        traverseAll(
-            [&](Ecs::EntityID id)
-            {
-                if (hasComponent<MeshComponent>(id) && hasComponent<TransformComponent>(id))
-                {
-                    auto& transform = getComponent<TransformComponent>(id);
-                    auto& meshComp = getComponent<MeshComponent>(id);
+        updateBvh();
 
-                    // Пересчитываем мировой AABB для текущего состояния объекта
-                    Math::AABB3D worldAABB = Math::AABB3D::recalculateAabb3dByModelMatrix(
-                        meshComp.mesh->getAabb3d(), transform.worldMatrix
-                    );
 
-                    items.push_back({id, worldAABB});
-                }
-            }
-        );
-
-        if (items.empty())
-        {
-            return 0;
-        }
-
-        // Строим дерево
-        sceneBVH.build(std::move(items));
-
-        // 2. Параметры для поиска
         uint32_t stack[64];
         uint32_t stackPtr = 0;
         uint32_t currentNodeIdx = 0;
@@ -246,15 +221,12 @@ namespace nb
         Ecs::EntityID closestEntity = 0;
         float closestT = std::numeric_limits<float>::max();
 
-        // Направление луча должно быть нормализовано в самом начале (в мировом пространстве)
-        // Math::Vector3<float> rayDir = ray.direction; // предполагаем, что он уже нормализован
 
         while (true)
         {
             const auto& node = sceneBVH.nodes[currentNodeIdx];
 
             float tNode;
-            // Если луч не пересекает бокс узла или пересекает его дальше, чем уже найденный объект
             if (!intersectRayAABB(ray, node.bounds, tNode) || tNode > closestT)
             {
                 if (stackPtr == 0)
@@ -272,7 +244,6 @@ namespace nb
                     const auto& item = sceneBVH.items[node.leftFirst + i];
 
                     float tAABB;
-                    // Проверка по мировому боксу конкретного объекта
                     if (intersectRayAABB(ray, item.worldAABB, tAABB) && tAABB < closestT)
                     {
                         auto& transform = getComponent<TransformComponent>(item.entityId);
@@ -364,6 +335,47 @@ namespace nb
         }
 
         return closestEntity;
+    }
+
+    void Scene::updateBvh() noexcept
+    {
+        if (!bvhDirty)
+        {
+            return;
+        }
+
+        auto ent = getEntitiesWith<MeshComponent, TransformComponent>();
+
+        std::vector<Math::BVHItem> items;
+        items.reserve(ent.size());
+
+        for (auto& entity : ent)
+        {
+            auto& transform = getComponent<TransformComponent>(entity.id);
+            auto& meshComp = getComponent<MeshComponent>(entity.id);
+
+            Math::AABB3D worldAABB = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                meshComp.mesh->getAabb3d(), transform.worldMatrix
+            );
+
+            items.push_back({entity.id, worldAABB});
+        }
+
+        if (items.empty())
+        {
+            sceneBVH.clear(); 
+        }
+        else
+        {
+            sceneBVH.build(std::move(items));
+        }
+
+        bvhDirty = false;
+    }
+
+    void Scene::invalidateBvh() noexcept
+    {
+        bvhDirty = true;
     }
 
 

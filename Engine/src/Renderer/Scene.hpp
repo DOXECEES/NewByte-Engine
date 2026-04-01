@@ -233,6 +233,9 @@ namespace nb
 
         Ecs::EntityID pickNode(const Math::Ray& ray) noexcept;
         
+        void updateBvh() noexcept;
+
+        void invalidateBvh() noexcept;
 
         Math::BVH* getBvh()
         {
@@ -276,6 +279,7 @@ namespace nb
         Ecs::EntityID rootEntity;
 
         Math::BVH sceneBVH;
+        bool bvhDirty = true;
     };
 
     template <typename T>
