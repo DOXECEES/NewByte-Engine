@@ -145,7 +145,7 @@ private:
         mainWindow->repaint();
     }
 
-  
+   
 
     int mainLoop() {
         MSG msg = { 0 };
@@ -167,6 +167,7 @@ private:
                     running = false;
                     break;
                 }
+                bool isGizmoHit = false;
 
                 if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
                 {
@@ -223,12 +224,14 @@ private:
                             tc.rotation = nb::Math::quatToEuler(resultQuat);
 
                             tc.dirty = true;
+
+                            isGizmoHit = true;
                         }
                     }
 
 
                     //
-                    if (msg.message == WM_LBUTTONDOWN)
+                    if (msg.message == WM_LBUTTONDOWN && !isGizmoHit)
                     {
                         NbPoint<int> point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
 
@@ -241,6 +244,8 @@ private:
                             onActiveNodeChanged.emit();
                         }
                     }
+
+                    isGizmoHit = false;
                 }
 
                 if (msg.message == WM_INPUT) 
