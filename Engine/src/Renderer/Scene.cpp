@@ -210,6 +210,7 @@ namespace nb
 
     Ecs::EntityID Scene::pickNode(const Math::Ray& ray) noexcept
     {
+        // 1. Сбор данных и построение BVH (как вы и просили, внутри функции)
         std::vector<Math::BVHItem> items;
         traverseAll(
             [&](Ecs::EntityID id)
@@ -219,9 +220,7 @@ namespace nb
                     auto& transform = getComponent<TransformComponent>(id);
                     auto& meshComp = getComponent<MeshComponent>(id);
 
-                    // ВАЖНО: Матрицу инвертируем один раз здесь или храним заранее
-                    // Используем вашу функцию инверсии матрицы (например, Math::inverse(m))
-
+                    // Пересчитываем мировой AABB для текущего состояния объекта
                     Math::AABB3D worldAABB = Math::AABB3D::recalculateAabb3dByModelMatrix(
                         meshComp.mesh->getAabb3d(), transform.worldMatrix
                     );
@@ -236,9 +235,10 @@ namespace nb
             return 0;
         }
 
-        // Рекомендуется вынести build из этой функции (строить только при изменении сцены)
+        // Строим дерево
         sceneBVH.build(std::move(items));
 
+        // 2. Параметры для поиска
         uint32_t stack[64];
         uint32_t stackPtr = 0;
         uint32_t currentNodeIdx = 0;
@@ -246,11 +246,15 @@ namespace nb
         Ecs::EntityID closestEntity = 0;
         float closestT = std::numeric_limits<float>::max();
 
+        // Направление луча должно быть нормализовано в самом начале (в мировом пространстве)
+        // Math::Vector3<float> rayDir = ray.direction; // предполагаем, что он уже нормализован
+
         while (true)
         {
             const auto& node = sceneBVH.nodes[currentNodeIdx];
 
             float tNode;
+            // Если луч не пересекает бокс узла или пересекает его дальше, чем уже найденный объект
             if (!intersectRayAABB(ray, node.bounds, tNode) || tNode > closestT)
             {
                 if (stackPtr == 0)
@@ -266,31 +270,23 @@ namespace nb
                 for (uint32_t i = 0; i < node.count; i++)
                 {
                     const auto& item = sceneBVH.items[node.leftFirst + i];
-                    float tAABB;
 
+                    float tAABB;
+                    // Проверка по мировому боксу конкретного объекта
                     if (intersectRayAABB(ray, item.worldAABB, tAABB) && tAABB < closestT)
                     {
                         auto& transform = getComponent<TransformComponent>(item.entityId);
                         auto& meshComp = getComponent<MeshComponent>(item.entityId);
 
-                        // 1. Берем инвертированную матрицу (в идеале хранить её в
-                        // TransformComponent) Если нет функции inverse, её нужно реализовать для
-                        // Mat4
                         Mat4<float> invModel = Math::inverse(transform.worldMatrix);
 
-                        // 2. Локальный луч
                         Math::Ray localRay;
                         localRay.origin = transformPoint(invModel, ray.origin);
-                        localRay.direction =
-                            transformVector(invModel, ray.direction);
-                        localRay.direction.normalize();
 
-                        // 3. Проверка треугольников меша
+                        localRay.direction = transformVector(invModel, ray.direction);
+
                         const auto& vertices = meshComp.mesh->getVertices();
                         const auto& indices = meshComp.mesh->getIndices();
-
-                        float minMeshT = std::numeric_limits<float>::max();
-                        bool hit = false;
 
                         for (size_t j = 0; j < indices.size(); j += 3)
                         {
@@ -301,32 +297,15 @@ namespace nb
                                     vertices[indices[j + 2]].position, tTri
                                 ))
                             {
-                                if (tTri < minMeshT)
+                                if (tTri < closestT && tTri > 0.0001f)
                                 {
-                                    minMeshT = tTri;
-                                    hit = true;
+                                    closestT = tTri;
+                                    closestEntity = item.entityId;
                                 }
-                            }
-                        }
-
-                        if (hit)
-                        {
-                            // Переводим дистанцию обратно в мировой масштаб
-                            Math::Vector3<float> worldHitPos = transformPoint(
-                                transform.worldMatrix,
-                                localRay.origin + localRay.direction * minMeshT
-                            );
-                            float worldT = (worldHitPos - ray.origin).length();
-
-                            if (worldT < closestT)
-                            {
-                                closestT = worldT;
-                                closestEntity = item.entityId;
                             }
                         }
                     }
                 }
-
 
                 if (stackPtr == 0)
                 {
@@ -343,6 +322,15 @@ namespace nb
                 bool hitLeft = intersectRayAABB(ray, sceneBVH.nodes[leftIdx].bounds, tLeft);
                 bool hitRight = intersectRayAABB(ray, sceneBVH.nodes[rightIdx].bounds, tRight);
 
+                if (hitLeft && tLeft > closestT)
+                {
+                    hitLeft = false;
+                }
+                if (hitRight && tRight > closestT)
+                {
+                    hitRight = false;
+                }
+
                 if (!hitLeft && !hitRight)
                 {
                     if (stackPtr == 0)
@@ -350,29 +338,27 @@ namespace nb
                         break;
                     }
                     currentNodeIdx = stack[--stackPtr];
-                    continue;
                 }
-
-                if (hitLeft && !hitRight)
+                else if (hitLeft && !hitRight)
                 {
                     currentNodeIdx = leftIdx;
-                    continue;
                 }
-                if (!hitLeft && hitRight)
+                else if (!hitLeft && hitRight)
                 {
                     currentNodeIdx = rightIdx;
-                    continue;
-                }
-
-                if (tLeft < tRight)
-                {
-                    currentNodeIdx = leftIdx;
-                    stack[stackPtr++] = rightIdx;
                 }
                 else
                 {
-                    currentNodeIdx = rightIdx;
-                    stack[stackPtr++] = leftIdx;
+                    if (tLeft < tRight)
+                    {
+                        currentNodeIdx = leftIdx;
+                        stack[stackPtr++] = rightIdx;
+                    }
+                    else
+                    {
+                        currentNodeIdx = rightIdx;
+                        stack[stackPtr++] = leftIdx;
+                    }
                 }
             }
         }
