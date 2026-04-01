@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <algorithm>
-
+#include <numeric>
 #include "Vector3.hpp"
 #include "Plane.hpp"
 
@@ -57,6 +57,19 @@ namespace nb
                 return maxPoint - minPoint;
             }
 
+            constexpr void setInvalid() noexcept
+            {
+                minPoint = {
+                    (std::numeric_limits<float>::max)(), (std::numeric_limits<float>::max)(),
+                    (std::numeric_limits<float>::max)()
+                };
+                maxPoint = {
+                    (std::numeric_limits<float>::lowest)(), (std::numeric_limits<float>::lowest)(),
+                    (std::numeric_limits<float>::lowest)()
+                };
+
+            }
+
             static AABB3D recalculateAabb3dByModelMatrix(const AABB3D& aabb, const Math::Mat4<float> &modelMatrix) noexcept
             {
                 Math::Vector3<float> translationVector = {modelMatrix[3][0], modelMatrix[3][1], modelMatrix[3][2]};
@@ -98,6 +111,17 @@ namespace nb
     
                 return B;
             }
+
+            constexpr void grow(const AABB3D& other) noexcept
+            {
+                minPoint.x = (std::min)(minPoint.x, other.minPoint.x);
+                minPoint.y = (std::min)(minPoint.y, other.minPoint.y);
+                minPoint.z = (std::min)(minPoint.z, other.minPoint.z);
+                maxPoint.x = (std::max)(maxPoint.x, other.maxPoint.x);
+                maxPoint.y = (std::max)(maxPoint.y, other.maxPoint.y);
+                maxPoint.z = (std::max)(maxPoint.z, other.maxPoint.z);
+            }
+
 
             static bool intersectAabbPlane(const AABB3D& aabb, const Plane& plane) noexcept
             {

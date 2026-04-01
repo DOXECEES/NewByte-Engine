@@ -320,6 +320,75 @@ namespace nb
                 {-x.dot(eye), -y.dot(eye), -z.dot(eye), 1.0f}
             });
         }
+
+        template <typename T>
+        constexpr Quaternion<T> eulerToQuaternion(const Vector3<T>& euler)
+        {
+
+            const T cx = std::cos(euler.x * 0.5f);
+            const T sx = std::sin(euler.x * 0.5f);
+            const T cy = std::cos(euler.y * 0.5f);
+            const T sy = std::sin(euler.y * 0.5f);
+            const T cz = std::cos(euler.z * 0.5f);
+            const T sz = std::sin(euler.z * 0.5f);
+
+            return {
+                sx * cy * cz - cx * sy * sz, // x
+                cx * sy * cz + sx * cy * sz, // y
+                cx * cy * sz - sx * sy * cz, // z
+                cx * cy * cz + sx * sy * sz  // w
+            };
+        }
+
+        inline nb::Math::Vector3<float> quatToEuler(const nb::Math::Quaternion<float>& q)
+        {
+            nb::Math::Vector3<float> angles;
+
+            double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+            double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+            angles.x = std::atan2(sinr_cosp, cosr_cosp);
+
+            double sinp = 2 * (q.w * q.y - q.z * q.x);
+            if (std::abs(sinp) >= 1)
+            {
+                angles.y =
+                    std::copysign(Constants::PI / 2, sinp); // use 90 degrees if out of range
+            }
+            else
+            {
+                angles.y = std::asin(sinp);
+            }
+
+            double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+            double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+            angles.z = std::atan2(siny_cosp, cosy_cosp);
+
+            return angles; 
+        }
+
+        inline Vector3<float> transformPoint(
+            const Mat4<float>& m,
+            const Vector3<float>& v
+        )
+        {
+            float x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z + m[0][3];
+            float y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z + m[1][3];
+            float z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z + m[2][3];
+            float w = m[3][0] * v.x + m[3][1] * v.y + m[3][2] * v.z + m[3][3];
+            return Vector3<float>(x / w, y / w, z / w);
+        }
+
+        inline Vector3<float> transformVector(
+            const Mat4<float>& m,
+            const Vector3<float>& v
+        )
+        {
+            float x = m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z;
+            float y = m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z;
+            float z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z;
+            return Vector3<float>(x, y, z);
+        }
+
     };
 };
 

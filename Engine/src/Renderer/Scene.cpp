@@ -106,6 +106,7 @@ namespace nb
             transform.worldMatrix = parentTransform * transform.localMatrix;
 
             transform.dirty = false;
+            invalidateBvh();
         }
 
         for (auto childId : hierarchy.children)
@@ -138,6 +139,179 @@ namespace nb
         traverse(rootEntity, action);
     }
 
+    Ecs::EntityID Scene::pickNode(const Math::Ray& ray) noexcept
+    {
+        updateBvh();
+
+
+        uint32_t stack[64];
+        uint32_t stackPtr = 0;
+        uint32_t currentNodeIdx = 0;
+
+        Ecs::EntityID closestEntity = 0;
+        float closestT = std::numeric_limits<float>::max();
+
+
+        while (true)
+        {
+            const auto& node = sceneBVH.nodes[currentNodeIdx];
+
+            float tNode;
+            if (!intersectRayAABB(ray, node.bounds, tNode) || tNode > closestT)
+            {
+                if (stackPtr == 0)
+                {
+                    break;
+                }
+                currentNodeIdx = stack[--stackPtr];
+                continue;
+            }
+
+            if (node.isLeaf())
+            {
+                for (uint32_t i = 0; i < node.count; i++)
+                {
+                    const auto& item = sceneBVH.items[node.leftFirst + i];
+
+                    float tAABB;
+                    if (intersectRayAABB(ray, item.worldAABB, tAABB) && tAABB < closestT)
+                    {
+                        auto& transform = getComponent<TransformComponent>(item.entityId);
+                        auto& meshComp = getComponent<MeshComponent>(item.entityId);
+
+                        Math::Mat4<float> invModel = Math::inverse(transform.worldMatrix);
+
+                        Math::Ray localRay;
+                        localRay.origin = Math::transformPoint(invModel, ray.origin);
+
+                        localRay.direction = Math::transformVector(invModel, ray.direction);
+
+                        const auto& vertices = meshComp.mesh->getVertices();
+                        const auto& indices = meshComp.mesh->getIndices();
+
+                        for (size_t j = 0; j < indices.size(); j += 3)
+                        {
+                            float tTri;
+                            if (Math::intersectRayTriangle(
+                                    localRay, vertices[indices[j]].position,
+                                    vertices[indices[j + 1]].position,
+                                    vertices[indices[j + 2]].position, tTri
+                                ))
+                            {
+                                if (tTri < closestT && tTri > 0.0001f)
+                                {
+                                    closestT = tTri;
+                                    closestEntity = item.entityId;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (stackPtr == 0)
+                {
+                    break;
+                }
+                currentNodeIdx = stack[--stackPtr];
+            }
+            else
+            {
+                uint32_t leftIdx = node.leftFirst;
+                uint32_t rightIdx = node.leftFirst + 1;
+
+                float tLeft, tRight;
+                bool hitLeft = Math::intersectRayAABB(ray, sceneBVH.nodes[leftIdx].bounds, tLeft);
+                bool hitRight = Math::intersectRayAABB(ray, sceneBVH.nodes[rightIdx].bounds, tRight);
+
+                if (hitLeft && tLeft > closestT)
+                {
+                    hitLeft = false;
+                }
+                if (hitRight && tRight > closestT)
+                {
+                    hitRight = false;
+                }
+
+                if (!hitLeft && !hitRight)
+                {
+                    if (stackPtr == 0)
+                    {
+                        break;
+                    }
+                    currentNodeIdx = stack[--stackPtr];
+                }
+                else if (hitLeft && !hitRight)
+                {
+                    currentNodeIdx = leftIdx;
+                }
+                else if (!hitLeft && hitRight)
+                {
+                    currentNodeIdx = rightIdx;
+                }
+                else
+                {
+                    if (tLeft < tRight)
+                    {
+                        currentNodeIdx = leftIdx;
+                        stack[stackPtr++] = rightIdx;
+                    }
+                    else
+                    {
+                        currentNodeIdx = rightIdx;
+                        stack[stackPtr++] = leftIdx;
+                    }
+                }
+            }
+        }
+
+        return closestEntity;
+    }
+
+    void Scene::updateBvh() noexcept
+    {
+        if (!bvhDirty)
+        {
+            return;
+        }
+
+        auto ent = getEntitiesWith<MeshComponent, TransformComponent>();
+
+        std::vector<Math::BVHItem> items;
+        items.reserve(ent.size());
+
+        for (auto& entity : ent)
+        {
+            auto& transform = getComponent<TransformComponent>(entity.id);
+            auto& meshComp = getComponent<MeshComponent>(entity.id);
+
+            Math::AABB3D worldAABB = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                meshComp.mesh->getAabb3d(), transform.worldMatrix
+            );
+
+            items.push_back({entity.id, worldAABB});
+        }
+
+        if (items.empty())
+        {
+            sceneBVH.clear(); 
+        }
+        else
+        {
+            sceneBVH.build(std::move(items));
+        }
+
+        bvhDirty = false;
+    }
+
+    void Scene::invalidateBvh() noexcept
+    {
+        bvhDirty = true;
+    }
+
+    Math::BVH* Scene::getBvh() noexcept
+    {
+        return &sceneBVH;
+    }
 
     Scene::Scene() noexcept
     {

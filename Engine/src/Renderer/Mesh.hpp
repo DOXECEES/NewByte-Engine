@@ -165,7 +165,15 @@ namespace nb
                 GLuint getVboId() const noexcept;
                 GLuint getEboId() const noexcept;
 
-               
+                const std::vector<Vertex>& getVertices() const noexcept
+                {
+                    return verticies;
+                }
+
+                const std::vector<uint32_t>& getIndices() const noexcept
+                {
+                    return ind;
+                }
 
             private:
                 std::vector<uint32_t> uniteIndicies() noexcept;

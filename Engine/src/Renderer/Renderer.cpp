@@ -59,6 +59,55 @@ namespace nb::Renderer
 
         quadScreenMesh = createRef<Mesh>(quadVertices, quadIndices, "");
         contextMeshCache = createRef<OpenGl::OpenglContextMeshCache>();
+    
+        gizmoCtx.render = [&](const tinygizmo::geometry_mesh& mesh)
+        {
+            if (mesh.vertices.empty())
+            {
+                return;
+            }
+
+            std::vector<nb::Renderer::Vertex> nbVertices;
+            nbVertices.reserve(mesh.vertices.size());
+
+            for (const auto& gv : mesh.vertices)
+            {
+                nb::Renderer::Vertex v;
+                v.position = {gv.position.x, gv.position.y, gv.position.z};
+                v.normal = {gv.normal.x, gv.normal.y, gv.normal.z};
+                v.color = {gv.color.x, gv.color.y, gv.color.z};
+
+                v.textureCoordinates = {0.0f, 0.0f};
+                v.tangent = {0.0f, 0.0f, 0.0f, 1.0f};
+
+                nbVertices.push_back(v);
+            }
+
+            std::vector<uint32_t> nbIndices;
+            nbIndices.reserve(mesh.triangles.size() * 3);
+
+            for (const auto& tri : mesh.triangles)
+            {
+                nbIndices.push_back(tri.x);
+                nbIndices.push_back(tri.y);
+                nbIndices.push_back(tri.z);
+            }
+            Mesh m = Mesh(nbVertices, nbIndices, "");
+
+            auto sh = nb::ResMan::ResourceManager::getInstance()->getResource<Shader>(
+                "gizmoShader.shader"
+            );
+
+            Pipeline gridPipeline{.shader = sh, .isDepthTestEnable = false, .isBlendEnable = true};
+
+            uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
+
+            RendererCommand gridRenderCommand{.mesh = &m, .pipeline = gridPSO};
+
+            sh->setUniformMat4("uViewProj", cam->getLookAt() * cam->getProjection());
+
+            api->drawMesh(gridRenderCommand);
+        };
     }
 
     void Renderer::onResize(uint32 width, uint32 heigth) noexcept
@@ -244,6 +293,7 @@ namespace nb::Renderer
 
         //
 
+
         if (isShowGridEnabled)
         {
             auto gridShader = rm->getResource<nb::Renderer::Shader>("infinite_grid.shader");
@@ -407,10 +457,70 @@ namespace nb::Renderer
 
         }
 
-        // if (ctx.handle)
-        // {
-        //     blitToWindow(ctx, checkedTextureId);
-        // }
+        if (true)
+        {
+            auto bvh = Scene::getInstance().getBvh();
+            if (!bvh->items.empty())
+            {
+                Ref<Shader> aabbShader = rm->getResource<Shader>("aabb.shader");
+
+                Ref<Mesh> unitCubeMesh = rm->getResource<Mesh>("unit_cube.obj");
+
+                Pipeline aabbVisualisation = {};
+                aabbVisualisation.shader = aabbShader;
+                aabbVisualisation.polygonMode = PolygonMode::LINES;
+                aabbVisualisation.isDepthTestEnable = false;
+
+                uint32 aabbPSO = api->getCache().getOrCreate(aabbVisualisation);
+
+                aabbShader->use();
+                aabbShader->setUniformMat4("view", view);
+                aabbShader->setUniformMat4("projection", proj);
+
+               // ... ваш код настройки шейдера ...
+
+                // Итерируемся по УЗЛАМ дерева, а не по объектам
+                for (const auto& node : bvh->nodes)
+                {
+                    // Пропускаем пустые узлы (на случай, если они есть) или
+                    // рисуем все узлы подряд
+                    Math::AABB3D bounds = node.bounds;
+
+                    // Вычисляем размер и центр
+                    Math::Vector3<float> size = bounds.size();
+                    Math::Vector3<float> center = bounds.center();
+
+                    auto model = Math::Mat4<float>::identity();
+
+                    // ВАЖНО: Если ваш unitCubeMesh имеет размер от -1 до 1 (длина стороны 2),
+                    // то scale на size * 0.5 корректен.
+                    // Если меш от 0 до 1 (длина 1), то scale(size).
+                    model = Math::scale(model, size * 0.5f);
+                    model = Math::translate(model, center);
+
+                    aabbShader->setUniformMat4("model", model);
+
+                    // Опционально: можно менять цвет шейдера в зависимости от того,
+                    // лист это (node.isLeaf()) или родительский узел.
+                    if (node.isLeaf())
+                    {
+                        // aabbShader->setUniformVec3("color", {0, 1, 0}); // Зеленый для объектов
+                    }
+                    else
+                    {
+                        // aabbShader->setUniformVec3("color", {1, 1, 1}); // Белый для контейнеров
+                    }
+
+                    RendererCommand command{unitCubeMesh.get(), aabbPSO};
+                    api->drawMesh(command);
+                }
+            }
+        }
+
+        
+
+
+        gizmoCtx.draw();
 
         renderNavigationalGizmo();
 
@@ -721,7 +831,10 @@ namespace nb::Renderer
         api->setDefaultContext();
     }
 
-
+    tinygizmo::gizmo_context& Renderer::getGizmoContext() noexcept
+    {
+        return gizmoCtx;
+    }
 
     void Renderer::renderNavigationalGizmo() noexcept
     {
@@ -890,6 +1003,7 @@ namespace nb::Renderer
 
         auto& surfTransform = surfNode.getComponent<TransformComponent>();
         surfTransform.position = {0.0f, 0.0f, 0.0f};
+        surfTransform.scale = {0.1f, 0.1f, 0.1f};
         surfTransform.dirty = true;
         surf->uniforms.shader = shader;
 

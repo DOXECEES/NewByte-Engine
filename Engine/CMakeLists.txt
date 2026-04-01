@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(DEPENDENCIES_DIR "${PROJECT_SOURCE_DIR}/dependencies")
 set(LUA_DIR "${DEPENDENCIES_DIR}/lua")
 set(SOL2_DIR "${DEPENDENCIES_DIR}/sol")
+set(TINY_GIZMO_DIR "${DEPENDENCIES_DIR}/tinyGizmo")
 
 add_library(
     lua STATIC
@@ -49,6 +50,13 @@ add_library(
 add_library(sol2 INTERFACE)
 target_include_directories(sol2 INTERFACE ${SOL2_DIR})
 
+add_library(tinyGizmo STATIC
+    ${TINY_GIZMO_DIR}/tiny-gizmo.cpp 
+    ${TINY_GIZMO_DIR}/tiny-gizmo.hpp
+)
+target_include_directories(tinyGizmo PUBLIC ${TINY_GIZMO_DIR})
+
+
 set(-DCMAKE_GENERATOR_PLATFORM x64)
 
 add_subdirectory(dependencies/glad)
@@ -65,6 +73,8 @@ set (SRC
 
         src/Fatal.cpp
         src/Fatal.hpp
+
+        src/BVH.hpp
 
         src/Input/Input.cpp
         src/Input/Input.hpp
@@ -294,6 +304,7 @@ target_include_directories(${PROJECT_NAME}
     ../Common
     PUBLIC ${SOL2_DIR}    
     PUBLIC ${LUA_DIR}
+    PUBLIC ${TINY_GIZMO_DIR}
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
@@ -309,7 +320,7 @@ target_link_directories(${PROJECT_NAME}
         
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE user32 opengl32 glad lua sol2)
+    target_link_libraries(${PROJECT_NAME} PRIVATE user32 opengl32 glad lua sol2 tinyGizmo)
     
 endif()
 

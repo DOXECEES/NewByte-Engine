@@ -1,6 +1,6 @@
 #ifndef SDK_APP_HPP
 #define SDK_APP_HPP
-
+#define TINYGIZMO_IMPLEMENTATION
 #include <Windows.h>
 
 // ENGINE HEADERS
@@ -25,7 +25,7 @@
 #include "MaterialEditor.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
-
+#include <tiny-gizmo.hpp>
 //
 
 
@@ -145,6 +145,8 @@ private:
         mainWindow->repaint();
     }
 
+   
+
     int mainLoop() {
         MSG msg = { 0 };
         while (running)
@@ -165,21 +167,85 @@ private:
                     running = false;
                     break;
                 }
+                bool isGizmoHit = false;
 
-                if (msg.hwnd == sceneWindow->getHandle().as<HWND>())
+                if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
                 {
-                    if (msg.message == WM_LBUTTONDOWN)
+                    //
+                    NbPoint<int> mousePos = sceneWindow->mousePosition;
+
+                    nb::Renderer::Camera* camera = engine->getRenderer()->getCamera();
+                    nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
+
+                    auto& gizmo_ctx = engine->getRenderer()->getGizmoContext();
+                    tinygizmo::gizmo_application_state state;
+                    state.ray_origin = {ray.origin.x, ray.origin.y, ray.origin.z};
+                    state.ray_direction = {ray.direction.x, ray.direction.y, ray.direction.z};
+
+                    state.hotkey_ctrl = GetAsyncKeyState(VK_CONTROL) & 0x8000;
+                    state.mouse_left = sceneWindow->leftMouseClicked;
+                    state.hotkey_translate = GetAsyncKeyState(VK_F1) & 0x8000;
+                    state.hotkey_rotate = GetAsyncKeyState(VK_F2) & 0x8000;
+                    state.hotkey_scale = GetAsyncKeyState(VK_F3) & 0x8000;
+
+                    gizmo_ctx.update(state);
+
+                    if (activeNode.isValid())
+                    {
+                        auto& tc = activeNode.getComponent<TransformComponent>();
+
+                        tinygizmo::rigid_transform t;
+                        t.position = {tc.position.x, tc.position.y, tc.position.z};
+                        t.scale = {tc.scale.x, tc.scale.y, tc.scale.z};
+
+                        auto quat = nb::Math::eulerToQuaternion(tc.rotation);
+                        quat.normalize();
+
+                        t.orientation = {-quat.x, -quat.y, -quat.z, quat.w};
+
+                        if (tinygizmo::transform_gizmo("object_gizmo", gizmo_ctx, t))
+                        {
+                            tc.position = {t.position.x, t.position.y, t.position.z};
+                            tc.scale = {t.scale.x, t.scale.y, t.scale.z};
+
+                            nb::Math::Quaternion resultQuat(
+                                -t.orientation.x, -t.orientation.y, -t.orientation.z, t.orientation.w
+                            );
+
+                            if (resultQuat.w < 0.0f)
+                            {
+                                resultQuat.x = -resultQuat.x;
+                                resultQuat.y = -resultQuat.y;
+                                resultQuat.z = -resultQuat.z;
+                                resultQuat.w = -resultQuat.w;
+                            }
+                            resultQuat.normalize();
+
+                            tc.rotation = nb::Math::quatToEuler(resultQuat);
+
+                            tc.dirty = true;
+
+                            isGizmoHit = true;
+                        }
+                    }
+
+
+                    //
+                    if (msg.message == WM_LBUTTONDOWN && !isGizmoHit)
                     {
                         NbPoint<int> point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
 
-                        nb::Node node = engine->rayPick(point.x, point.y);
+                        nb::Math::Ray ray;
+                        nb::Node node = engine->rayPick(point.x, point.y, ray);
+
                         if (node.isValid())
                         {
                             activeNode = node;
                             onActiveNodeChanged.emit();
                         }
-
                     }
+
+                    isGizmoHit = false;
                 }
 
                 if (msg.message == WM_INPUT) 
