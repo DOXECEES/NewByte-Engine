@@ -3,7 +3,9 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Camera.hpp"
 
+#include "Math/RayCast/RayPicker.hpp"
 #include "../Debug.hpp"
+
 
 
 namespace nb
@@ -87,6 +89,17 @@ namespace nb
                 NEAR_PLANE,
                 FAR_PLANE
             );
+        }
+
+        Math::Ray Camera::getRayFromMousePoint(
+            uint32_t x,
+            uint32_t y
+        ) noexcept
+        {
+            Math::RayPicker rayPicker;
+            return rayPicker.cast(
+                this, x, y, Core::EngineSettings::getWidth(), Core::EngineSettings::getHeight()
+            ); 
         }
     };
 };

@@ -49,6 +49,8 @@ namespace nb
             inline Math::Vector3<float> getPosition() const noexcept { return position; };
             inline Math::Vector3<float> getDirection() const noexcept { return direction; };
 
+            Math::Ray getRayFromMousePoint(uint32_t x, uint32_t y) noexcept; 
+
         private:
 
             Math::Mat4<float>       lookAt;

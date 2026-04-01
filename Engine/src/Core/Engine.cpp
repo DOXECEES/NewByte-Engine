@@ -268,7 +268,8 @@ namespace nb
 
         Node Engine::rayPick(
             uint32_t x,
-            uint32_t y
+            uint32_t y, 
+            Math::Ray& ray
         ) const noexcept
         {
             // not impl 
@@ -276,7 +277,7 @@ namespace nb
                 return Node();
 
             Math::RayPicker picker;
-            auto ray = picker.cast(
+            ray = picker.cast(
                 renderer->getCamera(), x, y, EngineSettings::getWidth(),
                 EngineSettings::getHeight()
             );

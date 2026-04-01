@@ -1,19 +1,22 @@
-#version 330 core
+#version 450 core
 
-layout(location = 0) in vec3 aPos;
-layout(location = 1) in vec3 aNormal; // Переименовал для ясности
-layout(location = 1) in vec3 aColor;  // Изменил локацию на 2
-layout(location = 3) in vec2 aTexCoords;
-layout(location = 4) in vec4 aTangent;
+// Соответствует твоей структуре nb::Renderer::Vertex
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec3 aColor; // RGB цвет из вершины
+layout (location = 3) in vec2 aTexCoords;
+layout (location = 4) in vec4 aTangent;
 
-uniform mat4 projection;
-uniform mat4 view;
-uniform mat4 model;
+// Передаем только View * Projection (модель не нужна, вершины уже в мировых координатах)
+uniform mat4 uViewProj;
 
 out vec3 vColor;
 
-void main() {
+void main()
+{
     vColor = aColor;
-    // Умножаем матрицы как обычно
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    
+    // TinyGizmo генерирует вершины сразу в мировом пространстве, 
+    // поэтому мы просто умножаем на матрицы камеры.
+    gl_Position = uViewProj * vec4(aPos, 1.0);
 }

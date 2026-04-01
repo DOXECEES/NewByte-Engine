@@ -19,6 +19,8 @@
 #include "Camera.hpp"
 #include "Resources/MaterialAsset.hpp"
 
+#include <tiny-gizmo.hpp>
+
 namespace nb
 {
     namespace Renderer
@@ -80,6 +82,7 @@ namespace nb
             };
             void renderMaterialPreview(const SharedWindowContext& out, MaterialPreviewRequest& request);
 
+
             // TEMP
 
             uint32 getAlbedoId() const
@@ -124,6 +127,9 @@ namespace nb
 
             void setCheckedTextureId(uint32_t id) { checkedTextureId = id; }
 
+            tinygizmo::gizmo_context gizmoCtx;
+
+
         private:
 
             void renderNavigationalGizmo() noexcept;
@@ -156,6 +162,7 @@ namespace nb
             Ref<ContextMeshCache> contextMeshCache = nullptr;
 
         private:
+
 
             bool isResourceLoaded = false;
 

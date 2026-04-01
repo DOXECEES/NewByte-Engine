@@ -473,6 +473,64 @@ namespace nb::Renderer
         //     blitToWindow(ctx, checkedTextureId);
         // }
 
+        gizmoCtx.render = [&](const tinygizmo::geometry_mesh& mesh)
+        {
+            if (mesh.vertices.empty())
+            {
+                return;
+            }
+
+            std::vector<nb::Renderer::Vertex> nbVertices;
+            nbVertices.reserve(mesh.vertices.size());
+
+            for (const auto& gv : mesh.vertices)
+            {
+                nb::Renderer::Vertex v;
+                v.position = {gv.position.x, gv.position.y, gv.position.z};
+                v.normal = {gv.normal.x, gv.normal.y, gv.normal.z};
+                v.color = {gv.color.x, gv.color.y, gv.color.z};
+
+                v.textureCoordinates = {0.0f, 0.0f};
+                v.tangent = {0.0f, 0.0f, 0.0f, 1.0f};
+
+                nbVertices.push_back(v);
+            }
+
+            std::vector<uint32_t> nbIndices;
+            nbIndices.reserve(mesh.triangles.size() * 3);
+
+            for (const auto& tri : mesh.triangles)
+            {
+                nbIndices.push_back(tri.x);
+                nbIndices.push_back(tri.y);
+                nbIndices.push_back(tri.z);
+            }
+            Mesh m = Mesh(nbVertices, nbIndices, "");
+
+            auto sh = nb::ResMan::ResourceManager::getInstance()->getResource<Shader>("gizmoShader.shader");
+
+             Pipeline gridPipeline{
+                .shader = sh, .isDepthTestEnable = false, .isBlendEnable = true
+            };
+
+            uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
+
+            RendererCommand gridRenderCommand{
+                .mesh = &m, .pipeline = gridPSO
+            };
+
+            sh->setUniformMat4("uViewProj", cam->getLookAt() * cam->getProjection());
+
+            api->drawMesh(gridRenderCommand);
+
+        };
+
+
+       gizmoCtx.draw();
+
+        
+
+
         renderNavigationalGizmo();
 
 

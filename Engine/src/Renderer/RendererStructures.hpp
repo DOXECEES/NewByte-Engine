@@ -22,7 +22,6 @@ namespace nb
 
         struct Vertex
         {
-            Vertex() = default;
 
             Vertex(
                 const Math::Vector3<float>& pos = {},
