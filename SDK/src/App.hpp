@@ -177,7 +177,7 @@ private:
                     nb::Renderer::Camera* camera = engine->getRenderer()->getCamera();
                     nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
 
-                    auto& gizmo_ctx = engine->getRenderer()->gizmoCtx;
+                    auto& gizmo_ctx = engine->getRenderer()->getGizmoContext();
                     tinygizmo::gizmo_application_state state;
                     state.ray_origin = {ray.origin.x, ray.origin.y, ray.origin.z};
                     state.ray_direction = {ray.direction.x, ray.direction.y, ray.direction.z};

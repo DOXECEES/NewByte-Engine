@@ -127,10 +127,12 @@ namespace nb
 
             void setCheckedTextureId(uint32_t id) { checkedTextureId = id; }
 
-            tinygizmo::gizmo_context gizmoCtx;
+            tinygizmo::gizmo_context& getGizmoContext() noexcept;
+
 
 
         private:
+            tinygizmo::gizmo_context gizmoCtx;
 
             void renderNavigationalGizmo() noexcept;
 
