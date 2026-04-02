@@ -457,7 +457,7 @@ namespace nb::Renderer
 
         }
 
-        if (true)
+        if (isBVHVisualizationEnabled)
         {
             auto bvh = Scene::getInstance().getBvh();
             if (!bvh->items.empty())
