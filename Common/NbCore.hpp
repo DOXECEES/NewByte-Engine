@@ -1,6 +1,7 @@
 #ifndef NBCOMMON_NBCORE_HPP
 #define NBCOMMON_NBCORE_HPP
 
+#define NOMINMAX
 
 #if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(nodiscard)
