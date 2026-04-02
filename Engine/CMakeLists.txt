@@ -283,6 +283,8 @@ set (SRC
 
         src/Physics/Physics.hpp
 
+        src/Physics/TerrainCollider.hpp
+
         dependencies/lodepng/lodepng.cpp
         dependencies/stb/stb_image.h
 

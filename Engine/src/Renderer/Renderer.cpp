@@ -517,8 +517,68 @@ namespace nb::Renderer
             }
         }
 
-        
 
+        //auto terrainEntities =
+        //    scene.getEntitiesWith<nb::Physics::TerrainColliderComponent, TransformComponent>();
+
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //Ref<Shader> debugShader = rm->getResource<Shader>("aabb.shader");
+
+        //Ref<Mesh> unitCube = rm->getResource<Mesh>("unit_cube.obj");
+        //for (auto entity : terrainEntities)
+        //{
+        //    auto& terrComp = scene.getComponent<nb::Physics::TerrainColliderComponent>(entity.id);
+        //    auto& tTerr = scene.getComponent<TransformComponent>(entity.id);
+        //    auto& hm = terrComp.collider;
+
+        //    // Если данных нет, пропускаем
+        //    if (hm.heights.empty())
+        //    {
+        //        continue;
+        //    }
+
+        //    for (int z = 0; z < hm.rows; z += 4)
+        //    {
+        //        for (int x = 0; x < hm.cols; x += 4)
+        //        {
+        //            float height = hm.heights[z * hm.cols + x];
+
+        //            // Пропускаем "пустые" зоны
+        //            if (height < -1e9f)
+        //            {
+        //                continue;
+        //            }
+
+        //            float worldX = hm.minX + (float)x * hm.cellSize + tTerr.position.x;
+        //            float worldZ = hm.minZ + (float)z * hm.cellSize + tTerr.position.z;
+        //            float worldY = height + tTerr.position.y;
+
+        //            nb::Math::Mat4<float> model = nb::Math::Mat4<float>::identity();
+        //            model = Math::translate(model, {worldX, worldY, worldZ});
+
+        //            float displaySize = hm.cellSize * 0.9f;
+        //            model = Math::scale(model, {displaySize, 0.05f, displaySize}); // Тонкая плитка
+
+        //            debugShader->setUniformMat4("model", model);
+        //            debugShader->setUniformMat4("view", view);
+        //            debugShader->setUniformMat4("projection", proj);
+
+
+        //            Pipeline aabbVisualisation = {};
+        //            aabbVisualisation.shader = debugShader;
+        //            aabbVisualisation.polygonMode = PolygonMode::LINES;
+        //            aabbVisualisation.isDepthTestEnable = true;
+        //            uint32 aabbPSO = api->getCache().getOrCreate(aabbVisualisation);
+
+        //            RendererCommand rcmd = {unitCube.get(), aabbPSO}; 
+        //            api->drawMesh(rcmd);
+        //        }
+        //    }
+        //}
+
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+      
 
         gizmoCtx.draw();
 
@@ -971,16 +1031,18 @@ namespace nb::Renderer
         cubeNode.setName("cube");
 
         auto& cubeTransform = cubeNode.getComponent<TransformComponent>();
-        cubeTransform.position = {0.0f, 990.0f, 0.0f};
-        cubeTransform.scale = {2.25f, 2.25f, 2.25f};
+        cubeTransform.position = {0.0f, 200.0f, 0.0f};
+        cubeTransform.scale = {1.0f, 1.0f, 1.0f};
         cubeTransform.dirty = true;
         cube->uniforms.shader = shader;
 
         cubeNode.addComponent(MeshComponent{cube});
-        cubeNode.addComponent(Collider{.halfSize = {1.0f * 2.25f, 1.0f * 2.25f, 1.0f * 2.25f}});
+        auto aabb = cube->getAabb3d();
+        
+        cubeNode.addComponent(Physics::Collider { .halfSize = (aabb.halfSize() * 1.0f)  });
 
         cubeNode.addComponent(
-            Rigidbody{
+            Physics::Rigidbody{
                 .velocity = {0.0f, 0.0f, 0.0f},
                 .acceleration = {0.0f, 0.0f, 0.0f},
                 .mass = 1.0f,
@@ -996,7 +1058,7 @@ namespace nb::Renderer
         );
 
 
-        Ref<Mesh> surf = rm->getResource<Mesh>("scene.obj");
+        Ref<Mesh> surf = rm->getResource<Mesh>("reddd.obj");
 
         nb::Node surfNode = scene.createNode();
         surfNode.setName("scene");
@@ -1008,8 +1070,12 @@ namespace nb::Renderer
         surf->uniforms.shader = shader;
 
         surfNode.addComponent(MeshComponent{surf});
-        surfNode.addComponent(Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
-        surfNode.addComponent(GroundTag());
+        //surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
+        surfNode.addComponent(Physics::GroundTag());
+        surfNode.addComponent(Physics::TerrainColliderComponent());
+        auto bakedData = nb::Physics::BakeMesh(*surf, 0.1f);
+        surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
+
         //surfNode.addComponent(nb::Script::ScriptComponent())
 
         //nb::Serialize::IArchive* archive =
