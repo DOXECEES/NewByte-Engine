@@ -62,6 +62,8 @@ namespace nb::Physics
         {
         }
 
+        bool isValidHeight(float height) const noexcept;
+
         NB_NODISCARD float getHeight(
             float worldX,
             float worldZ

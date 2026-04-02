@@ -11,34 +11,12 @@ namespace nb::Physics
 {
     struct PhysicsMath
     {
-        static float
-        dot(const Math::Vector3<float>& a,
-            const Math::Vector3<float>& b)
-        {
-            return a.x * b.x + a.y * b.y + a.z * b.z;
-        }
-
-        static float length(const Math::Vector3<float>& v)
-        {
-            return std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-        }
-
-        static Math::Vector3<float> normalize(const Math::Vector3<float>& v)
-        {
-            float len = length(v);
-            if (len > 0.00001f)
-            {
-                return {v.x / len, v.y / len, v.z / len};
-            }
-            return {0, 0, 0};
-        }
-
         static Math::Vector3<float> rotateY(
             const Math::Vector3<float>& v,
-            float angleDeg
+            float                       angleDeg
         )
         {
-            float rad = angleDeg * 3.14159265f / 180.0f;
+            float rad  = Math::toRadians(angleDeg);
             float cosA = std::cos(rad);
             float sinA = std::sin(rad);
             return {v.x * cosA - v.z * sinA, v.y, v.x * sinA + v.z * cosA};
@@ -60,17 +38,17 @@ namespace nb::Physics
         Math::Vector3<float> acceleration{0.0f, 0.0f, 0.0f};
         Math::Vector3<float> force{0.0f, 0.0f, 0.0f};
 
-        float mass = 1.0f;
-        float drag = 0.5f;           
-        float friction = 0.4f;       
-        float staticFriction = 0.1f; 
+        float mass           = 1.0f;
+        float drag           = 0.5f;
+        float friction       = 0.4f;
+        float staticFriction = 0.1f;
 
         Math::Vector3<float> angularVelocity{0.0f, 0.0f, 0.0f};
         Math::Vector3<float> torque{0.0f, 0.0f, 0.0f};
-        float angularDrag = 0.1f;
+        float                angularDrag = 0.1f;
 
-        bool useGravity = true;
-        bool isGrounded = false;
+        bool useGravity     = true;
+        bool isGrounded     = false;
         bool freezeRotation = false;
     };
 
@@ -86,9 +64,15 @@ namespace nb::Physics
     class PhysicsSystem
     {
     public:
+        static constexpr float GRAVITY_ACCELERATION     = -9.81f;
+        static constexpr float SLEEP_VELOCITY_THRESHOLD = 0.2f;
+        static constexpr float MIN_MOVEMENT_THRESHOLD   = 0.01f;
+        static constexpr float INVALID_HEIGHT_THRESHOLD = -1e9f;
+        static constexpr float TERRAIN_NORMAL_EPS       = 0.1f;
+
         void update(
             Scene& scene,
-            float dt
+            float  dt
         )
         {
             if (dt <= 0.0f)
@@ -99,55 +83,66 @@ namespace nb::Physics
             for (auto entity : scene.getEntitiesWith<Rigidbody, TransformComponent>())
             {
                 auto& rb = scene.getComponent<Rigidbody>(entity.id);
-                auto& t = scene.getComponent<TransformComponent>(entity.id);
+                auto& t  = scene.getComponent<TransformComponent>(entity.id);
 
-                rb.isGrounded = false;
-
-                if (rb.useGravity)
-                {
-                    rb.force += Math::Vector3<float>(0.0f, -9.81f * rb.mass, 0.0f);
-                }
-
-                rb.velocity *= (1.0f - rb.drag * dt);
-
-                rb.acceleration = rb.force / rb.mass;
-                rb.velocity += rb.acceleration * dt;
-                t.position += rb.velocity * dt;
-
-                if (!rb.freezeRotation)
-                {
-                    rb.angularVelocity *= (1.0f - rb.angularDrag * dt);
-                    Math::Vector3<float> angularAcc = rb.torque / rb.mass;
-                    rb.angularVelocity += angularAcc * dt;
-                    t.rotation += rb.angularVelocity * dt;
-                }
-
-                t.dirty = true;
-                rb.force = {0, 0, 0};
-                rb.torque = {0, 0, 0};
+                applyForce(rb, dt, t);
             }
 
             resolveCollisions(scene, dt);
         }
 
+        void applyForce(
+            nb::Physics::Rigidbody& rigidbody,
+            float                   deltaTime,
+            TransformComponent&     transfrom
+        ) noexcept
+        {
+            rigidbody.isGrounded = false;
+
+            if (rigidbody.useGravity)
+            {
+                rigidbody.force +=
+                    Math::Vector3<float>(0.0f, GRAVITY_ACCELERATION * rigidbody.mass, 0.0f);
+            }
+
+            rigidbody.velocity *= (1.0f - rigidbody.drag * deltaTime);
+
+            rigidbody.acceleration = rigidbody.force / rigidbody.mass;
+            rigidbody.velocity += rigidbody.acceleration * deltaTime;
+            transfrom.position += rigidbody.velocity * deltaTime;
+
+            if (!rigidbody.freezeRotation)
+            {
+                rigidbody.angularVelocity *= (1.0f - rigidbody.angularDrag * deltaTime);
+                Math::Vector3<float> angularAcc = rigidbody.torque / rigidbody.mass;
+                rigidbody.angularVelocity += angularAcc * deltaTime;
+                transfrom.rotation += rigidbody.angularVelocity * deltaTime;
+            }
+
+            transfrom.dirty  = true;
+            rigidbody.force  = {0, 0, 0};
+            rigidbody.torque = {0, 0, 0};
+        }
+
     private:
         Math::Vector3<float> calculateTerrainNormal(
             const HeightmapCollider& col,
-            float x,
-            float z
-        )
+            float                    x,
+            float                    z
+        ) noexcept
         {
             float eps = 0.1f;
-            float hL = col.getHeight(x - eps, z);
-            float hR = col.getHeight(x + eps, z);
-            float hD = col.getHeight(x, z - eps);
-            float hU = col.getHeight(x, z + eps);
-            return PhysicsMath::normalize({hL - hR, 2.0f * eps, hD - hU});
+            float hL  = col.getHeight(x - eps, z);
+            float hR  = col.getHeight(x + eps, z);
+            float hD  = col.getHeight(x, z - eps);
+            float hU  = col.getHeight(x, z + eps);
+
+            return Math::normalize(Math::Vector3<float>{hL - hR, 2.0f * eps, hD - hU});
         }
 
         void resolveCollisions(
             Scene& scene,
-            float dt
+            float  dt
         )
         {
             auto dynamicEntities = scene.getEntitiesWith<Rigidbody, Collider, TransformComponent>();
@@ -156,76 +151,98 @@ namespace nb::Physics
 
             for (auto dyn : dynamicEntities)
             {
-                auto& tDyn = scene.getComponent<TransformComponent>(dyn.id);
-                auto& cDyn = scene.getComponent<Collider>(dyn.id);
+                auto& tDyn  = scene.getComponent<TransformComponent>(dyn.id);
+                auto& cDyn  = scene.getComponent<Collider>(dyn.id);
                 auto& rbDyn = scene.getComponent<Rigidbody>(dyn.id);
 
                 for (auto terr : terrainEntities)
                 {
-                    auto& tTerr = scene.getComponent<TransformComponent>(terr.id);
+                    auto& tTerr    = scene.getComponent<TransformComponent>(terr.id);
                     auto& terrComp = scene.getComponent<TerrainColliderComponent>(terr.id);
 
-                    Math::Vector3<float> relPos = tDyn.position - tTerr.position;
-                    Math::Vector3<float> localPos = PhysicsMath::rotateY(relPos, -tTerr.rotation.y);
-
-                    float locX = localPos.x / tTerr.scale.x;
-                    float locZ = localPos.z / tTerr.scale.z;
-
-                    float locH = terrComp.collider.getHeight(locX, locZ);
-                    if (locH < -1e9f)
+                    bool flag = processTerrainCollisions(tDyn, tTerr, terrComp, cDyn, rbDyn);
+                    if (!flag)
                     {
                         continue;
-                    }
-
-                    float worldGroundY = (locH * tTerr.scale.y) + tTerr.position.y;
-                    float feetY = tDyn.position.y - (cDyn.halfSize.y * tDyn.scale.y);
-
-                    if (feetY < worldGroundY)
-                    {
-                        rbDyn.isGrounded = true;
-
-                        Math::Vector3<float> locNormal =
-                            calculateTerrainNormal(terrComp.collider, locX, locZ);
-                        Math::Vector3<float> worldNormal =
-                            PhysicsMath::rotateY(locNormal, tTerr.rotation.y);
-
-                        tDyn.position.y = worldGroundY + (cDyn.halfSize.y * tDyn.scale.y);
-                        tDyn.dirty = true;
-
-                        Math::Vector3<float> gravity(0.0f, -9.81f, 0.0f);
-                        float normalPressure = PhysicsMath::dot(gravity, worldNormal);
-                        Math::Vector3<float> normalForceVec = worldNormal * normalPressure;
-                        Math::Vector3<float> slideForce = gravity - normalForceVec;
-
-                        float speed = PhysicsMath::length(rbDyn.velocity);
-                        if (speed > 0.01f)
-                        {
-                            Math::Vector3<float> velDir = PhysicsMath::normalize(rbDyn.velocity);
-                            float frictionMag = std::abs(normalPressure) * rbDyn.friction;
-                            rbDyn.force -= velDir * frictionMag;
-                        }
-
-                        if (PhysicsMath::length(slideForce) < rbDyn.staticFriction && speed < 0.2f)
-                        {
-                            rbDyn.velocity = {0, 0, 0};
-                        }
-                        else
-                        {
-                            rbDyn.force += slideForce * rbDyn.mass;
-                        }
-
-                        float vDotN = PhysicsMath::dot(rbDyn.velocity, worldNormal);
-                        if (vDotN < 0)
-                        {
-                            rbDyn.velocity -= worldNormal * vDotN;
-                        }
                     }
                 }
             }
         }
+
+        bool processTerrainCollisions(
+            TransformComponent&                    dynamicObjectTransform,
+            TransformComponent&                    terrainTransform,
+            nb::Physics::TerrainColliderComponent& terrainCollider,
+            nb::Physics::Collider&                 dynamicCollider,
+            nb::Physics::Rigidbody&                dynamicRigidbody
+        )
+        {
+            Math::Vector3<float> relPos =
+                dynamicObjectTransform.position - terrainTransform.position;
+            Math::Vector3<float> localPos =
+                PhysicsMath::rotateY(relPos, -terrainTransform.rotation.y);
+
+            float locX = localPos.x / terrainTransform.scale.x;
+            float locZ = localPos.z / terrainTransform.scale.z;
+
+            float locH = terrainCollider.collider.getHeight(locX, locZ);
+            if (!terrainCollider.collider.isValidHeight(locH))
+            {
+
+                return false;
+            }
+
+            float worldGroundY = (locH * terrainTransform.scale.y) + terrainTransform.position.y;
+            float feetY        = dynamicObjectTransform.position.y -
+                                 (dynamicCollider.halfSize.y * dynamicObjectTransform.scale.y);
+
+            if (feetY < worldGroundY)
+            {
+                dynamicRigidbody.isGrounded = true;
+
+                Math::Vector3<float> locNormal =
+                    calculateTerrainNormal(terrainCollider.collider, locX, locZ);
+                Math::Vector3<float> worldNormal =
+                    PhysicsMath::rotateY(locNormal, terrainTransform.rotation.y);
+
+                dynamicObjectTransform.position.y =
+                    worldGroundY + (dynamicCollider.halfSize.y * dynamicObjectTransform.scale.y);
+                dynamicObjectTransform.dirty = true;
+
+                Math::Vector3<float> gravity(0.0f, GRAVITY_ACCELERATION, 0.0f);
+                float                normalPressure = gravity.dot(worldNormal);
+                Math::Vector3<float> normalForceVec = worldNormal * normalPressure;
+                Math::Vector3<float> slideForce     = gravity - normalForceVec;
+
+                float speed = dynamicRigidbody.velocity.length();
+                if (speed > MIN_MOVEMENT_THRESHOLD)
+                {
+                    Math::Vector3<float> velDir = Math::normalize(dynamicRigidbody.velocity);
+                    float frictionMag = std::abs(normalPressure) * dynamicRigidbody.friction;
+                    dynamicRigidbody.force -= velDir * frictionMag;
+                }
+
+                if (slideForce.length() < dynamicRigidbody.staticFriction &&
+                    speed < SLEEP_VELOCITY_THRESHOLD)
+                {
+                    dynamicRigidbody.velocity = {0, 0, 0};
+                }
+                else
+                {
+                    dynamicRigidbody.force += slideForce * dynamicRigidbody.mass;
+                }
+
+                float vDotN = dynamicRigidbody.velocity.dot(worldNormal);
+                if (vDotN < 0)
+                {
+                    dynamicRigidbody.velocity -= worldNormal * vDotN;
+                }
+            }
+
+            return true;
+        }
     };
 } // namespace nb::Physics
-
 
 NB_REFLECT_STRUCT(
     nb::Physics::Rigidbody,
@@ -271,10 +288,6 @@ NB_REFLECT_STRUCT(
     )
 )
 
-NB_REFLECT_STRUCT(
-    nb::Physics::GroundTag
-)
+NB_REFLECT_STRUCT(nb::Physics::GroundTag)
 
-NB_REFLECT_STRUCT(
-    nb::Physics::TerrainColliderComponent
-)
+NB_REFLECT_STRUCT(nb::Physics::TerrainColliderComponent)

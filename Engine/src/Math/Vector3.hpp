@@ -265,6 +265,19 @@ namespace nb
             T y = { };
             T z = { };
         };
+
+        template<typename T>
+        inline Vector3<T> normalize(const Vector3<T>& vec) noexcept
+        {
+            const float length = vec.length();
+            if (length != 0)
+            {
+                return {vec.x / length, vec.y / length, vec.z / length};
+            }
+
+            return {static_cast<T>(0), static_cast<T>(0), static_cast<T>(0)};
+        }
+
     };
 };
 

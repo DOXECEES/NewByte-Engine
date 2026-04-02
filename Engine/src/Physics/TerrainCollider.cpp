@@ -4,6 +4,11 @@
 namespace nb::Physics
 {
 
+    bool HeightmapCollider::isValidHeight(float height) const noexcept
+    {
+        return height > INVALID_HEIGHT;
+    }
+    
     NB_NODISCARD float HeightmapCollider::getHeight(
         float worldX,
         float worldZ
