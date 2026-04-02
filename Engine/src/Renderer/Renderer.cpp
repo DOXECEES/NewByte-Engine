@@ -1073,7 +1073,7 @@ namespace nb::Renderer
         //surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
         surfNode.addComponent(Physics::GroundTag());
         surfNode.addComponent(Physics::TerrainColliderComponent());
-        auto bakedData = nb::Physics::BakeMesh(*surf, 0.1f);
+        auto bakedData = nb::Physics::bakeMesh(*surf, 0.1f);
         surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
 
         //surfNode.addComponent(nb::Script::ScriptComponent())

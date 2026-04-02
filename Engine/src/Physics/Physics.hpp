@@ -226,7 +226,6 @@ namespace nb::Physics
     };
 } // namespace nb::Physics
 
-// --- Рефлексия ---
 
 NB_REFLECT_STRUCT(
     nb::Physics::Rigidbody,
