@@ -56,7 +56,10 @@ namespace nb
             {
                 isShowGridEnabled = !isShowGridEnabled;
             }
-
+            inline void toggleBvhVisualization() noexcept
+            {
+                isBVHVisualizationEnabled = !isBVHVisualizationEnabled;
+            }
 
             bool isResourceReady() const noexcept;
         
@@ -159,6 +162,7 @@ namespace nb
             bool isDebugPassEnabled = false;
             bool isBoundingBoxVisualizationEnabled = false;
             bool isShowGridEnabled = true;
+            bool isBVHVisualizationEnabled = false;
 
             SharedWindowContext ctx;
             Ref<ContextMeshCache> contextMeshCache = nullptr;

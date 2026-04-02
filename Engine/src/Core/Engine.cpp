@@ -232,7 +232,7 @@ namespace nb
         {
             using namespace nb::Input;
 
-            PhysicsSystem physics;
+            Physics::PhysicsSystem physics;
             physics.update(Scene::getInstance(), deltaTime);
 
 

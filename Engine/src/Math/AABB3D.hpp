@@ -57,6 +57,11 @@ namespace nb
                 return maxPoint - minPoint;
             }
 
+            constexpr Math::Vector3<float> halfSize() const noexcept
+            {
+                return (maxPoint - minPoint) / 2.0f;
+            }
+
             constexpr void setInvalid() noexcept
             {
                 minPoint = {

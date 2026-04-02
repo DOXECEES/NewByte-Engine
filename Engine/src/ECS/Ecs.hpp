@@ -132,6 +132,7 @@ namespace nb::Ecs
             void* component
         ) = 0;
 
+        virtual void addDefault(EntityID entity) = 0; 
     };
 
     template <typename T> struct StorageWrapper : StorageWrapperBase
@@ -167,6 +168,10 @@ namespace nb::Ecs
             storage.add(entity, *static_cast<T*>(component));
         }
 
+        void addDefault(EntityID entity) override
+        {
+            storage.add(entity, T{});
+        }
     };
 
     class ECSRegistry

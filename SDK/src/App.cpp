@@ -42,6 +42,8 @@
 #include <Renderer/Scene.hpp>
 #include <memory>
 
+#include <Physics/Physics.hpp>
+
 
 
 
@@ -325,17 +327,6 @@ void EditorApp::setupHierarchyUI() noexcept
                 { 
                     tv->setModel(sceneModel);
 
-                    auto popup = std::make_unique<nbui::PopupMenu>();
-                    popup->addItem(
-                        L"Удалить",
-                        [&]()
-                        {
-                           
-                        }
-                    );
-                    popup->addItem(L"Копировать", []() {  });
-
-                    mainWindow->attachMenuToWidget(tv, popup.get());
                     subscribe(
                         tv, &Widgets::TreeView::onItemRightClickSignal,
                         [&, tv](const Widgets::ModelIndex& index)
@@ -789,6 +780,19 @@ void EditorApp::setupDebugUI() noexcept
             .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
                 engine->getRenderer()->toggleDebugPass();
                 }))
+            .child(
+                LayoutBuilder::widget(new Widgets::CheckBox())
+                    .text(L"Show BVH bounds")
+                    .relativeWidth(1.0f)
+                    .absoluteHeight(30)
+                    .onEvent(
+                        &Widgets::CheckBox::onCheckStateChanged,
+                        [&](bool checked)
+                        {
+                            engine->getRenderer()->toggleBvhVisualization();
+                        }
+                    )
+            )
 
         // Разделитель
         .child(LayoutBuilder::spacer().absoluteHeight(10))
@@ -866,492 +870,7 @@ void EditorApp::setupAssetManager() noexcept
     using namespace nbui;
     
     auto res = nb::ResMan::ResourceManager::getInstance();
-    //materialEditor = std::make_shared<MaterialEditor>(
-    //    debugWindow.get(), engine.get(),
-    //    res->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material").get()
-    //);
-    //materialEditor->show();
-    // 
-    // 
-    //textureEditor = std::make_shared<TextureEditor>(debugWindow.get(), engine.get(), res->getResource<nb::Resource::TextureAsset>("Assets/res/normal.texture").get());
-    // auto* resMan = nb::ResMan::ResourceManager::getInstance();
-    //textureEditor->show();
-    // // 1. Создаем модальное окно (сохраняем в поле класса, чтобы не удалилось)
-    // modal =
-    //     std::make_shared<Win32Window::ModalWindow>(NbSize<int>{1100, 700}, debugWindow.get());
-    // modal->setTitle(L"Content Browser");
-
-    // modalTexturePreview = std::make_shared<Win32Window::ChildWindow>(modal.get(), true);
-    // modalTexturePreview->setTitle(L"Preview Texture");
-
-    // subscribe(*modal, &Win32Window::ModalWindow::onSizeChanged, [this](const NbSize<int>& size) {
-    //         modalTexturePreview->setSize({static_cast<int>(size.width * 0.7f), size.height - 32});
-    // });
-
-    // modalTexturePreview->setSize(
-    //     {static_cast<int>(modal->getClientSize().width * 0.7f), modal->getClientSize().height - 32}
-    // );
     
-    // modalTexturePreview->setPosition({5, 32 + 35});
-    // sharedCtx = engine->getRenderer()->createSharedContextForWindow(modalTexturePreview->getHandle().as<HWND>());
-    // modalTexturePreview->setRenderable(false);
-
-
-    // modalInspector = std::make_shared<Win32Window::ChildWindow>(modal.get());
-    // modalInspector->setTitle(L"Inspector");
-
-    // const NbSize<int>& modalSize = modal->getClientSize();
-    // const NbSize<int>& texturePreviewSize = modalTexturePreview->getClientSize();
-
-    // subscribe(*modal, &Win32Window::ModalWindow::onSizeChanged, [this, &modalSize, &texturePreviewSize](const NbSize<int>& size) {
-            
-    //         modalInspector->setSize({modalSize.width - texturePreviewSize.width - 1, size.height - 32});
-    //         modalInspector->setPosition({5 + texturePreviewSize.width, 32 + 35});
-    //     });
-
-    // modalInspector->setSize(
-    //     {modalSize.width - texturePreviewSize.width, modalSize.height - 32}
-    // );
-    // modalInspector->setPosition({5 + texturePreviewSize.width , 32 + 35});
-
-
-    // auto getFileName = [](const std::string& path)
-    // {
-    //     return std::filesystem::path(path).filename().wstring();
-    // };
-
-    // // 3. Создаем базовый FlowLayout для ассетов
-    // auto assetFlow = LayoutBuilder::flow().style(
-    //     [](NNsLayout::LayoutStyle& s)
-    //     {
-    //         s.width = 1.0f;
-    //         s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-    //         s.heightSizeType = NNsLayout::SizeType::AUTO; // Растянется по количеству карточек
-    //         s.padding = {10, 10, 10, 10};
-    //         s.color = NbColor{20, 20, 20}; // Фон области контента
-    //     }
-    // );
-
-    // // 4. НАПОЛНЯЕМ СЕТКУ ИЗ RESOURCE MANAGER
-
-    // // Категория: ТЕКСТУРЫ (Зеленый индикатор)
-    // //try
-    // //{
-    // //    auto& textures = resMan->getAllResources<nb::Renderer::Texture>();
-    // //    for (auto const& [path, res] : textures)
-    // //    {
-    // //        assetFlow = std::move(assetFlow).child(createAssetCard(getFileName(path), L"Texture2D", NbColor{76, 175, 80}));
-    // //    }
-    // //}
-    // //catch (...)
-    // //{ /* Пул пуст или не создан */
-    // //}
-
-    // // Категория: МАТЕРИАЛЫ (Оранжевый индикатор)
-    // //try
-    // //{
-    // //    auto& materials = resMan->getAllResources<nb::Resource::Material>();
-    // //    for (auto const& [path, res] : materials)
-    // //    {
-    // //        assetFlow = std::move(assetFlow.child(createAssetCard(getFileName(path), L"Material", NbColor{255, 152, 0})));
-    // //    }
-    // //}
-    // //catch (...)
-    // //{
-    // //}
-
-    // // Категория: ШЕЙДЕРЫ (Фиолетовый индикатор)
-    // try
-    // {
-    //     auto& shaders = resMan->getAllResources<nb::Renderer::Shader>();
-    //     for (auto const& [path, res] : shaders)
-    //     {
-    //         assetFlow = std::move(assetFlow).child(createAssetCard(getFileName(path), L"Shader", NbColor{156, 39, 176}));
-    //     }
-    // }
-    // catch (...)
-    // {
-    // }
-
-    // // Категория: МЕШИ (Синий индикатор)
-    // try
-    // {
-    //     auto& meshes = resMan->getAllResources<nb::Renderer::Mesh>();
-    //     for (auto const& [path, res] : meshes)
-    //     {
-    //         assetFlow = std::move(assetFlow).child(
-    //             createAssetCard(getFileName(path), L"StaticMesh", NbColor{33, 150, 243})
-    //         );
-    //     }
-    // }
-    // catch (...)
-    // {
-    // }
-
-
-    // auto rootUI =
-    //     LayoutBuilder::vBox()
-    //         .style(
-    //             [](NNsLayout::LayoutStyle& s)
-    //             {
-    //                 s.width = 1.0f;
-    //                 s.height = 1.0f;
-    //                 s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-    //                 s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-    //                 s.color = NbColor{30, 30, 30};
-    //             }
-    //         )
-    //         .child(
-    //             LayoutBuilder::toolbar()
-    //                 .buttonGroupOnlyOne()
-    //                           .relativeHeight(1.0f)
-    //                           .absoluteWidth(120)
-    //                           .child(
-    //                               LayoutBuilder::widget(new Widgets::Button())
-    //                                   .text(L"2D")
-    //                                   .absoluteWidth(50)
-    //                                   .relativeHeight(1.0f)
-    //                           )
-    //                           .child(
-    //                               LayoutBuilder::widget(new Widgets::Button())
-    //                                   .text(L"3D")
-    //                                   .absoluteWidth(50)
-    //                                   .relativeHeight(1.0f)
-    //                           )
-                              
-    //                         .endGroup()
-
-    //                     .buttonGroupMultiple()
-    //                           .relativeHeight(1.0f)
-    //                           .relativeWidth(0.5f)
-    //                           .child(
-    //                               LayoutBuilder::widget(new Widgets::Button())
-    //                                   .text(L"R")
-    //                                   .absoluteWidth(50)
-    //                                   .relativeHeight(1.0f)
-    //                                   .background({180, 60, 60}, LayoutBuilder::StateStyle::ACTIVE)
-    //                                   .onEvent(&Widgets::Button::onCheckedChangedSignal, [this](bool flag) {
-    //                                      texturePreviewRequest.channelMask.x = flag ? 1.0f : 0.0f;
-    //                                     })
-    //                           )
-    //                           .child(
-    //                               LayoutBuilder::widget(new Widgets::Button())
-    //                                   .text(L"G")
-    //                                   .absoluteWidth(50)
-    //                                   .relativeHeight(1.0f)
-    //                                   .background({60, 150, 80}, LayoutBuilder::StateStyle::ACTIVE)
-    //                                     .onEvent(&Widgets::Button::onCheckedChangedSignal, [this](bool flag) {
-    //                                         texturePreviewRequest.channelMask.y = flag ? 1.0f : 0.0f;
-    //                                     })
-    //                           )
-    //                           .child(
-    //                               LayoutBuilder::widget(new Widgets::Button())
-    //                                   .text(L"B")
-    //                                   .absoluteWidth(50)
-    //                                   .relativeHeight(1.0f)     
-    //                                   .background({60, 100, 180}, LayoutBuilder::StateStyle::ACTIVE)
-    //                                     .onEvent(&Widgets::Button::onCheckedChangedSignal, [this](bool flag) {
-    //                                         texturePreviewRequest.channelMask.z = flag ? 1.0f : 0.0f;
-    //                                     })
-    //                           )
-    //                           .child(
-    //                               LayoutBuilder::widget(new Widgets::Button())
-    //                                   .text(L"A")
-    //                                   .absoluteWidth(50)
-    //                                   .relativeHeight(1.0f)
-    //                                 .background({150, 150, 150}, LayoutBuilder::StateStyle::ACTIVE)
-
-    //                           )
-    //                         .checkedGroupIndex(true, 0)
-    //                         .checkedGroupIndex(true, 1)
-    //                         .checkedGroupIndex(true, 2)
-    //                         .checkedGroupIndex(true, 3)
-
-    //                         .endGroup()
-
-    //                   )
-
-                    
-            
-                
-
-    //         //// Верхний Тулбар
-    //         //.child(
-    //         //    LayoutBuilder::hBox()
-    //         //        .absoluteHeight(50)
-    //         //        .background(NbColor{45, 45, 45})
-                    
-                    
-            
-    //         // Область со скроллом (наш FlowLayout)
-    //         // .child(
-    //         //     LayoutBuilder::vBox()
-    //         //         .style(
-    //         //             [](NNsLayout::LayoutStyle& s)
-    //         //             {
-    //         //                 s.width = 1.0f;
-    //         //                 s.height = 1.0f;
-    //         //                 s.widthSizeType = NNsLayout::SizeType::RELATIVE;
-    //         //                 s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-    //         //             }
-    //         //         )
-    //         //         .child(std::move(assetFlow))       // Добавляем готовую сетку ассетов
-    //         //         .child(LayoutBuilder::spacer()) // Прижимает сетку к верху
-    //         // )
-    //         // Статус-бар
-    //         // .child(
-    //         //     LayoutBuilder::hBox()
-    //         //         .absoluteHeight(30)
-    //         //         .relativeWidth(1.0f)
-    //         //         .background(NbColor{20, 20, 20})
-    //         //         .child(
-    //         //             LayoutBuilder::label(L"  Total Resources Loaded: ...")
-    //         //                 .fontSize(11)
-    //         //                 .absoluteHeight(30)
-    //         //                 .relativeWidth(1.0f)
-    //         //         )
-    //         // )
-    //         .build();
-
-    // // 6. Устанавливаем UI в окно и показываем
-    // modal->getLayoutRoot()->addChild(std::move(rootUI));
-    // modal->show();
-    // //modalTexturePreview->setClientRect(});
-    // modalTexturePreview->show();
-
-
-    // auto inspectorUi =
-    //     LayoutBuilder::vBox()
-    //         .padding({10, 10, 0, 10})
-    //         .relativeWidth(1.0f)  // Растягиваем на всю ширину окна инспектора
-    //         .relativeHeight(1.0f) // Растягиваем на всю высоту
-
-    //         // --- СЕКЦИЯ: ИНФОРМАЦИЯ ---
-    //         .child(
-    //             LayoutBuilder::vBox()
-    //                 .relativeWidth(1.0f)
-    //                 .autoHeight() // Высота всей секции метаданных
-    //                 .child(
-    //                     LayoutBuilder::label(L"METADATA")
-    //                         .fontSize(12)
-    //                         .color({150, 150, 150})
-    //                         .absoluteHeight(20)
-    //                         .relativeWidth(1.0f)
-    //                 )
-    //                 .child(
-    //                     LayoutBuilder::label(L"Format: RGBA8_UNORM")
-    //                         .fontSize(14)
-    //                         .absoluteHeight(20)
-    //                         .relativeWidth(1.0f)
-    //                 )
-    //                 .child(
-    //                     LayoutBuilder::label(L"Size: 2048 x 2048")
-    //                         .fontSize(14)
-    //                         .absoluteHeight(20)
-    //                         .relativeWidth(1.0f)
-    //                 )
-    //                 .child(
-    //                     LayoutBuilder::label(L"Mips: 11")
-    //                         .fontSize(14)
-    //                         .absoluteHeight(20)
-    //                         .relativeWidth(1.0f)
-    //                 )
-    //         )
-
-    //         // Разделитель (фиксированная высота 2 пикселя)
-    //         .child(
-    //             LayoutBuilder::hBox()
-    //                 .relativeWidth(1.0f)
-    //                 .absoluteHeight(2)
-    //                 .background({60, 60, 60})
-    //                 .margin({10, 0, 10, 0}) // Отступы сверху и снизу
-    //         )
-
-    //         // --- СЕКЦИЯ: КАНАЛЫ (RGBA) ---
-    //         .child(
-    //             LayoutBuilder::vBox()
-    //                 .relativeWidth(1.0f)
-    //                 .absoluteHeight(60)
-    //                 .child(
-    //                     LayoutBuilder::label(L"CHANNELS")
-    //                         .fontSize(12)
-    //                         .color({150, 150, 150})
-    //                         .absoluteHeight(20)
-    //                         .relativeWidth(1.0f)
-    //                 )
-    //                 .child(
-    //                     LayoutBuilder::hBox()
-    //                         .relativeWidth(1.0f)
-    //                         .absoluteHeight(35)
-    //                         .buttonGroupMultiple()
-    //                         .relativeWidth(1.0f)
-    //                         .absoluteHeight(35)
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::Button())
-    //                                 .text(L"R")
-    //                                 .relativeWidth(0.25f)
-    //                                 .relativeHeight(1.0f)
-    //                                 .background({220, 80, 80}, LayoutBuilder::StateStyle::ACTIVE)
-    //                         )
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::Button())
-    //                                 .text(L"G")
-    //                                 .relativeWidth(0.25f)
-    //                                 .relativeHeight(1.0f)
-    //                                 .background({110, 180, 120}, LayoutBuilder::StateStyle::ACTIVE)
-    //                         )
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::Button())
-    //                                 .text(L"B")
-    //                                 .relativeWidth(0.25f)
-    //                                 .relativeHeight(1.0f)
-    //                                 .background({80, 140, 220}, LayoutBuilder::StateStyle::ACTIVE)
-    //                         )
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::Button())
-    //                                 .text(L"A")
-    //                                 .relativeWidth(0.25f)
-    //                                 .relativeHeight(1.0f)
-    //                                 .background({210, 210, 210}, LayoutBuilder::StateStyle::ACTIVE)
-    //                         )
-    //                         .endGroup()
-    //                 )
-    //         )
-
-    //         // Еще один разделитель
-    //         .child(
-    //             LayoutBuilder::hBox()
-    //                 .relativeWidth(1.0f)
-    //                 .absoluteHeight(2)
-    //                 .background({60, 60, 60})
-    //                 .margin({10, 0, 10, 0}) // Отступы сверху и снизу
-
-    //         )
-
-    //         // --- СЕКЦИЯ: ПАРАМЕТРЫ (Exposure, Gamma, Filtering) ---
-    //         .child(
-    //             LayoutBuilder::vBox()
-    //                 .relativeWidth(1.0f)
-    //                 .absoluteHeight(110) // Достаточно места для заголовка и 3 строк
-    //                 .child(
-    //                     LayoutBuilder::label(L"VISUALS")
-    //                         .fontSize(12)
-    //                         .color({150, 150, 150})
-    //                         .absoluteHeight(20)
-    //                         .relativeWidth(1.0f)
-    //                 )
-    //                 // Exposure
-    //                 .child(
-    //                     LayoutBuilder::hBox()
-    //                         .relativeWidth(1.0f)
-    //                         .absoluteHeight(30)
-    //                         .child(
-    //                             LayoutBuilder::label(L"Exposure")
-    //                                 .relativeWidth(0.4f)
-    //                                 .relativeHeight(1.0f)
-    //                         )
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::Slider<float>())
-    //                                  .apply<Widgets::Slider<float>>([this](auto* s) {
-    //                                     s->setRange(0.0f, 10.0f, 0.1f);
-    //                                     s->bind(
-    //                                         [this]() { return texturePreviewRequest.exposure; },
-    //                                         [this](float v) { texturePreviewRequest.exposure = v; }
-    //                                     );
-    //                                 })
-    //                                 .relativeWidth(0.6f)
-    //                                 .relativeHeight(1.0f)
-    //                         )
-    //                 )
-    //                 // Gamma
-    //                 .child(
-    //                     LayoutBuilder::hBox()
-    //                         .relativeWidth(1.0f)
-    //                         .absoluteHeight(30)
-    //                         .child(
-    //                             LayoutBuilder::label(L"Gamma")
-    //                             .relativeWidth(0.4f)
-    //                             .relativeHeight(1.0f)
-    //                         )
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::Slider<float>())
-    //                                 .apply<Widgets::Slider<float>>(
-    //                                     [this](Widgets::Slider<float>* c)
-    //                                     {
-    //                                         c->setRange(0.1f, 5.0f, 0.05f);
-
-    //                                         // 2. Биндим данные
-    //                                         c->bind(
-    //                                             [this]()
-    //                                             {
-    //                                                 return texturePreviewRequest.gamma;
-    //                                             },
-    //                                             [this](float v)
-    //                                             {
-    //                                                 texturePreviewRequest.gamma = v;
-    //                                                 // 3. Здесь можно вызвать принудительную
-    //                                                 // перерисовку окна превью
-    //                                                 // modalTexturePreview->update();
-    //                                             }
-    //                                         );
-    //                                     }
-    //                                 )
-    //                                 .relativeWidth(0.6f)
-    //                                 .relativeHeight(1.0f)
-    //                         )
-    //                 )
-    //                 // Filtering
-    //                 .child(
-    //                     LayoutBuilder::hBox()
-    //                         .relativeWidth(1.0f)
-    //                         .absoluteHeight(30)
-    //                         .child(
-    //                             LayoutBuilder::label(L"Filtering")
-    //                                 .relativeWidth(0.4f)
-    //                                 .relativeHeight(1.0f)
-    //                         )
-    //                         .child(
-    //                             LayoutBuilder::widget(new Widgets::ComboBox())
-    //                                 .relativeWidth(0.6f)
-    //                                 .relativeHeight(1.0f)
-    //                                 .apply<Widgets::ComboBox>(
-    //                                     [&](Widgets::ComboBox* c)
-    //                                     {
-    //                                         c->addItem({L"Point", 0});
-    //                                         c->addItem({L"Bilinear", 1});
-    //                                         c->addItem({L"Trilinear", 2});
-    //                                     }
-    //                                 )
-    //                         )
-    //                 )
-    //         )
-
-    //         // Пружина (занимает всё оставшееся свободное место, выталкивая кнопки вниз)
-    //         .child(LayoutBuilder::spacer().relativeWidth(1.0f).relativeHeight(1.0f))
-
-    //         // --- СЕКЦИЯ: КНОПКИ ДЕЙСТВИЙ ---
-    //         .child(
-    //             LayoutBuilder::hBox()
-    //                 .relativeWidth(1.0f)
-    //                 .absoluteHeight(40)
-    //                 .child(
-    //                     LayoutBuilder::widget(new Widgets::Button())
-    //                         .text(L"REIMPORT")
-    //                         .relativeWidth(0.5f)
-    //                         .relativeHeight(1.0f)
-    //                 )
-    //                 .child(
-    //                     LayoutBuilder::widget(new Widgets::Button())
-    //                         .text(L"EXPORT...")
-    //                         .relativeWidth(0.5f)
-    //                         .relativeHeight(1.0f)
-    //                 )
-    //         )
-    //         .build();
-
-
-    // modalInspector->getLayoutRoot()->addChild(std::move(inspectorUi));
-    // modalInspector->show();
 }
 
 void EditorApp::rebuildInspector() noexcept
@@ -1405,6 +924,62 @@ void EditorApp::rebuildInspector() noexcept
             }
         }
     }
+
+    std::move(inspectorBuilder)
+        .child(
+            LayoutBuilder::widget(new Widgets::Button)
+                .relativeWidth(1.0f)
+                .absoluteHeight(40.0f)
+                .onEvent(
+                    &Widgets::Button::onReleasedSignal,
+                    [&]()
+                    {
+                        auto popup = new nbui::PopupMenu();
+                        auto& registry =
+                            nb::Scene::getInstance().getRegistry(); // Ваша регистра ECS
+                        auto entityId = activeNode.getId();
+
+                        // Итерируемся по всем типам компонентов, о которых знает ECS
+                        for (auto& storage : registry.getAllStorages())
+                        {
+                            if (!storage)
+                            {
+                                continue;
+                            }
+
+                            auto* typeInfo = storage->getTypeInfo();
+                            std::string compName =
+                                (typeInfo->name); // Предполагаем, что имя есть в TypeInfo
+
+                            // Проверяем, нет ли уже такого компонента у сущности
+                            if (!storage->contains(entityId))
+                            {
+                                auto rawStorage = storage.get();
+                                popup->addItem(
+                                    Utils::toWstring(compName),
+                                    [this, rawStorage, entityId]()
+                                    {
+                                        // 1. Добавляем компонент
+                                        rawStorage->addDefault(entityId);
+
+                                        // 2. Обновляем UI (перерисовываем инспектор)
+                                        this->rebuildInspector();
+
+                                        // 3. Логика движка
+                                        nb::Scene::getInstance().invalidateBvh();
+                                    }
+                                );
+                            }
+                        }
+
+                        auto pos = this->mainWindow->getMousePosition();
+                        this->inspectorWindow->getPopupManager().show(popup, pos.x, pos.y);
+
+
+                    }
+                )
+                .text(L"Добавить компонент")
+    );
 
     auto finalUi = std::move(inspectorBuilder).build();
 

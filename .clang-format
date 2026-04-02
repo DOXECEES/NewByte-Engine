@@ -12,8 +12,6 @@ InsertBraces: true
 BinPackParameters: AlwaysOnePerLine
 AlignAfterOpenBracket: BlockIndent
 BreakBeforeBinaryOperators: None
-# ЗАПРЕТ КОРОТКИХ КОНСТРУКЦИЙ
-# Эти параметры понимает даже старый clang-format
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
@@ -33,3 +31,11 @@ AccessModifierOffset: -4
 
 # Инклюды
 SortIncludes: true
+
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments: true
+
+BreakConstructorInitializers: BeforeComma
+
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+
