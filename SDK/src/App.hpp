@@ -241,8 +241,13 @@ private:
                         if (node.isValid())
                         {
                             activeNode = node;
-                            onActiveNodeChanged.emit();
                         }
+                        else
+                        {
+                            activeNode = nb::Node::createInvalid(); 
+                        }
+
+                        onActiveNodeChanged.emit();
                     }
 
                     isGizmoHit = false;

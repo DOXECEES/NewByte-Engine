@@ -37,8 +37,14 @@ namespace nb
 
     bool Node::isValid() const noexcept
     {
-        return entity != ~uint32_t(0);
+        return entity != INVALID_VALUE;
     }
+
+    Node Node::createInvalid() noexcept
+    {
+        return Node(INVALID_VALUE, nullptr);
+    }
+
 
     Node Scene::createNode(Ecs::EntityID parent) noexcept
     {

@@ -121,6 +121,9 @@ namespace nb
 
     class Node
     {
+
+        static constexpr uint32_t INVALID_VALUE = ~uint32_t(0);
+
     public:
         Node() noexcept;
 
@@ -143,6 +146,8 @@ namespace nb
         void setName(std::string_view name);
 
         bool isValid() const noexcept;
+
+        static Node createInvalid() noexcept;
 
     private:
         Ecs::EntityID entity = 0;

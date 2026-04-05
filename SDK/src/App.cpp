@@ -401,22 +401,22 @@ void EditorApp::setupHierarchyUI() noexcept
                     );
                 }
             )
-                    .onEvent(
-                        &Widgets::TreeView::onItemClickSignal,
-                        [this](const auto& index)
-                        {
-                            if (index.isValid())
-                            {
-                                auto* item = sceneModel->findById(index.getUuid());
-                                if (item)
-                                { 
-                                    auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-                                    activeNode = nb::Scene::getInstance().getNode(id);
-                                    onActiveNodeChanged.emit();
-                                }
-                            }
+            .onEvent(
+                &Widgets::TreeView::onItemClickSignal,
+                [this](const auto& index)
+                {
+                    if (index.isValid())
+                    {
+                        auto* item = sceneModel->findById(index.getUuid());
+                        if (item)
+                        { 
+                            auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+                            activeNode = nb::Scene::getInstance().getNode(id);
+                            onActiveNodeChanged.emit();
                         }
-                    )
+                    }
+                }
+            )
             .relativeHeight(1.0f)
             .relativeWidth(1.0f)
              
@@ -925,61 +925,56 @@ void EditorApp::rebuildInspector() noexcept
         }
     }
 
-    std::move(inspectorBuilder)
-        .child(
-            LayoutBuilder::widget(new Widgets::Button)
-                .relativeWidth(1.0f)
-                .absoluteHeight(40.0f)
-                .onEvent(
-                    &Widgets::Button::onReleasedSignal,
-                    [&]()
-                    {
-                        auto popup = new nbui::PopupMenu();
-                        auto& registry =
-                            nb::Scene::getInstance().getRegistry(); // Ваша регистра ECS
-                        auto entityId = activeNode.getId();
-
-                        // Итерируемся по всем типам компонентов, о которых знает ECS
-                        for (auto& storage : registry.getAllStorages())
+    if (activeNode.isValid())
+    {
+        std::move(inspectorBuilder)
+            .child(
+                LayoutBuilder::widget(new Widgets::Button)
+                    .relativeWidth(1.0f)
+                    .absoluteHeight(40.0f)
+                    .onEvent(
+                        &Widgets::Button::onReleasedSignal,
+                        [&]()
                         {
-                            if (!storage)
+                            auto  popup    = new nbui::PopupMenu();
+                            auto& registry = nb::Scene::getInstance().getRegistry();
+                            auto  entityId = activeNode.getId();
+
+                            for (auto& storage : registry.getAllStorages())
                             {
-                                continue;
+                                if (!storage)
+                                {
+                                    continue;
+                                }
+
+                                auto*       typeInfo = storage->getTypeInfo();
+                                std::string compName = (typeInfo->name);
+
+                                if (!storage->contains(entityId))
+                                {
+                                    auto rawStorage = storage.get();
+                                    popup->addItem(
+                                        Utils::toWstring(compName),
+                                        [this, rawStorage, entityId]()
+                                        {
+                                            rawStorage->addDefault(entityId);
+
+                                            this->rebuildInspector();
+
+                                            nb::Scene::getInstance().invalidateBvh();
+                                        }
+                                    );
+                                }
                             }
 
-                            auto* typeInfo = storage->getTypeInfo();
-                            std::string compName =
-                                (typeInfo->name); // Предполагаем, что имя есть в TypeInfo
-
-                            // Проверяем, нет ли уже такого компонента у сущности
-                            if (!storage->contains(entityId))
-                            {
-                                auto rawStorage = storage.get();
-                                popup->addItem(
-                                    Utils::toWstring(compName),
-                                    [this, rawStorage, entityId]()
-                                    {
-                                        // 1. Добавляем компонент
-                                        rawStorage->addDefault(entityId);
-
-                                        // 2. Обновляем UI (перерисовываем инспектор)
-                                        this->rebuildInspector();
-
-                                        // 3. Логика движка
-                                        nb::Scene::getInstance().invalidateBvh();
-                                    }
-                                );
-                            }
+                            auto pos = this->mainWindow->getMousePosition();
+                            this->inspectorWindow->getPopupManager().show(popup, pos.x, pos.y);
                         }
+                    )
+                    .text(L"Добавить компонент")
+            );
+    }
 
-                        auto pos = this->mainWindow->getMousePosition();
-                        this->inspectorWindow->getPopupManager().show(popup, pos.x, pos.y);
-
-
-                    }
-                )
-                .text(L"Добавить компонент")
-    );
 
     auto finalUi = std::move(inspectorBuilder).build();
 
