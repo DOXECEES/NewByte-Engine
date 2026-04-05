@@ -15,6 +15,7 @@
 #include <Reflection/Reflection.hpp>
 
 #include <Manager/ResourceManager.hpp>
+#include <Resources/MaterialAsset.hpp>
 #include "BVH.hpp"
 #include <algorithm>
 #undef min
@@ -65,7 +66,7 @@ NB_REFLECT_INTERNAL_STRUCT(NameComponent,
 struct MeshComponent
 {
     std::shared_ptr<nb::Renderer::Mesh> mesh;
-    Ref<nb::Renderer::Material> material;
+    Ref<nb::Resource::MaterialAsset> material;
 };
 
 NB_REFLECT_PTR(
@@ -73,8 +74,8 @@ NB_REFLECT_PTR(
     "std::shared_ptr<nb::Renderer::Mesh>"
 )
 NB_REFLECT_PTR(
-    Ref<nb::Renderer::Material>,
-    "Ref<nb::Renderer::Material>"
+    Ref<nb::Resource::MaterialAsset>,
+    "Ref<nb::Resource::MaterialAsset>"
 )
 
 NB_REFLECT_RESOURCE_PTR(
@@ -89,9 +90,9 @@ NB_REFLECT_RESOURCE_PTR(
 
 // ResourceLoader для Ref<Material>
 NB_REFLECT_RESOURCE_PTR(
-    Ref<nb::Renderer::Material>,
+    Ref<nb::Resource::MaterialAsset>,
     "Material",
-    [](Ref<nb::Renderer::Material>* field,
+    [](Ref<nb::Resource::MaterialAsset>* field,
        const std::string& path)
     {
         //*field = makeRef<nb::Renderer::Material>(path); // твоя фабрика Ref

@@ -14,6 +14,12 @@
 #include <unordered_map>
 #include <variant>
 
+
+namespace nb::Renderer
+{
+    class IRenderAPI;
+};
+
 namespace nb::Resource
 {
     struct MaterialProperty
@@ -31,28 +37,7 @@ namespace nb::Resource
 
         }
 
-        void bind()
-        {
-            m_shader->use(); 
-
-            int textureSlot = 0;
-            for (auto& [name, prop] : m_properties) {
-                if (std::holds_alternative<float>(prop.value)) {
-                    m_shader->setUniformFloat(name, std::get<float>(prop.value));
-                }
-                else if (std::holds_alternative<Color>(prop.value)) {
-                    m_shader->setUniformVec4(name, std::get<Color>(prop.value).asVec4());
-                }
-                else if (std::holds_alternative<Ref<TextureAsset>>(prop.value)) {
-                    auto texAsset = std::get<Ref<TextureAsset>>(prop.value);
-                    //texAsset->getInternalTexture()->bind(textureSlot);
-                    //m_shader->setUniformInt(name, textureSlot);
-                    textureSlot++;
-                }
-            }
-
-        }
-
+        void bind(nb::Renderer::IRenderAPI* renderApi);
 
         void setProperty(
             const std::string& name,

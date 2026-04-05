@@ -110,6 +110,7 @@ set (SRC
 
         src/Resources/TextureAsset.hpp
 
+        src/Resources/MaterialAsset.cpp
         src/Resources/MaterialAsset.hpp
         src/Resources/IhdrResource.hpp
 

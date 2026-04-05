@@ -214,7 +214,11 @@ namespace nb::Renderer
                     // Берем уже вычисленную в пункте 1 матрицу
                     meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
 
-                    mainQueue.pushBack({meshPtr, api->getCache().getOrCreate(mainP)});
+                    mainQueue.pushBack({
+                        .mesh     = meshPtr,
+                        .material = meshComp.material.get(),
+                        .pipeline = api->getCache().getOrCreate(mainP)
+                    });
                 }
             }
         );
@@ -262,7 +266,7 @@ namespace nb::Renderer
 
             lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
 
-            RendererCommand shadowCmd = { cmd.mesh, shadowPSO };
+            RendererCommand shadowCmd = { .mesh = cmd.mesh, .pipeline = shadowPSO };
             api->drawMesh(shadowCmd);
         }
 
@@ -281,15 +285,22 @@ namespace nb::Renderer
         auto proj = cam->getProjection();
 
 
+        auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
+            "Assets/res/lobby.hdr"
+        );
+
+
         static Skybox sky;
         auto skyboxShader = rm->getResource<nb::Renderer::Shader>("skybox.shader");
         skyboxShader->setUniformInt("skybox", 0);
         skyboxShader->setUniformMat4("view", view);
         skyboxShader->setUniformMat4("projection", proj);
+        sky.bindCubemap(ibl->getPrefilterCubemap());
         sky.render(skyboxShader);
 
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
+        //glActiveTexture(GL_TEXTURE5);
+        //glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
+
 
         //
 
@@ -314,33 +325,87 @@ namespace nb::Renderer
                 .vertexCount = 6
             };
 
+
             gridShader->setUniformVec3("uCameraWorldPosition", cam->getPosition());
             gridShader->setUniformMat4("uViewProjection", cam->getLookAt() * cam->getProjection());
 
             api->drawVertexless(gridRenderCommand);
         }
 
- 
+        
         //
 
         for (auto& cmd : mainQueue) 
         {
             auto& u = cmd.mesh->uniforms;
             cmd.mesh->uniforms.shader = shader;
-            PBRMaterial mat(shader);
-            mat.setAlbedoMap(albedo);
-            mat.setNormalMap(normal);
-            mat.setMetallicMap(metal);
-            mat.setRoughnessMap(roughtness);
-            mat.setAmbientOcclusionMap(ao);
 
-            mat.setInt("albedoMap", 0);
-            mat.setInt("normalMap", 1);
-            mat.setInt("metallicMap", 2);
-            mat.setInt("roughnessMap", 3);
-            mat.setInt("aoMap", 4);
+            for (int i = 0; i < 8; i++)
+            {
+                glActiveTexture(GL_TEXTURE0 + i);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+            }
 
-            mat.apply(api);
+
+           if (cmd.material)
+            {
+                auto& material = cmd.material;
+                auto  shader   = material->getShader();
+
+                // 0, 1, 2 привязываются внутри material->bind
+                material->bind(api);
+
+                // 3. Shadow Map (в шейдере binding = 3)
+                api->bindTexture(3, shadowFrameBuffer->getTexture());
+
+                // 4. Irradiance (в шейдере binding = 4)
+                // Важно: если api->bindTexture не поддерживает CubeMap,
+                // используй glActiveTexture + glBindTexture вручную
+                
+                glActiveTexture(GL_TEXTURE4);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::FATAL, "Irradiance")
+                    .with("id", ibl->getIrradianceCubemap()->getId());
+
+                // 5. Prefilter (в шейдере binding = 5)
+                glActiveTexture(GL_TEXTURE5);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+                // 6. BrdfLUT (в шейдере binding = 6)
+                api->bindTexture(6, ibl->getBrdfTexture()->getId());
+
+                shader->setUniformVec3("u_CameraPos", cam->getPosition());
+            }
+            else
+            {
+                PBRMaterial mat(shader);
+                mat.setAlbedoMap(albedo);
+                mat.setNormalMap(normal);
+                mat.setMetallicMap(metal);
+                mat.setRoughnessMap(roughtness);
+                mat.setAmbientOcclusionMap(ao);
+
+                mat.setInt("albedoMap", 0);
+                mat.setInt("normalMap", 1);
+                mat.setInt("metallicMap", 2);
+                //mat.setInt("roughnessMap", 3);
+                //mat.setInt("aoMap", 4);
+
+                mat.apply(api);
+                api->bindTexture(3, shadowFrameBuffer->getTexture());
+            
+                glActiveTexture(GL_TEXTURE4);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+
+                glActiveTexture(GL_TEXTURE5);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+                api->bindTexture(6, ibl->getBrdfTexture()->getId());
+
+            }
+            
 
             u.vec3Uniforms["viewPos"] = cam->getPosition();
             u.mat4Uniforms["view"] = cam->getLookAt();
@@ -349,7 +414,7 @@ namespace nb::Renderer
 
             u.mat4Uniforms["lightView"] = lightView;
             u.mat4Uniforms["lightProj"] = lightProj;
-            u.intUniforms["shadowMap"] = 5;
+            //u.intUniforms["shadowMap"] = 6;
 
             std::vector<PointLight> pointLightsStorage;
             std::vector<DirectionalLight> dirLightsStorage;
@@ -417,7 +482,7 @@ namespace nb::Renderer
                 debugLightShader->setUniformMat4("model", model);
                 debugLightShader->setUniformVec3("u_Color", lightComponent.ambient.asVec3());
 
-                RendererCommand debugPassCommand { debugLightMesh.get(), debugPSO };
+                RendererCommand debugPassCommand { .mesh = debugLightMesh.get(), .pipeline = debugPSO };
                 api->drawMesh(debugPassCommand);
             }
         }
@@ -451,7 +516,7 @@ namespace nb::Renderer
 
                 aabbShader->setUniformMat4("model", model);
 
-                RendererCommand command{unitCubeMesh.get(), aabbPSO};
+                RendererCommand command{ .mesh = unitCubeMesh.get(), .pipeline = aabbPSO};
                 api->drawMesh(command);
             }
 
@@ -511,7 +576,7 @@ namespace nb::Renderer
                         // aabbShader->setUniformVec3("color", {1, 1, 1}); // Белый для контейнеров
                     }
 
-                    RendererCommand command{unitCubeMesh.get(), aabbPSO};
+                    RendererCommand command{ .mesh = unitCubeMesh.get(), .pipeline = aabbPSO};
                     api->drawMesh(command);
                 }
             }
@@ -603,7 +668,7 @@ namespace nb::Renderer
         quadPipeline.polygonMode = PolygonMode::FULL;
         quadPipeline.isDepthTestEnable = false; 
 
-        RendererCommand postCmd = { quadScreenMesh.get(), api->getCache().getOrCreate(quadPipeline) };
+        RendererCommand postCmd = { .mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(quadPipeline) };
         api->drawMesh(postCmd);
 
         api->endFrame(); 
@@ -799,7 +864,7 @@ namespace nb::Renderer
 
 
         auto shader = request.material->getShader();
-        request.material->bind();
+        request.material->bind(api);
         //shader->use(); // Явно биндим шейдер перед установкой юниформов
 
         // --- 1. ТЕКСТУРЫ МАТЕРИАЛА ---
@@ -950,7 +1015,7 @@ namespace nb::Renderer
         gizmoShader->setUniformMat4("projection", gizmoProj);
 
         {
-            RendererCommand debugPassCommand{ gizmoMesh.get(), pso };
+            RendererCommand debugPassCommand{ .mesh = gizmoMesh.get(), .pipeline = pso };
             api->drawMesh(debugPassCommand);
         }
 
@@ -979,7 +1044,6 @@ namespace nb::Renderer
                 {-1.0f, -0.2f, -0.2f}
             }
         );
-
 
         nb::Node pointLight = scene.createNode(dirLight.getId());
         pointLight.setName("PointLight");
@@ -1025,7 +1089,7 @@ namespace nb::Renderer
         );
 
 
-        Ref<Mesh> cube = rm->getResource<Mesh>("Untitled.obj");
+        Ref<Mesh> cube = rm->getResource<Mesh>("sphere_exp.obj");
 
         nb::Node cubeNode = scene.createNode();
         cubeNode.setName("cube");
@@ -1035,8 +1099,10 @@ namespace nb::Renderer
         cubeTransform.scale = {1.0f, 1.0f, 1.0f};
         cubeTransform.dirty = true;
         cube->uniforms.shader = shader;
+        auto material = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material");
+        auto brickMaterial = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/brick.material");
 
-        cubeNode.addComponent(MeshComponent{cube});
+        cubeNode.addComponent(MeshComponent{cube, brickMaterial});
         auto aabb = cube->getAabb3d();
         
         cubeNode.addComponent(Physics::Collider { .halfSize = (aabb.halfSize() * 1.0f)  });
@@ -1069,7 +1135,7 @@ namespace nb::Renderer
         surfTransform.dirty = true;
         surf->uniforms.shader = shader;
 
-        surfNode.addComponent(MeshComponent{surf});
+        surfNode.addComponent(MeshComponent{surf, material});
         //surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
         surfNode.addComponent(Physics::GroundTag());
         surfNode.addComponent(Physics::TerrainColliderComponent());

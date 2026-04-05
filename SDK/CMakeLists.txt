@@ -4,6 +4,7 @@ project(NewByte_SDK)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(MY_STACK_SIZE 4194304)
 
 
 add_executable(${PROJECT_NAME} WIN32 
@@ -52,6 +53,7 @@ target_link_directories(${PROJECT_NAME} PUBLIC
     C:/rep/Hex/NewByte-UI-Lib/build/NewByte-UI-Lib/Debug
 )
 
+target_link_options(NewByte_SDK PRIVATE "/STACK:${MY_STACK_SIZE}")
 
 
 if(WIN32)
