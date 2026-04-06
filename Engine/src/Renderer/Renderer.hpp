@@ -43,6 +43,8 @@ namespace nb
             void togglePolygonVisibilityMode(PolygonMode mode) const noexcept;
             inline void setPolygonVisibilityMode(PolygonMode mode) noexcept     { polygonMode = mode; };
 
+            void pickNodeAndApplyMaterial(int x, int y, const std::filesystem::path& path) noexcept;
+
             void setWireframeMode(bool flag) noexcept;
             void showVertexColor(bool flag) noexcept;
 

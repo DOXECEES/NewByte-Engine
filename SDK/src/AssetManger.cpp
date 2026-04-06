@@ -1,4 +1,6 @@
 #include "AssetManger.hpp"
+
+#include "MaterialEditor.hpp"
 #include <memory>
 
 AssetManager::AssetManager(nbstl::NonOwningPtr<nb::Core::Engine> engine) 
@@ -158,40 +160,139 @@ void AssetManager::refreshAssetGrid()
                             .background(accent)
                             .absoluteWidth(120)
                             .absoluteHeight(150)
+                            .apply<Widgets::IWidget>(
+                                [this, entry](Widgets::IWidget* w)
+                                {
+                                    // Подписываемся на нажатие прямо здесь
+                                    w->onPressedSignal.connect(
+                                        [this, entry, w]()
+                                        {
+                                            this->dragInfo.active            = true;
+                                            this->dragInfo.isDraggingStarted = false;
+                                            this->dragInfo.path              = entry.path();
+
+                                            GetCursorPos(&this->dragInfo.startMousePos);
+
+                                            //GlobalWidgetContext::capturePressedWidget(w);
+
+                                            SetCapture((HWND)this->window->getHandle().as<HWND>());
+                                        }
+                                    );
+                                }
+                            )
                             .onEvent(
                                 &Widgets::IWidget::onReleasedSignal,
                                 [this, entry]()
                                 {
-                                    if (supportedExtensions[entry.path().extension().string()] ==
-                                        AssetType::TEXTURE)
+                                    if (!this->dragInfo.active)
                                     {
-                                        auto copyPath = entry.path();
-                                        copyPath = copyPath.replace_extension(".texture");
-                                        auto asset = nb::ResMan::ResourceManager::getInstance()
-                                                         ->getResource<nb::Resource::TextureAsset>(
-                                                             copyPath.string()
-                                                         );
+                                        return;
+                                    }
 
-                                        if (asset)
+                                    ReleaseCapture();
+
+                                    this->dragInfo.active = false;
+
+                                    POINT currentPos;
+                                    GetCursorPos(&currentPos);
+
+                                    int   dx       = currentPos.x - this->dragInfo.startMousePos.x;
+                                    int   dy       = currentPos.y - this->dragInfo.startMousePos.y;
+                                    float distance = std::sqrt(dx * dx + dy * dy);
+
+                                    if (distance > this->dragThreshold)
+                                    {
+                                        HWND targetHWnd = WindowFromPoint(currentPos);
+                                        HWND glHWnd     = (HWND)engine->getLinkedHwnd();
+
+                                        if (targetHWnd == glHWnd)
                                         {
-                                            auto e = std::make_shared<TextureEditor>(
-                                                window.get(), engine.get(), asset.get()
-                                            );
+                                            ScreenToClient(glHWnd, &currentPos);
 
-                                            subscribe(
-                                                e->getRawWindow(),
-                                                &Win32Window::ModalWindow::onClose,
-                                                [e]()
-                                                {
-                                                    auto o = e.use_count();
-                                                }
-                                            );
 
-                                            e->show();
+                                            this->engine->getRenderer()->pickNodeAndApplyMaterial(
+                                                currentPos.x,
+                                                currentPos.y,
+                                                this->dragInfo.path
+                                            );
                                         }
+                                    }
+                                    else
+                                    {
+                                        //this->openAssetEditor(entry.path());
                                     }
                                 }
                             )
+
+
+
+
+                            //.onEvent(
+                            //    &Widgets::IWidget::onReleasedSignal,
+                            //    [this, entry]()
+                            //    {
+                            //        if (supportedExtensions[entry.path().extension().string()] ==
+                            //            AssetType::TEXTURE)
+                            //        {
+                            //            auto copyPath = entry.path();
+                            //            copyPath = copyPath.replace_extension(".texture");
+                            //            auto asset = nb::ResMan::ResourceManager::getInstance()
+                            //                             ->getResource<nb::Resource::TextureAsset>(
+                            //                                 copyPath.string()
+                            //                             );
+
+                            //            if (asset)
+                            //            {
+                            //                auto e = std::make_shared<TextureEditor>(
+                            //                    window.get(), engine.get(), asset.get()
+                            //                );
+
+                            //                subscribe(
+                            //                    e->getRawWindow(),
+                            //                    &Win32Window::ModalWindow::onClose,
+                            //                    [e]()
+                            //                    {
+                            //                        auto o = e.use_count();
+                            //                    }
+                            //                );
+
+                            //                e->show();
+                            //            }
+                            //        }
+                            //        else if (
+                            //            supportedExtensions[entry.path().extension().string()] ==
+                            //            AssetType::MATERIAL
+                            //            )
+                            //        {
+
+                            //            auto copyPath = entry.path();
+                            //            copyPath      = copyPath.replace_extension(".material");
+                            //            auto asset = nb::ResMan::ResourceManager::getInstance()
+                            //                             ->getResource<nb::Resource::MaterialAsset>(
+                            //                                 copyPath.string()
+                            //                             );
+
+                            //            if (asset)
+                            //            {
+                            //                auto e = std::make_shared<MaterialEditor>(
+                            //                    window.get(), engine.get(), asset.get()
+                            //                );
+
+                            //                subscribe(
+                            //                    e->getRawWindow(),
+                            //                    &Win32Window::ModalWindow::onClose,
+                            //                    [e]()
+                            //                    {
+                            //                        auto o = e.use_count();
+                            //                    }
+                            //                );
+
+                            //                e->show();
+                            //            }
+
+                            //        }
+                            //    }
+                            //)
                     );
                 }
             }

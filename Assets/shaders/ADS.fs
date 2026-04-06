@@ -23,7 +23,7 @@ layout (binding = 6) uniform sampler2D   u_BrdfLUT;
 uniform vec3  u_CameraPos;
 uniform float u_Exposure = 1.0;
 uniform float u_IBLStrength = 0.5;
-uniform bool  u_UseIBL = false; // ГЛОБАЛЬНЫЙ ПЕРЕКЛЮЧАТЕЛЬ IBL
+uniform bool  u_UseIBL = true; // ГЛОБАЛЬНЫЙ ПЕРЕКЛЮЧАТЕЛЬ IBL
 
 // --- ТВОИ ОРИГИНАЛЬНЫЕ СТРУКТУРЫ СВЕТА ---
 struct DirectionalLight {
@@ -116,7 +116,10 @@ void main() {
     vec3 orm = texture(ormMap, v_TexCoords).rgb;
     float ao        = orm.r;
     float roughness = max(orm.g, 0.05);
+    //float roughness = 0.05;
+
     float metallic  = orm.b;
+    //float metallic  = 1.0;
 
     vec3 albedo = pow(texture(albedoMap, v_TexCoords).rgb, vec3(2.2));
     vec3 nMap   = texture(normalMap, v_TexCoords).rgb * 2.0 - 1.0;
@@ -145,7 +148,7 @@ void main() {
         vec3 kS = F;
         vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
         
-        //Lo += (1.0 - shadow) * (kD * albedo / PI + specular) * radiance * max(dot(N, L), 0.0);
+        Lo += (1.0 - shadow) * (kD * albedo / PI + specular) * radiance * max(dot(N, L), 0.0);
     }
 
     // 3. Точечные источники

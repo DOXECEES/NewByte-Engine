@@ -17,6 +17,8 @@
 #include "Scripting/ScriptComponent.hpp"
 #include "Physics/Physics.hpp"
 
+#include "Math/RayCast/RayPicker.hpp"
+
 namespace nb::Renderer
 {
     Renderer::Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept
@@ -365,9 +367,6 @@ namespace nb::Renderer
                 
                 glActiveTexture(GL_TEXTURE4);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-                nb::Error::ErrorManager::instance()
-                    .report(nb::Error::Type::FATAL, "Irradiance")
-                    .with("id", ibl->getIrradianceCubemap()->getId());
 
                 // 5. Prefilter (в шейдере binding = 5)
                 glActiveTexture(GL_TEXTURE5);
@@ -693,6 +692,32 @@ namespace nb::Renderer
         }
     }
 
+    void Renderer::pickNodeAndApplyMaterial(
+        int                          x,
+        int                          y,
+        const std::filesystem::path& path
+    ) noexcept
+    {
+        Math::RayPicker picker;
+        Math::Ray ray = picker.cast(
+            cam, x, y, Core::EngineSettings::getWidth(), Core::EngineSettings::getHeight()
+        );
+
+        auto&         scene = Scene::getInstance();
+        Ecs::EntityID id = scene.pickNode(ray);
+        Node node = scene.getNode(id);
+
+        if (node.isValid() && node.hasComponent<MeshComponent>())
+        {
+            auto& meshComponent = node.getComponent<MeshComponent>();
+            
+            Ref<Resource::MaterialAsset> asset =
+                ResMan::ResourceManager::getInstance()->getResource<Resource::MaterialAsset>(path.string());
+
+            meshComponent.material = asset;
+        }
+    }
+
     void Renderer::setWireframeMode(bool flag) noexcept
     {
         if (flag)
@@ -850,79 +875,38 @@ namespace nb::Renderer
         skyboxShader->setUniformMat4("projection", projection);
         sky.render(skyboxShader);
 
-        for (int i = 0; i < 7; i++)
-        {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, 0); // Привязываем 0 к 2D таргету
-        }
+        //for (int i = 0; i < 7; i++)
+        //{
+        //    glActiveTexture(GL_TEXTURE0 + i);
+        //    glBindTexture(GL_TEXTURE_2D, 0); // Привязываем 0 к 2D таргету
+        //}
 
-        for (int i = 0; i < 7; i++)
-        {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, 0); // Привязываем 0 к 2D таргету
-        }
+        //for (int i = 0; i < 7; i++)
+        //{
+        //    glActiveTexture(GL_TEXTURE0 + i);
+        //    glBindTexture(GL_TEXTURE_CUBE_MAP, 0); // Привязываем 0 к 2D таргету
+        //}
 
 
         auto shader = request.material->getShader();
         request.material->bind(api);
-        //shader->use(); // Явно биндим шейдер перед установкой юниформов
-
-        // --- 1. ТЕКСТУРЫ МАТЕРИАЛА ---
-        // Слот 0: Albedo
-        auto albedoTex = std::get<Ref<nb::Resource::TextureAsset>>(
-            request.material->getProperties()["u_AlbedoMap"].value
-        );
-        //shader->setUniformInt("u_AlbedoMap", 0);
-        api->bindTexture(0, albedoTex->getInternalTexture()->getId());
-
-        // Слот 1: Normal
-        auto normalTex = std::get<Ref<nb::Resource::TextureAsset>>(
-            request.material->getProperties()["u_NormalMap"].value
-        );
-        //shader->setUniformInt("u_NormalMap", 1);
-        api->bindTexture(1, normalTex->getInternalTexture()->getId());
-
-        // Слот 2: ORM (Убедись, что это не HDR панорама!)
-        auto ormTex = std::get<Ref<nb::Resource::TextureAsset>>(
-            request.material->getProperties()["u_ORMMap"].value
-        );
-        //shader->setUniformInt("u_ORMMap", 2);
-
-        api->bindTexture(2, ormTex->getInternalTexture()->getId());
-
-        // --- 2. СИСТЕМНЫЕ ТЕКСТУРЫ IBL ---
         
-
-
 
 
         // Слот 3: Irradiance (CUBE)
         //shader->setUniformInt("u_IrradianceMap", 3);
-        glActiveTexture(GL_TEXTURE3);
+        glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
 
         // Слот 4: Prefilter (CUBE)
         //shader->setUniformInt("u_PrefilterMap", 4);
-        glActiveTexture(GL_TEXTURE4);
+        glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
 
         // Слот 5: BRDF LUT (2D)
         //shader->setUniformInt("u_BrdfLUT", 5);
-        //api->bindTexture(5, ibl->getBrdfTexture()->getId());
-        api->bindTexture(0, albedoTex->getInternalTexture()->getId());
-        api->bindTexture(1, normalTex->getInternalTexture()->getId());
-        api->bindTexture(2, ormTex->getInternalTexture()->getId());
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-
-        // Слот 4: Prefilter (CUBE)
-        // shader->setUniformInt("u_PrefilterMap", 4);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
-
-        // Слот 5: BRDF LUT (2D)
-        // shader->setUniformInt("u_BrdfLUT", 5);
-        api->bindTexture(5, ibl->getBrdfTexture()->getId());
+        api->bindTexture(6, ibl->getBrdfTexture()->getId());
+        
 
 
 
@@ -931,17 +915,17 @@ namespace nb::Renderer
 
 
 
-        shader->setUniformMat4("u_Projection", projection);
-        shader->setUniformMat4("u_View", view);
-        shader->setUniformMat4("u_Model", model);
+        shader->setUniformMat4("proj", projection);
+        shader->setUniformMat4("view", view);
+        shader->setUniformMat4("model", model);
 
 
 
 
 
         shader->setUniformVec3("u_CameraPos", cam.getPosition());
-        shader->setUniformVec3("u_LightPos", lightPos);
-        shader->setUniformVec3("u_LightColor", lightColor);
+        //shader->setUniformVec3("u_LightPos", lightPos);
+        //shader->setUniformVec3("u_LightColor", lightColor);
         
         Pipeline matPipeline = {};
         matPipeline.shader = shader;
