@@ -110,6 +110,7 @@ set (SRC
 
         src/Resources/TextureAsset.hpp
 
+        src/Resources/MaterialAsset.cpp
         src/Resources/MaterialAsset.hpp
         src/Resources/IhdrResource.hpp
 
@@ -288,6 +289,8 @@ set (SRC
 
         dependencies/lodepng/lodepng.cpp
         dependencies/stb/stb_image.h
+        dependencies/stb/stb_image_write.h
+
 
         src/MemoryTracker.cpp
         src/MemoryTracker.hpp

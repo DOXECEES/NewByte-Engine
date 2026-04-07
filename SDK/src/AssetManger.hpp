@@ -50,15 +50,28 @@ public:
 
 private:
 
+    struct DragInfo
+    {
+        bool                  active            = false;
+        bool                  isDraggingStarted = false; // Флаг, что это именно перенос, а не клик
+        POINT                 startMousePos;             // Где нажали
+        std::filesystem::path path;                      // Что тащим
+    } dragInfo;
+
+    const int dragThreshold = 5; // Пикселей, после которых клик превращается в драг
+
+
     enum class AssetType
     {
         TEXTURE,
         MODEL,
-        SHADER
+        SHADER,
+        MATERIAL,
     };
 
     std::unordered_map<std::string, AssetType> supportedExtensions = {
-        {".png", AssetType::TEXTURE}
+        {".png", AssetType::TEXTURE},
+        {".material", AssetType::MATERIAL}
         //{".jpg", AssetType::TEXTURE},
         //{".texture", AssetType::TEXTURE},
         //{".fbx", AssetType::MODEL},

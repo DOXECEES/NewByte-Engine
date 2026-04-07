@@ -40,6 +40,7 @@ namespace nb
             FBO() noexcept;
             virtual ~FBO() noexcept;
 
+
             FBO(const FBO& other) noexcept = delete;
             FBO& operator=(const FBO& other) noexcept = delete;
 
@@ -59,19 +60,15 @@ namespace nb
                 uint32_t mipLevel = 0
             ) noexcept;
 
-
             void setSize(const GLuint width, const GLuint height) noexcept;
 
             void addRenderBufferAttachment(RenderBufferAttachment attachment) noexcept override;
             void addTextureAttachment(TextureAttachment attachment) noexcept override;
             bool finalize() noexcept override;
-
             
             NB_NODISCARD bool checkIsSizeValid() const noexcept;
 
-
             NB_NODISCARD static GLint getMaxCountOfColorAttachments() noexcept;
-
 
             NB_NODISCARD inline bool getIsDepthBufferAttached() const noexcept           { return isDepthBufferAttached; }
             NB_NODISCARD inline bool getIsStencilBufferAttached() const noexcept         { return isStencilBufferAttached; }

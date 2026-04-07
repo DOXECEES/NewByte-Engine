@@ -15,6 +15,8 @@
 #include "Renderer/Cubemap.hpp"
 #include "Renderer/Texture.hpp"
 
+#include "Resources/MaterialAsset.hpp"
+
 namespace nb
 {
     namespace Renderer
@@ -45,6 +47,7 @@ namespace nb
         struct RendererCommand
         {
             Mesh*           mesh;
+            std::vector<Ref<Resource::MaterialAsset>> material;
             PipelineHandle  pipeline;
             uint32 vertexCount = 0;
         };

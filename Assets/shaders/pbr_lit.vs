@@ -18,7 +18,6 @@ void main() {
     v_TexCoord = a_TexCoord;
     v_FragPos = vec3(u_Model * vec4(a_Position, 1.0));
     
-	
 	mat3 normalMatrix = mat3(transpose(inverse(u_Model)));
     vec3 oNormal = normalize(normalMatrix * a_Normal);
 	

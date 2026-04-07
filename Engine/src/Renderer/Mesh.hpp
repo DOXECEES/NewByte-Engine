@@ -10,6 +10,8 @@
 
 #include "../Math/AABB3D.hpp"
 
+#include "Resources/MaterialAsset.hpp"
+
 //
 //
 #include <vector>
@@ -86,7 +88,11 @@ namespace nb
                 const Math::AABB3D &getAabb3d() const noexcept;
                 const Math::AABB3D &recalculateAabb3dForce() noexcept;
 
-                void draw(GLenum mode, const Ref<Shader>& shader) const noexcept;
+                void draw(
+                    GLenum                                       mode,
+                    const Ref<Shader>&                           shader,
+                    const std::vector<Ref<Resource::MaterialAsset>>& materials = {}
+                ) const noexcept;
                 void draw(GLenum mode, const Ref<Shader>& shader, GLuint vao) const noexcept;
 
                 void calculateTagnentArray()

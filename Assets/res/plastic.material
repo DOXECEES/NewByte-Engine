@@ -1,9 +1,9 @@
 {
-  "shader": "pbr_lit.shader",
+  "shader": "ADS.shader",
   "properties": {
-    "u_AlbedoMap": "Assets/res/rock_wall_16_diff_1k.texture",
-	"u_NormalMap": "Assets/res/rock_wall_16_nor_gl_1k.texture",
-    "u_ORMMap": "Assets/res/rock_wall_16_arm_1k.texture",
+    "u_AlbedoMap": "Assets/res/scuffed-plastic4-alb.texture",
+	"u_NormalMap": "Assets/res/scuffed-plastic-normal.texture",
+    "u_ORMMap": "Assets/res/scuffed-plastic-rough.texture",
     "u_BaseColorFactor": 0.0,
     "u_RoughnessFactor": 0.0,
     "u_MetallicFactor": 0.0,

@@ -47,7 +47,6 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(nb::Renderer::Vertex), reinterpret_cast<void*>(0 + offsetof(nb::Renderer::Vertex, tangent)));
     glEnableVertexAttribArray(4);
 
-    vbo.unBind();
 
     glBindVertexArray(0);
 }

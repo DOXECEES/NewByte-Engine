@@ -43,6 +43,8 @@ namespace nb
             void togglePolygonVisibilityMode(PolygonMode mode) const noexcept;
             inline void setPolygonVisibilityMode(PolygonMode mode) noexcept     { polygonMode = mode; };
 
+            void pickNodeAndApplyMaterial(int x, int y, const std::filesystem::path& path) noexcept;
+
             void setWireframeMode(bool flag) noexcept;
             void showVertexColor(bool flag) noexcept;
 
@@ -85,8 +87,20 @@ namespace nb
             };
             void renderMaterialPreview(const SharedWindowContext& out, MaterialPreviewRequest& request);
 
+            struct ThumbnailImageData
+            {
+                std::vector<unsigned char> data;
+                int                        width;
+                int                        height;
+            };
 
+            void saveSpherePreview(
+                const std::filesystem::path& materialPath,
+                const std::string&           savePath
+            );
             // TEMP
+
+            
 
             uint32 getAlbedoId() const
             {
