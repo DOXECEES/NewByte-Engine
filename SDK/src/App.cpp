@@ -32,6 +32,7 @@
 
 #include <Widgets/ColorPicker.hpp>
 #include <Widgets/ToolBar.hpp>
+#include <Widgets/MaterialWidget.hpp>
 
 #include <Renderer/Shader.hpp>
 #include <Renderer/Material.hpp>
@@ -928,6 +929,7 @@ void EditorApp::rebuildInspector() noexcept
     if (activeNode.isValid())
     {
         std::move(inspectorBuilder)
+            
             .child(
                 LayoutBuilder::widget(new Widgets::Button)
                     .relativeWidth(1.0f)
@@ -1277,6 +1279,71 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                            );
 
         return std::move(parentBuilder).child(std::move(boolRow));
+    }
+    else if (typeName.find("std::vector<Ref<nb::Resource::MaterialAsset>>") != std::string::npos)
+    {
+        using MaterialVec   = std::vector<Ref<nb::Resource::MaterialAsset>>;
+        MaterialVec* vecPtr = static_cast<MaterialVec*>(fieldData);
+
+        // Параметры верстки
+        const int slotHeight   = 50; 
+        const int headerHeight = 30; 
+
+        auto vectorColumn = LayoutBuilder::vBox().relativeWidth(1.0f).absoluteHeight(
+            (int)vecPtr->size() * slotHeight + headerHeight
+        );
+
+        vectorColumn = std::move(vectorColumn)
+                           .child(
+                               LayoutBuilder::label(nb::Utils::toWString(field.name))
+                                   .relativeWidth(1.0f)
+                                   .absoluteHeight(headerHeight)
+                                   .color({150, 150, 150})
+                                   .textAlignment({.textAlignment = TextAlignment::LEFT})
+                           );
+
+        for (size_t i = 0; i < vecPtr->size(); ++i)
+        {
+            auto& materialRef = (*vecPtr)[i];
+
+            std::wstring fullPath =
+                materialRef ? nb::Utils::toWString(materialRef->getPath()) : L"None";
+            std::wstring fileName  = fullPath;
+            size_t       lastSlash = fileName.find_last_of(L"/\\");
+            if (lastSlash != std::wstring::npos)
+            {
+                fileName = fileName.substr(lastSlash + 1);
+            }
+
+            vectorColumn =
+                std::move(vectorColumn)
+                    .child(
+                        LayoutBuilder::hBox()
+                            .relativeWidth(1.0f)
+                            .absoluteHeight(slotHeight)
+                            .margin({0, 2, 0, 2}) 
+                            .child(
+                                LayoutBuilder::label(L" Slot " + std::to_wstring(i))
+                                    .relativeWidth(0.25f)
+                                    .color({100, 100, 100})
+                            )
+                            .child(
+                                LayoutBuilder::widget(new Widgets::MaterialWidget())
+                                    .relativeWidth(0.75f)
+                                    .absoluteHeight(slotHeight)
+                                    .background({45, 45, 45})
+                                    .apply<Widgets::MaterialWidget>(
+                                        [fileName, materialRef](Widgets::MaterialWidget* w)
+                                        {
+                                            w->setMaterial(fileName, materialRef != nullptr);
+                                        }
+                                    )
+                                   
+                            )
+                    );
+        }
+
+        return std::move(parentBuilder).child(std::move(vectorColumn));
     }
 
 
