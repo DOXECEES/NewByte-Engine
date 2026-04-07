@@ -135,7 +135,7 @@ namespace nb::OpenGl
     void OpenGLRender::drawMesh(Renderer::RendererCommand& command) noexcept
     {
         bindPipeline(command.pipeline);
-        command.mesh->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader);
+        command.mesh->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader, command.material);
     }
 
     void nb::OpenGl::OpenGLRender::drawVertexless(Renderer::RendererCommand& command) noexcept
@@ -763,7 +763,6 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     ReleaseDC(dummyWindow, dummyHDC);
     DestroyWindow(dummyWindow);
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
-
     glGenVertexArrays(1, &emptyVao);
 
     //loadScene();

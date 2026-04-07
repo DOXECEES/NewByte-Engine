@@ -37,7 +37,7 @@ namespace nb::Resource
 
         }
 
-        void bind(nb::Renderer::IRenderAPI* renderApi);
+        void bind();
 
         void setProperty(
             const std::string& name,

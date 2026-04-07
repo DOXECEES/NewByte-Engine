@@ -87,8 +87,20 @@ namespace nb
             };
             void renderMaterialPreview(const SharedWindowContext& out, MaterialPreviewRequest& request);
 
+            struct ThumbnailImageData
+            {
+                std::vector<unsigned char> data;
+                int                        width;
+                int                        height;
+            };
 
+            void saveSpherePreview(
+                const std::filesystem::path& materialPath,
+                const std::string&           savePath
+            );
             // TEMP
+
+            
 
             uint32 getAlbedoId() const
             {

@@ -4,7 +4,7 @@
 
 namespace nb::Resource
 {
-    void MaterialAsset::bind(nb::Renderer::IRenderAPI* renderApi)
+    void MaterialAsset::bind()
     {
         m_shader->use();
 
@@ -22,7 +22,9 @@ namespace nb::Resource
             else if (std::holds_alternative<Ref<TextureAsset>>(prop.value))
             {
                 auto texAsset = std::get<Ref<TextureAsset>>(prop.value);
-                renderApi->bindTexture(textureSlot, texAsset->getInternalTexture()->getId());
+                //renderApi->bindTexture(textureSlot, texAsset->getInternalTexture()->getId());
+                glActiveTexture(GL_TEXTURE0 + textureSlot);
+                glBindTexture(GL_TEXTURE_2D, texAsset->getInternalTexture()->getId());
                 m_shader->setUniformInt(name, textureSlot);
                 textureSlot++;
             }

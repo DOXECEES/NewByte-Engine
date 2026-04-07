@@ -289,6 +289,8 @@ set (SRC
 
         dependencies/lodepng/lodepng.cpp
         dependencies/stb/stb_image.h
+        dependencies/stb/stb_image_write.h
+
 
         src/MemoryTracker.cpp
         src/MemoryTracker.hpp

@@ -47,7 +47,7 @@ namespace nb
         struct RendererCommand
         {
             Mesh*           mesh;
-            Resource::MaterialAsset* material = nullptr;
+            std::vector<Ref<Resource::MaterialAsset>> material;
             PipelineHandle  pipeline;
             uint32 vertexCount = 0;
         };

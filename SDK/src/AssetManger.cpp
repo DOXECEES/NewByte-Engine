@@ -163,7 +163,6 @@ void AssetManager::refreshAssetGrid()
                             .apply<Widgets::IWidget>(
                                 [this, entry](Widgets::IWidget* w)
                                 {
-                                    // Подписываемся на нажатие прямо здесь
                                     w->onPressedSignal.connect(
                                         [this, entry, w]()
                                         {
@@ -173,7 +172,6 @@ void AssetManager::refreshAssetGrid()
 
                                             GetCursorPos(&this->dragInfo.startMousePos);
 
-                                            //GlobalWidgetContext::capturePressedWidget(w);
 
                                             SetCapture((HWND)this->window->getHandle().as<HWND>());
                                         }
@@ -221,6 +219,7 @@ void AssetManager::refreshAssetGrid()
                                     {
                                         //this->openAssetEditor(entry.path());
                                     }
+
                                 }
                             )
 

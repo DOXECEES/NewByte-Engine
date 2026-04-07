@@ -2,6 +2,9 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Renderer.hpp"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
+#include "../../dependencies/stb/stb_image_write.h"
 #include "Manager/ResourceManager.hpp"
 #include "Math/Matrix/Transformation.hpp"
 #include "Math/Vector3.hpp"
@@ -18,6 +21,7 @@
 #include "Physics/Physics.hpp"
 
 #include "Math/RayCast/RayPicker.hpp"
+
 
 namespace nb::Renderer
 {
@@ -110,6 +114,8 @@ namespace nb::Renderer
 
             api->drawMesh(gridRenderCommand);
         };
+
+        
     }
 
     void Renderer::onResize(uint32 width, uint32 heigth) noexcept
@@ -218,7 +224,7 @@ namespace nb::Renderer
 
                     mainQueue.pushBack({
                         .mesh     = meshPtr,
-                        .material = meshComp.material.get(),
+                        .material = meshComp.material,
                         .pipeline = api->getCache().getOrCreate(mainP)
                     });
                 }
@@ -227,6 +233,16 @@ namespace nb::Renderer
 
 
         api->beginFrame();
+
+        static bool previewInit = false;
+
+        if (!previewInit)
+        {
+            this->saveSpherePreview("Assets/res/brick.material", "Assets/materials/material.png");
+            previewInit = true;
+        }
+
+
 
         const float shadowSize = 1024.0f;
       
@@ -350,32 +366,78 @@ namespace nb::Renderer
             }
 
 
-           if (cmd.material)
+            if (!cmd.material.empty())
             {
                 auto& material = cmd.material;
-                auto  shader   = material->getShader();
 
-                // 0, 1, 2 привязываются внутри material->bind
-                material->bind(api);
-
-                // 3. Shadow Map (в шейдере binding = 3)
                 api->bindTexture(3, shadowFrameBuffer->getTexture());
 
-                // 4. Irradiance (в шейдере binding = 4)
-                // Важно: если api->bindTexture не поддерживает CubeMap,
-                // используй glActiveTexture + glBindTexture вручную
-                
                 glActiveTexture(GL_TEXTURE4);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
 
-                // 5. Prefilter (в шейдере binding = 5)
                 glActiveTexture(GL_TEXTURE5);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
 
-                // 6. BrdfLUT (в шейдере binding = 6)
                 api->bindTexture(6, ibl->getBrdfTexture()->getId());
 
-                shader->setUniformVec3("u_CameraPos", cam->getPosition());
+                for (auto& mat : material)
+                {
+                    auto shader = mat->getShader();
+
+                    shader->setUniformVec3("u_CameraPos", cam->getPosition());
+
+                    shader->setUniformMat4("model" , cmd.mesh->uniforms.mat4Uniforms["model"]);
+                    shader->setUniformVec3("viewPos", cam->getPosition());
+                    shader->setUniformMat4("view",     cam->getLookAt());
+                    shader->setUniformMat4("proj",     cam->getProjection());
+                    // u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+
+                    shader->setUniformMat4("lightView", lightView);
+                    shader->setUniformMat4("lightProj", lightProj);
+                    // u.intUniforms["shadowMap"] = 6;
+
+                    std::vector<PointLight>       pointLightsStorage;
+                    std::vector<DirectionalLight> dirLightsStorage;
+
+                    for (auto lightEntityId : lights)
+                    {
+                        Ecs::Entity entity{lightEntityId};
+                        auto&       light          = registry.get<LightComponent>(entity);
+                        auto&       lightTransform = registry.get<TransformComponent>(entity);
+
+                        if (light.type == LightType::DIRECTIONAL)
+                        {
+                            dirLightsStorage.emplace_back(
+                                light.ambient.asVec3(), light.diffuse.asVec3(),
+                                light.specular.asVec3(), light.direction
+                            );
+                            dirLightsStorage.back().applyUniforms(shader);
+                        }
+                        else if (light.type == LightType::POINT)
+                        {
+                            pointLightsStorage.emplace_back(
+                                light.ambient.asVec3(), light.diffuse.asVec3(),
+                                light.specular.asVec3(), lightTransform.position, light.constant,
+                                light.linear, light.quadratic, 1.0f
+                            );
+                            pointLightsStorage.back().applyUniforms(shader);
+                        }
+                    }
+
+                    shader->setUniformInt(
+                        ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data(),
+                        dirLightsStorage.size()
+                    );
+                    shader->setUniformInt(
+                        ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
+                        pointLightsStorage.size()
+                    );
+
+
+
+                }
+                cmd.material = material;
+                
             }
             else
             {
@@ -389,12 +451,12 @@ namespace nb::Renderer
                 mat.setInt("albedoMap", 0);
                 mat.setInt("normalMap", 1);
                 mat.setInt("metallicMap", 2);
-                //mat.setInt("roughnessMap", 3);
-                //mat.setInt("aoMap", 4);
+                // mat.setInt("roughnessMap", 3);
+                // mat.setInt("aoMap", 4);
 
                 mat.apply(api);
                 api->bindTexture(3, shadowFrameBuffer->getTexture());
-            
+
                 glActiveTexture(GL_TEXTURE4);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
 
@@ -403,49 +465,48 @@ namespace nb::Renderer
 
                 api->bindTexture(6, ibl->getBrdfTexture()->getId());
 
-            }
-            
+                u.vec3Uniforms["viewPos"] = cam->getPosition();
+                u.mat4Uniforms["view"]    = cam->getLookAt();
+                u.mat4Uniforms["proj"]    = cam->getProjection();
+                // u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
 
-            u.vec3Uniforms["viewPos"] = cam->getPosition();
-            u.mat4Uniforms["view"] = cam->getLookAt();
-            u.mat4Uniforms["proj"] = cam->getProjection();
-            //u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+                u.mat4Uniforms["lightView"] = lightView;
+                u.mat4Uniforms["lightProj"] = lightProj;
+                // u.intUniforms["shadowMap"] = 6;
 
-            u.mat4Uniforms["lightView"] = lightView;
-            u.mat4Uniforms["lightProj"] = lightProj;
-            //u.intUniforms["shadowMap"] = 6;
+                std::vector<PointLight>       pointLightsStorage;
+                std::vector<DirectionalLight> dirLightsStorage;
 
-            std::vector<PointLight> pointLightsStorage;
-            std::vector<DirectionalLight> dirLightsStorage;
-
-            for (auto lightEntityId : lights)
-            {
-                Ecs::Entity entity{lightEntityId};
-                auto& light = registry.get<LightComponent>(entity);
-                auto& lightTransform = registry.get<TransformComponent>(entity);
-
-                if (light.type == LightType::DIRECTIONAL)
+                for (auto lightEntityId : lights)
                 {
-                    dirLightsStorage.emplace_back(
-                        light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
-                        light.direction
-                    );
-                    dirLightsStorage.back().applyUniforms(u.shader);
+                    Ecs::Entity entity{lightEntityId};
+                    auto&       light          = registry.get<LightComponent>(entity);
+                    auto&       lightTransform = registry.get<TransformComponent>(entity);
+
+                    if (light.type == LightType::DIRECTIONAL)
+                    {
+                        dirLightsStorage.emplace_back(
+                            light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+                            light.direction
+                        );
+                        dirLightsStorage.back().applyUniforms(u.shader);
+                    }
+                    else if (light.type == LightType::POINT)
+                    {
+                        pointLightsStorage.emplace_back(
+                            light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+                            lightTransform.position, light.constant, light.linear, light.quadratic,
+                            1.0f
+                        );
+                        pointLightsStorage.back().applyUniforms(u.shader);
+                    }
                 }
-                else if (light.type == LightType::POINT)
-                {
-                    pointLightsStorage.emplace_back(
-                        light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
-                        lightTransform.position, light.constant, light.linear, light.quadratic, 1.0f
-                    );
-                    pointLightsStorage.back().applyUniforms(u.shader);
-                }
+
+                u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] =
+                    dirLightsStorage.size();
+                u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] =
+                    pointLightsStorage.size();
             }
-
-
-            u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] = dirLightsStorage.size();
-            u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] = pointLightsStorage.size();
-
             // Биндим текстуры ( brick, normal и т.д.)
             //u.intUniforms["ourTexture"] = 1;
             //u.intUniforms["textureNormal"] = 2;
@@ -642,7 +703,13 @@ namespace nb::Renderer
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-      
+
+        //if (stbi_write_png(
+        //        "Assets/materials/material.png", r.width, r.height, 4, r.data.data(), r.height * 4
+        //    ))
+        //{
+        //    // Debug::debug("Sphere preview saved: " + "Assets/materials/material.png");
+        //}
 
         gizmoCtx.draw();
 
@@ -669,6 +736,8 @@ namespace nb::Renderer
 
         RendererCommand postCmd = { .mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(quadPipeline) };
         api->drawMesh(postCmd);
+
+
 
         api->endFrame(); 
     }
@@ -714,7 +783,7 @@ namespace nb::Renderer
             Ref<Resource::MaterialAsset> asset =
                 ResMan::ResourceManager::getInstance()->getResource<Resource::MaterialAsset>(path.string());
 
-            meshComponent.material = asset;
+            meshComponent.material = {asset};
         }
     }
 
@@ -889,7 +958,7 @@ namespace nb::Renderer
 
 
         auto shader = request.material->getShader();
-        request.material->bind(api);
+        request.material->bind();
         
 
 
@@ -1006,6 +1075,89 @@ namespace nb::Renderer
         //api->bindDefaultFrameBuffer();
     }
 
+
+
+    void Renderer::saveSpherePreview(
+        const std::filesystem::path& materialPath,
+        const std::string&           savePath
+    )
+    {
+        const int size = 512;
+        auto      rm   = ResMan::ResourceManager::getInstance();
+
+        auto tempFB = api->createFrameBuffer(size, size);
+        tempFB->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        tempFB->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
+        tempFB->finalize();
+
+        // Сфера радиусом 1
+        Ref<Mesh> sphereMesh    = rm->getResource<Mesh>("unit_cube.obj");
+        auto      materialAsset = rm->getResource<Resource::MaterialAsset>(materialPath.string());
+
+        // МАТРИЦЫ: Отодвигаем камеру дальше (Z = 4.0)
+        Math::Mat4<float>    projection = Math::projection(90.0f, 1.0f, 0.1f, 100.0f);
+        Math::Vector3<float> camPoss     = {0.0f, 1.0f, 1.8f}; // Чуть выше и дальше
+        Math::Mat4<float>    view       = Math::lookAt(
+            camPoss, Math::Vector3<float>{0.0f, 0.0f, 0.0f}, Math::Vector3<float>{0.0f, 1.0f, 0.0f}
+        );
+        Math::Mat4<float> model = Math::Mat4<float>::identity();
+
+        model = Math::translate(model, {0.0f, 0.0f, 0.0f});
+
+        api->bindFrameBuffer(tempFB);
+        api->setViewport({0, 0, (float)size, (float)size});
+        api->setClearColor(Colors::GRAY, 1.0f, 0);
+        api->clear(true, true, false);
+
+        // Подключаем HDR карту (IBL)
+        auto ibl = rm->getResource<Resource::IhdrResource>("Assets/res/lobby.hdr");
+
+        auto shader = materialAsset->getShader();
+        shader->use();
+
+        // Передаем Uniform-переменные
+        shader->setUniformMat4("proj", projection);
+        shader->setUniformMat4("view", view);
+        shader->setUniformMat4("model", model);
+        shader->setUniformVec3("u_CameraPos", camPoss); // ОБЯЗАТЕЛЬНО для бликов PBR
+
+        // Биндим текстуры материала
+        materialAsset->bind();
+
+        // Биндим карты IBL (как в вашем основном методе render)
+        if (ibl)
+        {
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+            shader->setUniformInt("u_IrradianceMap", 4); // Проверьте имя в шейдере
+
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+            shader->setUniformInt("u_PrefilterMap", 5);
+
+            api->bindTexture(6, ibl->getBrdfTexture()->getId());
+            shader->setUniformInt("u_BrdfLUT", 6);
+        }
+
+        // Рендерим сферу
+        Pipeline matPipeline = {
+            .shader = shader, .isDepthTestEnable = true
+        };
+        uint32          pso = api->getCache().getOrCreate(matPipeline);
+        RendererCommand cmd = {.mesh = sphereMesh.get(), .pipeline = pso};
+        api->drawMesh(cmd);
+
+        // Читаем пиксели
+        std::vector<unsigned char> data(size * size * 4);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glReadPixels(0, 0, size, size, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+
+        stbi_flip_vertically_on_write(true);
+        stbi_write_png(savePath.c_str(), size, size, 4, data.data(), size * 4);
+
+        api->bindDefaultFrameBuffer();
+    }
+
     void Renderer::loadSceneEcs() noexcept
     {
         auto rm = ResMan::ResourceManager::getInstance();
@@ -1085,8 +1237,10 @@ namespace nb::Renderer
         cube->uniforms.shader = shader;
         auto material = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material");
         auto brickMaterial = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/brick.material");
+        auto goldMaterial =
+            rm->getResource<nb::Resource::MaterialAsset>("Assets/res/gold.material");
 
-        cubeNode.addComponent(MeshComponent{cube, brickMaterial});
+        cubeNode.addComponent(MeshComponent{cube, {brickMaterial} });
         auto aabb = cube->getAabb3d();
         
         cubeNode.addComponent(Physics::Collider { .halfSize = (aabb.halfSize() * 1.0f)  });
@@ -1108,10 +1262,11 @@ namespace nb::Renderer
         );
 
 
-        Ref<Mesh> surf = rm->getResource<Mesh>("reddd.obj");
+        //Ref<Mesh> surf = rm->getResource<Mesh>("reddd.obj");
+        Ref<Mesh> surf = rm->getResource<Mesh>("shader_ball_tri.obj");
 
         nb::Node surfNode = scene.createNode();
-        surfNode.setName("scene");
+        surfNode.setName("scene");  
 
         auto& surfTransform = surfNode.getComponent<TransformComponent>();
         surfTransform.position = {0.0f, 0.0f, 0.0f};
@@ -1119,12 +1274,19 @@ namespace nb::Renderer
         surfTransform.dirty = true;
         surf->uniforms.shader = shader;
 
-        surfNode.addComponent(MeshComponent{surf, material});
+        surfNode.addComponent(
+            MeshComponent{
+                surf, {material, brickMaterial, goldMaterial, goldMaterial, goldMaterial, material}
+            }
+        );
         //surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
         surfNode.addComponent(Physics::GroundTag());
         surfNode.addComponent(Physics::TerrainColliderComponent());
         auto bakedData = nb::Physics::bakeMesh(*surf, 0.1f);
         surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
+
+        
+
 
         //surfNode.addComponent(nb::Script::ScriptComponent())
 

@@ -116,6 +116,7 @@ void main() {
     vec3 orm = texture(ormMap, v_TexCoords).rgb;
     float ao        = orm.r;
     float roughness = max(orm.g, 0.05);
+
     //float roughness = 0.05;
 
     float metallic  = orm.b;
@@ -123,7 +124,15 @@ void main() {
 
     vec3 albedo = pow(texture(albedoMap, v_TexCoords).rgb, vec3(2.2));
     vec3 nMap   = texture(normalMap, v_TexCoords).rgb * 2.0 - 1.0;
-    vec3 N      = normalize(TBN * nMap);
+    mat3 vTBN = TBN;
+	vTBN[0] = normalize(vTBN[0]);
+	vTBN[1] = normalize(vTBN[1]);
+	vTBN[2] = normalize(vTBN[2]);
+	vec3 N = normalize(vTBN * nMap);
+
+	float filtering = length(dFdx(N)) + length(dFdy(N));
+	roughness = clamp(roughness + filtering, 0.0, 1.0);
+
     vec3 V      = normalize(u_CameraPos - FragPos);
     vec3 R      = reflect(-V, N);
     
@@ -144,7 +153,9 @@ void main() {
         float G = GeometrySmith(N, V, L, roughness);
         vec3  F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-        vec3 specular = (D * G * F) / (4.0 * NdotV * max(dot(N, L), 0.0) + 0.001);
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+		vec3 specular = (D * G * F) / denominator;
+
         vec3 kS = F;
         vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
         
@@ -163,7 +174,9 @@ void main() {
         float G = GeometrySmith(N, V, L, roughness);
         vec3  F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-        vec3 specular = (D * G * F) / (4.0 * NdotV * max(dot(N, L), 0.0) + 0.001);
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+		vec3 specular = (D * G * F) / denominator;
+
         vec3 kS = F;
         vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 

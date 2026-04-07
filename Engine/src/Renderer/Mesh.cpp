@@ -3,6 +3,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "Mesh.hpp"
 
+
 namespace nb
 {
     namespace Renderer
@@ -210,20 +211,35 @@ namespace nb
             mesh.shader->shader->use();
         }
 
-        void Mesh::draw(GLenum mode, const Ref<Shader> &shader) const noexcept
+        void Mesh::draw(
+            GLenum                                       mode,
+            const Ref<Shader>&                           shader,
+            const std::vector<Ref<Resource::MaterialAsset>>& materials
+        ) const noexcept
         {
             VAO.bind();
 
             size_t byteOffset = 0;
 
-            for (const auto& sub : meshes)
+            for (size_t i = 0; i < meshes.size(); ++i)
             {
-                sub->attachShader(shader);
-                applyMaterial(*sub);
+                shader->use();
+                if (materials.empty())
+                {
+                    meshes[i]->attachShader(shader);
+                    applyMaterial(*meshes[i]);
+                }
+                else
+                {
+                    Ref<Resource::MaterialAsset> mat =
+                        (i < materials.size()) ? materials[i] : *materials.begin();
+                    mat->bind();
+                }
+               
 
-                VAO.draw(static_cast<uint32_t>(sub->indices.size()), mode, byteOffset);
+                VAO.draw(static_cast<uint32_t>(meshes[i]->indices.size()), mode, byteOffset);
 
-                byteOffset += sub->indices.size() * sizeof(uint32_t);
+                byteOffset += meshes[i]->indices.size();
             }
 
             VAO.unBind();

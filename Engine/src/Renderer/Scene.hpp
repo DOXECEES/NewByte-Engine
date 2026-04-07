@@ -66,7 +66,7 @@ NB_REFLECT_INTERNAL_STRUCT(NameComponent,
 struct MeshComponent
 {
     std::shared_ptr<nb::Renderer::Mesh> mesh;
-    Ref<nb::Resource::MaterialAsset> material;
+    std::vector<Ref<nb::Resource::MaterialAsset>> material;
 };
 
 NB_REFLECT_PTR(
@@ -74,8 +74,8 @@ NB_REFLECT_PTR(
     "std::shared_ptr<nb::Renderer::Mesh>"
 )
 NB_REFLECT_PTR(
-    Ref<nb::Resource::MaterialAsset>,
-    "Ref<nb::Resource::MaterialAsset>"
+    std::vector<Ref<nb::Resource::MaterialAsset>>, 
+    "std::vector<Ref<nb::Resource::MaterialAsset>>"
 )
 
 NB_REFLECT_RESOURCE_PTR(
