@@ -41,6 +41,13 @@ namespace nb::Physics
         float              originZ     = 0.0f;
         float              cellSize    = 1.0f;
 
+        std::string sourcePath;
+        
+        std::string getPath()
+        {
+            return sourcePath;
+        }
+
         HeightmapCollider() = default;
 
         HeightmapCollider(
@@ -80,5 +87,14 @@ namespace nb::Physics
         float                     cellSize
     ) noexcept;
 } // namespace nb::Physics
+
+
+NB_REFLECT_STRUCT(
+    nb::Physics::HeightmapCollider,
+    NB_FIELD(
+        nb::Physics::HeightmapCollider,
+        sourcePath
+    )
+)
 
 #endif

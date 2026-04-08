@@ -30,7 +30,13 @@ namespace nb::Physics
         TerrainColliderComponent(HeightmapCollider&& col) : collider(std::move(col))
         {
         }
+
+        float bakeStep = 0.1f;
+        
+
     };
+
+    
 
     struct Rigidbody
     {
@@ -290,4 +296,44 @@ NB_REFLECT_STRUCT(
 
 NB_REFLECT_STRUCT(nb::Physics::GroundTag)
 
-NB_REFLECT_STRUCT(nb::Physics::TerrainColliderComponent)
+
+
+template <>
+struct nb::Reflect::ResourceLoader<nb::Physics::HeightmapCollider>
+{
+    static void load(
+        void*              fieldPtr,
+        const std::string& path
+    )
+    {
+        [](nb::Physics::HeightmapCollider* field, const std::string& path)
+        {
+            auto mesh =
+                nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(path);
+            *field = nb::Physics::bakeMesh(*mesh, 0.1f);
+        }(reinterpret_cast<nb::Physics::HeightmapCollider*>(fieldPtr), path);
+    }
+    static std::string getPath(void* fieldPtr)
+    {
+        nb::Physics::HeightmapCollider* ptr =
+            reinterpret_cast<nb::Physics::HeightmapCollider*>(fieldPtr);
+        if (!ptr)
+        {
+            return "";
+        }
+        
+        return ptr->getPath();
+    }
+};
+
+NB_REFLECT_STRUCT(
+    nb::Physics::TerrainColliderComponent,
+    NB_FIELD(
+        nb::Physics::TerrainColliderComponent,
+        bakeStep
+    ),
+    NB_FIELD(
+        nb::Physics::TerrainColliderComponent,
+        collider
+    )
+)

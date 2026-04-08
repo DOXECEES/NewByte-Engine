@@ -88,18 +88,26 @@ NB_REFLECT_RESOURCE_PTR(
     }
 )
 
-// ResourceLoader для Ref<Material>
-NB_REFLECT_RESOURCE_PTR(
-    Ref<nb::Resource::MaterialAsset>,
-    "Material",
-    [](Ref<nb::Resource::MaterialAsset>* field,
-       const std::string& path)
+NB_REFLECT_RESOURCE_VECTOR_PTR(
+    std::vector<Ref<nb::Resource::MaterialAsset>>,
+    nb::Resource::MaterialAsset,
+    "MaterialVector",
+    [](std::vector<Ref<nb::Resource::MaterialAsset>>* field,
+       const std::vector<std::string>&                paths)
     {
-        //*field = makeRef<nb::Renderer::Material>(path); // твоя фабрика Ref
+        field->clear();
+        for (const auto& path : paths)
+        {
+            auto res = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::MaterialAsset>(path);
+            if (res)
+            {
+                field->push_back(res);
+            }
+        }
     }
 )
 
-// Рефлексия самой структуры
+
 NB_REFLECT_STRUCT(
     MeshComponent,
     NB_FIELD(

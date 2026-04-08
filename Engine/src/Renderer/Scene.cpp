@@ -8,6 +8,7 @@
 #include "Manager/ResourceManager.hpp"
 
 #include "Scripting/ScriptComponent.hpp"
+#include "Physics/Physics.hpp"
 
 namespace nb
 {
@@ -337,6 +338,12 @@ namespace nb
 
 
         ecs.getStorage<nb::Renderer::LightComponent>();
+        ecs.getStorage<nb::Physics::Collider>();
+        ecs.getStorage<nb::Physics::GroundTag>();
+        ecs.getStorage<nb::Physics::Rigidbody>();
+        ecs.getStorage<nb::Physics::TerrainColliderComponent>();
+
+
         //nb::Serialize::IArchive* archive =
         //    new nb::Serialize::PseudoJsonArchive("Assets/res/Scene.json");
         //serialize(archive);
@@ -428,7 +435,11 @@ namespace nb
                 continue;
             }
 
-            // Проверяем, есть ли у компонента поля для сериализации
+            if (!strcmp(type->name, "HierarchyComponent"))
+            {
+                continue;
+            }
+
             bool hasFields = false;
             for (auto& field : type->fields)
             {
@@ -442,6 +453,9 @@ namespace nb
 
             if (!hasFields)
             {
+                archive->beginObject(type->name);
+                
+                archive->endObject();
                 continue; // Пропускаем компоненты без полей
             }
 
@@ -504,6 +518,18 @@ namespace nb
                 archive->value(field.name, path);
                 continue;
             }
+            else if (field.getResourcePaths)
+            {
+                std::vector<std::string> paths = field.getResourcePaths(fieldPtr);
+                archive->beginArray(field.name);
+                for (auto& path : paths)
+                {
+                    archive->value(nullptr, path);
+                }
+                archive->endArray();
+                continue;
+            }
+
             else if (std::strcmp(field.type->name, "float") == 0)
             {
                 archive->value(field.name, *reinterpret_cast<float*>(fieldPtr));
@@ -713,14 +739,17 @@ namespace nb
 
             const auto& compJson = components[typeInfo->name];
 
-            void* tempComponent = malloc(typeInfo->size);
-            memset(tempComponent, 0, typeInfo->size);
+            storage->addDefault(entity.id);
 
-            deserializeFields(compJson, tempComponent, typeInfo);
+            // 2. Получаем указатель на созданный объект
+            void* componentPtr = storage->getRaw(entity.id);
 
-            addComponentRaw(entity, storage.get(), tempComponent);
+            // 3. Заполняем поля
+            if (componentPtr)
+            {
+                deserializeFields(compJson, componentPtr, typeInfo);
+            }
 
-            free(tempComponent);
         }
     }
 
@@ -780,10 +809,22 @@ void Scene::deserializeFields(
                 int value = fieldJson.get<int>();
                 std::memcpy(fieldPtr, &value, sizeof(int));
             }
-            if (fieldJson.isValue() && field.loadResource)
-            {
+            else if (fieldJson.isValue() && field.loadResource)
+            { 
                 std::string path = fieldJson.get<std::string>();
                 field.loadResource(fieldPtr, path); 
+            }
+            else if (field.loadResources && fieldJson.isArray())
+            {
+                std::vector<std::string> paths;
+                for (size_t i = 0; i < fieldJson.size(); ++i)
+                {
+                    if (fieldJson[i].isValue())
+                    {
+                        paths.push_back(fieldJson[i].get<std::string>());
+                    }
+                }
+                field.loadResources(fieldPtr, paths);
             }
             else if (!fieldType->fields.empty() && fieldJson.isObject())
             {

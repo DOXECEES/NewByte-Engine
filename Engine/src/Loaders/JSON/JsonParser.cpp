@@ -37,9 +37,21 @@ namespace nb
 
             Node::Map map;
 
+            //token = getTokenNoWhiteSpaces();
+
+            if (token.type == jst::OBJECT_END)
+            {
+                return map; 
+            }
+
             while (token.type != jst::OBJECT_END && token.type != jst::NONE)
             {
                 std::string key = std::move(parseKey());
+
+                if (key.empty())
+                {
+                    return map;
+                }
 
                 Node val = std::move(parsePair());
                 map.try_emplace(std::move(key), std::move(val));
@@ -99,6 +111,11 @@ namespace nb
         {
             using jst = JsonLexer::TokenType;
             token = getTokenNoWhiteSpaces();
+
+            if (token.type == jst::OBJECT_END)
+            {
+                return "";
+            }
 
             if (token.type != jst::STRING_SEPARATOR)
             {

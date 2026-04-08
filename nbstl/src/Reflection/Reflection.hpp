@@ -66,6 +66,18 @@ namespace nb::Reflect
     {
     };
 
+    template <typename T, typename = void>
+    struct hasResourceGetPaths : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct hasResourceGetPaths<T, std::void_t<decltype(ResourceLoader<T>::getPaths)>>
+        : std::true_type
+    {
+    };
+
+
 
     struct EnumValueInfo
     {
@@ -84,6 +96,8 @@ namespace nb::Reflect
         std::function<std::string(void*)> getResourcePath = nullptr;
         std::function<void(void*, const std::string&)> loadResource = nullptr;
 
+        std::function<std::vector<std::string>(void*)>              getResourcePaths = nullptr;
+        std::function<void(void*, const std::vector<std::string>&)> loadResources    = nullptr;
     };
 
     struct TypeInfo
@@ -190,6 +204,20 @@ namespace nb::Reflect
                                         ResourceLoader<MemberType>::load(ptr, path);
                                     };
                                 }
+                                else if constexpr (hasResourceGetPaths<MemberType>::value)
+                                {
+                                    info.getResourcePaths =
+                                        [](void* ptr) -> std::vector<std::string>
+                                    {
+                                        return ResourceLoader<MemberType>::getPaths(ptr);
+                                    };
+                                    info.loadResources =
+                                        [](void* ptr, const std::vector<std::string>& paths)
+                                    {
+                                        ResourceLoader<MemberType>::load(ptr, paths);
+                                    };
+                                }
+
 
                                 type.fields.push_back(info);
                             }(),
@@ -393,6 +421,33 @@ namespace nb::Reflect
     };                                                                                             \
                                                                                                    \
   
+#define NB_REFLECT_RESOURCE_VECTOR_PTR(TYPE, ITEM_TYPE, NAME, LOADER)                              \
+    template <>                                                                                    \
+    struct nb::Reflect::ResourceLoader<TYPE>                                                       \
+    {                                                                                              \
+        static void load(                                                                          \
+            void*                           fieldPtr,                                              \
+            const std::vector<std::string>& paths                                                  \
+        )                                                                                          \
+        {                                                                                          \
+            LOADER(reinterpret_cast<TYPE*>(fieldPtr), paths);                                      \
+        }                                                                                          \
+                                                                                                   \
+        static std::vector<std::string> getPaths(void* fieldPtr)                                   \
+        {                                                                                          \
+            TYPE*                    vec = reinterpret_cast<TYPE*>(fieldPtr);                      \
+            std::vector<std::string> paths;                                                        \
+            if (vec)                                                                               \
+            {                                                                                      \
+                for (auto& item : *vec)                                                            \
+                {                                                                                  \
+                    if (item)                                                                      \
+                        paths.push_back(item->getPath());                                          \
+                }                                                                                  \
+            }                                                                                      \
+            return paths;                                                                          \
+        }                                                                                          \
+    };
 };
 
 #endif

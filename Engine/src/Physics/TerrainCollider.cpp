@@ -171,6 +171,9 @@ namespace nb::Physics
                 }
             }
         }
+
+        collider.sourcePath = const_cast<nb::Renderer::Mesh&>(mesh).getPath();
+
         return collider;
     }
 }; // namespace nb::Physics
