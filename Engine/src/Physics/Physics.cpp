@@ -107,7 +107,7 @@ namespace nb::Physics
         rb.torque = {0, 0, 0};
         t.dirty   = true;
 
-        if (rb.velocity.squaredLength() < 0.0005f && rb.angularVelocity.squaredLength() < 0.0005f)
+        if (rb.velocity.squaredLength() < 0.001f && rb.angularVelocity.squaredLength() < 0.001f)
         {
             rb.velocity        = {0, 0, 0};
             rb.angularVelocity = {0, 0, 0};
@@ -122,7 +122,7 @@ namespace nb::Physics
         auto        entities   = scene.getEntitiesWith<Rigidbody, Collider, TransformComponent>();
         const int   iterations = 10;
         const float slop       = 0.01f;
-        const float baumgarte  = 0.1f; 
+        const float baumgarte  = 0.1f;
 
         for (int step = 0; step < iterations; ++step)
         {
@@ -180,23 +180,40 @@ namespace nb::Physics
                         float depth;
                     };
                     std::vector<ContactPoint> contacts;
-                    auto                      collect =
-                        [&](const Math::OBB& inc, const Math::OBB& ref, const Vec3& n, bool isA)
+
+                    auto isPointInOBB = [](const Vec3& p, const Math::OBB& obb)
                     {
-                        Vec3 v[8];
-                        getOBBVertices(inc, v);
-                        float refRadius = ref.getProjectionRadius(n);
-                        for (int m = 0; m < 8; ++m)
+                        Vec3 d = p - obb.center;
+                        for (int m = 0; m < 3; ++m)
                         {
-                            float d = refRadius - (isA ? n : -1.0f * n).dot(v[m] - ref.center);
-                            if (d >= -0.01f)
+                            float dist = std::abs(d.dot(obb.axes[m]));
+                            if (dist > obb.halfSize[m] + 0.01f)
                             {
-                                contacts.push_back({v[m], d});
+                                return false;
                             }
                         }
+                        return true;
                     };
-                    collect(obbA, obbB, normal, true);
-                    collect(obbB, obbA, normal, false);
+
+                    Vec3 vA[8];
+                    getOBBVertices(obbA, vA);
+                    for (int m = 0; m < 8; ++m)
+                    {
+                        if (isPointInOBB(vA[m], obbB))
+                        {
+                            contacts.push_back({vA[m], col.depth});
+                        }
+                    }
+                    Vec3 vB[8];
+                    getOBBVertices(obbB, vB);
+                    for (int m = 0; m < 8; ++m)
+                    {
+                        if (isPointInOBB(vB[m], obbA))
+                        {
+                            contacts.push_back({vB[m], col.depth});
+                        }
+                    }
+
                     if (contacts.empty())
                     {
                         contacts.push_back({col.contactPoint, col.depth});
@@ -221,17 +238,14 @@ namespace nb::Physics
                             continue;
                         }
 
-                        float restitution = (rbA.restitution + rbB.restitution) * 0.5f;
-                        if (std::abs(vDotN) < 0.5f)
-                        {
-                            restitution = 0.0f;
-                        }
+                        float restitution = (std::abs(vDotN) < 0.5f)
+                                                ? 0.0f
+                                                : (rbA.restitution + rbB.restitution) * 0.5f;
 
-                        Vec3 raN = Math::cross(rA, normal);
-                        Vec3 rbN = Math::cross(rB, normal);
-
-                        float angA = rbA.isStatic ? 0.0f : Math::cross(invIA * raN, rA).dot(normal);
-                        float angB = rbB.isStatic ? 0.0f : Math::cross(invIB * rbN, rB).dot(normal);
+                        Vec3  raN  = Math::cross(rA, normal);
+                        Vec3  rbN  = Math::cross(rB, normal);
+                        float angA = rbA.isStatic ? 0.0f : raN.dot(invIA * raN);
+                        float angB = rbB.isStatic ? 0.0f : rbN.dot(invIB * rbN);
 
                         float impulseMag = -(1.0f + restitution) * vDotN;
                         impulseMag /= (totalInvMass + angA + angB + 1e-6f);
@@ -250,24 +264,19 @@ namespace nb::Physics
                             rbB.angularVelocity += invIB * Math::cross(rB, impulse);
                         }
 
-                        vA           = rbA.velocity + Math::cross(rbA.angularVelocity, rA);
-                        vB           = rbB.velocity + Math::cross(rbB.angularVelocity, rB);
-                        rv           = vB - vA;
+                        rv           = (rbB.velocity + Math::cross(rbB.angularVelocity, rB)) -
+                                       (rbA.velocity + Math::cross(rbA.angularVelocity, rA));
                         Vec3 tangent = rv - (normal * rv.dot(normal));
                         if (tangent.squaredLength() > 1e-6f)
                         {
                             tangent.normalize();
-                            float inertiaTanA =
-                                rbA.isStatic ? 0.0f
-                                             : Math::cross(invIA * Math::cross(rA, tangent), rA)
-                                                   .dot(tangent);
-                            float inertiaTanB =
-                                rbB.isStatic ? 0.0f
-                                             : Math::cross(invIB * Math::cross(rB, tangent), rB)
-                                                   .dot(tangent);
+                            Vec3  raT        = Math::cross(rA, tangent);
+                            Vec3  rbT        = Math::cross(rB, tangent);
+                            float inertiaTan = (rbA.isStatic ? 0.0f : raT.dot(invIA * raT)) +
+                                               (rbB.isStatic ? 0.0f : rbT.dot(invIB * rbT));
+
                             float jt =
-                                -rv.dot(tangent) /
-                                ((totalInvMass + inertiaTanA + inertiaTanB + 1e-6f) * cpCount);
+                                -rv.dot(tangent) / ((totalInvMass + inertiaTan + 1e-6f) * cpCount);
                             float mu = (rbA.friction + rbB.friction) * 0.5f;
                             jt       = std::clamp(jt, -impulseMag * mu, impulseMag * mu);
 
