@@ -51,11 +51,12 @@ namespace nb::Physics
 
         Math::Vector3<float> angularVelocity{0.0f, 0.0f, 0.0f};
         Math::Vector3<float> torque{0.0f, 0.0f, 0.0f};
-        float                angularDrag = 0.1f;
+        float                angularDrag = 0.05f;
 
         bool useGravity     = true;
         bool isGrounded     = false;
         bool freezeRotation = false;
+        bool isStatic       = false;
     };
 
     struct Collider
@@ -76,6 +77,24 @@ namespace nb::Physics
         static constexpr float INVALID_HEIGHT_THRESHOLD = -1e9f;
         static constexpr float TERRAIN_NORMAL_EPS       = 0.1f;
 
+        Math::Vector3<float> calculateInertia(
+            float                mass,
+            Math::Vector3<float> size
+        )
+        {
+            // Формула для прямоугольного параллелепипеда:
+            // I = (1/12) * mass * (other_side1^2 + other_side2^2)
+            float x2 = size.x * size.x;
+            float y2 = size.y * size.y;
+            float z2 = size.z * size.z;
+
+            return {
+                (1.0f / 12.0f) * mass * (y2 + z2), (1.0f / 12.0f) * mass * (x2 + z2),
+                (1.0f / 12.0f) * mass * (x2 + y2)
+            };
+        }
+
+
         void update(
             Scene& scene,
             float  dt
@@ -94,41 +113,17 @@ namespace nb::Physics
                 applyForce(rb, dt, t);
             }
 
+            resolveDynamicCollisions(scene, dt);
+
             resolveCollisions(scene, dt);
         }
 
         void applyForce(
-            nb::Physics::Rigidbody& rigidbody,
-            float                   deltaTime,
-            TransformComponent&     transfrom
-        ) noexcept
-        {
-            rigidbody.isGrounded = false;
-
-            if (rigidbody.useGravity)
-            {
-                rigidbody.force +=
-                    Math::Vector3<float>(0.0f, GRAVITY_ACCELERATION * rigidbody.mass, 0.0f);
-            }
-
-            rigidbody.velocity *= (1.0f - rigidbody.drag * deltaTime);
-
-            rigidbody.acceleration = rigidbody.force / rigidbody.mass;
-            rigidbody.velocity += rigidbody.acceleration * deltaTime;
-            transfrom.position += rigidbody.velocity * deltaTime;
-
-            if (!rigidbody.freezeRotation)
-            {
-                rigidbody.angularVelocity *= (1.0f - rigidbody.angularDrag * deltaTime);
-                Math::Vector3<float> angularAcc = rigidbody.torque / rigidbody.mass;
-                rigidbody.angularVelocity += angularAcc * deltaTime;
-                transfrom.rotation += rigidbody.angularVelocity * deltaTime;
-            }
-
-            transfrom.dirty  = true;
-            rigidbody.force  = {0, 0, 0};
-            rigidbody.torque = {0, 0, 0};
-        }
+            nb::Physics::Rigidbody& rb,
+            float                   dt,
+            TransformComponent&     t
+        ) noexcept;
+        
 
     private:
         Math::Vector3<float> calculateTerrainNormal(
@@ -145,6 +140,15 @@ namespace nb::Physics
 
             return Math::normalize(Math::Vector3<float>{hL - hR, 2.0f * eps, hD - hU});
         }
+
+        void resolveDynamicCollisions(
+            Scene& scene,
+            float  dt
+        );
+        
+
+            
+
 
         void resolveCollisions(
             Scene& scene,
@@ -283,6 +287,10 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         nb::Physics::Rigidbody,
         freezeRotation
+    ),
+    NB_FIELD(
+        nb::Physics::Rigidbody,
+        isStatic
     )
 )
 

@@ -168,6 +168,31 @@ namespace nb
                     };
                 }
 
+                constexpr Matrix<
+                    T,
+                    3,
+                    3>
+                toMatrix3() const noexcept
+                {
+                    T xx = x * x;
+                    T yy = y * y;
+                    T zz = z * z;
+
+                    T xy = x * y;
+                    T xz = x * z;
+                    T yz = y * z;
+
+                    T wx = w * x;
+                    T wy = w * y;
+                    T wz = w * z;
+
+                    return Matrix<T, 3, 3>{
+                        {1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy)},
+                        {2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx)},
+                        {2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)}
+                    };
+                }
+
                 
 
             //private:

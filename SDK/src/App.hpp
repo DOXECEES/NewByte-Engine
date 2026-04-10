@@ -45,7 +45,7 @@ public:
         createWindows();
         setupDocking();
         initEngine();
-
+        setupMainWindow();
         setupHierarchyUI();
         //setupSettingsUI();
 
@@ -74,6 +74,8 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> inspectorWindow;
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> assetManager;
+    std::shared_ptr<Win32Window::ChildWindow> toolbarWindow;
+    std::shared_ptr<Win32Window::ChildWindow> tempWindow;
 
 
     //
@@ -81,7 +83,7 @@ private:
     std::shared_ptr<AssetManager> assetManagerWindow;
     std::shared_ptr<MaterialEditor> materialEditor;
 
-
+    Widgets::TreeView* savedTreeView = nullptr; 
 
 
     void openColorPickerWindow();

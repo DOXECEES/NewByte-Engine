@@ -213,7 +213,7 @@ namespace nb
             {
                 file << output.str();
             }
-
+            file.close();
         }
     };
 };

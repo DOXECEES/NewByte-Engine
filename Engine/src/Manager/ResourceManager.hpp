@@ -44,6 +44,7 @@ namespace nb
                 std::string path(resourcePath);
                 std::string_view extension = extractExtension(path);
 
+
                 auto loaderIt = loaders.find(extension.data());
                 if (loaderIt == loaders.end())
                 {

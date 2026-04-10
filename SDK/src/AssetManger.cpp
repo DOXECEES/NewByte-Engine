@@ -27,6 +27,7 @@ void AssetManager::importAsset(std::filesystem::path path) noexcept
 
     assetsJson.writeToFile("Assets/Assets.json");
 }
+
 std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
 {
     using namespace nbui;

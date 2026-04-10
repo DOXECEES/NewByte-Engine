@@ -202,6 +202,9 @@ set (SRC
         src/Math/Quaternion.hpp
         src/Math/Plane.hpp
 
+        src/Math/Collision/OBB.hpp
+
+
 
         src/Math/Matrix/Matrix.cpp
         src/Math/Matrix/Matrix.hpp
@@ -282,6 +285,7 @@ set (SRC
         src/Scripting/ScriptEngine.cpp
         src/Scripting/ScriptEngine.hpp
 
+        src/Physics/Physics.cpp
         src/Physics/Physics.hpp
 
         src/Physics/TerrainCollider.cpp

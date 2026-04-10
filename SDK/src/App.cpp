@@ -44,7 +44,7 @@
 #include <memory>
 
 #include <Physics/Physics.hpp>
-
+#include <Serialize/JsonArchive.hpp>
 
 
 
@@ -119,7 +119,7 @@ void EditorApp::createWindows() noexcept
     mainWindow->setTitle(
         Utils::toWstring(Translation::fromKey("Ui.Editor.Title"))
     );
-    mainWindow->excludeFromClientRect({32, 0, 0, 0});
+    //mainWindow->excludeFromClientRect({32, 0, 0, 0});
 
 
     sceneWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
@@ -147,7 +147,12 @@ void EditorApp::createWindows() noexcept
         Utils::toWstring(Translation::fromKey("Ui.Editor.DebugWindow.Title"))
     );
 
-    
+    toolbarWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
+    toolbarWindow->setTitle(L"Toolbar");
+
+    tempWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
+    tempWindow->setTitle(L"tempWindow");
+
 
 }
 
@@ -156,39 +161,32 @@ void EditorApp::setupDocking() noexcept
     dockManager = std::make_unique<Temp::DockingSystem>(mainWindow);
 
     auto sceneTab = dockManager->dockAsTab(sceneWindow, nullptr, "Scene");
+
     dockManager->dockRelative(
-        hierarchyWindow,
-        Temp::DockPosition::LEFT,
-        sceneTab->getWindow(),
-        Temp::Percent(25)
+        hierarchyWindow, Temp::DockPosition::LEFT, sceneWindow, Temp::Percent(20)
     );
 
     dockManager->dockRelative(
-        inspectorWindow,
-        Temp::DockPosition::RIGHT,
-        sceneTab->getWindow(),
-        Temp::Percent(20)
+        inspectorWindow, Temp::DockPosition::RIGHT, nullptr, Temp::Percent(25)
     );
 
-    dockManager->dockRelative(
-        debugWindow,
-        Temp::DockPosition::BOTTOM,
-        inspectorWindow,
-        Temp::Percent(60)
+     dockManager->dockRelative(
+        tempWindow, Temp::DockPosition::BOTTOM, inspectorWindow, Temp::Percent(50)
     );
 
-    dockManager->dockRelative(
-         assetManager,
-         Temp::DockPosition::BOTTOM,
-         debugWindow,
-         Temp::Percent(40)
+
+    dockManager->dockRelative(debugWindow, Temp::DockPosition::BOTTOM, nullptr, Temp::Percent(30));
+
+    dockManager->dockRelative(toolbarWindow, Temp::DockPosition::TOP, nullptr, Temp::Percent(3));
+
+   
+    subscribe(
+        *mainWindow, &Win32Window::Window::onRectChanged,
+        [this](const NbRect<int>& rect)
+        {
+            dockManager->onSize(rect.width, rect.height);
+        }
     );
-
-    
-    subscribe(*mainWindow, &Win32Window::Window::onRectChanged, [this](const NbRect<int>& rect) {
-        dockManager->onSize(rect.width, rect.height);
-    });
-
 }
 
 void EditorApp::initEngine() noexcept
@@ -218,11 +216,11 @@ void EditorApp::setupMainWindow() noexcept
             .style(
                 [](NNsLayout::LayoutStyle& s)
                 {
-                    s.width = 1.0f;
-                    s.height = 1.0f;
-                    s.widthSizeType = NNsLayout::SizeType::RELATIVE;
+                    s.width          = 1.0f;
+                    s.height         = 1.0f;
+                    s.widthSizeType  = NNsLayout::SizeType::RELATIVE;
                     s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-                    s.color = NbColor{30, 30, 30};
+                    s.color          = NbColor{30, 30, 30};
                 }
             )
             .child(
@@ -232,86 +230,54 @@ void EditorApp::setupMainWindow() noexcept
                     .absoluteWidth(120)
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"2D")
+                            .text(L"Save")
                             .absoluteWidth(50)
                             .relativeHeight(1.0f)
+                            .onEvent(
+                                &Widgets::Button::onPressedSignal,
+                                []()
+                                {
+                                    //if (!flag)
+                                    //{
+                                    //    return;
+                                    //}
+
+                                    nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+                                    nb::Scene::getInstance().serialize(archive);
+                                    delete archive;
+                                }
+                            )
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"3D")
+                            .text(L"Load")
                             .absoluteWidth(50)
                             .relativeHeight(1.0f)
-                    )
+                            .onEvent(
+                                &Widgets::Button::onPressedSignal,
+                                [this]()
+                                {
+                                    //if (!flag)
+                                    //{
+                                    //    return;
+                                    //}
 
+                                    nb::Scene::getInstance().clear();
+                                    nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+                                    archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
+                                    archive->load();
+                                    nb::Scene::getInstance().deserialize(archive);
+                                    delete archive;
+                                    //sceneModel->rebuildFromScene();
+                                    //savedTreeView->setModel(sceneModel);
+                                }
+                            )
+                    )
                     .endGroup()
-
-                    .buttonGroupMultiple()
-                    .relativeHeight(1.0f)
-                    .relativeWidth(0.5f)
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"R")
-                            .absoluteWidth(50)
-                            .relativeHeight(1.0f)
-                            .background({180, 60, 60}, LayoutBuilder::StateStyle::ACTIVE)
-                            .onEvent(
-                                &Widgets::Button::onCheckedChangedSignal,
-                                [this](bool flag)
-                                {
-                                    //settings.channelMask.x = flag ? 1.0f : 0.0f;
-                                    //onRender();
-                                }
-                            )
-                    )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"G")
-                            .absoluteWidth(50)
-                            .relativeHeight(1.0f)
-                            .background({60, 150, 80}, LayoutBuilder::StateStyle::ACTIVE)
-                            .onEvent(
-                                &Widgets::Button::onCheckedChangedSignal,
-                                [this](bool flag)
-                                {
-                                    //settings.channelMask.y = flag ? 1.0f : 0.0f;
-                                    //onRender();
-                                }
-                            )
-                    )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"B")
-                            .absoluteWidth(50)
-                            .relativeHeight(1.0f)
-                            .background({60, 100, 180}, LayoutBuilder::StateStyle::ACTIVE)
-                            .onEvent(
-                                &Widgets::Button::onCheckedChangedSignal,
-                                [this](bool flag)
-                                {
-                                    //settings.channelMask.z = flag ? 1.0f : 0.0f;
-                                    //onRender();
-                                }
-                            )
-                    )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"A")
-                            .absoluteWidth(50)
-                            .relativeHeight(1.0f)
-                            .background({150, 150, 150}, LayoutBuilder::StateStyle::ACTIVE)
-
-                    )
-                    .checkedGroupIndex(true, 0)
-                    .checkedGroupIndex(true, 1)
-                    .checkedGroupIndex(true, 2)
-                    .checkedGroupIndex(true, 3)
-
-                    .endGroup()
-
             )
             .build();
 
-    mainWindow->getLayoutRoot()->addChild(std::move(rootUI));
+    toolbarWindow->getLayoutRoot()->addChild(std::move(rootUI));
 }
 
 void EditorApp::setupHierarchyUI() noexcept
@@ -378,6 +344,7 @@ void EditorApp::setupHierarchyUI() noexcept
                                     sceneModel->addEntity(parentEntity, entity.getId());
 
                                     tv->refresh();
+                                    //savedTreeView = tv;
                                     activeNode = nb::Scene::getInstance().getNode(parentEntity);
                                     onActiveNodeChanged.emit();
                                     nb::Scene::getInstance().invalidateBvh();

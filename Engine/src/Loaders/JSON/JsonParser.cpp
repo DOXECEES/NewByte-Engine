@@ -101,6 +101,10 @@ namespace nb
 
                 return Node(str);
             }
+            case jst::STRING_SEPARATOR:
+            {
+                return Node("");
+            }
             default:
                 throw std::runtime_error("expected STRING");
                 return {};
@@ -150,6 +154,11 @@ namespace nb
             jst arrayType;
 
             token = getTokenNoWhiteSpaces();
+
+            if (token.type == jst::ARRAY_END)
+            {
+                return {};
+            }
 
             if (token.type != jst::STRING_SEPARATOR && token.type != jst::NUMBER && token.type != jst::OBJECT_BEGIN)
             {

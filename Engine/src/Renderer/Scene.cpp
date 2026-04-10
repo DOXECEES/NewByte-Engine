@@ -350,6 +350,33 @@ namespace nb
         //delete archive;
     }
 
+    void Scene::clear() noexcept
+    {
+        ecs.clear();
+
+        sceneBVH = Math::BVH();
+        bvhDirty = true;
+
+        auto root  = ecs.createEntity();
+        rootEntity = root.id;
+
+        ecs.add(root, TransformComponent{});
+        ecs.add(root, HierarchyComponent{0});
+        ecs.add(root, NameComponent{"Root"});
+
+        ecs.getStorage<TransformComponent>();
+        ecs.getStorage<HierarchyComponent>();
+        ecs.getStorage<NameComponent>();
+        ecs.getStorage<MeshComponent>();
+        ecs.getStorage<nb::Script::ScriptComponent>();
+
+        ecs.getStorage<nb::Renderer::LightComponent>();
+        ecs.getStorage<nb::Physics::Collider>();
+        ecs.getStorage<nb::Physics::GroundTag>();
+        ecs.getStorage<nb::Physics::Rigidbody>();
+        ecs.getStorage<nb::Physics::TerrainColliderComponent>();
+    }
+
     void Scene::serialize(nb::Serialize::IArchive* archive) noexcept
     {
         if (!archive)
@@ -576,8 +603,6 @@ namespace nb
         }
     }
 
-
-
     void Scene::addComponentRaw(
         Ecs::Entity entity,
         Ecs::StorageWrapperBase* storage,
@@ -589,7 +614,6 @@ namespace nb
             storage->addRaw(entity.id, component);
         }
     }
-
 
     void Scene::deserialize(nb::Serialize::IArchive* archive) noexcept
     {

@@ -173,6 +173,9 @@ namespace nb
             return scene;
         }
 
+        void clear() noexcept;
+        
+
         Node createNode(Ecs::EntityID parent = 0) noexcept;
 
         template <typename T>

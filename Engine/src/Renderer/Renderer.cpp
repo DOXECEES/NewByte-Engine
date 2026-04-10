@@ -220,12 +220,13 @@ namespace nb::Renderer
                     mainP.polygonMode = polygonMode;
 
                     // Берем уже вычисленную в пункте 1 матрицу
-                    meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
+                    //meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
 
                     mainQueue.pushBack({
                         .mesh     = meshPtr,
                         .material = meshComp.material,
-                        .pipeline = api->getCache().getOrCreate(mainP)
+                        .pipeline = api->getCache().getOrCreate(mainP),
+                        .model    = transform.worldMatrix
                     });
                 }
             }
@@ -282,7 +283,7 @@ namespace nb::Renderer
             lightPassShader->setUniformMat4("lightProj", lightProj);
             lightPassShader->setUniformMat4("lightView", lightView);
 
-            lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
+            lightPassShader->setUniformMat4("model", cmd.model);
 
             RendererCommand shadowCmd = { .mesh = cmd.mesh, .pipeline = shadowPSO };
             api->drawMesh(shadowCmd);
@@ -313,7 +314,7 @@ namespace nb::Renderer
         skyboxShader->setUniformInt("skybox", 0);
         skyboxShader->setUniformMat4("view", view);
         skyboxShader->setUniformMat4("projection", proj);
-        sky.bindCubemap(ibl->getPrefilterCubemap());
+        sky.bindCubemap(ibl->getCubemap());
         sky.render(skyboxShader);
 
         //glActiveTexture(GL_TEXTURE5);
@@ -382,11 +383,19 @@ namespace nb::Renderer
 
                 for (auto& mat : material)
                 {
+                    if (mat == nullptr)
+                    {
+                        mat = nb::ResMan::ResourceManager::getInstance()
+                                  ->getResource<Resource::MaterialAsset>(
+                                      "Assets/res/plastic.material"
+                                  );
+                    }
+
                     auto shader = mat->getShader();
 
                     shader->setUniformVec3("u_CameraPos", cam->getPosition());
 
-                    shader->setUniformMat4("model" , cmd.mesh->uniforms.mat4Uniforms["model"]);
+                    shader->setUniformMat4("model" , cmd.model);
                     shader->setUniformVec3("viewPos", cam->getPosition());
                     shader->setUniformMat4("view",     cam->getLookAt());
                     shader->setUniformMat4("proj",     cam->getProjection());

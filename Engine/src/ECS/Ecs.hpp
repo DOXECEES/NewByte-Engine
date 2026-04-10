@@ -110,6 +110,14 @@ namespace nb::Ecs
             return entities;
         }
 
+        void clear()
+        {
+            indexMap.clear();
+            entities.clear();
+            data.clear();
+        }
+
+
     private:
         std::unordered_map<EntityID, size_t> indexMap;
 
@@ -133,6 +141,8 @@ namespace nb::Ecs
         ) = 0;
 
         virtual void addDefault(EntityID entity) = 0; 
+        virtual void clear()                     = 0;
+
     };
 
     template <typename T> struct StorageWrapper : StorageWrapperBase
@@ -142,6 +152,11 @@ namespace nb::Ecs
         void remove(EntityID entity) override
         {
             storage.remove(entity);
+        }
+
+        void clear() override
+        {
+            storage.clear();
         }
 
         // Реализация новых методов
@@ -181,6 +196,19 @@ namespace nb::Ecs
         {
             return Entity{nextEntityID++};
         }
+
+        void clear()
+        {
+            for (auto& storage : storages)
+            {
+                if (storage)
+                {
+                    storage->clear();
+                }
+            }
+            nextEntityID = 1;
+        }
+
 
         void destroyEntity(Entity entity)
         {
