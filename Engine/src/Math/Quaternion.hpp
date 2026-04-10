@@ -48,6 +48,18 @@ namespace nb
                     return a;
                 }
 
+                 friend constexpr Quaternion<T> operator-(
+                    Quaternion<T>        a,
+                    const Quaternion<T>& oth
+                ) noexcept
+                {
+                    a.x -= oth.x;
+                    a.y -= oth.y;
+                    a.z -= oth.z;
+                    a.w -= oth.w;
+                    return a;
+                }
+
                 constexpr Quaternion<T>& operator+=(const Quaternion<T>& oth) noexcept
                 {
                     this->x += oth.x;
@@ -57,15 +69,19 @@ namespace nb
                     return *this;
                 }
 
-                friend constexpr Quaternion<T> operator*(Quaternion<T> a, const Quaternion<T>& oth) noexcept
+                friend constexpr Quaternion<T> operator*(
+                    const Quaternion<T>& a,
+                    const Quaternion<T>& b
+                ) noexcept
                 {
                     return Quaternion<T>(
-                        (a.w * oth.w - a.x * oth.x - a.y * oth.y - a.z * oth.z),
-                        (a.w * oth.x + a.x * oth.w + a.y * oth.z - a.z * oth.y),
-                        (a.w * oth.y - a.x * oth.z + a.y * oth.w + a.z * oth.x),
-                        (a.w * oth.z + a.x * oth.y - a.y * oth.x + a.z * oth.w)
+                        a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, // X
+                        a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x, // Y
+                        a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, // Z
+                        a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z  // W
                     );
                 }
+
 
                 template<typename T>
                 friend constexpr Math::Vector3<T> operator*(const Quaternion<T>& q, const Math::Vector3<T>& v)
@@ -76,6 +92,23 @@ namespace nb
 
                     return v + ((uv * q.w) + uuv) * static_cast<T>(2);
                 }
+
+                friend constexpr Quaternion<T> operator*(
+                    Quaternion<T> q,
+                    T             scalar
+                ) noexcept
+                {
+                    return Quaternion<T>(q.x * scalar, q.y * scalar, q.z * scalar, q.w * scalar);
+                }
+
+                friend constexpr Quaternion<T> operator*(
+                    T                    scalar,
+                    const Quaternion<T>& q
+                ) noexcept
+                {
+                    return q * scalar;
+                }
+
 
                 constexpr Quaternion<T>& operator*=(const Quaternion<T>& oth) noexcept
                 {
@@ -144,6 +177,103 @@ namespace nb
                     return Quaternion<T>(x, y, z, w);
                 }
 
+                static constexpr Quaternion<T> eulerToQuaternionXYZ(
+                    T x,
+                    T y,
+                    T z
+                ) noexcept
+                {
+                    T cx = std::cos(x * 0.5f);
+                    T sx = std::sin(x * 0.5f);
+                    T cy = std::cos(y * 0.5f);
+                    T sy = std::sin(y * 0.5f);
+                    T cz = std::cos(z * 0.5f);
+                    T sz = std::sin(z * 0.5f);
+
+                    return Quaternion<T>(
+                        sx * cy * cz - cx * sy * sz, 
+                        cx * sy * cz + sx * cy * sz,
+                        cx * cy * sz - sx * sy * cz, 
+                        cx * cy * cz + sx * sy * sz  
+                    );
+                }
+
+
+                constexpr static Quaternion<T> eulerToQuaternionYXZ(
+                    T pitch,
+                    T yaw,
+                    T roll
+                ) noexcept
+                {
+                    T p = pitch;
+                    T y = yaw;
+                    T r = roll;
+
+                    T cp = std::cos(p * 0.5f);
+                    T sp = std::sin(p * 0.5f);
+                    T cy = std::cos(y * 0.5f);
+                    T sy = std::sin(y * 0.5f);
+                    T cr = std::cos(r * 0.5f);
+                    T sr = std::sin(r * 0.5f);
+
+                    return Quaternion<T>(
+                        sp * cy * cr + cp * sy * sr, // x
+                        cp * sy * cr - sp * cy * sr, // y
+                        cp * cy * sr + sp * sy * cr, // z
+                        cp * cy * cr - sp * sy * sr  // w
+                    );
+                }
+
+                constexpr Math::Vector3<T> toEulerXYZ() const noexcept
+                {
+                    Math::Vector3<T> euler;
+
+
+                    T siny = 2 * (w * y - z * x);
+
+                    if (std::abs(siny) >= 0.99999f)
+                    {
+                        euler.y = std::copysign(static_cast<T>(3.1415926535 / 2.0), siny);
+                        euler.x = std::atan2(-2 * (y * z - w * x), 1 - 2 * (x * x + y * y));
+                        euler.z = 0;
+                    }
+                    else
+                    {
+                        euler.y = std::asin(siny);
+                        euler.x = std::atan2(2 * (x * w + y * z), 1 - 2 * (x * x + y * y));
+                        euler.z = std::atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+                    }
+
+                    return euler; 
+                }
+
+                constexpr Math::Vector3<T> toEulerYXZ() const noexcept
+                {
+                    Math::Vector3<T> euler;
+
+                    T sinp = 2 * (w * x - y * z);
+                    if (std::abs(sinp) >= 1)
+                    {
+                        euler.x =
+                            std::copysign(static_cast<T>(3.1415926535 / 2.0), sinp); 
+                    }
+                    else
+                    {
+                        euler.x = std::asin(sinp);
+                    }
+
+                    T siny_cosp = 2 * (w * y + z * x);
+                    T cosy_cosp = 1 - 2 * (x * x + y * y);
+                    euler.y     = std::atan2(siny_cosp, cosy_cosp);
+
+                    T sinr_cosp = 2 * (w * z + x * y);
+                    T cosr_cosp = 1 - 2 * (z * z + x * x);
+                    euler.z     = std::atan2(sinr_cosp, cosr_cosp);
+
+                    return euler;
+                }
+
+
 
                 Quaternion<T> cross(const Quaternion<T>& oth) const
                 {
@@ -203,6 +333,44 @@ namespace nb
         };
     };
 };
+
+namespace nb::Reflect
+{
+
+    template <typename T>
+    struct Reflect<nb::Math::Quaternion<T>>
+    {
+        inline static const char* name = []()
+        {
+            if constexpr (std::is_same_v<T, float>)
+            {
+                return "Quaternion<float>";
+            }
+            else if constexpr (std::is_same_v<T, double>)
+            {
+                return "Quaternion<double>";
+            }
+            else if constexpr (std::is_same_v<T, int>)
+            {
+                return "Quaternion<int>";
+            }
+            else
+            {
+                return "Quaternion<unknown>";
+            }
+        }();
+
+        static constexpr auto fields = std::make_tuple(
+            NB_FIELD(nb::Math::Quaternion<T>, x),
+            NB_FIELD(nb::Math::Quaternion<T>, y),
+            NB_FIELD(nb::Math::Quaternion<T>, z),
+            NB_FIELD(nb::Math::Quaternion<T>, w)
+        );
+
+        static constexpr bool isInternal = false;
+    };
+
+}; // namespace nb::Reflect
 
 #endif
 

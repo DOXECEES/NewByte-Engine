@@ -200,7 +200,7 @@ private:
                         t.position = {tc.position.x, tc.position.y, tc.position.z};
                         t.scale = {tc.scale.x, tc.scale.y, tc.scale.z};
 
-                        auto quat = nb::Math::eulerToQuaternion(tc.rotation);
+                        auto quat = tc.rotation;
                         quat.normalize();
 
                         t.orientation = {-quat.x, -quat.y, -quat.z, quat.w};
@@ -223,7 +223,11 @@ private:
                             }
                             resultQuat.normalize();
 
-                            tc.rotation = nb::Math::quatToEuler(resultQuat);
+                            tc.rotation = resultQuat;
+
+                            tc.eulerAngle = tc.rotation.toEulerXYZ();
+                            tc.lastEuler  = tc.eulerAngle; 
+
 
                             tc.dirty = true;
 

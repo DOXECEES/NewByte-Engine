@@ -45,9 +45,10 @@ namespace nb::Physics
         Math::Vector3<float> force{0.0f, 0.0f, 0.0f};
 
         float mass           = 1.0f;
-        float drag           = 0.5f;
+        float drag           = 0.1f;
         float friction       = 0.4f;
         float staticFriction = 0.1f;
+        float                restitution    = 0.0f;
 
         Math::Vector3<float> angularVelocity{0.0f, 0.0f, 0.0f};
         Math::Vector3<float> torque{0.0f, 0.0f, 0.0f};
@@ -82,8 +83,6 @@ namespace nb::Physics
             Math::Vector3<float> size
         )
         {
-            // Формула для прямоугольного параллелепипеда:
-            // I = (1/12) * mass * (other_side1^2 + other_side2^2)
             float x2 = size.x * size.x;
             float y2 = size.y * size.y;
             float z2 = size.z * size.z;
@@ -105,23 +104,24 @@ namespace nb::Physics
                 return;
             }
 
-            for (auto entity : scene.getEntitiesWith<Rigidbody, TransformComponent>())
+            for (auto entity : scene.getEntitiesWith<Rigidbody, TransformComponent, Collider>())
             {
                 auto& rb = scene.getComponent<Rigidbody>(entity.id);
                 auto& t  = scene.getComponent<TransformComponent>(entity.id);
+                auto& c  = scene.getComponent<Collider>(entity.id);
 
-                applyForce(rb, dt, t);
+                applyForce(rb, dt, t, c);
             }
 
             resolveDynamicCollisions(scene, dt);
 
-            resolveCollisions(scene, dt);
         }
 
         void applyForce(
             nb::Physics::Rigidbody& rb,
             float                   dt,
-            TransformComponent&     t
+            TransformComponent&     t,
+            Collider& c
         ) noexcept;
         
 

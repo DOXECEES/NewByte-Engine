@@ -10,6 +10,7 @@
 #include <Math/Math.hpp>
 #include <Math/Matrix/Matrix.hpp>
 #include <Math/Vector3.hpp>
+#include <Math/Quaternion.hpp>
 
 #include <Renderer/Mesh.hpp>
 #include <Reflection/Reflection.hpp>
@@ -24,7 +25,11 @@
 struct TransformComponent
 {
     nb::Math::Vector3<float> position{};
-    nb::Math::Vector3<float> rotation{};
+    nb::Math::Vector3<float> eulerAngle{};
+    nb::Math::Vector3<float> lastEuler{}; 
+
+    nb::Math::Quaternion<float> rotation;
+     
     nb::Math::Vector3<float> scale{1.0f, 1.0f, 1.0f};
     nb::Math::Mat4<float> localMatrix = nb::Math::Mat4<float>::identity();
     nb::Math::Mat4<float> worldMatrix = nb::Math::Mat4<float>::identity();
@@ -34,7 +39,7 @@ struct TransformComponent
 
 NB_REFLECT_STRUCT(TransformComponent,
     NB_FIELD(TransformComponent, position),
-    NB_FIELD(TransformComponent, rotation),
+    NB_FIELD(TransformComponent, eulerAngle),
     NB_FIELD(TransformComponent, scale),
     NB_FIELD(TransformComponent, dirty)
 )

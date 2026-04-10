@@ -98,14 +98,37 @@ namespace nb
 
         bool isDirty = transform.dirty || parentDirty;
 
+        if (transform.eulerAngle.x != transform.lastEuler.x ||
+            transform.eulerAngle.y != transform.lastEuler.y ||
+            transform.eulerAngle.z != transform.lastEuler.z)
+        {
+            transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionXYZ(
+                transform.eulerAngle.x, transform.eulerAngle.y, transform.eulerAngle.z
+            );
+            transform.lastEuler = transform.eulerAngle; 
+            transform.dirty     = true;
+        }
+
+
         if (isDirty)
         {
             nb::Math::Mat4<float> local = nb::Math::Mat4<float>::identity();
 
+            //transform.rotation.normalize();
+
+            
+            //transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionYXZ(
+            //    transform.eulerAngle.x, 
+            //    transform.eulerAngle.y, 
+            //    transform.eulerAngle.z  
+            //);
+
+            transform.rotation.normalize();
+
             local = Math::scale(local, transform.scale);
-            local = Math::rotate(local, {1.0f, 0.0f, 0.0f}, transform.rotation.x);
-            local = Math::rotate(local, {0.0f, 1.0f, 0.0f}, transform.rotation.y);
-            local = Math::rotate(local, {0.0f, 0.0f, 1.0f}, transform.rotation.z);
+
+            local = local * transform.rotation.toMatrix4();
+
             local = Math::translate(local, transform.position);
 
             transform.localMatrix = local;

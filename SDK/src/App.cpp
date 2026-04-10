@@ -981,7 +981,8 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     void* fieldData = (char*)componentPtr + field.offset;
     std::string typeName = field.type->name;
 
-    if (typeName.find("Vector3") != std::string::npos)
+    if (typeName.find("Vector3") != std::string::npos ||
+        typeName.find("Quaternion") != std::string::npos)
     {
         auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
 

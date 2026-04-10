@@ -1,6 +1,7 @@
 #ifndef SRC_MATH_COLLISON_OBB_HPP
 #define SRC_MATH_COLLISON_OBB_HPP
 
+#include "Math/Quaternion.hpp" // Добавили кватернионы
 #include "Math/Vector3.hpp"
 #include <algorithm>
 #include <cmath>
@@ -13,8 +14,6 @@ namespace nb::Math
         Math::Vector3<float> axes[3];
         Math::Vector3<float> halfSize;
 
-        // ИСПРАВЛЕНО: Правильное извлечение осей из углов Эйлера (YXZ порядок)
-        // Это убирает инверсию "лево-право"
         void update(
             const TransformComponent& t,
             const Physics::Collider&  c
@@ -23,36 +22,16 @@ namespace nb::Math
             center   = t.position;
             halfSize = c.halfSize * t.scale;
 
-            // Углы Эйлера
-            float rx = t.rotation.x;
-            float ry = t.rotation.y;
-            float rz = t.rotation.z;
+            auto R = t.rotation.toMatrix3();
 
-            float cx = std::cos(rx), sx = std::sin(rx);
-            float cy = std::cos(ry), sy = std::sin(ry);
-            float cz = std::cos(rz), sz = std::sin(rz);
 
-            // ИСПРАВЛЕННЫЕ ОСИ (с учетом твоего "180 по Y")
-            // Теперь физика будет "смотреть" туда же, куда и рендер
-
-            // Ось X (Right)
-            axes[0].x = cy * cz - sy * sx * sz; // Поменял знак перед sy
-            axes[0].y = -cx * sz;               // Поменял знак
-            axes[0].z = sy * cz + cy * sx * sz; // Поменял знак
-
-            // Ось Y (Up)
-            axes[1].x = cy * sz + sy * sx * cz;
-            axes[1].y = cx * cz;
-            axes[1].z = sy * sz - cy * sx * cz;
-
-            // Ось Z (Forward)
-            axes[2].x = -sy * cx; // Поменял знак
-            axes[2].y = sx;
-            axes[2].z = cy * cx;
+            axes[0] = {R[0][0], R[0][1], R[0][2]}; 
+            axes[1] = {R[1][0], R[1][1], R[1][2]}; 
+            axes[2] = {R[2][0], R[2][1], R[2][2]}; 
 
             for (int i = 0; i < 3; ++i)
             {
-                axes[i] = Math::normalize(axes[i]);
+                axes[i].normalize();
             }
         }
 
@@ -149,7 +128,6 @@ namespace nb::Math
             }
         }
 
-        // Нормаль всегда от A к B
         if ((b.center - a.center).dot(result.normal) < 0)
         {
             result.normal *= -1.0f;
