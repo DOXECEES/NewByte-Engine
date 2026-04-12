@@ -273,10 +273,10 @@ private:
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
  
-                if (engine->getMode() == nb::Core::Engine::Mode::EDITOR)
-                    mainWindow->showCursor();
-                else
+                if (engine->shouldHideCursor())
                     mainWindow->hideCursor();
+                else
+                    mainWindow->showCursor();
             }
 
             mainWindow->resetStateDirtyFlags();

@@ -57,45 +57,45 @@ namespace nb
                 case RIM_TYPEMOUSE:
                 {
                     if (!shouldHandlePosition)
-                        break;
-
-                    if (rawInput.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
                     {
-                        /**
-                        *   @todo Обработка мыши при абсолютной позиции
-                        */
 
-
-                        prevMouseX = rawInput.data.mouse.lLastX;
-                        prevMouseY = rawInput.data.mouse.lLastY;
-                    }
-                    else
-                    {
-                        prevMouseX += rawInput.data.mouse.lLastX;
-                        prevMouseY += rawInput.data.mouse.lLastY;
-
-                    }
-
-                    if ((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
-                        || rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL)
-                    {
-                        int16_t wheelDelta = static_cast<int16_t>(rawInput.data.mouse.usButtonData);
-                        prevScrollData = static_cast<float>(wheelDelta) / WHEEL_DELTA;
-
-                        if (rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL)
+                        if (rawInput.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
                         {
-                            uint64_t scrollChars = 1; // 1 is the default
-                            SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
-                            prevScrollData *= scrollChars;
+                            /**
+                             *   @todo Обработка мыши при абсолютной позиции
+                             */
 
+                            prevMouseX = rawInput.data.mouse.lLastX;
+                            prevMouseY = rawInput.data.mouse.lLastY;
                         }
                         else
                         {
-                            uint64_t scrollLines = 3;
-                            SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
-                            if (scrollLines != WHEEL_PAGESCROLL)
-                                prevScrollData *= scrollLines;
+                            prevMouseX += rawInput.data.mouse.lLastX;
+                            prevMouseY += rawInput.data.mouse.lLastY;
+                        }
 
+                        if ((rawInput.data.mouse.usButtonFlags & RI_MOUSE_WHEEL) ||
+                            rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL)
+                        {
+                            int16_t wheelDelta =
+                                static_cast<int16_t>(rawInput.data.mouse.usButtonData);
+                            prevScrollData = static_cast<float>(wheelDelta) / WHEEL_DELTA;
+
+                            if (rawInput.data.mouse.usButtonFlags & RI_MOUSE_HWHEEL)
+                            {
+                                uint64_t scrollChars = 1; // 1 is the default
+                                SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &scrollChars, 0);
+                                prevScrollData *= scrollChars;
+                            }
+                            else
+                            {
+                                uint64_t scrollLines = 3;
+                                SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &scrollLines, 0);
+                                if (scrollLines != WHEEL_PAGESCROLL)
+                                {
+                                    prevScrollData *= scrollLines;
+                                }
+                            }
                         }
                     }
 

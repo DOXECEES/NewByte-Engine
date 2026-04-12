@@ -53,20 +53,44 @@ namespace nb::Ecs
     template <typename T> class ComponentStorage
     {
     public:
+
         void
         add(EntityID entity,
             const T& component)
         {
+            if constexpr (std::is_copy_assignable_v<T>)
+            {
+                if (indexMap.contains(entity))
+                {
+                    data[indexMap[entity]] = component;
+                    return;
+                }
+
+                indexMap[entity] = data.size();
+                entities.push_back(entity);
+                data.push_back(component);
+            }
+            else
+            {
+            }
+        }
+
+
+
+        void
+        add(EntityID entity,
+            T&& component)
+        {
             if (indexMap.contains(entity))
             {
-                data[indexMap[entity]] = component;
-                return;
+                data[indexMap[entity]] = std::move(component);
+                return; 
             }
 
             indexMap[entity] = data.size();
 
             entities.push_back(entity);
-            data.push_back(component);
+            data.push_back(std::move(component));
         }
 
         void remove(EntityID entity)
@@ -81,7 +105,7 @@ namespace nb::Ecs
             size_t last = data.size() - 1;
 
             entities[index] = entities[last];
-            data[index] = data[last];
+            data[index]     = std::move(data[last]);
 
             indexMap[entities[index]] = index;
 
@@ -177,11 +201,12 @@ namespace nb::Ecs
 
         void addRaw(
             EntityID entity,
-            void* component
+            void*    component
         ) override
         {
-            storage.add(entity, *static_cast<T*>(component));
+            storage.add(entity, std::move(*static_cast<T*>(component)));
         }
+
 
         void addDefault(EntityID entity) override
         {
@@ -224,10 +249,12 @@ namespace nb::Ecs
         template <typename T>
         void
         add(Entity entity,
-            const T& component)
+            T&&    component) 
         {
-            getStorage<T>().add(entity.id, component);
+            using ComponentType = std::decay_t<T>;
+            getStorage<ComponentType>().add(entity.id, std::forward<T>(component));
         }
+
 
         template <typename T> T& get(Entity entity)
         {
@@ -263,9 +290,12 @@ namespace nb::Ecs
         }
 
     public:
-        template <typename T> ComponentStorage<T>& getStorage()
+        template <typename T>
+        ComponentStorage<std::decay_t<T>>& getStorage()
         {
-            ComponentTypeID id = ComponentType<T>::id();
+            using PureT = std::decay_t<T>;
+
+            ComponentTypeID id = ComponentType<PureT>::id();
 
             if (storages.size() <= id)
             {
@@ -274,12 +304,13 @@ namespace nb::Ecs
 
             if (!storages[id])
             {
-                storages[id] = std::make_unique<StorageWrapper<T>>();
+                storages[id] = std::make_unique<StorageWrapper<PureT>>();
                 registerComponentType(id);
             }
 
-            return static_cast<StorageWrapper<T>*>(storages[id].get())->storage;
+            return static_cast<StorageWrapper<PureT>*>(storages[id].get())->storage;
         }
+
 
         template <typename T> const ComponentStorage<T>& getStorage() const
         {

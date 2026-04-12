@@ -15,7 +15,7 @@
 
 #include <Renderer/Mesh.hpp>
 #include <Reflection/Reflection.hpp>
-
+#include "Renderer/Camera.hpp"
 
 #include <Manager/ResourceManager.hpp>
 #include <Resources/MaterialAsset.hpp>
@@ -126,6 +126,29 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         MeshComponent,
         material
+    )
+)
+
+struct CameraComponent
+{
+    std::unique_ptr<nb::Renderer::Camera> controller;
+    bool                                  isPrimary = true;
+
+    float fov    = 60.0f;
+    float aspect = 1.77f;
+
+    CameraComponent() : controller(std::make_unique<nb::Renderer::Camera>())
+    {
+    }
+
+    NB_MOVE_ONLY(CameraComponent);
+};
+
+NB_REFLECT_STRUCT(
+    CameraComponent,
+    NB_FIELD(
+        CameraComponent,
+        isPrimary
     )
 )
 

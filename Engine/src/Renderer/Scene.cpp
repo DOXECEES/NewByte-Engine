@@ -364,6 +364,8 @@ namespace nb
         ecs.getStorage<nb::Physics::Collider>();
 //        ecs.getStorage<nb::Physics::GroundTag>();
         ecs.getStorage<nb::Physics::Rigidbody>();
+        ecs.getStorage<CameraComponent>();
+
         //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
 
 
@@ -397,6 +399,8 @@ namespace nb
         ecs.getStorage<nb::Physics::Collider>();
         //ecs.getStorage<nb::Physics::GroundTag>();
         ecs.getStorage<nb::Physics::Rigidbody>();
+        ecs.getStorage<CameraComponent>();
+
         //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
     }
 

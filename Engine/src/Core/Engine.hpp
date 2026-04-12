@@ -138,7 +138,7 @@ namespace nb
 
             bool run(bool shouldRender = true);
             void handleGameMode(nb::Math::Vector3<float> &camDir, Scene& scene, float deltaTime) noexcept;
-            void handleEditorMode() noexcept;
+            void handleEditorMode(float deltaTime) noexcept;
 
 
             Node rayPick(
@@ -218,6 +218,14 @@ namespace nb
 				}
 			}
 
+            bool shouldHideCursor() const noexcept
+            {
+                return hideCursor;
+            }
+
+            Renderer::Camera* findPrimaryGameCamera(Scene& scene) noexcept;
+
+
             ShaderSystem& getShaderSystem() noexcept;
 
         private:
@@ -233,6 +241,7 @@ namespace nb
             Ref<nb::Input::Mouse>			mouse           = nullptr;
             bool							isRunning       = true;
             bool							handleInput     = true;
+            bool                            hideCursor = false;
             
             nb::Renderer::Camera			cam;
             // temp
