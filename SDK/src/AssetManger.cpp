@@ -6,7 +6,7 @@
 AssetManager::AssetManager(nbstl::NonOwningPtr<nb::Core::Engine> engine) 
     : engine(engine)
 {
-    importAsset("Assets/res/brick.png");
+    //importAsset("Assets/res/brick.png");
     window = std::make_shared<Win32Window::ChildWindow>(nullptr);
     window->addCaption();
 
@@ -27,6 +27,7 @@ void AssetManager::importAsset(std::filesystem::path path) noexcept
 
     assetsJson.writeToFile("Assets/Assets.json");
 }
+
 std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
 {
     using namespace nbui;

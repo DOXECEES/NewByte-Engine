@@ -11,12 +11,17 @@
 
 #include "Input/Input.hpp"
 
+#include "Physics/Physics.hpp"
+
 namespace nb::Script
 {
     class ScriptEngine
     {
     public:
         ScriptEngine();
+
+        sol::environment createEnvironment();
+
 
         void registerEcsTypes()
         {
@@ -66,6 +71,19 @@ namespace nb::Script
                 }
             );
 
+            lua.new_usertype<nb::Physics::Rigidbody>(
+                "Rigidbody",
+                "mass", &nb::Physics::Rigidbody::mass,
+                "isStatic", &nb::Physics::Rigidbody::isStatic,
+                "useGravity", &nb::Physics::Rigidbody::useGravity,
+                "bodyID", &nb::Physics::Rigidbody::bodyID,
+               
+                "addForce", &nb::Physics::Rigidbody::addForce,
+                "addTorque", &nb::Physics::Rigidbody::addTorque,
+                "applyImpulse", &nb::Physics::Rigidbody::applyImpulse
+            );
+
+
             lua.new_usertype<nb::Scene>(
                 "Scene", "getTransform",
                 [](nb::Scene& scene, uint32_t entityId) -> TransformComponent&
@@ -78,6 +96,16 @@ namespace nb::Script
                         );
                     }
                     return registry.get<TransformComponent>({entityId});
+                },
+                "getRigidbody",
+                [](nb::Scene& scene, uint32_t entityId) -> nb::Physics::Rigidbody&
+                {
+                    auto& registry = scene.getRegistry();
+                    if (!registry.has<nb::Physics::Rigidbody>({entityId}))
+                    {
+                        throw std::runtime_error("Entity has no RigidbodyComponent");
+                    }
+                    return registry.get<nb::Physics::Rigidbody>({entityId});
                 }
             );
 
@@ -126,6 +154,7 @@ namespace nb::Script
             );
 
            
+            
 
         }
 
@@ -148,7 +177,10 @@ namespace nb::Script
             }
             return true;
         }
-        bool loadScript(const std::filesystem::path& path);
+        bool loadScript(
+            const std::filesystem::path& path,
+            sol::environment&            env
+        );
 
         template <typename... Args>
         sol::protected_function_result callFunction(

@@ -22,6 +22,8 @@
 
 #include "../Renderer/Camera.hpp"
 
+#include "Physics/Physics.hpp"
+
 #include "ECS/ecs.hpp"
 
 #include "Renderer/Color.hpp"
@@ -112,6 +114,7 @@ namespace nb
 
                 hwnd = windowHwnd;
                 subSystems->Init(hwnd);
+                ///physics  = std::make_shared<Physics::PhysicsSystem>();
                 renderer = subSystems->getRenderer();
                 renderer->setCamera(&cam);
                 ResMan::ResourceManager::init(renderer->getApi());
@@ -134,8 +137,8 @@ namespace nb
             void setHandleInput(bool var) { handleInput = var; }
 
             bool run(bool shouldRender = true);
-            void handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept;
-            void handleEditorMode() noexcept;
+            void handleGameMode(nb::Math::Vector3<float> &camDir, Scene& scene, float deltaTime) noexcept;
+            void handleEditorMode(float deltaTime) noexcept;
 
 
             Node rayPick(
@@ -145,6 +148,10 @@ namespace nb
             ) const noexcept;
             
             Mode getMode() const noexcept;
+            void setMode(Mode newMode) noexcept;
+
+            void saveSnapshot() noexcept;
+            void loadSnapshot() noexcept;
 
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; }
             inline Math::Vector3<float> getCameraPos() const noexcept { return renderer->getCamera()->getPosition(); }
@@ -211,6 +218,14 @@ namespace nb
 				}
 			}
 
+            bool shouldHideCursor() const noexcept
+            {
+                return hideCursor;
+            }
+
+            Renderer::Camera* findPrimaryGameCamera(Scene& scene) noexcept;
+
+
             ShaderSystem& getShaderSystem() noexcept;
 
         private:
@@ -226,6 +241,7 @@ namespace nb
             Ref<nb::Input::Mouse>			mouse           = nullptr;
             bool							isRunning       = true;
             bool							handleInput     = true;
+            bool                            hideCursor = false;
             
             nb::Renderer::Camera			cam;
             // temp

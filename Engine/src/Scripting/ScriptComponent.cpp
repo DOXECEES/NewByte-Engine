@@ -8,7 +8,7 @@ namespace nb::Script
         const std::string& scriptPath
     )
         : engine(&engine),
-          path("Assets/res/" + scriptPath)
+          path(scriptPath)
     {
         loadScript();
     }
@@ -22,7 +22,9 @@ namespace nb::Script
     {
         if (engine)
         {
-            engine->loadScript(path);
+            env = engine->createEnvironment();
+
+            engine->loadScript(path, env);
         }
     }
 

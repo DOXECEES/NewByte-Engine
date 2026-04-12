@@ -192,7 +192,7 @@ namespace nb::Renderer
         auto& scene = nb::Scene::getInstance();
         auto& registry = scene.getRegistry();
 
-        scene.updateAllTransforms();
+        
 
         std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;
@@ -220,12 +220,13 @@ namespace nb::Renderer
                     mainP.polygonMode = polygonMode;
 
                     // Берем уже вычисленную в пункте 1 матрицу
-                    meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
+                    //meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
 
                     mainQueue.pushBack({
                         .mesh     = meshPtr,
                         .material = meshComp.material,
-                        .pipeline = api->getCache().getOrCreate(mainP)
+                        .pipeline = api->getCache().getOrCreate(mainP),
+                        .model    = transform.worldMatrix
                     });
                 }
             }
@@ -282,7 +283,7 @@ namespace nb::Renderer
             lightPassShader->setUniformMat4("lightProj", lightProj);
             lightPassShader->setUniformMat4("lightView", lightView);
 
-            lightPassShader->setUniformMat4("model", cmd.mesh->uniforms.mat4Uniforms["model"]);
+            lightPassShader->setUniformMat4("model", cmd.model);
 
             RendererCommand shadowCmd = { .mesh = cmd.mesh, .pipeline = shadowPSO };
             api->drawMesh(shadowCmd);
@@ -313,7 +314,7 @@ namespace nb::Renderer
         skyboxShader->setUniformInt("skybox", 0);
         skyboxShader->setUniformMat4("view", view);
         skyboxShader->setUniformMat4("projection", proj);
-        sky.bindCubemap(ibl->getPrefilterCubemap());
+        sky.bindCubemap(ibl->getCubemap());
         sky.render(skyboxShader);
 
         //glActiveTexture(GL_TEXTURE5);
@@ -382,11 +383,19 @@ namespace nb::Renderer
 
                 for (auto& mat : material)
                 {
+                    if (mat == nullptr)
+                    {
+                        mat = nb::ResMan::ResourceManager::getInstance()
+                                  ->getResource<Resource::MaterialAsset>(
+                                      "Assets/res/plastic.material"
+                                  );
+                    }
+
                     auto shader = mat->getShader();
 
                     shader->setUniformVec3("u_CameraPos", cam->getPosition());
 
-                    shader->setUniformMat4("model" , cmd.mesh->uniforms.mat4Uniforms["model"]);
+                    shader->setUniformMat4("model" , cmd.model);
                     shader->setUniformVec3("viewPos", cam->getPosition());
                     shader->setUniformMat4("view",     cam->getLookAt());
                     shader->setUniformMat4("proj",     cam->getProjection());
@@ -1160,147 +1169,147 @@ namespace nb::Renderer
 
     void Renderer::loadSceneEcs() noexcept
     {
-        auto rm = ResMan::ResourceManager::getInstance();
-        auto shader = rm->getResource<Shader>("ADS.shader");
+        //auto rm = ResMan::ResourceManager::getInstance();
+        //auto shader = rm->getResource<Shader>("ADS.shader");
 
-        auto& scene = nb::Scene::getInstance();
+        //auto& scene = nb::Scene::getInstance();
 
-        Math::Vector3<float> ambientColor{0.0f, 0.0f, 0.0f};
-
-
-        nb::Node dirLight = scene.createNode();
-        dirLight.setName("DirLight");
-
-        dirLight.addComponent(
-            LightComponent{
-                LightType::DIRECTIONAL,
-                Colors::BLACK,
-                Colors::WHITE,
-                Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
-                {-1.0f, -0.2f, -0.2f}
-            }
-        );
-
-        nb::Node pointLight = scene.createNode(dirLight.getId());
-        pointLight.setName("PointLight");
-
-        auto& plTransform = pointLight.getComponent<TransformComponent>();
-        plTransform.position = {-5.0f, 19.0f, -5.0f};
-        plTransform.dirty = true;
-
-        pointLight.addComponent(
-            LightComponent{
-                LightType::POINT,
-                Colors::BLACK,
-                Colors::WHITE,
-                Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
-                {0.0f,0.0f,0.0f},
-                1.0f,
-                0.0f,
-                0.0f,
-                1.0f
-            }
-        );
+        //Math::Vector3<float> ambientColor{0.0f, 0.0f, 0.0f};
 
 
-        nb::Node pointLight2 = scene.createNode();
-        pointLight2.setName("PointLight1");
+        //nb::Node dirLight = scene.createNode();
+        //dirLight.setName("DirLight");
 
-        auto& pl2Transform = pointLight2.getComponent<TransformComponent>();
-        pl2Transform.position = {5.0f, 0.0f, 5.0f};
-        pl2Transform.dirty = true;
+        //dirLight.addComponent(
+        //    LightComponent{
+        //        LightType::DIRECTIONAL,
+        //        Colors::BLACK,
+        //        Colors::WHITE,
+        //        Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
+        //        {-1.0f, -0.2f, -0.2f}
+        //    }
+        //);
 
-        pointLight2.addComponent(
-            LightComponent{
-                LightType::POINT,
-                Colors::BLACK,
-                Colors::WHITE,
-                Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
-                {0.0f,0.0f,0.0f},
-                1.0f,
-                0.0f,
-                0.0f,
-                1.0f
-            }
-        );
+        //nb::Node pointLight = scene.createNode(dirLight.getId());
+        //pointLight.setName("PointLight");
 
+        //auto& plTransform = pointLight.getComponent<TransformComponent>();
+        //plTransform.position = {-5.0f, 19.0f, -5.0f};
+        //plTransform.dirty = true;
 
-        Ref<Mesh> cube = rm->getResource<Mesh>("sphere_exp.obj");
-
-        nb::Node cubeNode = scene.createNode();
-        cubeNode.setName("cube");
-
-        auto& cubeTransform = cubeNode.getComponent<TransformComponent>();
-        cubeTransform.position = {0.0f, 200.0f, 0.0f};
-        cubeTransform.scale = {1.0f, 1.0f, 1.0f};
-        cubeTransform.dirty = true;
-        cube->uniforms.shader = shader;
-        auto material = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material");
-        auto brickMaterial = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/brick.material");
-        auto goldMaterial =
-            rm->getResource<nb::Resource::MaterialAsset>("Assets/res/gold.material");
-
-        cubeNode.addComponent(MeshComponent{cube, {brickMaterial} });
-        auto aabb = cube->getAabb3d();
-        
-        cubeNode.addComponent(Physics::Collider { .halfSize = (aabb.halfSize() * 1.0f)  });
-
-        cubeNode.addComponent(
-            Physics::Rigidbody{
-                .velocity = {0.0f, 0.0f, 0.0f},
-                .acceleration = {0.0f, 0.0f, 0.0f},
-                .mass = 1.0f,
-                .useGravity = true
-            }
-        );
-        cubeNode.addComponent(
-            nb::Script::ScriptComponent{
-                .script = std::make_shared<nb::Script::Script>(
-                    nb::Script::ScriptEngineSingleton::instance(), "aa.lua"
-                )
-            }
-        );
+        //pointLight.addComponent(
+        //    LightComponent{
+        //        LightType::POINT,
+        //        Colors::BLACK,
+        //        Colors::WHITE,
+        //        Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
+        //        {0.0f,0.0f,0.0f},
+        //        1.0f,
+        //        0.0f,
+        //        0.0f,
+        //        1.0f
+        //    }
+        //);
 
 
-        //Ref<Mesh> surf = rm->getResource<Mesh>("reddd.obj");
-        Ref<Mesh> surf = rm->getResource<Mesh>("shader_ball_tri.obj");
+        //nb::Node pointLight2 = scene.createNode();
+        //pointLight2.setName("PointLight1");
 
-        nb::Node surfNode = scene.createNode();
-        surfNode.setName("scene");  
+        //auto& pl2Transform = pointLight2.getComponent<TransformComponent>();
+        //pl2Transform.position = {5.0f, 0.0f, 5.0f};
+        //pl2Transform.dirty = true;
 
-        auto& surfTransform = surfNode.getComponent<TransformComponent>();
-        surfTransform.position = {0.0f, 0.0f, 0.0f};
-        surfTransform.scale = {0.1f, 0.1f, 0.1f};
-        surfTransform.dirty = true;
-        surf->uniforms.shader = shader;
-
-        surfNode.addComponent(
-            MeshComponent{
-                surf, {material, brickMaterial, goldMaterial, goldMaterial, goldMaterial, material}
-            }
-        );
-        //surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
-        surfNode.addComponent(Physics::GroundTag());
-        surfNode.addComponent(Physics::TerrainColliderComponent());
-        auto bakedData = nb::Physics::bakeMesh(*surf, 0.1f);
-        surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
-
-        
+        //pointLight2.addComponent(
+        //    LightComponent{
+        //        LightType::POINT,
+        //        Colors::BLACK,
+        //        Colors::WHITE,
+        //        Color::fromLinearRgb(0.1f, 0.1f, 0.1f),
+        //        {0.0f,0.0f,0.0f},
+        //        1.0f,
+        //        0.0f,
+        //        0.0f,
+        //        1.0f
+        //    }
+        //);
 
 
-        //surfNode.addComponent(nb::Script::ScriptComponent())
+        //Ref<Mesh> cube = rm->getResource<Mesh>("sphere_exp.obj");
+
+        //nb::Node cubeNode = scene.createNode();
+        //cubeNode.setName("cube");
+
+        //auto& cubeTransform = cubeNode.getComponent<TransformComponent>();
+        //cubeTransform.position = {0.0f, 200.0f, 0.0f};
+        //cubeTransform.scale = {1.0f, 1.0f, 1.0f};
+        //cubeTransform.dirty = true;
+        //cube->uniforms.shader = shader;
+        //auto material = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/plastic.material");
+        //auto brickMaterial = rm->getResource<nb::Resource::MaterialAsset>("Assets/res/brick.material");
+        //auto goldMaterial =
+        //    rm->getResource<nb::Resource::MaterialAsset>("Assets/res/gold.material");
+
+        //cubeNode.addComponent(MeshComponent{cube, {brickMaterial} });
+        //auto aabb = cube->getAabb3d();
+        //
+        //cubeNode.addComponent(Physics::Collider { .halfSize = (aabb.halfSize() * 1.0f)  });
+
+        //cubeNode.addComponent(
+        //    Physics::Rigidbody{
+        //        .velocity = {0.0f, 0.0f, 0.0f},
+        //        .acceleration = {0.0f, 0.0f, 0.0f},
+        //        .mass = 1.0f,
+        //        .useGravity = true
+        //    }
+        //);
+        //cubeNode.addComponent(
+        //    nb::Script::ScriptComponent{
+        //        .script = std::make_shared<nb::Script::Script>(
+        //            nb::Script::ScriptEngineSingleton::instance(), "aa.lua"
+        //        )
+        //    }
+        //);
+
+
+        ////Ref<Mesh> surf = rm->getResource<Mesh>("reddd.obj");
+        //Ref<Mesh> surf = rm->getResource<Mesh>("shader_ball_tri.obj");
+
+        //nb::Node surfNode = scene.createNode();
+        //surfNode.setName("scene");  
+
+        //auto& surfTransform = surfNode.getComponent<TransformComponent>();
+        //surfTransform.position = {0.0f, 0.0f, 0.0f};
+        //surfTransform.scale = {0.1f, 0.1f, 0.1f};
+        //surfTransform.dirty = true;
+        //surf->uniforms.shader = shader;
+
+        //surfNode.addComponent(
+        //    MeshComponent{
+        //        surf, {material, brickMaterial, goldMaterial, goldMaterial, goldMaterial, material}
+        //    }
+        //);
+        ////surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
+        //surfNode.addComponent(Physics::GroundTag());
+        //surfNode.addComponent(Physics::TerrainColliderComponent());
+        //auto bakedData = nb::Physics::bakeMesh(*surf, 0.1f);
+        //surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
+
+        //
+
+
+        ////surfNode.addComponent(nb::Script::ScriptComponent())
 
         //nb::Serialize::IArchive* archive =
         //    new nb::Serialize::JsonArchive("Assets/res/Scene.json");
         //Scene::getInstance().serialize(archive);
         //delete archive;
-        //
+        
 
-       /* nb::Serialize::IArchive* archive =
+        nb::Serialize::IArchive* archive =
             new nb::Serialize::JsonArchive("Assets/res/Scene.json");
         archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
         archive->load();
         Scene::getInstance().deserialize(archive);
-        delete archive;*/
+        delete archive;
     }
 }

@@ -8,6 +8,7 @@
 #include "Manager/ResourceManager.hpp"
 
 #include "Scripting/ScriptComponent.hpp"
+#include "Physics/Physics.hpp"
 
 namespace nb
 {
@@ -97,14 +98,37 @@ namespace nb
 
         bool isDirty = transform.dirty || parentDirty;
 
+        if (transform.eulerAngle.x != transform.lastEuler.x ||
+            transform.eulerAngle.y != transform.lastEuler.y ||
+            transform.eulerAngle.z != transform.lastEuler.z)
+        {
+            transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionXYZ(
+                transform.eulerAngle.x, transform.eulerAngle.y, transform.eulerAngle.z
+            );
+            transform.lastEuler = transform.eulerAngle; 
+            transform.dirty     = true;
+        }
+
+
         if (isDirty)
         {
             nb::Math::Mat4<float> local = nb::Math::Mat4<float>::identity();
 
+            //transform.rotation.normalize();
+
+            
+            //transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionYXZ(
+            //    transform.eulerAngle.x, 
+            //    transform.eulerAngle.y, 
+            //    transform.eulerAngle.z  
+            //);
+
+            transform.rotation.normalize();
+
             local = Math::scale(local, transform.scale);
-            local = Math::rotate(local, {1.0f, 0.0f, 0.0f}, transform.rotation.x);
-            local = Math::rotate(local, {0.0f, 1.0f, 0.0f}, transform.rotation.y);
-            local = Math::rotate(local, {0.0f, 0.0f, 1.0f}, transform.rotation.z);
+
+            local = local * transform.rotation.toMatrix4();
+
             local = Math::translate(local, transform.position);
 
             transform.localMatrix = local;
@@ -337,10 +361,47 @@ namespace nb
 
 
         ecs.getStorage<nb::Renderer::LightComponent>();
+        ecs.getStorage<nb::Physics::Collider>();
+//        ecs.getStorage<nb::Physics::GroundTag>();
+        ecs.getStorage<nb::Physics::Rigidbody>();
+        ecs.getStorage<CameraComponent>();
+
+        //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
+
+
         //nb::Serialize::IArchive* archive =
         //    new nb::Serialize::PseudoJsonArchive("Assets/res/Scene.json");
         //serialize(archive);
         //delete archive;
+    }
+
+    void Scene::clear() noexcept
+    {
+        ecs.clear();
+
+        sceneBVH = Math::BVH();
+        bvhDirty = true;
+
+        auto root  = ecs.createEntity();
+        rootEntity = root.id;
+
+        ecs.add(root, TransformComponent{});
+        ecs.add(root, HierarchyComponent{0});
+        ecs.add(root, NameComponent{"Root"});
+
+        ecs.getStorage<TransformComponent>();
+        ecs.getStorage<HierarchyComponent>();
+        ecs.getStorage<NameComponent>();
+        ecs.getStorage<MeshComponent>();
+        ecs.getStorage<nb::Script::ScriptComponent>();
+
+        ecs.getStorage<nb::Renderer::LightComponent>();
+        ecs.getStorage<nb::Physics::Collider>();
+        //ecs.getStorage<nb::Physics::GroundTag>();
+        ecs.getStorage<nb::Physics::Rigidbody>();
+        ecs.getStorage<CameraComponent>();
+
+        //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
     }
 
     void Scene::serialize(nb::Serialize::IArchive* archive) noexcept
@@ -428,7 +489,11 @@ namespace nb
                 continue;
             }
 
-            // Проверяем, есть ли у компонента поля для сериализации
+            if (!strcmp(type->name, "HierarchyComponent"))
+            {
+                continue;
+            }
+
             bool hasFields = false;
             for (auto& field : type->fields)
             {
@@ -442,6 +507,9 @@ namespace nb
 
             if (!hasFields)
             {
+                archive->beginObject(type->name);
+                
+                archive->endObject();
                 continue; // Пропускаем компоненты без полей
             }
 
@@ -504,6 +572,18 @@ namespace nb
                 archive->value(field.name, path);
                 continue;
             }
+            else if (field.getResourcePaths)
+            {
+                std::vector<std::string> paths = field.getResourcePaths(fieldPtr);
+                archive->beginArray(field.name);
+                for (auto& path : paths)
+                {
+                    archive->value(nullptr, path);
+                }
+                archive->endArray();
+                continue;
+            }
+
             else if (std::strcmp(field.type->name, "float") == 0)
             {
                 archive->value(field.name, *reinterpret_cast<float*>(fieldPtr));
@@ -550,8 +630,6 @@ namespace nb
         }
     }
 
-
-
     void Scene::addComponentRaw(
         Ecs::Entity entity,
         Ecs::StorageWrapperBase* storage,
@@ -563,7 +641,6 @@ namespace nb
             storage->addRaw(entity.id, component);
         }
     }
-
 
     void Scene::deserialize(nb::Serialize::IArchive* archive) noexcept
     {
@@ -713,14 +790,17 @@ namespace nb
 
             const auto& compJson = components[typeInfo->name];
 
-            void* tempComponent = malloc(typeInfo->size);
-            memset(tempComponent, 0, typeInfo->size);
+            storage->addDefault(entity.id);
 
-            deserializeFields(compJson, tempComponent, typeInfo);
+            // 2. Получаем указатель на созданный объект
+            void* componentPtr = storage->getRaw(entity.id);
 
-            addComponentRaw(entity, storage.get(), tempComponent);
+            // 3. Заполняем поля
+            if (componentPtr)
+            {
+                deserializeFields(compJson, componentPtr, typeInfo);
+            }
 
-            free(tempComponent);
         }
     }
 
@@ -780,10 +860,22 @@ void Scene::deserializeFields(
                 int value = fieldJson.get<int>();
                 std::memcpy(fieldPtr, &value, sizeof(int));
             }
-            if (fieldJson.isValue() && field.loadResource)
-            {
+            else if (fieldJson.isValue() && field.loadResource)
+            { 
                 std::string path = fieldJson.get<std::string>();
                 field.loadResource(fieldPtr, path); 
+            }
+            else if (field.loadResources && fieldJson.isArray())
+            {
+                std::vector<std::string> paths;
+                for (size_t i = 0; i < fieldJson.size(); ++i)
+                {
+                    if (fieldJson[i].isValue())
+                    {
+                        paths.push_back(fieldJson[i].get<std::string>());
+                    }
+                }
+                field.loadResources(fieldPtr, paths);
             }
             else if (!fieldType->fields.empty() && fieldJson.isObject())
             {

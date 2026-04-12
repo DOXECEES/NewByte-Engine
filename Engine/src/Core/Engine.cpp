@@ -6,7 +6,8 @@
 
 #include "Math/RayCast/RayPicker.hpp"
 
-        #include "Physics/Physics.hpp"
+#include "Physics/Physics.hpp"
+#include "Serialize/JsonArchive.hpp"
 
 struct Ray
 {
@@ -91,12 +92,78 @@ namespace nb
             input->update();
         }
 
-        void Engine::handleEditorMode() noexcept
+        void Engine::handleEditorMode(float deltaTime) noexcept
         {
             using namespace nb::Input;
-            input->stopHandlingPosition();
+            static bool isRotating = false;
 
-            ClipCursor(nullptr);
+            auto camDir = cam.getDirection();
+
+
+            if (mouse->isRightClick())
+            {
+                POINT pt;
+                GetCursorPos(&pt);
+                ScreenToClient(hwnd, &pt);
+
+                RECT r;
+                GetClientRect(hwnd, &r);
+
+                if (PtInRect(&r, pt))
+                {
+                    isRotating = true; 
+
+                    MapWindowPoints(hwnd, nullptr, reinterpret_cast<POINT*>(&r), 2);
+                    ClipCursor(&r);
+
+                    hideCursor = true;
+
+                    input->stopHandlingPosition();
+                }
+            }
+            if (mouse->isRightHeld() && isRotating)
+            {
+                cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
+            }
+            else
+            {
+                isRotating = false;
+
+                ClipCursor(nullptr);
+
+                hideCursor = false;
+
+                input->startHandlingPosition();
+            }
+
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
+            {
+                cam.moveAt(-camDir * 5.0f * deltaTime);
+            }
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
+            {
+                cam.moveAt(camDir * 5.0f * deltaTime);
+            }
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
+            {
+                auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
+                rightVec.normalize();
+                cam.moveAt(-rightVec * 5.0f * deltaTime);
+            }
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
+            {
+                auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
+                rightVec.normalize();
+                cam.moveAt(rightVec * 5.0f * deltaTime);
+            }
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
+            {
+                cam.moveAt(cam.getUpVector() * 5.0f * deltaTime);
+            }
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SHIFT))
+            {
+                cam.moveAt(-(cam.getUpVector() * 5.0f * deltaTime));
+            }
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
             {
@@ -156,10 +223,7 @@ namespace nb
             float deltaTime = Utils::Timer::timeElapsed();
              
             //this->mouseDelta = mouseDelta;
-            renderer->setCamera(&cam);
-
-           
-
+            //renderer->setCamera(&cam);
 
 
             static float yaw;
@@ -167,25 +231,12 @@ namespace nb
             auto& scene = Scene::getInstance();
             auto& registry = scene.getRegistry();
 
-            scene.traverseAll(
-                [&](Ecs::EntityID entityId)
-                {
-                    Ecs::Entity entity{entityId};
-
-                    if (registry.has<nb::Script::ScriptComponent>(entity))
-                    {
-                        auto& script = registry.get<nb::Script::ScriptComponent>(entity);
-                        script.script->onUpdate(entity, deltaTime);
-
-                    }
-                }
-            );
-
 
             cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
+
             if (mode == Mode::GAME)
             {
-                input->startHandlingPosition();
+                input->stopHandlingPosition();
                 input->startHandlingKeyboardEvents();
             }
 
@@ -204,66 +255,75 @@ namespace nb
                 SetCursorPos(EngineSettings::getWidth() / 2, EngineSettings::getHeight() / 2);
 
                 if (mode == Mode::EDITOR)
-                    mode = Mode::GAME;
+                {
+                    setMode(Mode::GAME);
+                }
                 else
-                    mode = Mode::EDITOR;
+                {
+                    setMode(Mode::EDITOR);
+                }
             }
 
             if (mode == Mode::EDITOR)
             {
-                handleEditorMode();
+                scene.isPaused = true;
+                handleEditorMode(deltaTime);
+
             }
             else
             {
+                scene.isPaused = false;
                 auto camDir = cam.getDirection();
-                handleGameMode(camDir, deltaTime);
+                handleGameMode(camDir, scene, deltaTime);
             }
 
-                renderer->render();
-            if (shouldRender)
-            {
-            }
+            scene.updateAllTransforms();
+
+            renderer->render();
+            
 
           
             return true;
         }
 
-        void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept
+        void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, Scene& scene, float deltaTime) noexcept
         {
             using namespace nb::Input;
 
-            Physics::PhysicsSystem physics;
-            physics.update(Scene::getInstance(), deltaTime);
+            subSystems->getPhysicsSystem().update(Scene::getInstance(), deltaTime);
 
 
-            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
+            auto& registry = scene.getRegistry();
+
+            scene.traverseAll(
+                [&](Ecs::EntityID entityId)
+                {
+                    Ecs::Entity entity{entityId};
+
+                    if (registry.has<nb::Script::ScriptComponent>(entity))
+                    {
+                        auto& script = registry.get<nb::Script::ScriptComponent>(entity);
+                        script.script->onUpdate(entity, deltaTime);
+                    }
+                }
+            );
+
+            for (auto entity : scene.getEntitiesWith<TransformComponent, CameraComponent>())
             {
-                cam.moveAt(-camDir * 5.0f * deltaTime);
+                auto& transform = scene.getComponent<TransformComponent>(entity.id);
+                auto& camComp   = scene.getComponent<CameraComponent>(entity.id);
+                
+                auto* camera    = camComp.controller.get();
+
+                // TODO: отдать скриптам
+                camera->moveTo(transform.position);
+                
+                camera->update(
+                    static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY())
+                );
+
             }
-            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
-            {
-                cam.moveAt(camDir * 5.0f * deltaTime);
-            }
-            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
-            {
-                auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
-                rightVec.normalize();
-                cam.moveAt(-rightVec * 5.0f * deltaTime);
-            }
-            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
-            {
-                auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
-                rightVec.normalize();
-                cam.moveAt(rightVec * 5.0f * deltaTime);
-            }
-            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
-            {
-                cam.moveAt(cam.getUpVector() * 5.0f * deltaTime);
-            }
-            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SHIFT))
-            {
-                cam.moveAt(-(cam.getUpVector() * 5.0f * deltaTime));
-            }
+
         }
 
         Node Engine::rayPick(
@@ -306,6 +366,66 @@ namespace nb
         {
             return mode;
         }
+
+        void Engine::setMode(Mode newMode) noexcept
+        {
+            if (mode == newMode)
+            {
+                return;
+            }
+
+            if (newMode == Mode::GAME)
+            {
+                saveSnapshot();
+                hideCursor               = true;
+                Scene&            scene  = Scene::getInstance();
+                Renderer::Camera* camera = findPrimaryGameCamera(scene);
+
+                renderer->setCamera(camera);
+            }   
+            else if (newMode == Mode::EDITOR)
+            {
+                renderer->setCamera(&cam);
+                subSystems->getPhysicsSystem().clear();
+                loadSnapshot(); 
+                hideCursor = false;
+            }
+
+            mode = newMode;
+        }
+
+        void Engine::saveSnapshot() noexcept 
+        {
+            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+            nb::Scene::getInstance().serialize(archive);
+            delete archive;
+        }
+
+        void Engine::loadSnapshot() noexcept
+        {
+            nb::Scene::getInstance().clear();
+            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+
+            archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
+            archive->load();
+
+            nb::Scene::getInstance().deserialize(archive);
+            delete archive;
+        }
+
+        nb::Renderer::Camera* Engine::findPrimaryGameCamera(Scene& scene) noexcept
+        {
+            for (auto entity : scene.getEntitiesWith<CameraComponent>())
+            {
+                auto& camComp = scene.getComponent<CameraComponent>(entity.id);
+                if (camComp.isPrimary)
+                {
+                    return camComp.controller.get(); 
+                }
+            }
+            return nullptr;
+        }
+
 
 		NB_NODISCARD ShaderSystem& Engine::getShaderSystem() noexcept
 		{

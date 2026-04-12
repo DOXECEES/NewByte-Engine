@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.25.0)
 
 project(NewByte_Engine)
+include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -9,6 +10,37 @@ set(DEPENDENCIES_DIR "${PROJECT_SOURCE_DIR}/dependencies")
 set(LUA_DIR "${DEPENDENCIES_DIR}/lua")
 set(SOL2_DIR "${DEPENDENCIES_DIR}/sol")
 set(TINY_GIZMO_DIR "${DEPENDENCIES_DIR}/tinyGizmo")
+set(JOLT_PATH "${DEPENDENCIES_DIR}/jolt")
+set(FETCHCONTENT_QUIET OFF)
+
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE) 
+set(TARGET_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(TARGET_SAMPLES OFF CACHE BOOL "" FORCE)
+set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
+set(GENERATE_DEBUG_SYMBOLS ON CACHE BOOL "" FORCE)
+
+set(USE_SSE4_2 ON CACHE BOOL "" FORCE) 
+
+
+FetchContent_Declare(
+    Jolt
+    GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
+    GIT_TAG        master  
+    SOURCE_DIR     ${JOLT_PATH}
+    GIT_SHALLOW    TRUE   
+    GIT_PROGRESS   TRUE
+)
+
+
+
+FetchContent_GetProperties(Jolt)
+if(NOT jolt_POPULATED)
+    FetchContent_Populate(Jolt)
+    
+    add_subdirectory("${jolt_SOURCE_DIR}/Build" "${jolt_BINARY_DIR}")
+endif()
+
+
 
 add_library(
     lua STATIC
@@ -202,6 +234,9 @@ set (SRC
         src/Math/Quaternion.hpp
         src/Math/Plane.hpp
 
+        src/Math/Collision/OBB.hpp
+
+
 
         src/Math/Matrix/Matrix.cpp
         src/Math/Matrix/Matrix.hpp
@@ -282,8 +317,11 @@ set (SRC
         src/Scripting/ScriptEngine.cpp
         src/Scripting/ScriptEngine.hpp
 
+        src/Physics/Physics.cpp
         src/Physics/Physics.hpp
-
+        
+        src/Physics/PhysicsLayers.hpp
+        
         src/Physics/TerrainCollider.cpp
         src/Physics/TerrainCollider.hpp
 
@@ -311,6 +349,7 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ${SOL2_DIR}    
     PUBLIC ${LUA_DIR}
     PUBLIC ${TINY_GIZMO_DIR}
+    PUBLIC ${JOLT_PATH}
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
@@ -323,10 +362,31 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 target_link_directories(${PROJECT_NAME} 
     PRIVATE dependencies/glad/src
 )
+
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    
+    # Эти флаги нужны твоему проекту, чтобы он понимал Jolt
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /utf-8 /arch:AVX2)
+    
+    # Глобальные определения для согласованности с Jolt
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+        JPH_DEBUG_RENDERER
+        JPH_PROFILE_ENABLED
+        JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
+    )
+endif()
+
         
 if(WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE user32 opengl32 glad lua sol2 tinyGizmo)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC 
+        UNICODE _UNICODE 
+        JPH_DEBUG_RENDERER 
+        JPH_PROFILE_ENABLED
+        JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
+    )
+
+    target_link_libraries(${PROJECT_NAME} PUBLIC user32 opengl32 glad lua sol2 tinyGizmo Jolt)
     
 endif()
 

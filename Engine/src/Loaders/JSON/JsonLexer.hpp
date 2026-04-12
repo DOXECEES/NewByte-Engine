@@ -83,6 +83,8 @@ namespace nb
             void setPath(const std::filesystem::path &path);
             void setJson(const std::string &json);
 
+           
+
         private:
             inline bool isInRange() const noexcept
             {

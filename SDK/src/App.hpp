@@ -45,7 +45,7 @@ public:
         createWindows();
         setupDocking();
         initEngine();
-
+        setupMainWindow();
         setupHierarchyUI();
         //setupSettingsUI();
 
@@ -74,6 +74,8 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> inspectorWindow;
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> assetManager;
+    std::shared_ptr<Win32Window::ChildWindow> toolbarWindow;
+    std::shared_ptr<Win32Window::ChildWindow> tempWindow;
 
 
     //
@@ -81,7 +83,7 @@ private:
     std::shared_ptr<AssetManager> assetManagerWindow;
     std::shared_ptr<MaterialEditor> materialEditor;
 
-
+    Widgets::TreeView* savedTreeView = nullptr; 
 
 
     void openColorPickerWindow();
@@ -198,7 +200,7 @@ private:
                         t.position = {tc.position.x, tc.position.y, tc.position.z};
                         t.scale = {tc.scale.x, tc.scale.y, tc.scale.z};
 
-                        auto quat = nb::Math::eulerToQuaternion(tc.rotation);
+                        auto quat = tc.rotation;
                         quat.normalize();
 
                         t.orientation = {-quat.x, -quat.y, -quat.z, quat.w};
@@ -221,10 +223,14 @@ private:
                             }
                             resultQuat.normalize();
 
-                            tc.rotation = nb::Math::quatToEuler(resultQuat);
+                            tc.rotation = resultQuat;
+
+                            tc.eulerAngle = tc.rotation.toEulerXYZ();
+                            tc.lastEuler  = tc.eulerAngle; 
+
 
                             tc.dirty = true;
-
+                            tc.physicsDirty = true;
                             isGizmoHit = true;
                         }
                     }
@@ -267,10 +273,10 @@ private:
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
  
-                if (engine->getMode() == nb::Core::Engine::Mode::EDITOR)
-                    mainWindow->showCursor();
-                else
+                if (engine->shouldHideCursor())
                     mainWindow->hideCursor();
+                else
+                    mainWindow->showCursor();
             }
 
             mainWindow->resetStateDirtyFlags();

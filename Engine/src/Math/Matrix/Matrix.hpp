@@ -225,6 +225,54 @@ namespace nb
                 return result;
             }
         };
+
+
+        template <
+            typename T,
+            size_t N>
+        constexpr T determinant(
+            const Matrix<
+                T,
+                N,
+                N>& mat
+        ) noexcept
+        {
+            if constexpr (N == 2)
+            {
+                return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
+            }
+            else if constexpr (N == 3)
+            {
+                return mat[0][0] * (mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1]) -
+                       mat[0][1] * (mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0]) +
+                       mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
+            }
+            else if constexpr (N == 4)
+            {
+                const T m00 = mat[1][1] * (mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2]) -
+                              mat[1][2] * (mat[2][1] * mat[3][3] - mat[2][3] * mat[3][1]) +
+                              mat[1][3] * (mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1]);
+
+                const T m01 = mat[1][0] * (mat[2][2] * mat[3][3] - mat[2][3] * mat[3][2]) -
+                              mat[1][2] * (mat[2][0] * mat[3][3] - mat[2][3] * mat[3][0]) +
+                              mat[1][3] * (mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0]);
+
+                const T m02 = mat[1][0] * (mat[2][1] * mat[3][3] - mat[2][3] * mat[3][1]) -
+                              mat[1][1] * (mat[2][0] * mat[3][3] - mat[2][3] * mat[3][0]) +
+                              mat[1][3] * (mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0]);
+
+                const T m03 = mat[1][0] * (mat[2][1] * mat[3][2] - mat[2][2] * mat[3][1]) -
+                              mat[1][1] * (mat[2][0] * mat[3][2] - mat[2][2] * mat[3][0]) +
+                              mat[1][2] * (mat[2][0] * mat[3][1] - mat[2][1] * mat[3][0]);
+
+                return mat[0][0] * m00 - mat[0][1] * m01 + mat[0][2] * m02 - mat[0][3] * m03;
+            }
+            else
+            {
+                return T(0);
+            }
+        }
+
     };
 }
 

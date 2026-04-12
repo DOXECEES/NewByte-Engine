@@ -49,6 +49,7 @@ namespace nb
             Mesh*           mesh;
             std::vector<Ref<Resource::MaterialAsset>> material;
             PipelineHandle  pipeline;
+            Math::Mat4<float>                         model;
             uint32 vertexCount = 0;
         };
 

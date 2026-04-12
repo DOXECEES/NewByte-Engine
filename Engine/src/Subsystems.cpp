@@ -9,5 +9,16 @@ void Subsystems::Init(HWND hwnd)
     renderer = createRef<nb::Renderer::Renderer>(hwnd, nb::Core::EngineSettings::getGraphicsAPI());
     keyboard = createRef<nb::Input::Keyboard>();
     mouse = createRef<nb::Input::Mouse>();
+    physics.init();
+}
+
+const nb::Physics::PhysicsSystem& Subsystems::getPhysicsSystem() const noexcept
+{
+    return physics;
+}
+
+nb::Physics::PhysicsSystem& Subsystems::getPhysicsSystem() noexcept
+{
+    return physics;
 }
 

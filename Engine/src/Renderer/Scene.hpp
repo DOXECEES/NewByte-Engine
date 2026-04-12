@@ -10,9 +10,12 @@
 #include <Math/Math.hpp>
 #include <Math/Matrix/Matrix.hpp>
 #include <Math/Vector3.hpp>
+#include <Math/Quaternion.hpp>
+#include "Physics/Physics.hpp"
 
 #include <Renderer/Mesh.hpp>
 #include <Reflection/Reflection.hpp>
+#include "Renderer/Camera.hpp"
 
 #include <Manager/ResourceManager.hpp>
 #include <Resources/MaterialAsset.hpp>
@@ -24,19 +27,25 @@
 struct TransformComponent
 {
     nb::Math::Vector3<float> position{};
-    nb::Math::Vector3<float> rotation{};
+    nb::Math::Vector3<float> eulerAngle{};
+    nb::Math::Vector3<float> lastEuler{}; 
+
+    nb::Math::Quaternion<float> rotation;
+     
     nb::Math::Vector3<float> scale{1.0f, 1.0f, 1.0f};
     nb::Math::Mat4<float> localMatrix = nb::Math::Mat4<float>::identity();
     nb::Math::Mat4<float> worldMatrix = nb::Math::Mat4<float>::identity();
 
     bool dirty = true;
+    bool physicsDirty = true;
 };
 
 NB_REFLECT_STRUCT(TransformComponent,
     NB_FIELD(TransformComponent, position),
-    NB_FIELD(TransformComponent, rotation),
+    NB_FIELD(TransformComponent, eulerAngle),
     NB_FIELD(TransformComponent, scale),
-    NB_FIELD(TransformComponent, dirty)
+    NB_FIELD(TransformComponent, dirty),
+    NB_FIELD(TransformComponent, physicsDirty)
 )
 
 
@@ -88,18 +97,26 @@ NB_REFLECT_RESOURCE_PTR(
     }
 )
 
-// ResourceLoader для Ref<Material>
-NB_REFLECT_RESOURCE_PTR(
-    Ref<nb::Resource::MaterialAsset>,
-    "Material",
-    [](Ref<nb::Resource::MaterialAsset>* field,
-       const std::string& path)
+NB_REFLECT_RESOURCE_VECTOR_PTR(
+    std::vector<Ref<nb::Resource::MaterialAsset>>,
+    nb::Resource::MaterialAsset,
+    "MaterialVector",
+    [](std::vector<Ref<nb::Resource::MaterialAsset>>* field,
+       const std::vector<std::string>&                paths)
     {
-        //*field = makeRef<nb::Renderer::Material>(path); // твоя фабрика Ref
+        field->clear();
+        for (const auto& path : paths)
+        {
+            auto res = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::MaterialAsset>(path);
+            if (res)
+            {
+                field->push_back(res);
+            }
+        }
     }
 )
 
-// Рефлексия самой структуры
+
 NB_REFLECT_STRUCT(
     MeshComponent,
     NB_FIELD(
@@ -109,6 +126,29 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         MeshComponent,
         material
+    )
+)
+
+struct CameraComponent
+{
+    std::unique_ptr<nb::Renderer::Camera> controller;
+    bool                                  isPrimary = true;
+
+    float fov    = 60.0f;
+    float aspect = 1.77f;
+
+    CameraComponent() : controller(std::make_unique<nb::Renderer::Camera>())
+    {
+    }
+
+    NB_MOVE_ONLY(CameraComponent);
+};
+
+NB_REFLECT_STRUCT(
+    CameraComponent,
+    NB_FIELD(
+        CameraComponent,
+        isPrimary
     )
 )
 
@@ -164,6 +204,9 @@ namespace nb
             static Scene scene;
             return scene;
         }
+
+        void clear() noexcept;
+        
 
         Node createNode(Ecs::EntityID parent = 0) noexcept;
 
@@ -267,6 +310,9 @@ namespace nb
             Ecs::StorageWrapperBase* storage,
             void* component
         ) noexcept;
+    
+        bool isPaused = true;
+    
     private:
         Scene() noexcept;
 

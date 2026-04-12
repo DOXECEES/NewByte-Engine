@@ -404,6 +404,7 @@ namespace nb::Serialize
         }
 
         file.write(buffer.data(), buffer.size());
+        file.close();
     }
 
     bool JsonArchive::load() noexcept

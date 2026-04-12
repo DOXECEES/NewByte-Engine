@@ -278,6 +278,12 @@ namespace nb
             return {static_cast<T>(0), static_cast<T>(0), static_cast<T>(0)};
         }
 
+        template <typename T>
+        inline Vector3<T> cross(const Vector3<T>& a, const Vector3<T> b) noexcept
+        {
+            return a.cross(b);
+        }
+
     };
 };
 
