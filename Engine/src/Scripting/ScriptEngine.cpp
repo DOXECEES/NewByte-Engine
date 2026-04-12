@@ -10,18 +10,40 @@ namespace nb::Script
 
     }
 
-    bool ScriptEngine::loadScript(const std::filesystem::path& path)
+    sol::environment ScriptEngine::createEnvironment()
+    {
+        sol::environment env(lua, sol::create, lua.globals());
+        return env;
+    }
+
+    bool ScriptEngine::loadScript(
+        const std::filesystem::path& path,
+        sol::environment&            env
+    )
     {
         try
         {
-            sol::load_result script = lua.load_file(path.string());
-            if (!script.valid())
+            sol::load_result script_load = lua.load_file(path.string());
+
+            if (!script_load.valid())
             {
-                sol::error err = script;
-                lastError = err.what();
+                sol::error err = script_load;
+                lastError      = "Load Error: " + std::string(err.what());
                 return false;
             }
-            script();
+
+            sol::protected_function script_func = script_load;
+
+            sol::set_environment(env, script_func);
+
+            auto result = script_func();
+            if (!result.valid())
+            {
+                sol::error err = result;
+                lastError      = "Runtime Error: " + std::string(err.what());
+                return false;
+            }
+
             return true;
         }
         catch (const sol::error& e)
@@ -29,7 +51,9 @@ namespace nb::Script
             lastError = e.what();
             return false;
         }
+
     }
+
     std::string ScriptEngine::getLastError() const
     {
         return lastError;

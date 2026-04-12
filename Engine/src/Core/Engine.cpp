@@ -6,7 +6,8 @@
 
 #include "Math/RayCast/RayPicker.hpp"
 
-        #include "Physics/Physics.hpp"
+#include "Physics/Physics.hpp"
+#include "Serialize/JsonArchive.hpp"
 
 struct Ray
 {
@@ -95,7 +96,7 @@ namespace nb
         {
             using namespace nb::Input;
             input->stopHandlingPosition();
-
+            
             ClipCursor(nullptr);
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
@@ -158,9 +159,6 @@ namespace nb
             //this->mouseDelta = mouseDelta;
             renderer->setCamera(&cam);
 
-           
-
-
 
             static float yaw;
             static float pitch;
@@ -183,6 +181,7 @@ namespace nb
 
 
             cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
+
             if (mode == Mode::GAME)
             {
                 input->startHandlingPosition();
@@ -204,36 +203,59 @@ namespace nb
                 SetCursorPos(EngineSettings::getWidth() / 2, EngineSettings::getHeight() / 2);
 
                 if (mode == Mode::EDITOR)
-                    mode = Mode::GAME;
+                {
+                    setMode(Mode::GAME);
+                }
                 else
-                    mode = Mode::EDITOR;
+                {
+                    setMode(Mode::EDITOR);
+                }
             }
 
             if (mode == Mode::EDITOR)
             {
+                scene.isPaused = true;
                 handleEditorMode();
+
             }
             else
             {
+                scene.isPaused = false;
                 auto camDir = cam.getDirection();
-                handleGameMode(camDir, deltaTime);
+                handleGameMode(camDir, scene, deltaTime);
             }
 
-                renderer->render();
-            if (shouldRender)
-            {
-            }
+            scene.updateAllTransforms();
+
+            renderer->render();
+            
 
           
             return true;
         }
 
-        void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, float deltaTime) noexcept
+        void Engine::handleGameMode(nb::Math::Vector3<float> &camDir, Scene& scene, float deltaTime) noexcept
         {
             using namespace nb::Input;
 
-            Physics::PhysicsSystem physics;
-            physics.update(Scene::getInstance(), deltaTime);
+            
+            subSystems->getPhysicsSystem().update(Scene::getInstance(), deltaTime);
+
+
+            auto& registry = scene.getRegistry();
+
+            scene.traverseAll(
+                [&](Ecs::EntityID entityId)
+                {
+                    Ecs::Entity entity{entityId};
+
+                    if (registry.has<nb::Script::ScriptComponent>(entity))
+                    {
+                        auto& script = registry.get<nb::Script::ScriptComponent>(entity);
+                        script.script->onUpdate(entity, deltaTime);
+                    }
+                }
+            );
 
 
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
@@ -305,6 +327,45 @@ namespace nb
         Engine::Mode Engine::getMode() const noexcept
         {
             return mode;
+        }
+
+        void Engine::setMode(Mode newMode) noexcept
+        {
+            if (mode == newMode)
+            {
+                return;
+            }
+
+            if (newMode == Mode::GAME)
+            {
+                saveSnapshot();
+            }
+            else if (newMode == Mode::EDITOR)
+            {
+                subSystems->getPhysicsSystem().clear();
+                loadSnapshot(); 
+            }
+
+            mode = newMode;
+        }
+
+        void Engine::saveSnapshot() noexcept 
+        {
+            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+            nb::Scene::getInstance().serialize(archive);
+            delete archive;
+        }
+
+        void Engine::loadSnapshot() noexcept
+        {
+            nb::Scene::getInstance().clear();
+            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+
+            archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
+            archive->load();
+
+            nb::Scene::getInstance().deserialize(archive);
+            delete archive;
         }
 
 		NB_NODISCARD ShaderSystem& Engine::getShaderSystem() noexcept

@@ -192,7 +192,7 @@ namespace nb::Renderer
         auto& scene = nb::Scene::getInstance();
         auto& registry = scene.getRegistry();
 
-        scene.updateAllTransforms();
+        
 
         std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;

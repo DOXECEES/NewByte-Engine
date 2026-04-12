@@ -235,16 +235,9 @@ void EditorApp::setupMainWindow() noexcept
                             .relativeHeight(1.0f)
                             .onEvent(
                                 &Widgets::Button::onPressedSignal,
-                                []()
+                                [this]()
                                 {
-                                    //if (!flag)
-                                    //{
-                                    //    return;
-                                    //}
-
-                                    nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
-                                    nb::Scene::getInstance().serialize(archive);
-                                    delete archive;
+                                    engine->saveSnapshot();
                                 }
                             )
                     )
@@ -257,19 +250,7 @@ void EditorApp::setupMainWindow() noexcept
                                 &Widgets::Button::onPressedSignal,
                                 [this]()
                                 {
-                                    //if (!flag)
-                                    //{
-                                    //    return;
-                                    //}
-
-                                    nb::Scene::getInstance().clear();
-                                    nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
-                                    archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
-                                    archive->load();
-                                    nb::Scene::getInstance().deserialize(archive);
-                                    delete archive;
-                                    //sceneModel->rebuildFromScene();
-                                    //savedTreeView->setModel(sceneModel);
+                                    engine->loadSnapshot();
                                 }
                             )
                     )
@@ -1331,7 +1312,7 @@ void EditorApp::markComponentDirty(
 
     for (const auto& field : typeInfo->fields)
     {
-        if (std::string(field.name) == "dirty")
+        if (std::string(field.name) == "dirty" || std::string(field.name) == "physicsDirty")
         {
             void* bytePtr = static_cast<char*>(componentPtr) + field.offset;
             bool* dirtyPtr = reinterpret_cast<bool*>(bytePtr);

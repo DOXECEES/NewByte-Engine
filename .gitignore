@@ -58,3 +58,5 @@ bb
 
 Assets/res
 !Assets/**/*.obj
+
+Engine/dependencies/jolt

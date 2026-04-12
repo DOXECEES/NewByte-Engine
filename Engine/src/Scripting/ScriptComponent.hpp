@@ -31,15 +31,13 @@ namespace nb::Script
                 return;
             }
 
-            sol::state& lua = engine->getLuaState();
-            sol::protected_function func = lua["onUpdate"];
+            sol::protected_function func = env["onUpdate"];
             if (!func.valid())
             {
                 return;
             }
 
-            auto result =
-                func(entity.id, dt); 
+            auto result = func(entity.id, dt); 
             if (!result.valid())
             {
                 sol::error err = result;
@@ -59,6 +57,7 @@ namespace nb::Script
     public:
         ScriptEngine* engine; 
         std::string path;
+        sol::environment env;
     };
 
 

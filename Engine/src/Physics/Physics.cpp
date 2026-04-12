@@ -1,303 +1,573 @@
+#include <Jolt/Jolt.h>
+
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/JobSystemThreadPool.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/RegisterTypes.h>
+
+#include "Error/ErrorManager.hpp"
 #include "Physics.hpp"
-#include "Math/Collision/OBB.hpp"
-#include <algorithm>
-#include <cmath>
+
+#include <thread>
+#include <vector>
 
 namespace nb::Physics
 {
-    using Mat3 = Math::Mat3<float>;
-    using Vec3 = Math::Vector3<float>;
-    using Quat = Math::Quaternion<float>;
-
-
-
-    Mat3 getInvInertiaWorld(
-        const Rigidbody&          rb,
-        const TransformComponent& t,
-        const Math::OBB&          obb
-    )
+    class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     {
-        if (rb.isStatic || rb.mass <= 0.0f)
+    public:
+        BPLayerInterfaceImpl()
         {
-            return Mat3();
+            objectToBroadPhase[Layers::NON_MOVING] = JPH::BroadPhaseLayer(0);
+            objectToBroadPhase[Layers::MOVING]     = JPH::BroadPhaseLayer(1);
         }
 
-        Vec3  s          = obb.halfSize * 2.0f;
-        float m          = rb.mass;
-        Vec3  invI_local = {
-            12.0f / (m * (s.y * s.y + s.z * s.z)), 12.0f / (m * (s.x * s.x + s.z * s.z)),
-            12.0f / (m * (s.x * s.x + s.y * s.y))
-        };
-
-        Mat3 res;
-        for (int i = 0; i < 3; ++i)
+        unsigned int GetNumBroadPhaseLayers() const override
         {
-            const Vec3& axis     = obb.axes[i];
-            float       localInv = (i == 0) ? invI_local.x : (i == 1 ? invI_local.y : invI_local.z);
+            return 2;
+        }
 
-            for (int row = 0; row < 3; ++row)
+        JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
+        {
+            return objectToBroadPhase[inLayer];
+        }
+
+#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
+        const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+        {
+            switch ((JPH::BroadPhaseLayer::Type)inLayer)
             {
-                for (int col = 0; col < 3; ++col)
-                {
-                    res[row][col] += localInv * axis[row] * axis[col];
-                }
+            case 0:
+                return "NON_MOVING";
+
+            case 1:
+                return "MOVING";
+
+            default:
+                return "INVALID";
             }
         }
-        return res;
+#endif
+
+    private:
+        JPH::BroadPhaseLayer objectToBroadPhase[Layers::NUM_LAYERS];
+    };
+
+    class ObjectLayerPairFilterImpl final : public JPH::ObjectLayerPairFilter
+    {
+    public:
+        bool ShouldCollide(
+            JPH::ObjectLayer inObject1,
+            JPH::ObjectLayer inObject2
+        ) const override
+        {
+            switch (inObject1)
+            {
+            case Layers::NON_MOVING:
+                return inObject2 == Layers::MOVING;
+
+            case Layers::MOVING:
+                return true;
+
+            default:
+                return false;
+            }
+        }
+    };
+
+    class ObjectVsBroadPhaseLayerFilterImpl final : public JPH::ObjectVsBroadPhaseLayerFilter
+    {
+    public:
+        bool ShouldCollide(
+            JPH::ObjectLayer     inLayer1,
+            JPH::BroadPhaseLayer inLayer2
+        ) const override
+        {
+            if (inLayer1 == Layers::NON_MOVING)
+            {
+                return inLayer2 == JPH::BroadPhaseLayer(1);
+            }
+
+            if (inLayer1 == Layers::MOVING)
+            {
+                return true;
+            }
+
+            return false;
+        }
+    };
+
+    enum class CmdType
+    {
+        Force,
+        Torque,
+        Impulse
+    };
+
+    struct PhysicsCmd
+    {
+        CmdType     type;
+        JPH::BodyID id;
+        JPH::Vec3   v;
+    };
+
+    static std::vector<PhysicsCmd> commandQueue;
+
+    static PhysicsSystem* instance = nullptr;
+
+    static void applyCommandQueue(JPH::BodyInterface& bodyInterface)
+    {
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "applyCommandQueue begin")
+            .with("count", (uint64_t)commandQueue.size());
+
+        for (const auto& cmd : commandQueue)
+        {
+            if (cmd.id.IsInvalid())
+            {
+                nb::Error::ErrorManager::instance().report(
+                    nb::Error::Type::WARNING, "PhysicsCmd ignored: invalid BodyID"
+                );
+
+                continue;
+            }
+
+            bool added  = bodyInterface.IsAdded(cmd.id);
+            bool active = false;
+
+            if (added)
+            {
+                active = bodyInterface.IsActive(cmd.id);
+            }
+
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::INFO, "PhysicsCmd apply")
+                .with("type", (int)cmd.type)
+                .with("bodyIndexAndSeq", (uint64_t)cmd.id.GetIndexAndSequenceNumber())
+                .with("added", added)
+                .with("active", active)
+                .with("vx", cmd.v.GetX())
+                .with("vy", cmd.v.GetY())
+                .with("vz", cmd.v.GetZ());
+
+            if (!added)
+            {
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::WARNING, "PhysicsCmd ignored: body not added")
+                    .with("bodyIndexAndSeq", (uint64_t)cmd.id.GetIndexAndSequenceNumber());
+
+                continue;
+            }
+
+            switch (cmd.type)
+            {
+            case CmdType::Force:
+                bodyInterface.AddForce(cmd.id, cmd.v, JPH::EActivation::Activate);
+                break;
+
+            case CmdType::Torque:
+                bodyInterface.AddTorque(cmd.id, cmd.v, JPH::EActivation::Activate);
+                break;
+
+            case CmdType::Impulse:
+                bodyInterface.AddImpulse(cmd.id, cmd.v);
+                break;
+            }
+        }
+
+        commandQueue.clear();
+
+        nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, "applyCommandQueue end");
     }
 
-    void getOBBVertices(
-        const Math::OBB& obb,
-        Vec3*            v
-    )
+    PhysicsSystem& PhysicsSystem::getInstance()
     {
-        Vec3 x = obb.axes[0] * obb.halfSize.x;
-        Vec3 y = obb.axes[1] * obb.halfSize.y;
-        Vec3 z = obb.axes[2] * obb.halfSize.z;
-        v[0]   = obb.center + x + y + z;
-        v[1]   = obb.center + x + y - z;
-        v[2]   = obb.center + x - y + z;
-        v[3]   = obb.center + x - y - z;
-        v[4]   = obb.center - x + y + z;
-        v[5]   = obb.center - x + y - z;
-        v[6]   = obb.center - x - y + z;
-        v[7]   = obb.center - x - y - z;
+        return *instance;
     }
 
-    void PhysicsSystem::applyForce(
-        Rigidbody&          rb,
-        float               dt,
-        TransformComponent& t,
-        Collider&           c
-    ) noexcept
+    PhysicsSystem::PhysicsSystem()
     {
-        if (rb.isStatic)
+        if (instance != nullptr)
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::FATAL, "PhysicsSystem created twice! This will break BodyID logic."
+            );
+
+            return;
+        }
+
+        instance = this;
+
+        nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, "PhysicsSystem created");
+    }
+
+    PhysicsSystem::~PhysicsSystem()
+    {
+        nb::Error::ErrorManager::instance().report(
+            nb::Error::Type::INFO, "PhysicsSystem destroyed"
+        );
+
+        if (physicsSystem)
+        {
+            delete physicsSystem;
+        }
+
+        if (jobSystem)
+        {
+            delete jobSystem;
+        }
+
+        if (tempAllocator)
+        {
+            delete tempAllocator;
+        }
+
+        delete (BPLayerInterfaceImpl*)bpInterface;
+        delete (ObjectLayerPairFilterImpl*)objFilter;
+        delete (ObjectVsBroadPhaseLayerFilterImpl*)bpFilter;
+
+        if (instance == this)
+        {
+            instance = nullptr;
+        }
+    }
+
+    void PhysicsSystem::init()
+    {
+        nb::Error::ErrorManager::instance().report(
+            nb::Error::Type::INFO, "PhysicsSystem init start"
+        );
+
+        JPH::RegisterDefaultAllocator();
+        JPH::Factory::sInstance = new JPH::Factory();
+        JPH::RegisterTypes();
+
+        tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
+
+        uint32_t threadCount = std::thread::hardware_concurrency();
+        if (threadCount > 1)
+        {
+            threadCount -= 1;
+        }
+
+        jobSystem = new JPH::JobSystemThreadPool(
+            JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, threadCount
+        );
+
+        bpInterface = new BPLayerInterfaceImpl();
+        objFilter   = new ObjectLayerPairFilterImpl();
+        bpFilter    = new ObjectVsBroadPhaseLayerFilterImpl();
+
+        physicsSystem = new JPH::PhysicsSystem();
+
+        physicsSystem->Init(
+            1024, 0, 1024, 1024, *(BPLayerInterfaceImpl*)bpInterface,
+            *(ObjectVsBroadPhaseLayerFilterImpl*)bpFilter, *(ObjectLayerPairFilterImpl*)objFilter
+        );
+
+        physicsSystem->SetGravity(JPH::Vec3(0, -9.81f, 0));
+
+        isInitialized = true;
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "PhysicsSystem Init done")
+            .with("gravityY", -9.81f);
+    }
+
+    void PhysicsSystem::clear()
+    {
+        if (!isInitialized || !physicsSystem)
         {
             return;
         }
 
-        if (rb.useGravity)
+        JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
+
+        JPH::BodyIDVector allBodies;
+        physicsSystem->GetBodies(allBodies);
+
+        if (!allBodies.empty())
         {
-            rb.force += Vec3(0.0f, -9.81f * rb.mass, 0.0f);
-        }
-        rb.velocity += (rb.force / rb.mass) * dt;
-        rb.velocity *= std::pow(std::max(0.0f, 1.0f - rb.drag), dt);
-        t.position += rb.velocity * dt;
-
-        if (!rb.freezeRotation)
-        {
-            Math::OBB tempObb;
-            tempObb.update(t, c);
-            Mat3 invI = getInvInertiaWorld(rb, t, tempObb);
-
-            rb.angularVelocity += (invI * rb.torque) * dt;
-            rb.angularVelocity *= std::pow(std::max(0.0f, 1.0f - rb.angularDrag), dt);
-
-            if (rb.angularVelocity.squaredLength() > 1e-9f)
-            {
-                Quat omega(rb.angularVelocity.x, rb.angularVelocity.y, rb.angularVelocity.z, 0.0f);
-                t.rotation = t.rotation - (omega * t.rotation) * (0.5f * dt);
-                t.rotation.normalize();
-                t.eulerAngle = t.rotation.toEulerXYZ();
-                t.lastEuler  = t.eulerAngle;
-            }
+            bodyInterface.RemoveBodies(allBodies.data(), (int)allBodies.size());
+            bodyInterface.DestroyBodies(allBodies.data(), (int)allBodies.size());
         }
 
-        rb.force  = {0, 0, 0};
-        rb.torque = {0, 0, 0};
-        t.dirty   = true;
+        commandQueue.clear();
 
-        if (rb.velocity.squaredLength() < 0.001f && rb.angularVelocity.squaredLength() < 0.001f)
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "PhysicsSystem cleared")
+            .with("bodiesRemoved", (uint64_t)allBodies.size());
+    }
+
+    void PhysicsSystem::createRigidbody(
+        Ecs::EntityID entityId,
+        Scene&        scene
+    )
+    {
+        auto& rb = scene.getComponent<Rigidbody>(entityId);
+        auto& t  = scene.getComponent<TransformComponent>(entityId);
+        auto& c  = scene.getComponent<Collider>(entityId);
+
+        float sx = c.halfSize.x * t.scale.x;
+        float sy = c.halfSize.y * t.scale.y;
+        float sz = c.halfSize.z * t.scale.z;
+
+        if (sx <= 0.0f || sy <= 0.0f || sz <= 0.0f)
         {
-            rb.velocity        = {0, 0, 0};
-            rb.angularVelocity = {0, 0, 0};
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::FATAL, "Invalid collider size (<= 0)")
+                .with("entity", (uint64_t)entityId)
+                .with("sx", sx)
+                .with("sy", sy)
+                .with("sz", sz);
+
+            return;
+        }
+
+        JPH::BoxShapeSettings shapeSettings(JPH::Vec3(sx, sy, sz));
+
+        auto shapeResult = shapeSettings.Create();
+        if (shapeResult.HasError())
+        {
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::FATAL, "Jolt shape creation failed")
+                .with("entity", (uint64_t)entityId)
+                .with("error", shapeResult.GetError().c_str());
+
+            return;
+        }
+
+        JPH::ShapeRefC shape = shapeResult.Get();
+
+        JPH::EMotionType motionType =
+            rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
+
+        JPH::ObjectLayer layer = rb.isStatic ? Layers::NON_MOVING : Layers::MOVING;
+
+        JPH::BodyCreationSettings settings(
+            shape, JPH::RVec3(t.position.x, t.position.y, t.position.z),
+            JPH::Quat(t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w), motionType, layer
+        );
+
+        if (!rb.isStatic)
+        {
+            settings.mOverrideMassProperties =
+                JPH::EOverrideMassProperties::CalculateMassAndInertia;
+        }
+
+        settings.mFriction    = rb.friction;
+        settings.mRestitution = rb.restitution;
+
+        JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
+
+        JPH::Body* body = bodyInterface.CreateBody(settings);
+        if (!body)
+        {
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::FATAL, "CreateBody returned nullptr")
+                .with("entity", (uint64_t)entityId);
+
+            return;
+        }
+
+        rb.bodyID = body->GetID();
+
+        bodyInterface.AddBody(rb.bodyID, JPH::EActivation::Activate);
+
+        if (!bodyInterface.IsAdded(rb.bodyID))
+        {
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::FATAL, "Body NOT added after AddBody")
+                .with("entity", (uint64_t)entityId)
+                .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber());
         }
     }
 
-    void PhysicsSystem::resolveDynamicCollisions(
+    void PhysicsSystem::update(
         Scene& scene,
         float  dt
     )
     {
-        auto        entities   = scene.getEntitiesWith<Rigidbody, Collider, TransformComponent>();
-        const int   iterations = 10;
-        const float slop       = 0.01f;
-        const float baumgarte  = 0.1f;
-
-        for (int step = 0; step < iterations; ++step)
+        if (!isInitialized)
         {
-            for (size_t i = 0; i < entities.size(); ++i)
+            return;
+        }
+
+        auto view = scene.getEntitiesWith<Rigidbody, TransformComponent, Collider>();
+
+        JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
+
+        for (auto entity : view)
+        {
+            auto& rb = scene.getComponent<Rigidbody>(entity.id);
+            auto& tc = scene.getComponent<TransformComponent>(entity.id);
+
+            if (rb.bodyID.IsInvalid())
             {
-                for (size_t k = i + 1; k < entities.size(); ++k)
-                {
-                    auto& rbA = scene.getComponent<Rigidbody>(entities[i].id);
-                    auto& rbB = scene.getComponent<Rigidbody>(entities[k].id);
-                    if (rbA.isStatic && rbB.isStatic)
-                    {
-                        continue;
-                    }
-
-                    auto& tA = scene.getComponent<TransformComponent>(entities[i].id);
-                    auto& tB = scene.getComponent<TransformComponent>(entities[k].id);
-
-                    Math::OBB obbA, obbB;
-                    obbA.update(tA, scene.getComponent<Collider>(entities[i].id));
-                    obbB.update(tB, scene.getComponent<Collider>(entities[k].id));
-
-                    Math::CollisionManifold col = Math::checkOBBCollision(obbA, obbB);
-                    if (!col.collided)
-                    {
-                        continue;
-                    }
-
-                    Vec3 normal = col.normal;
-                    if (normal.dot(tB.position - tA.position) < 0.0f)
-                    {
-                        normal = -normal;
-                    }
-
-                    float invMA        = rbA.isStatic ? 0.0f : 1.0f / rbA.mass;
-                    float invMB        = rbB.isStatic ? 0.0f : 1.0f / rbB.mass;
-                    float totalInvMass = invMA + invMB;
-
-                    if (col.depth > slop)
-                    {
-                        Vec3 corr = normal * ((col.depth - slop) * (baumgarte / iterations) /
-                                              (totalInvMass + 1e-6f));
-                        if (!rbA.isStatic)
-                        {
-                            tA.position -= corr * invMA;
-                        }
-                        if (!rbB.isStatic)
-                        {
-                            tB.position += corr * invMB;
-                        }
-                    }
-
-                    struct ContactPoint
-                    {
-                        Vec3  pos;
-                        float depth;
-                    };
-                    std::vector<ContactPoint> contacts;
-
-                    auto isPointInOBB = [](const Vec3& p, const Math::OBB& obb)
-                    {
-                        Vec3 d = p - obb.center;
-                        for (int m = 0; m < 3; ++m)
-                        {
-                            float dist = std::abs(d.dot(obb.axes[m]));
-                            if (dist > obb.halfSize[m] + 0.01f)
-                            {
-                                return false;
-                            }
-                        }
-                        return true;
-                    };
-
-                    Vec3 vA[8];
-                    getOBBVertices(obbA, vA);
-                    for (int m = 0; m < 8; ++m)
-                    {
-                        if (isPointInOBB(vA[m], obbB))
-                        {
-                            contacts.push_back({vA[m], col.depth});
-                        }
-                    }
-                    Vec3 vB[8];
-                    getOBBVertices(obbB, vB);
-                    for (int m = 0; m < 8; ++m)
-                    {
-                        if (isPointInOBB(vB[m], obbA))
-                        {
-                            contacts.push_back({vB[m], col.depth});
-                        }
-                    }
-
-                    if (contacts.empty())
-                    {
-                        contacts.push_back({col.contactPoint, col.depth});
-                    }
-
-                    Mat3  invIA   = getInvInertiaWorld(rbA, tA, obbA);
-                    Mat3  invIB   = getInvInertiaWorld(rbB, tB, obbB);
-                    float cpCount = (float)contacts.size();
-
-                    for (auto& cp : contacts)
-                    {
-                        Vec3 rA = cp.pos - tA.position;
-                        Vec3 rB = cp.pos - tB.position;
-
-                        Vec3 vA = rbA.velocity + Math::cross(rbA.angularVelocity, rA);
-                        Vec3 vB = rbB.velocity + Math::cross(rbB.angularVelocity, rB);
-                        Vec3 rv = vB - vA;
-
-                        float vDotN = rv.dot(normal);
-                        if (vDotN > 0.0f)
-                        {
-                            continue;
-                        }
-
-                        float restitution = (std::abs(vDotN) < 0.5f)
-                                                ? 0.0f
-                                                : (rbA.restitution + rbB.restitution) * 0.5f;
-
-                        Vec3  raN  = Math::cross(rA, normal);
-                        Vec3  rbN  = Math::cross(rB, normal);
-                        float angA = rbA.isStatic ? 0.0f : raN.dot(invIA * raN);
-                        float angB = rbB.isStatic ? 0.0f : rbN.dot(invIB * rbN);
-
-                        float impulseMag = -(1.0f + restitution) * vDotN;
-                        impulseMag /= (totalInvMass + angA + angB + 1e-6f);
-                        impulseMag /= cpCount;
-
-                        Vec3 impulse = normal * impulseMag;
-
-                        if (!rbA.isStatic)
-                        {
-                            rbA.velocity -= impulse * invMA;
-                            rbA.angularVelocity -= invIA * Math::cross(rA, impulse);
-                        }
-                        if (!rbB.isStatic)
-                        {
-                            rbB.velocity += impulse * invMB;
-                            rbB.angularVelocity += invIB * Math::cross(rB, impulse);
-                        }
-
-                        rv           = (rbB.velocity + Math::cross(rbB.angularVelocity, rB)) -
-                                       (rbA.velocity + Math::cross(rbA.angularVelocity, rA));
-                        Vec3 tangent = rv - (normal * rv.dot(normal));
-                        if (tangent.squaredLength() > 1e-6f)
-                        {
-                            tangent.normalize();
-                            Vec3  raT        = Math::cross(rA, tangent);
-                            Vec3  rbT        = Math::cross(rB, tangent);
-                            float inertiaTan = (rbA.isStatic ? 0.0f : raT.dot(invIA * raT)) +
-                                               (rbB.isStatic ? 0.0f : rbT.dot(invIB * rbT));
-
-                            float jt =
-                                -rv.dot(tangent) / ((totalInvMass + inertiaTan + 1e-6f) * cpCount);
-                            float mu = (rbA.friction + rbB.friction) * 0.5f;
-                            jt       = std::clamp(jt, -impulseMag * mu, impulseMag * mu);
-
-                            Vec3 fImp = tangent * jt;
-                            if (!rbA.isStatic)
-                            {
-                                rbA.velocity -= fImp * invMA;
-                                rbA.angularVelocity -= invIA * Math::cross(rA, fImp);
-                            }
-                            if (!rbB.isStatic)
-                            {
-                                rbB.velocity += fImp * invMB;
-                                rbB.angularVelocity += invIB * Math::cross(rB, fImp);
-                            }
-                        }
-                    }
-                    tA.dirty = tB.dirty = true;
-                }
+                createRigidbody(entity.id, scene);
             }
+
+            if (tc.physicsDirty)
+            {
+                if (!rb.bodyID.IsInvalid() && bodyInterface.IsAdded(rb.bodyID))
+                {
+                    bodyInterface.SetPositionAndRotation(
+                        rb.bodyID, JPH::RVec3(tc.position.x, tc.position.y, tc.position.z),
+                        JPH::Quat(-tc.rotation.x, -tc.rotation.y, -tc.rotation.z, tc.rotation.w),
+                        JPH::EActivation::Activate
+                    );
+                }
+
+                tc.physicsDirty = false;
+            }
+        }
+
+        if (scene.isPaused)
+        {
+            return;
+        }
+
+        applyCommandQueue(bodyInterface);
+
+        physicsSystem->Update(dt, 1, tempAllocator, jobSystem);
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "Physics step finished")
+            .with("dt", dt);
+
+        for (auto entity : view)
+        {
+            auto& rb = scene.getComponent<Rigidbody>(entity.id);
+            auto& tc = scene.getComponent<TransformComponent>(entity.id);
+
+            if (rb.isStatic || rb.bodyID.IsInvalid())
+            {
+                continue;
+            }
+
+            if (!bodyInterface.IsAdded(rb.bodyID))
+            {
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::FATAL, "Body exists in ECS but not added in Jolt")
+                    .with("entity", (uint64_t)entity.id)
+                    .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber());
+
+                continue;
+            }
+
+            if (!bodyInterface.IsActive(rb.bodyID))
+            {
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Body is sleeping (inactive)")
+                    .with("entity", (uint64_t)entity.id)
+                    .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber());
+
+                continue;
+            }
+
+            JPH::RVec3 pos;
+            JPH::Quat  rot;
+
+            bodyInterface.GetPositionAndRotation(rb.bodyID, pos, rot);
+
+            JPH::Vec3 vel = bodyInterface.GetLinearVelocity(rb.bodyID);
+            JPH::Vec3 ang = bodyInterface.GetAngularVelocity(rb.bodyID);
+
+            nb::Error::ErrorManager::instance()
+                .report(nb::Error::Type::INFO, "Body state after sim")
+                .with("entity", (uint64_t)entity.id)
+                .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber())
+                .with("px", (float)pos.GetX())
+                .with("py", (float)pos.GetY())
+                .with("pz", (float)pos.GetZ())
+                .with("vx", vel.GetX())
+                .with("vy", vel.GetY())
+                .with("vz", vel.GetZ())
+                .with("wx", ang.GetX())
+                .with("wy", ang.GetY())
+                .with("wz", ang.GetZ());
+
+            tc.position = {(float)pos.GetX(), (float)pos.GetY(), (float)pos.GetZ()};
+
+            tc.rotation = {
+                -(float)rot.GetX(), -(float)rot.GetY(), -(float)rot.GetZ(), (float)rot.GetW()
+            };
+
+            tc.dirty = true;
         }
     }
 
+    JPH::BodyInterface& PhysicsSystem::getBodyInterface()
+    {
+        return physicsSystem->GetBodyInterface();
+    }
 
+    void Rigidbody::addForce(const Math::Vector3<float>& f)
+    {
+        if (bodyID.IsInvalid())
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::WARNING, "addForce ignored: invalid BodyID"
+            );
+
+            return;
+        }
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "addForce queued")
+            .with("bodyIndexAndSeq", (uint64_t)bodyID.GetIndexAndSequenceNumber())
+            .with("fx", f.x)
+            .with("fy", f.y)
+            .with("fz", f.z);
+
+        commandQueue.push_back({CmdType::Force, bodyID, JPH::Vec3(f.x, f.y, f.z)});
+    }
+
+    void Rigidbody::addTorque(const Math::Vector3<float>& t)
+    {
+        if (bodyID.IsInvalid())
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::WARNING, "addTorque ignored: invalid BodyID"
+            );
+
+            return;
+        }
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "addTorque queued")
+            .with("bodyIndexAndSeq", (uint64_t)bodyID.GetIndexAndSequenceNumber())
+            .with("tx", t.x)
+            .with("ty", t.y)
+            .with("tz", t.z);
+
+        commandQueue.push_back({CmdType::Torque, bodyID, JPH::Vec3(t.x, t.y, t.z)});
+    }
+
+    void Rigidbody::applyImpulse(const Math::Vector3<float>& impulse)
+    {
+        if (bodyID.IsInvalid())
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::WARNING, "applyImpulse ignored: invalid BodyID"
+            );
+
+            return;
+        }
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "applyImpulse queued")
+            .with("bodyIndexAndSeq", (uint64_t)bodyID.GetIndexAndSequenceNumber())
+            .with("ix", impulse.x)
+            .with("iy", impulse.y)
+            .with("iz", impulse.z);
+
+        commandQueue.push_back(
+            {CmdType::Impulse, bodyID, JPH::Vec3(impulse.x, impulse.y, impulse.z)}
+        );
+    }
 } // namespace nb::Physics

@@ -230,7 +230,7 @@ private:
 
 
                             tc.dirty = true;
-
+                            tc.physicsDirty = true;
                             isGizmoHit = true;
                         }
                     }

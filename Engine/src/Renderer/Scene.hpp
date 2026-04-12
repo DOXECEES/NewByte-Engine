@@ -11,9 +11,11 @@
 #include <Math/Matrix/Matrix.hpp>
 #include <Math/Vector3.hpp>
 #include <Math/Quaternion.hpp>
+#include "Physics/Physics.hpp"
 
 #include <Renderer/Mesh.hpp>
 #include <Reflection/Reflection.hpp>
+
 
 #include <Manager/ResourceManager.hpp>
 #include <Resources/MaterialAsset.hpp>
@@ -35,13 +37,15 @@ struct TransformComponent
     nb::Math::Mat4<float> worldMatrix = nb::Math::Mat4<float>::identity();
 
     bool dirty = true;
+    bool physicsDirty = true;
 };
 
 NB_REFLECT_STRUCT(TransformComponent,
     NB_FIELD(TransformComponent, position),
     NB_FIELD(TransformComponent, eulerAngle),
     NB_FIELD(TransformComponent, scale),
-    NB_FIELD(TransformComponent, dirty)
+    NB_FIELD(TransformComponent, dirty),
+    NB_FIELD(TransformComponent, physicsDirty)
 )
 
 
@@ -283,6 +287,9 @@ namespace nb
             Ecs::StorageWrapperBase* storage,
             void* component
         ) noexcept;
+    
+        bool isPaused = true;
+    
     private:
         Scene() noexcept;
 

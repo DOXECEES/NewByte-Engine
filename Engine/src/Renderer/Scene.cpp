@@ -362,9 +362,9 @@ namespace nb
 
         ecs.getStorage<nb::Renderer::LightComponent>();
         ecs.getStorage<nb::Physics::Collider>();
-        ecs.getStorage<nb::Physics::GroundTag>();
+//        ecs.getStorage<nb::Physics::GroundTag>();
         ecs.getStorage<nb::Physics::Rigidbody>();
-        ecs.getStorage<nb::Physics::TerrainColliderComponent>();
+        //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
 
 
         //nb::Serialize::IArchive* archive =
@@ -395,9 +395,9 @@ namespace nb
 
         ecs.getStorage<nb::Renderer::LightComponent>();
         ecs.getStorage<nb::Physics::Collider>();
-        ecs.getStorage<nb::Physics::GroundTag>();
+        //ecs.getStorage<nb::Physics::GroundTag>();
         ecs.getStorage<nb::Physics::Rigidbody>();
-        ecs.getStorage<nb::Physics::TerrainColliderComponent>();
+        //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
     }
 
     void Scene::serialize(nb::Serialize::IArchive* archive) noexcept
