@@ -355,8 +355,15 @@ namespace nb::Physics
 
         if (!rb.isStatic)
         {
-            settings.mOverrideMassProperties =
-                JPH::EOverrideMassProperties::CalculateMassAndInertia;
+            settings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
+
+            JPH::MassProperties mp = shape->GetMassProperties();
+
+            mp.ScaleToMass(rb.mass); 
+
+            settings.mMassPropertiesOverride = mp;
+
+
         }
 
         settings.mFriction    = rb.friction;
