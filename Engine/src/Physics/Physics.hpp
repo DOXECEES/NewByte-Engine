@@ -154,6 +154,13 @@ NB_REFLECT_STRUCT(
     )
 )
 
+NB_REFLECT_ENUM(
+    nb::Physics::ColliderType,
+    NB_ENUM_VALUE(nb::Physics::ColliderType::BOX),
+    NB_ENUM_VALUE(nb::Physics::ColliderType::SPHERE),
+    NB_ENUM_VALUE(nb::Physics::ColliderType::CAPSULE)
+)
+
 NB_REFLECT_STRUCT(
     nb::Physics::Collider,
     NB_FIELD(
