@@ -45,6 +45,37 @@ namespace nb::Script
             }
         }
 
+        template <typename... Args>
+        void callFunction(
+            std::string_view name,
+            Args&&... arg
+        )
+        {
+            if (!engine)
+            {
+                return;
+            }
+
+            sol::protected_function func = env[name];
+
+            if (!func.valid())
+            {
+                return;
+            }
+
+            // Вызываем функцию
+            auto result = func(std::forward<Args>(arg)...);
+
+            if (!result.valid())
+            {
+                sol::error err = result;
+                nb::Error::ErrorManager::instance().report(
+                    nb::Error::Type::FATAL,
+                    std::string("Lua Error in [") + std::string(name) + "]: " + err.what()
+                );
+            }
+        }
+
 
         void setEngine(ScriptEngine& eng);
 
@@ -64,6 +95,19 @@ namespace nb::Script
     struct ScriptComponent
     {
         std::shared_ptr<Script> script;
+
+        template <typename... Args>
+        void call(
+            std::string_view name,
+            Args&&... args
+        )
+        {
+            if (script)
+            {
+                script->callFunction(name, std::forward<Args>(args)...);
+            }
+        }
+
     };
 
 };

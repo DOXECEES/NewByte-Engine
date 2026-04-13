@@ -826,6 +826,9 @@ void EditorApp::rebuildInspector() noexcept
 {
     using namespace nbui;
 
+    nbui::GlobalWidgetContext::releasePressedWidget();
+
+
     if (activeNode.getId() == 0)
     {
         inspectorWindow->getLayoutRoot()->clearChilds();
@@ -962,7 +965,49 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     void* fieldData = (char*)componentPtr + field.offset;
     std::string typeName = field.type->name;
 
-    if (typeName.find("Vector3") != std::string::npos ||
+    if (field.type->isEnum)
+    {
+        auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
+
+        // 1. Название поля
+        row = std::move(row).child(
+            LayoutBuilder::label(nb::Utils::toWString(field.name))
+                .relativeWidth(0.35f)
+                .color({180, 180, 180})
+                .textAlignment({.textAlignment = TextAlignment::LEFT})
+        );
+
+        // 2. Выпадающий список
+        row = std::move(row).child(
+            LayoutBuilder::widget(new Widgets::ComboBox())
+                .relativeWidth(0.65f)
+                .absoluteHeight(25)
+                .background({45, 45, 45})
+                .apply<Widgets::ComboBox>(
+                    [fieldData, componentPtr, info, field, this](Widgets::ComboBox* cb)
+                    {
+                        for (const auto& enumName : field.type->enumValues)
+                        {
+                            cb->addItem({nb::Utils::toWString(enumName.name), enumName.value});
+                        }
+
+                        int currentVal = *static_cast<int*>(fieldData);
+                        cb->setSelectedItem(currentVal);
+                    }
+                )
+                .onEvent(&Widgets::ComboBox::onSelectionChanged, [&, fieldData, componentPtr, info, this](const Widgets::ListItem& item)
+                {
+                    *static_cast<int*>(fieldData) = item.getValue<int>();
+
+                    markComponentDirty(componentPtr, info);
+                    
+                    shouldRebuildInspector = true;
+                })
+        );
+
+        return std::move(parentBuilder).child(std::move(row));
+    }
+    else if (typeName.find("Vector3") != std::string::npos ||
         typeName.find("Quaternion") != std::string::npos)
     {
         auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);

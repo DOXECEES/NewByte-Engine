@@ -31,10 +31,37 @@ namespace nb::Physics
         static constexpr uint16_t NUM_LAYERS = 2;
     } // namespace Layers
 
+    enum class ColliderType
+    {
+        BOX,
+        SPHERE,
+        CAPSULE
+    };
+
     struct Collider
     {
-        Math::Vector3<float> halfSize = {0.5f, 0.5f, 0.5f};
+        ColliderType type = ColliderType::BOX;
+
+        Math::Vector3<float> halfSize = {0.5f, 0.5f, 0.5f}; 
+        float                radius   = 0.5f;               
+        float                height   = 1.0f; 
+
+        Math::Vector3<float> offset = {0.0f, 0.0f, 0.0f};
+
+        bool isBox() const noexcept
+        {
+            return type == ColliderType::BOX;
+        }
+        bool isSphere() const noexcept
+        {
+            return type == ColliderType::SPHERE || type == ColliderType::CAPSULE;
+        }
+        bool isCapsule() const noexcept
+        {
+            return type == ColliderType::CAPSULE;
+        }
     };
+
 
     struct Rigidbody
     {
@@ -49,6 +76,7 @@ namespace nb::Physics
         bool useGravity     = true;
         bool freezeRotation = false;
         bool isStatic       = false;
+        bool isTrigger      = false;
 
         void addForce(const Math::Vector3<float>& f);
 
@@ -119,13 +147,46 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         nb::Physics::Rigidbody,
         isStatic
+    ),
+    NB_FIELD(
+        nb::Physics::Rigidbody,
+        isTrigger
     )
+)
+
+NB_REFLECT_ENUM(
+    nb::Physics::ColliderType,
+    NB_ENUM_VALUE(nb::Physics::ColliderType::BOX),
+    NB_ENUM_VALUE(nb::Physics::ColliderType::SPHERE),
+    NB_ENUM_VALUE(nb::Physics::ColliderType::CAPSULE)
 )
 
 NB_REFLECT_STRUCT(
     nb::Physics::Collider,
     NB_FIELD(
         nb::Physics::Collider,
-        halfSize
+        type
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Physics::Collider,
+        halfSize,
+        isBox,
+        0.1f
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Physics::Collider,
+        radius,
+        isSphere,
+        0.1f
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Physics::Collider,
+        height,
+        isCapsule,
+        0.1f
+    ),
+    NB_FIELD(
+        nb::Physics::Collider,
+        offset
     )
 )

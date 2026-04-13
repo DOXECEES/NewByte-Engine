@@ -6,17 +6,69 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+
+#include <Jolt/Physics/Collision/ContactListener.h>
+
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 
 #include "Error/ErrorManager.hpp"
 #include "Physics.hpp"
 
+#include "Scripting/ScriptComponent.hpp"
+
 #include <thread>
 #include <vector>
 
 namespace nb::Physics
 {
+    struct TriggerEvent
+    {
+        Ecs::EntityID triggerEntity;
+        Ecs::EntityID otherEntity;
+        bool          entered;
+    };
+
+    static std::vector<TriggerEvent> triggerEventQueue;
+    static std::mutex                triggerMutex;
+
+    class MyContactListener : public JPH::ContactListener
+    {
+    public:
+        void OnContactAdded(
+            const JPH::Body&            inBody1,
+            const JPH::Body&            inBody2,
+            const JPH::ContactManifold& inManifold,
+            JPH::ContactSettings&       ioSettings
+        ) override
+        {
+            Ecs::EntityID id1 = (Ecs::EntityID)inBody1.GetUserData();
+            Ecs::EntityID id2 = (Ecs::EntityID)inBody2.GetUserData();
+
+            std::lock_guard<std::mutex> lock(triggerMutex);
+            if (inBody1.IsSensor())
+            {
+                triggerEventQueue.push_back({id1, id2, true});
+            }
+            if (inBody2.IsSensor())
+            {
+                triggerEventQueue.push_back({id2, id1, true});
+            }
+        }
+
+        void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
+        {
+            
+        }
+    };
+
+    static MyContactListener* globalContactListener = nullptr;
+
+
+
     class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     {
     public:
@@ -226,6 +278,11 @@ namespace nb::Physics
             delete tempAllocator;
         }
 
+        if (globalContactListener)
+        {
+            delete globalContactListener;
+        }
+
         delete (BPLayerInterfaceImpl*)bpInterface;
         delete (ObjectLayerPairFilterImpl*)objFilter;
         delete (ObjectVsBroadPhaseLayerFilterImpl*)bpFilter;
@@ -268,6 +325,10 @@ namespace nb::Physics
             1024, 0, 1024, 1024, *(BPLayerInterfaceImpl*)bpInterface,
             *(ObjectVsBroadPhaseLayerFilterImpl*)bpFilter, *(ObjectLayerPairFilterImpl*)objFilter
         );
+
+        globalContactListener = new MyContactListener();
+        physicsSystem->SetContactListener(globalContactListener);
+
 
         physicsSystem->SetGravity(JPH::Vec3(0, -9.81f, 0));
 
@@ -312,36 +373,75 @@ namespace nb::Physics
         auto& t  = scene.getComponent<TransformComponent>(entityId);
         auto& c  = scene.getComponent<Collider>(entityId);
 
-        float sx = c.halfSize.x * t.scale.x;
-        float sy = c.halfSize.y * t.scale.y;
-        float sz = c.halfSize.z * t.scale.z;
+        //float sx = c.halfSize.x * t.scale.x;
+        //float sy = c.halfSize.y * t.scale.y;
+        //float sz = c.halfSize.z * t.scale.z;
 
-        if (sx <= 0.0f || sy <= 0.0f || sz <= 0.0f)
+        //if (sx <= 0.0f || sy <= 0.0f || sz <= 0.0f)
+        //{
+        //    nb::Error::ErrorManager::instance()
+        //        .report(nb::Error::Type::FATAL, "Invalid collider size (<= 0)")
+        //        .with("entity", (uint64_t)entityId)
+        //        .with("sx", sx)
+        //        .with("sy", sy)
+        //        .with("sz", sz);
+
+        //    return;
+        //}
+
+        //JPH::BoxShapeSettings shapeSettings(JPH::Vec3(sx, sy, sz));
+
+        //auto shapeResult = shapeSettings.Create();
+        //if (shapeResult.HasError())
+        //{
+        //    nb::Error::ErrorManager::instance()
+        //        .report(nb::Error::Type::FATAL, "Jolt shape creation failed")
+        //        .with("entity", (uint64_t)entityId)
+        //        .with("error", shapeResult.GetError().c_str());
+
+        //    return;
+        //}
+
+        JPH::ShapeRefC shape;
+        ;
+
+        switch (c.type)
         {
-            nb::Error::ErrorManager::instance()
-                .report(nb::Error::Type::FATAL, "Invalid collider size (<= 0)")
-                .with("entity", (uint64_t)entityId)
-                .with("sx", sx)
-                .with("sy", sy)
-                .with("sz", sz);
-
-            return;
+        case ColliderType::BOX:
+        {
+            JPH::BoxShapeSettings settings(
+                JPH::Vec3(
+                    std::max(0.01f, c.halfSize.x * t.scale.x),
+                    std::max(0.01f, c.halfSize.y * t.scale.y),
+                    std::max(0.01f, c.halfSize.z * t.scale.z)
+                )
+            );
+            shape = settings.Create().Get();
+            break;
+        }
+        case ColliderType::SPHERE:
+        {
+            float                    maxScale = std::max({t.scale.x, t.scale.y, t.scale.z});
+            JPH::SphereShapeSettings settings(std::max(0.01f, c.radius * maxScale));
+            shape = settings.Create().Get();
+            break;
+        }
+        case ColliderType::CAPSULE:
+        {
+            JPH::CapsuleShapeSettings settings(c.height * 0.5f * t.scale.y, c.radius * t.scale.x);
+            shape = settings.Create().Get();
+            break;
+        }
         }
 
-        JPH::BoxShapeSettings shapeSettings(JPH::Vec3(sx, sy, sz));
-
-        auto shapeResult = shapeSettings.Create();
-        if (shapeResult.HasError())
+        if (c.offset.squaredLength() > 0.0001f)
         {
-            nb::Error::ErrorManager::instance()
-                .report(nb::Error::Type::FATAL, "Jolt shape creation failed")
-                .with("entity", (uint64_t)entityId)
-                .with("error", shapeResult.GetError().c_str());
-
-            return;
+            JPH::RotatedTranslatedShapeSettings offsetSettings(
+                JPH::Vec3(c.offset.x, c.offset.y, c.offset.z), JPH::Quat::sIdentity(), shape
+            );
+            shape = offsetSettings.Create().Get();
         }
 
-        JPH::ShapeRefC shape = shapeResult.Get();
 
         JPH::EMotionType motionType =
             rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
@@ -352,6 +452,9 @@ namespace nb::Physics
             shape, JPH::RVec3(t.position.x, t.position.y, t.position.z),
             JPH::Quat(t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w), motionType, layer
         );
+
+        settings.mUserData = (JPH::uint64)entityId;
+        settings.mIsSensor = rb.isTrigger; 
 
         if (!rb.isStatic)
         {
@@ -445,6 +548,30 @@ namespace nb::Physics
         nb::Error::ErrorManager::instance()
             .report(nb::Error::Type::INFO, "Physics step finished")
             .with("dt", dt);
+
+
+        {
+            std::lock_guard<std::mutex> lock(triggerMutex);
+            for (const auto& event : triggerEventQueue)
+            {
+                if (scene.hasComponent<nb::Script::ScriptComponent>(event.triggerEntity))
+                {
+                    auto& script = scene.getComponent<nb::Script::ScriptComponent>(event.triggerEntity);
+
+                    if (event.entered)
+                    {
+                        script.call("onTriggerEnter", event.otherEntity);
+                    }
+                    else
+                    {
+                        script.call("onTriggerExit", event.otherEntity);
+                    }
+
+                }
+            }
+            triggerEventQueue.clear();
+        }
+
 
         for (auto entity : view)
         {
