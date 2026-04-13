@@ -6,17 +6,65 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
+
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 
 #include "Error/ErrorManager.hpp"
 #include "Physics.hpp"
 
+#include "Scripting/ScriptComponent.hpp"
+
 #include <thread>
 #include <vector>
 
 namespace nb::Physics
 {
+    struct TriggerEvent
+    {
+        Ecs::EntityID triggerEntity;
+        Ecs::EntityID otherEntity;
+        bool          entered;
+    };
+
+    static std::vector<TriggerEvent> triggerEventQueue;
+    static std::mutex                triggerMutex;
+
+    class MyContactListener : public JPH::ContactListener
+    {
+    public:
+        void OnContactAdded(
+            const JPH::Body&            inBody1,
+            const JPH::Body&            inBody2,
+            const JPH::ContactManifold& inManifold,
+            JPH::ContactSettings&       ioSettings
+        ) override
+        {
+            Ecs::EntityID id1 = (Ecs::EntityID)inBody1.GetUserData();
+            Ecs::EntityID id2 = (Ecs::EntityID)inBody2.GetUserData();
+
+            std::lock_guard<std::mutex> lock(triggerMutex);
+            if (inBody1.IsSensor())
+            {
+                triggerEventQueue.push_back({id1, id2, true});
+            }
+            if (inBody2.IsSensor())
+            {
+                triggerEventQueue.push_back({id2, id1, true});
+            }
+        }
+
+        void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
+        {
+            
+        }
+    };
+
+    static MyContactListener* globalContactListener = nullptr;
+
+
+
     class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     {
     public:
@@ -226,6 +274,11 @@ namespace nb::Physics
             delete tempAllocator;
         }
 
+        if (globalContactListener)
+        {
+            delete globalContactListener;
+        }
+
         delete (BPLayerInterfaceImpl*)bpInterface;
         delete (ObjectLayerPairFilterImpl*)objFilter;
         delete (ObjectVsBroadPhaseLayerFilterImpl*)bpFilter;
@@ -268,6 +321,10 @@ namespace nb::Physics
             1024, 0, 1024, 1024, *(BPLayerInterfaceImpl*)bpInterface,
             *(ObjectVsBroadPhaseLayerFilterImpl*)bpFilter, *(ObjectLayerPairFilterImpl*)objFilter
         );
+
+        globalContactListener = new MyContactListener();
+        physicsSystem->SetContactListener(globalContactListener);
+
 
         physicsSystem->SetGravity(JPH::Vec3(0, -9.81f, 0));
 
@@ -352,6 +409,9 @@ namespace nb::Physics
             shape, JPH::RVec3(t.position.x, t.position.y, t.position.z),
             JPH::Quat(t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w), motionType, layer
         );
+
+        settings.mUserData = (JPH::uint64)entityId;
+        settings.mIsSensor = rb.isTrigger; 
 
         if (!rb.isStatic)
         {
@@ -445,6 +505,30 @@ namespace nb::Physics
         nb::Error::ErrorManager::instance()
             .report(nb::Error::Type::INFO, "Physics step finished")
             .with("dt", dt);
+
+
+        {
+            std::lock_guard<std::mutex> lock(triggerMutex);
+            for (const auto& event : triggerEventQueue)
+            {
+                if (scene.hasComponent<nb::Script::ScriptComponent>(event.triggerEntity))
+                {
+                    auto& script = scene.getComponent<nb::Script::ScriptComponent>(event.triggerEntity);
+
+                    if (event.entered)
+                    {
+                        script.call("onTriggerEnter", event.otherEntity);
+                    }
+                    else
+                    {
+                        script.call("onTriggerExit", event.otherEntity);
+                    }
+
+                }
+            }
+            triggerEventQueue.clear();
+        }
+
 
         for (auto entity : view)
         {
