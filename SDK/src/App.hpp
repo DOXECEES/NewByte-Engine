@@ -93,6 +93,8 @@ private:
     nb::Node activeNode;
     std::atomic<bool> running;
 
+    bool shouldRebuildInspector = false; 
+
     Signal<void()> onActiveNodeChanged;
 
     void initSystems() noexcept;
@@ -165,6 +167,12 @@ private:
 
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
             {
+                if (shouldRebuildInspector)
+                {
+                    rebuildInspector();
+                    shouldRebuildInspector = false;
+                }
+
                 if (msg.message == WM_QUIT) {
                     running = false;
                     break;
