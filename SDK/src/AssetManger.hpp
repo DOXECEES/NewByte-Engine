@@ -35,7 +35,10 @@ class AssetManager
 {
 public:
     
-    AssetManager(nbstl::NonOwningPtr<nb::Core::Engine> engine);
+    AssetManager(
+        std::shared_ptr<Win32Window::ChildWindow> wnd,
+        nbstl::NonOwningPtr<nb::Core::Engine>     engine
+    );
     ~AssetManager() = default;
 
     void importAsset(std::filesystem::path path) noexcept;
@@ -47,6 +50,11 @@ public:
     void refreshAssetGrid();
 
     NbColor getAccentColorForExt(const std::wstring& ext);
+
+    std::shared_ptr<Win32Window::ChildWindow> getWindow() const noexcept
+    {
+        return window;
+    }
 
 private:
 

@@ -98,6 +98,7 @@ namespace nb::Reflect
 
         std::function<std::vector<std::string>(void*)>              getResourcePaths = nullptr;
         std::function<void(void*, const std::vector<std::string>&)> loadResources    = nullptr;
+
     };
 
     struct TypeInfo

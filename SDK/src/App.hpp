@@ -52,7 +52,7 @@ public:
         showAllWindows();
 
         subscribeAll();
-
+        //openFilePickerWindow();
         //openColorPickerWindow();
 
       
@@ -75,11 +75,13 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> assetManager;
     std::shared_ptr<Win32Window::ChildWindow> toolbarWindow;
-    std::shared_ptr<Win32Window::ChildWindow> tempWindow;
+    //std::shared_ptr<Win32Window::ChildWindow> tempWindow;
 
 
     //
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
+    std::shared_ptr<Win32Window::ModalWindow> filePickerWindow;
+
     std::shared_ptr<AssetManager> assetManagerWindow;
     std::shared_ptr<MaterialEditor> materialEditor;
 
@@ -87,6 +89,8 @@ private:
 
 
     void openColorPickerWindow();
+    void openFilePickerWindow();
+
     //
     std::shared_ptr<SceneModelEcs> sceneModel;
     //nb::Renderer::BaseNode* activeNode = nullptr;
@@ -149,7 +153,14 @@ private:
         mainWindow->repaint();
     }
 
-   
+
+    void addCubeToEntity(
+        const Widgets::ModelIndex& index,
+        Widgets::TreeView*         tv
+    ) noexcept; 
+
+   void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
+
 
     int mainLoop() {
         MSG msg = { 0 };
@@ -161,7 +172,7 @@ private:
                 && !isEngineDependentUiInit)
             {
                 setupEngineDependentUi();
-                assetManagerWindow = std::make_shared<AssetManager>(engine.get());
+                assetManagerWindow = std::make_shared<AssetManager>(assetManager, engine.get());
                 isEngineDependentUiInit = true;
             }
 

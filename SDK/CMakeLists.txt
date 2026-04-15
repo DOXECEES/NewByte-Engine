@@ -25,6 +25,8 @@ add_executable(${PROJECT_NAME} WIN32
     src/MaterialEditor.hpp
 
     src/FileSystemModel.hpp
+
+    src/ComponentBrowser.hpp
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
