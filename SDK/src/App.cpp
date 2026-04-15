@@ -824,6 +824,9 @@ void EditorApp::rebuildInspector() noexcept
             {
                 inspectorBuilder = buildFieldUI(std::move(inspectorBuilder), data, info, field);
             }
+            inspectorBuilder =
+                std::move(inspectorBuilder).child(LayoutBuilder::spacerAbsolute(1.0f, 5.0f));
+
         }
     }
 
@@ -1275,7 +1278,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                             )
                             .child(
                                 LayoutBuilder::widget(new Widgets::MaterialWidget())
-                                    .relativeWidth(0.75f)
+                                    .relativeWidth(0.65f)
                                     .absoluteHeight(slotHeight)
                                     .background({45, 45, 45})
                                     .apply<Widgets::MaterialWidget>(
