@@ -44,8 +44,7 @@ NB_REFLECT_STRUCT(TransformComponent,
     NB_FIELD(TransformComponent, position),
     NB_FIELD(TransformComponent, eulerAngle),
     NB_FIELD(TransformComponent, scale),
-    NB_FIELD(TransformComponent, dirty),
-    NB_FIELD(TransformComponent, physicsDirty)
+    NB_FIELD(TransformComponent, dirty)
 )
 
 

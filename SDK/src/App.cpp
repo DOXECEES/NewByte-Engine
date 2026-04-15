@@ -33,6 +33,7 @@
 #include <Widgets/ColorPicker.hpp>
 #include <Widgets/ToolBar.hpp>
 #include <Widgets/MaterialWidget.hpp>
+#include <Widgets/FilePicker.hpp>
 
 #include <Renderer/Shader.hpp>
 #include <Renderer/Material.hpp>
@@ -46,6 +47,7 @@
 #include <Physics/Physics.hpp>
 #include <Serialize/JsonArchive.hpp>
 
+#include "ComponentBrowser.hpp"
 
 
 void EditorApp::openColorPickerWindow()
@@ -90,6 +92,34 @@ void EditorApp::openColorPickerWindow()
             )
             .build();
     colorPickerWindow->getLayoutRoot()->addChild(std::move(ui));
+}
+
+void EditorApp::openFilePickerWindow()
+{
+    filePickerWindow =
+        std::make_shared<Win32Window::ModalWindow>(NbSize<int>{300, 300}, inspectorWindow.get());
+    filePickerWindow->setTitle(L"Color picker");
+
+    using namespace nbui;
+    auto ui =
+        LayoutBuilder::vBox()
+            .style(
+                [this](auto& s)
+                {
+                    // s.padding = {10, 10, 10, 10};
+                    s.color = {30, 30, 30};
+                }
+            )
+            .child(
+                LayoutBuilder::widget(new Widgets::FilePicker({}))
+                    .relativeHeight(1.0f)
+                    .relativeWidth(1.0f)
+                    
+                    
+
+            )
+            .build();
+    filePickerWindow->getLayoutRoot()->addChild(std::move(ui));
 }
 
 void EditorApp::initSystems() noexcept
@@ -137,6 +167,8 @@ void EditorApp::createWindows() noexcept
         Utils::toWstring(Translation::fromKey("Ui.Editor.Inspector.Title"))
     );
 
+    assetManager = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
+    assetManager->setTitle(L"Asset");
     // textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
     // textureInspector->setTitle(
     //     Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
@@ -150,8 +182,8 @@ void EditorApp::createWindows() noexcept
     toolbarWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     toolbarWindow->setTitle(L"Toolbar");
 
-    tempWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    tempWindow->setTitle(L"tempWindow");
+    //tempWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
+    //tempWindow->setTitle(L"tempWindow");
 
 
 }
@@ -171,11 +203,13 @@ void EditorApp::setupDocking() noexcept
     );
 
      dockManager->dockRelative(
-        tempWindow, Temp::DockPosition::BOTTOM, inspectorWindow, Temp::Percent(50)
+        debugWindow, Temp::DockPosition::BOTTOM, inspectorWindow, Temp::Percent(50)
     );
 
 
-    dockManager->dockRelative(debugWindow, Temp::DockPosition::BOTTOM, nullptr, Temp::Percent(30));
+    dockManager->dockRelative(
+        assetManager, Temp::DockPosition::BOTTOM, nullptr, Temp::Percent(40)
+    );
 
     dockManager->dockRelative(toolbarWindow, Temp::DockPosition::TOP, nullptr, Temp::Percent(3));
 
@@ -264,115 +298,29 @@ void EditorApp::setupMainWindow() noexcept
 void EditorApp::setupHierarchyUI() noexcept
 {
     using namespace nbui;
+    //using namespace EditorTheme; // Предполагаем наличие общей темы
+
     auto ui = LayoutBuilder::vBox()
-        .style([](auto& s) { 
-                s.padding = { 10, 10, 10, 10 };
-                s.color = { 30, 30, 30 };
-            }
-        )
-        .child(LayoutBuilder::treeView()
-            .apply<Widgets::TreeView>([&, this](auto* tv)
-                { 
-                    tv->setModel(sceneModel);
-
-                    subscribe(
-                        tv, &Widgets::TreeView::onItemRightClickSignal,
-                        [&, tv](const Widgets::ModelIndex& index)
-                        {
-                            auto popup = new nbui::PopupMenu();
-
-                            popup->addItem(
-                                L"Удалить",
-                                []()
-                                {
-                                    nb::Error::ErrorManager::instance().report(
-                                        nb::Error::Type::INFO, "CLICKED"
-                                    );
-
-                                    
-                                }
-                            );
-
-                            
-
-                             popup->addItem(
-                                L"Добавить куб",
-                                [this, index, tv]()
-                                {
-                                    if (!index.isValid())
-                                    {
-                                        return;
-                                    }
-
-                                    auto* parentItem = sceneModel->findById(index.getUuid());
-                                    if (!parentItem)
-                                    {
-                                        return;
-                                    }
-
-                                    auto& scene = nb::Scene::getInstance();
-
-                                    auto parentEntity =
-                                        reinterpret_cast<nb::Ecs::EntityID>(parentItem->getData());
-
-                                    auto entity = scene.createNode(parentEntity);
-                                    entity.addComponent<MeshComponent>({
-                                        .mesh = nb::Renderer::PrimitiveGenerators::createCube(),
-                                        .material = nullptr
-                                    });
-                                    entity.addComponent<TransformComponent>({});
-                                
-                                    sceneModel->addEntity(parentEntity, entity.getId());
-
-                                    tv->refresh();
-                                    //savedTreeView = tv;
-                                    activeNode = nb::Scene::getInstance().getNode(parentEntity);
-                                    onActiveNodeChanged.emit();
-                                    nb::Scene::getInstance().invalidateBvh();
-                                }
-                            );
-
-                             
-
-                             popup->addItem(
-                                 L"Переименовать",
-                                 [tv, index]()
-                                 {
-                                     tv->startEditing(index);
-                                 }
-                             );
-                           
-
-                            auto pos = this->mainWindow->getMousePosition();
-
-                            this->hierarchyWindow->getPopupManager().show(popup, pos.x, pos.y);
-                        }
-                    );
-                }
-            )
-            .onEvent(
-                &Widgets::TreeView::onItemClickSignal,
-                [this](const auto& index)
-                {
-                    if (index.isValid())
-                    {
-                        auto* item = sceneModel->findById(index.getUuid());
-                        if (item)
-                        { 
-                            auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-                            activeNode = nb::Scene::getInstance().getNode(id);
-                            onActiveNodeChanged.emit();
-                        }
-                    }
-                }
-            )
-            .relativeHeight(1.0f)
-            .relativeWidth(1.0f)
-             
-             
-            
-        )
-        .build();
+                  .style(
+                      [](auto& s)
+                      {
+                          s.padding = {10, 10, 10, 10};
+                          s.color   = {30, 30, 30};
+                      }
+                  )
+                  .child(
+                      LayoutBuilder::treeView()
+                          .relativeWidth(1.0f)
+                          .relativeHeight(1.0f)
+                          .apply<Widgets::TreeView>(
+                              [this](auto* tv)
+                              {
+                                  tv->setModel(sceneModel);
+                                  this->setupHierarchyEvents(tv);
+                              }
+                          )
+                  )
+                  .build();
 
     hierarchyWindow->getLayoutRoot()->addChild(std::move(ui));
 }
@@ -840,6 +788,8 @@ void EditorApp::rebuildInspector() noexcept
         {
             s.widthSizeType = NNsLayout::SizeType::RELATIVE;
             s.width = 1.0f;
+            s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+            s.height         = 1.0f;
             s.color = NbColor{35, 35, 35};
         }
     );
@@ -874,13 +824,15 @@ void EditorApp::rebuildInspector() noexcept
             {
                 inspectorBuilder = buildFieldUI(std::move(inspectorBuilder), data, info, field);
             }
+            inspectorBuilder =
+                std::move(inspectorBuilder).child(LayoutBuilder::spacerAbsolute(1.0f, 5.0f));
+
         }
     }
 
     if (activeNode.isValid())
     {
-        std::move(inspectorBuilder)
-            
+        inspectorBuilder = std::move(inspectorBuilder)
             .child(
                 LayoutBuilder::widget(new Widgets::Button)
                     .relativeWidth(1.0f)
@@ -889,7 +841,10 @@ void EditorApp::rebuildInspector() noexcept
                         &Widgets::Button::onReleasedSignal,
                         [&]()
                         {
-                            auto  popup    = new nbui::PopupMenu();
+                            auto& browser = nbui::ComponentBrowser::get();
+
+                            browser.clear();
+
                             auto& registry = nb::Scene::getInstance().getRegistry();
                             auto  entityId = activeNode.getId();
 
@@ -906,14 +861,12 @@ void EditorApp::rebuildInspector() noexcept
                                 if (!storage->contains(entityId))
                                 {
                                     auto rawStorage = storage.get();
-                                    popup->addItem(
+                                    browser.addItem(
                                         Utils::toWstring(compName),
                                         [this, rawStorage, entityId]()
                                         {
                                             rawStorage->addDefault(entityId);
-
                                             this->rebuildInspector();
-
                                             nb::Scene::getInstance().invalidateBvh();
                                         }
                                     );
@@ -921,12 +874,14 @@ void EditorApp::rebuildInspector() noexcept
                             }
 
                             auto pos = this->mainWindow->getMousePosition();
-                            this->inspectorWindow->getPopupManager().show(popup, pos.x, pos.y);
+
+                            browser.show(this->mainWindow->getHandle().as<HWND>(), pos.x, pos.y);
                         }
                     )
                     .text(L"Добавить компонент")
             );
     }
+
 
 
     auto finalUi = std::move(inspectorBuilder).build();
@@ -1021,7 +976,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
         );
 
         auto fieldsBox = LayoutBuilder::hBox().relativeWidth(0.65f);
-        NbColor colors[] = {{255, 100, 100}, {100, 255, 100}, {100, 100, 255}};
+        NbColor colors[] = {{180, 40, 40}, {40, 160, 40}, {40, 40, 180}};
 
         for (int i = 0; i < 3 && i < (int)field.type->fields.size(); ++i)
         {
@@ -1318,12 +1273,12 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                             .margin({0, 2, 0, 2}) 
                             .child(
                                 LayoutBuilder::label(L" Slot " + std::to_wstring(i))
-                                    .relativeWidth(0.25f)
+                                    .relativeWidth(0.35f)
                                     .color({100, 100, 100})
                             )
                             .child(
                                 LayoutBuilder::widget(new Widgets::MaterialWidget())
-                                    .relativeWidth(0.75f)
+                                    .relativeWidth(0.65f)
                                     .absoluteHeight(slotHeight)
                                     .background({45, 45, 45})
                                     .apply<Widgets::MaterialWidget>(
@@ -1339,9 +1294,239 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 
         return std::move(parentBuilder).child(std::move(vectorColumn));
     }
+    else if (field.getResourcePath)
+    {
+        std::string  path     = field.getResourcePath(fieldData);
+        std::wstring fileName = L"None";
+        if (!path.empty())
+        {
+            size_t lastSlash = path.find_last_of("/\\");
+            fileName         = nb::Utils::toWString(
+                lastSlash == std::string::npos ? path : path.substr(lastSlash + 1)
+            );
+        }
 
+        auto resourceRow =
+            LayoutBuilder::hBox()
+                .relativeWidth(1.0f)
+                .absoluteHeight(35)
+                //.alignment(Alignment::CENTER_LEFT)
+                .child(
+                    LayoutBuilder::label(nb::Utils::toWString(field.name))
+                        .relativeWidth(0.35f)
+                        .color({180, 180, 180})
+                        .textAlignment({.textAlignment = TextAlignment::LEFT})
+                )
+                .child(
+                    LayoutBuilder::hBox()
+                        .relativeWidth(0.65f)
+                        .absoluteHeight(30)
+                        //.alignment(Alignment::CENTER_LEFT)
+                        .child(
+                            LayoutBuilder::vBox()
+                                .absoluteWidth(35)
+                                .absoluteHeight(35)
+                                .background({70, 140, 240}) 
+                                //.cornerRadius(5.0f)         // Скругление (аккуратное)
+                                .margin({2, 2, 2, 2})       
+                        )
+                        .child(
+                            // 2. САМА КНОПКА (Widgets::Button)
+                            LayoutBuilder::widget(new Widgets::Button())
+                                .relativeWidth(1.0f)
+                                .absoluteHeight(31)
+                                .background({50, 50, 50})
+                                .margin({2,2,2,2})
+                                .apply<Widgets::Button>(
+                                    [fileName](Widgets::Button* btn)
+                                    {
+                                        std::wstring buttonText = fileName + L"   🔍";
+                                        btn->setText(buttonText);
+                                    }
+                                )
+                                .onEvent(
+                                    &Widgets::IWidget::onReleasedSignal,
+                                    [this, field, fieldData, componentPtr, info]()
+                                    {
+                                        if (filePickerWindow)
+                                        {
+                                            filePickerWindow = nullptr;
+                                        }
+                                        NbSize<int> winSize = {500, 600};
+                                        auto newWin = std::make_shared<Win32Window::ModalWindow>(
+                                            winSize, inspectorWindow.get()
+                                        );
+                                        filePickerWindow = newWin;
+                                        newWin->setTitle(
+                                            L"Select Resource: " + nb::Utils::toWString(field.name)
+                                        );
+
+                                        auto resourceLoader = field.loadResource;
+                                        std::weak_ptr<Win32Window::ModalWindow> weakWin = newWin;
+
+                                        auto ui =
+                                            LayoutBuilder::vBox()
+                                                .style(
+                                                    [](auto& s)
+                                                    {
+                                                        s.color = {40, 40, 40};
+                                                    }
+                                                )
+                                                .child(
+                                                    LayoutBuilder::widget(
+                                                        new Widgets::FilePicker({0, 0, 500, 600})
+                                                    )
+                                                        .relativeWidth(1.0f)
+                                                        .relativeHeight(1.0f)
+                                                        .onEvent(
+                                                            &Widgets::FilePicker::onFileSelected,
+                                                            [this, resourceLoader, fieldData,
+                                                             componentPtr, info,
+                                                             weakWin](const std::string& newPath)
+                                                            {
+                                                                if (auto pinnedWin = weakWin.lock())
+                                                                {
+                                                                    if (!newPath.empty() &&
+                                                                        resourceLoader)
+                                                                    {
+                                                                        resourceLoader(
+                                                                            fieldData, newPath
+                                                                        );
+                                                                        markComponentDirty(
+                                                                            componentPtr, info
+                                                                        );
+                                                                        shouldRebuildInspector =
+                                                                            true;
+                                                                    }
+                                                                    PostMessage(
+                                                                        (HWND)pinnedWin->getHandle()
+                                                                            .as<HWND>(),
+                                                                        WM_CLOSE, 0, 0
+                                                                    );
+                                                                }
+                                                            }
+                                                        )
+                                                        .onEvent(
+                                                            &Widgets::FilePicker::
+                                                                onCancelButtonPressed,
+                                                            [weakWin]()
+                                                            {
+                                                                if (auto pinnedWin = weakWin.lock())
+                                                                {
+                                                                    PostMessage(
+                                                                        (HWND)pinnedWin->getHandle()
+                                                                            .as<HWND>(),
+                                                                        WM_CLOSE, 0, 0
+                                                                    );
+                                                                }
+                                                            }
+                                                        )
+                                                )
+                                                .build();
+                                        newWin->getLayoutRoot()->addChild(std::move(ui));
+                                        newWin->show();
+                                    }
+                                )
+                        )
+                );
+
+        return std::move(parentBuilder).child(std::move(resourceRow));
+    }
 
     return parentBuilder;
+}
+
+void EditorApp::addCubeToEntity(
+    const Widgets::ModelIndex& index,
+    Widgets::TreeView*         tv
+) noexcept
+{
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    auto* item = sceneModel->findById(index.getUuid());
+    if (!item)
+    {
+        return;
+    }
+
+    auto  parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+    auto& scene    = nb::Scene::getInstance();
+
+    auto entity = scene.createNode(parentId);
+    entity.addComponent<MeshComponent>(
+        {.mesh = nb::Renderer::PrimitiveGenerators::createCube(), .material = nullptr}
+    );
+    entity.addComponent<TransformComponent>({});
+
+    sceneModel->addEntity(parentId, entity.getId());
+    tv->refresh();
+
+    activeNode = scene.getNode(entity.getId());
+    onActiveNodeChanged.emit();
+    scene.invalidateBvh();
+}
+
+void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
+{
+    using namespace nbui;
+
+    subscribe(
+        tv, &Widgets::TreeView::onItemClickSignal,
+        [this](const auto& index)
+        {
+            if (index.isValid())
+            {
+                if (auto* item = sceneModel->findById(index.getUuid()))
+                {
+                    auto id    = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+                    activeNode = nb::Scene::getInstance().getNode(id);
+                    onActiveNodeChanged.emit();
+                }
+            }
+        }
+    );
+
+    subscribe(
+        tv, &Widgets::TreeView::onItemRightClickSignal,
+        [this, tv](const auto& index)
+        {
+            auto popup = new PopupMenu();
+
+            popup->addItem(
+                L"➕ Добавить куб",
+                [this, index, tv]()
+                {
+                    this->addCubeToEntity(index, tv);
+                }
+            );
+
+            popup->addItem(
+                L"✏️ Переименовать",
+                [tv, index]()
+                {
+                    tv->startEditing(index);
+                }
+            );
+
+            //popup->addSeparator();
+
+            popup->addItem(
+                L"🗑️ Удалить",
+                []()
+                {
+                    nb::Error::ErrorManager::instance().report(
+                        nb::Error::Type::INFO, "Delete requested"
+                    );
+                }
+            );
+
+            auto mousePos = this->mainWindow->getMousePosition();
+            this->hierarchyWindow->getPopupManager().show(popup, mousePos.x, mousePos.y);
+        }
+    );
 }
 
 

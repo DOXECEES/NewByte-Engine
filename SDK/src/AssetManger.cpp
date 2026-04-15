@@ -3,12 +3,14 @@
 #include "MaterialEditor.hpp"
 #include <memory>
 
-AssetManager::AssetManager(nbstl::NonOwningPtr<nb::Core::Engine> engine) 
+AssetManager::AssetManager(
+    std::shared_ptr<Win32Window::ChildWindow> wnd,
+    nbstl::NonOwningPtr<nb::Core::Engine> engine
+) 
     : engine(engine)
+    , window(wnd)
 {
-    //importAsset("Assets/res/brick.png");
-    window = std::make_shared<Win32Window::ChildWindow>(nullptr);
-    window->addCaption();
+    
 
     window->getLayoutRoot()->addChild(buildUI());
     window->show();
@@ -38,22 +40,29 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
 
         .child(
             LayoutBuilder::toolbar()
-                .border(1, Border::Style::SOLID, {251, 251, 251}, Border::Side::BOTTOM)
+                .style(
+                    [](NNsLayout::LayoutStyle& s)
+                    {
+                        s.color = {40, 40, 40};
+                        s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+                        s.height = 35.0f;
+                    }
+                )
                 .child(
                     LayoutBuilder::widget(new Widgets::Button())
-                        .relativeHeight(1.0f)
-                        .relativeWidth(0.1f)
-                        .text(L"Import")
+                        .text(L"  Import  ") 
+                        .absoluteWidth(80)
+                        .margin({5, 5, 5, 5})
+                        .background({60, 60, 60})
                 )
-
-                .child(LayoutBuilder::spacerAbsolute(10.0f, 1.0f))
-
                 .child(
                     LayoutBuilder::widget(new Widgets::Button())
-                        .relativeHeight(1.0f)
-                        .relativeWidth(0.1f)
-                        .text(L"Add Folder")
+                        .text(L"  Add Folder  ")
+                        .absoluteWidth(100)
+                        .margin({0, 5, 5, 5})
+                        .background({60, 60, 60})
                 )
+
         )
 
         .child(
@@ -64,7 +73,7 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
                 .child(
                     LayoutBuilder::vBox()
                         .relativeHeight(1.0f)
-                        .relativeWidth(0.3f)
+                        .absoluteWidth(250.0f)
                         .style(
                             [](NNsLayout::LayoutStyle& s)
                             {
@@ -109,7 +118,7 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
                 .child(
                     LayoutBuilder::vBox()
                         .relativeHeight(1.0f)
-                        .relativeWidth(0.7f)
+                        .relativeWidth(1.0f)
 
                         .apply<NNsLayout::LayoutNode>(
                             [this](NNsLayout::LayoutNode* node)
@@ -127,6 +136,7 @@ void AssetManager::onFolderSelected(std::filesystem::path path)
     this->currentPath = path;
     this->refreshAssetGrid();
 }
+
 void AssetManager::refreshAssetGrid()
 {
     if (!assetGridNode)
@@ -135,167 +145,128 @@ void AssetManager::refreshAssetGrid()
     }
 
     using namespace nbui;
-
     assetGridNode->clearChilds();
 
-    auto grid = LayoutBuilder::flow().relativeWidth(1.0f).autoHeight().padding({15, 15, 15, 15});
+    // Сетка с хорошим внешним отступом
+    auto grid = LayoutBuilder::flow().relativeWidth(1.0f).autoHeight().padding({20, 20, 20, 20});
 
     try
     {
         for (const auto& entry : std::filesystem::directory_iterator(currentPath))
         {
-            if (entry.is_regular_file())
+            if (!entry.is_regular_file())
             {
-                std::wstring fileName = entry.path().filename().wstring();
-                std::wstring ext = entry.path().extension().wstring();
+                continue;
+            }
 
-                NbColor accent = getAccentColorForExt(ext);
+            std::string extStr = entry.path().extension().string();
+            if (!supportedExtensions.contains(extStr))
+            {
+                continue;
+            }
 
-                
+            std::wstring fullFileName = entry.path().filename().wstring();
+            std::wstring displayName  = entry.path().stem().wstring();
+            std::wstring extension    = entry.path().extension().wstring();
+            NbColor      accentColor  = getAccentColorForExt(extension);
 
-                if (supportedExtensions.contains(entry.path().extension().string()))
-                {
-                    std::move(grid).child(
-                        LayoutBuilder::thumbnail(fileName, ext)
-                            .margin({0, 10, 10, 0})
-                            .background(accent)
-                            .absoluteWidth(120)
-                            .absoluteHeight(150)
-                            .apply<Widgets::IWidget>(
-                                [this, entry](Widgets::IWidget* w)
+            std::move(grid).child(
+                LayoutBuilder::vBox()
+                    .margin({0, 12, 12, 0}) 
+                    .style(
+                        [accentColor](NNsLayout::LayoutStyle& s)
+                        {
+                            s.width  = 120;
+                            s.height = 160; 
+                            s.color  = {38, 38, 38};
+                            s.border.radius = 4.0f;
+
+                            s.border.style        = Border::Style::SOLID;
+                            s.border.width.bottom = 3;
+                            s.border.color        = accentColor;
+                            s.border.sideMask     = Border::Side::BOTTOM;
+                        }
+                    )
+                    .child(
+                        LayoutBuilder::thumbnail(fullFileName, L"")
+                            .relativeWidth(1.0f)
+                            .absoluteHeight(95)
+                            .background({25, 25, 25})
+                    )
+                    .child(
+                        LayoutBuilder::vBox()
+                            .style(
+                                [](auto& s)
                                 {
-                                    w->onPressedSignal.connect(
-                                        [this, entry, w]()
-                                        {
-                                            this->dragInfo.active            = true;
-                                            this->dragInfo.isDraggingStarted = false;
-                                            this->dragInfo.path              = entry.path();
-
-                                            GetCursorPos(&this->dragInfo.startMousePos);
-
-
-                                            SetCapture((HWND)this->window->getHandle().as<HWND>());
-                                        }
-                                    );
+                                    s.padding = {8, 6, 8, 4};
                                 }
                             )
-                            .onEvent(
-                                &Widgets::IWidget::onReleasedSignal,
+                            .child(
+                                LayoutBuilder::label(displayName)
+                                    .fontSize(10)
+                                    .color({230, 230, 230})
+                                    .absoluteHeight(28)
+                                    .apply<Widgets::Label>(
+                                        [](Widgets::Label* l)
+                                        {
+                                            l->setEllipsis(
+                                                true
+                                            ); 
+                                        }
+                                    )
+                            )
+                            .child(
+                                LayoutBuilder::label(extension)
+                                    .fontSize(9)
+                                    .color({110, 110, 110})
+                                    .absoluteHeight(20)
+                            )
+                    )
+                    .apply<Widgets::IWidget>(
+                        [this, entry](Widgets::IWidget* w)
+                        {
+                            w->onPressedSignal.connect(
+                                [this, entry]()
+                                {
+                                    this->dragInfo.active = true;
+                                    this->dragInfo.path   = entry.path();
+                                    GetCursorPos(&this->dragInfo.startMousePos);
+                                    SetCapture((HWND)this->window->getHandle().as<HWND>());
+                                }
+                            );
+
+                            w->onReleasedSignal.connect(
                                 [this, entry]()
                                 {
                                     if (!this->dragInfo.active)
                                     {
                                         return;
                                     }
-
                                     ReleaseCapture();
-
                                     this->dragInfo.active = false;
 
-                                    POINT currentPos;
-                                    GetCursorPos(&currentPos);
+                                    POINT pt;
+                                    GetCursorPos(&pt);
+                                    int dx = pt.x - this->dragInfo.startMousePos.x;
+                                    int dy = pt.y - this->dragInfo.startMousePos.y;
 
-                                    int   dx       = currentPos.x - this->dragInfo.startMousePos.x;
-                                    int   dy       = currentPos.y - this->dragInfo.startMousePos.y;
-                                    float distance = std::sqrt(dx * dx + dy * dy);
-
-                                    if (distance > this->dragThreshold)
+                                    if (std::sqrt(dx * dx + dy * dy) > this->dragThreshold)
                                     {
-                                        HWND targetHWnd = WindowFromPoint(currentPos);
-                                        HWND glHWnd     = (HWND)engine->getLinkedHwnd();
-
-                                        if (targetHWnd == glHWnd)
+                                        HWND target = WindowFromPoint(pt);
+                                        HWND glHWnd = (HWND)engine->getLinkedHwnd();
+                                        if (target == glHWnd)
                                         {
-                                            ScreenToClient(glHWnd, &currentPos);
-
-
+                                            ScreenToClient(glHWnd, &pt);
                                             this->engine->getRenderer()->pickNodeAndApplyMaterial(
-                                                currentPos.x,
-                                                currentPos.y,
-                                                this->dragInfo.path
+                                                pt.x, pt.y, this->dragInfo.path
                                             );
                                         }
                                     }
-                                    else
-                                    {
-                                        //this->openAssetEditor(entry.path());
-                                    }
-
                                 }
-                            )
-
-
-
-
-                            //.onEvent(
-                            //    &Widgets::IWidget::onReleasedSignal,
-                            //    [this, entry]()
-                            //    {
-                            //        if (supportedExtensions[entry.path().extension().string()] ==
-                            //            AssetType::TEXTURE)
-                            //        {
-                            //            auto copyPath = entry.path();
-                            //            copyPath = copyPath.replace_extension(".texture");
-                            //            auto asset = nb::ResMan::ResourceManager::getInstance()
-                            //                             ->getResource<nb::Resource::TextureAsset>(
-                            //                                 copyPath.string()
-                            //                             );
-
-                            //            if (asset)
-                            //            {
-                            //                auto e = std::make_shared<TextureEditor>(
-                            //                    window.get(), engine.get(), asset.get()
-                            //                );
-
-                            //                subscribe(
-                            //                    e->getRawWindow(),
-                            //                    &Win32Window::ModalWindow::onClose,
-                            //                    [e]()
-                            //                    {
-                            //                        auto o = e.use_count();
-                            //                    }
-                            //                );
-
-                            //                e->show();
-                            //            }
-                            //        }
-                            //        else if (
-                            //            supportedExtensions[entry.path().extension().string()] ==
-                            //            AssetType::MATERIAL
-                            //            )
-                            //        {
-
-                            //            auto copyPath = entry.path();
-                            //            copyPath      = copyPath.replace_extension(".material");
-                            //            auto asset = nb::ResMan::ResourceManager::getInstance()
-                            //                             ->getResource<nb::Resource::MaterialAsset>(
-                            //                                 copyPath.string()
-                            //                             );
-
-                            //            if (asset)
-                            //            {
-                            //                auto e = std::make_shared<MaterialEditor>(
-                            //                    window.get(), engine.get(), asset.get()
-                            //                );
-
-                            //                subscribe(
-                            //                    e->getRawWindow(),
-                            //                    &Win32Window::ModalWindow::onClose,
-                            //                    [e]()
-                            //                    {
-                            //                        auto o = e.use_count();
-                            //                    }
-                            //                );
-
-                            //                e->show();
-                            //            }
-
-                            //        }
-                            //    }
-                            //)
-                    );
-                }
-            }
+                            );
+                        }
+                    )
+            );
         }
     }
     catch (...)
@@ -304,6 +275,7 @@ void AssetManager::refreshAssetGrid()
 
     assetGridNode->addChild(std::move(grid).build());
 }
+
 NbColor AssetManager::getAccentColorForExt(const std::wstring& ext)
 {
     if (ext == L".png" || ext == L".tga")
