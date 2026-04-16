@@ -20,6 +20,7 @@
 #include <Manager/ResourceManager.hpp>
 #include <Resources/MaterialAsset.hpp>
 #include "BVH.hpp"
+#include "Resources/ResourceDispatcher.hpp"
 #include <algorithm>
 #undef min
 #undef max
@@ -318,6 +319,8 @@ namespace nb
         Ecs::ECSRegistry ecs;
 
         Ecs::EntityID rootEntity;
+
+        Resources::ResourceDispatcher dispatcher;
 
         Math::BVH sceneBVH;
         bool bvhDirty = true;

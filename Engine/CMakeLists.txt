@@ -146,6 +146,9 @@ set (SRC
         src/Resources/MaterialAsset.hpp
         src/Resources/IhdrResource.hpp
 
+        src/Resources/ResourceDispatcher.cpp
+        src/Resources/ResourceDispatcher.hpp
+
         src/Serialize/ISerializable.cpp
         src/Serialize/ISerializable.hpp
         src/Serialize/IArchive.cpp

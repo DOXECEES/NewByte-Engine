@@ -159,6 +159,11 @@ private:
         Widgets::TreeView*         tv
     ) noexcept; 
 
+    void addSphereToEntity(
+        const Widgets::ModelIndex& index,
+        Widgets::TreeView*         tv
+    ) noexcept;
+
    void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 
 

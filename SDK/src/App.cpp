@@ -1469,6 +1469,39 @@ void EditorApp::addCubeToEntity(
     scene.invalidateBvh();
 }
 
+void EditorApp::addSphereToEntity(
+    const Widgets::ModelIndex& index,
+    Widgets::TreeView*         tv
+) noexcept
+{
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    auto* item = sceneModel->findById(index.getUuid());
+    if (!item)
+    {
+        return;
+    }
+
+    auto  parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+    auto& scene    = nb::Scene::getInstance();
+
+    auto entity = scene.createNode(parentId);
+    entity.addComponent<MeshComponent>(
+        {.mesh = nb::Renderer::PrimitiveGenerators::createSphere(1.0f, 32, 32), .material = nullptr}
+    );
+    entity.addComponent<TransformComponent>({});
+
+    sceneModel->addEntity(parentId, entity.getId());
+    tv->refresh();
+
+    activeNode = scene.getNode(entity.getId());
+    onActiveNodeChanged.emit();
+    scene.invalidateBvh();
+}
+
 void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 {
     using namespace nbui;
@@ -1500,6 +1533,14 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 [this, index, tv]()
                 {
                     this->addCubeToEntity(index, tv);
+                }
+            );
+
+            popup->addItem(
+                L"➕ Добавить сферу",
+                [this, index, tv]()
+                {
+                    this->addSphereToEntity(index, tv);
                 }
             );
 

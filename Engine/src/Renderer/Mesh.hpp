@@ -56,8 +56,33 @@ namespace nb
         class Mesh : public Resource::IResource
         {
             public:
+
+                struct PrimitiveDescriptor
+                {
+                    std::string                            type; 
+                    std::unordered_map<std::string, float> parameters;
+                };
+
+                void setPrimitiveDescriptor(PrimitiveDescriptor desc)
+                {
+                    primitiveDescriptor = desc;
+                }
+                const std::optional<PrimitiveDescriptor>& getPrimitiveDescriptor() const
+                {
+                    return primitiveDescriptor;
+                }
+                bool isPrimitive() const
+                {
+                    return primitiveDescriptor.has_value();
+                }
+
             
-                Mesh(const std::vector<Vertex>& vert, const std::vector<uint32_t>& ind, const std::filesystem::path& path);
+                Mesh(
+                    const std::vector<Vertex>&   vert,
+                    const std::vector<uint32_t>& ind,
+                    const std::filesystem::path& path,
+                    const PrimitiveDescriptor&   desc = {}
+                );
 
                 explicit Mesh(
                     std::vector<std::unique_ptr<SubMesh>>&& meshes,
@@ -195,6 +220,9 @@ namespace nb
                 std::vector<Vertex>                     verticies;
                 std::vector<std::unique_ptr<SubMesh>>   meshes;
                 size_t                                  indiciesCount = 0;
+
+                std::optional<PrimitiveDescriptor> primitiveDescriptor = std::nullopt;
+
         };
     };
 };

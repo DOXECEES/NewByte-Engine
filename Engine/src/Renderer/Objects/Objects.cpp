@@ -44,46 +44,48 @@
              );
          }
 
-         Ref<Mesh> PrimitiveGenerators::createSphere(const float radius, uint32 xSegments, uint32 ySegments) noexcept
+         Ref<Mesh> PrimitiveGenerators::createSphere(
+             const float radius,
+             uint32      xSegments,
+             uint32      ySegments
+         ) noexcept
          {
-             // Зададим детализацию по умолчанию, если параметров нет в сигнатуре
-            
-
              std::vector<Vertex> vertices;
              std::vector<uint32> indices;
 
              const float PI = 3.14159265359f;
 
+             vertices.reserve((xSegments + 1) * (ySegments + 1));
+             indices.reserve(xSegments * ySegments * 6);
+
              for (uint32 y = 0; y <= ySegments; ++y)
              {
-                 float v = (float)y / (float)ySegments;
+                 float v     = (float)y / (float)ySegments;
                  float theta = v * PI; // Угол широты
 
                  for (uint32 x = 0; x <= xSegments; ++x)
                  {
-                     float u = (float)x / (float)xSegments;
+                     float u   = (float)x / (float)xSegments;
                      float phi = u * 2.0f * PI; // Угол долготы
 
-                     // Вычисляем координаты на единичной сфере
+                     // Координаты на единичной сфере
                      float xPos = std::cos(phi) * std::sin(theta);
-                     float yPos = std::cos(theta); // Y - это "верх"
+                     float yPos = std::cos(theta); // Y - "верх"
                      float zPos = std::sin(phi) * std::sin(theta);
 
                      Math::Vector3<float> pos(xPos * radius, yPos * radius, zPos * radius);
                      Math::Vector3<float> normal(xPos, yPos, zPos);
                      Math::Vector2<float> uv(u, v);
 
-                     // Вычисляем тангент (vec4)
-                     // Тангент — это производная позиции по параметру U
-                     // Для сферы это вектор, лежащий в горизонтальной плоскости (направление вдоль параллели)
-                     Math::Vector4<float> tangent(
-                         -std::sin(phi),
-                         0.0f,
-                         std::cos(phi),
-                         1.0f // Направление битангенса
-                     );
+                     // Тангент (производная по U)
+                     // Он всегда нормализован, так как sin^2 + cos^2 = 1
+                     Math::Vector4<float> tangent(-std::sin(phi), 0.0f, std::cos(phi), 1.0f);
 
-                     vertices.emplace_back(Vertex(pos, normal, {1.0f,1.0f,1.0f}, uv, tangent));
+                     // Передаем аргументы напрямую в emplace_back для вызова конструктора Vertex на
+                     // месте
+                     vertices.emplace_back(
+                         pos, normal, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, uv, tangent
+                     );
                  }
              }
 
@@ -92,20 +94,31 @@
              {
                  for (uint32 x = 0; x < xSegments; ++x)
                  {
-                     uint32 first = y * (xSegments + 1) + x;
+                     uint32 first  = y * (xSegments + 1) + x;
                      uint32 second = first + xSegments + 1;
 
+                     // Первый треугольник
                      indices.push_back(first);
                      indices.push_back(second);
                      indices.push_back(first + 1);
 
+                     // Второй треугольник
                      indices.push_back(second);
                      indices.push_back(second + 1);
                      indices.push_back(first + 1);
                  }
              }
 
-             return std::make_shared<Mesh>(vertices, indices, "");
+             Renderer::Mesh::PrimitiveDescriptor desc = {
+                 .type       = "sphere",
+                 .parameters = {
+                     {"radius", radius},
+                     {"segments", (float)xSegments}, 
+                     {"segments", (float)ySegments}
+                 }
+             };
+
+             return std::make_shared<Mesh>(vertices, indices, "", desc);
          }
 
          /*u in[0, 2pi], v in[0, 2pi]
