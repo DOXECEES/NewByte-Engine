@@ -108,7 +108,6 @@ namespace nb
 
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
-            calculateTagnentArray();
 
             this->ind = uniteIndicies();
 
