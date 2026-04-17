@@ -539,7 +539,6 @@ namespace nb
             return;
         }
 
-        // Проверяем, есть ли вообще поля для сериализации
         bool hasFields = false;
         for (auto& field : type->fields)
         {
@@ -551,7 +550,6 @@ namespace nb
             break;
         }
 
-        // Если полей нет, ничего не делаем
         if (!hasFields)
         {
             return;

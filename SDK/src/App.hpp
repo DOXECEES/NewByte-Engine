@@ -142,6 +142,13 @@ private:
         const nb::Reflect::FieldInfo& field
     ) noexcept;
 
+    void spawnPrimitive(
+        const Widgets::ModelIndex& index,
+        void*                      data,
+        nb::Reflect::TypeInfo*     typeInfo
+    ) noexcept;
+
+
     void showAllWindows()
     {
         sceneWindow->show();

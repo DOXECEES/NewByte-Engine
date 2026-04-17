@@ -8,6 +8,60 @@
 #include "Renderer/Mesh.hpp"
 #include "../../Math/Math.hpp"
 
+#include <Reflection/Reflection.hpp>
+
+
+struct SphereParams
+{
+    float radius;
+    int   xSegments;
+    int   ySegments;
+};
+
+NB_REFLECT_STRUCT(
+    SphereParams,
+    NB_FIELD(
+        SphereParams,
+        radius
+    ),
+    NB_FIELD(
+        SphereParams,
+        xSegments
+    ),
+    NB_FIELD(
+        SphereParams,
+        ySegments
+    )
+)
+
+struct TorusParams
+{
+    float majorRadius;
+    float minorRadius;
+    int   xSegments;
+    int   ySegments;
+};
+
+NB_REFLECT_STRUCT(
+    TorusParams,
+    NB_FIELD(
+        TorusParams,
+        majorRadius
+    ),
+    NB_FIELD(
+        TorusParams,
+        minorRadius
+    ),
+    NB_FIELD(
+        TorusParams,
+        xSegments
+    ),
+    NB_FIELD(
+        TorusParams,
+        ySegments
+    )
+)
+
 namespace nb
 {
     namespace Renderer
@@ -19,6 +73,8 @@ namespace nb
                 float u;
                 float v;
             };
+
+            
 
             Ref<Mesh> createCube() noexcept;
             Ref<Mesh> createSphere(const float radius, uint32 xSegments, uint32 ySegments) noexcept;
@@ -70,6 +126,9 @@ namespace nb
         Ref<Mesh> generateDodecahedron() noexcept;
     };
 };
+
+//
+
 
 #endif
 

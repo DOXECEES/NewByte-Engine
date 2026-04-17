@@ -141,6 +141,16 @@ namespace nb::Reflect
     };
 
 
+    template <typename T>
+    struct TypeAutoRegister
+    {
+        TypeAutoRegister()
+        {
+            getType<T>(); 
+        }
+    };
+
+
     template <typename Class, typename Member> struct FieldDesc
     {
         const char* name;
@@ -323,12 +333,20 @@ namespace nb::Reflect
 
 
 #define NB_REFLECT_STRUCT(TYPE, ...)                                                               \
-    template <> struct nb::Reflect::Reflect<TYPE>                                                  \
+    template <>                                                                                    \
+    struct nb::Reflect::Reflect<TYPE>                                                              \
     {                                                                                              \
-        static inline const char* name = #TYPE;                                                 \
-        static inline auto fields = std::make_tuple(__VA_ARGS__);   \
-        static inline bool isInternal = false;   \
+        static inline const char* name       = #TYPE;                                              \
+        static inline auto        fields     = std::make_tuple(__VA_ARGS__);                       \
+        static inline bool        isInternal = false;                                              \
+                                                                                                   \
+        static inline bool _registered = []()                                                      \
+        {                                                                                          \
+            nb::Reflect::getType<TYPE>();                                                          \
+            return true;                                                                           \
+        }();                                                                                       \
     };
+
 
 #define NB_REFLECT_STRUCT_CUSTOM_NAME(TYPE, NAME, ...)                                                               \
     template <> struct nb::Reflect::Reflect<TYPE>                                                  \

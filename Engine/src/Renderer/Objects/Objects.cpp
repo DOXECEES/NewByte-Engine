@@ -61,35 +61,29 @@
              for (uint32 y = 0; y <= ySegments; ++y)
              {
                  float v     = (float)y / (float)ySegments;
-                 float theta = v * PI; // Угол широты
+                 float theta = v * PI; 
 
                  for (uint32 x = 0; x <= xSegments; ++x)
                  {
                      float u   = (float)x / (float)xSegments;
-                     float phi = u * 2.0f * PI; // Угол долготы
+                     float phi = u * 2.0f * PI; 
 
-                     // Координаты на единичной сфере
                      float xPos = std::cos(phi) * std::sin(theta);
-                     float yPos = std::cos(theta); // Y - "верх"
+                     float yPos = std::cos(theta); 
                      float zPos = std::sin(phi) * std::sin(theta);
 
                      Math::Vector3<float> pos(xPos * radius, yPos * radius, zPos * radius);
                      Math::Vector3<float> normal(xPos, yPos, zPos);
                      Math::Vector2<float> uv(u, v);
 
-                     // Тангент (производная по U)
-                     // Он всегда нормализован, так как sin^2 + cos^2 = 1
                      Math::Vector4<float> tangent(-std::sin(phi), 0.0f, std::cos(phi), 1.0f);
 
-                     // Передаем аргументы напрямую в emplace_back для вызова конструктора Vertex на
-                     // месте
                      vertices.emplace_back(
                          pos, normal, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, uv, tangent
                      );
                  }
              }
 
-             // Генерация индексов
              for (uint32 y = 0; y < ySegments; ++y)
              {
                  for (uint32 x = 0; x < xSegments; ++x)
@@ -97,12 +91,10 @@
                      uint32 first  = y * (xSegments + 1) + x;
                      uint32 second = first + xSegments + 1;
 
-                     // Первый треугольник
                      indices.push_back(first);
                      indices.push_back(second);
                      indices.push_back(first + 1);
 
-                     // Второй треугольник
                      indices.push_back(second);
                      indices.push_back(second + 1);
                      indices.push_back(first + 1);
@@ -113,8 +105,8 @@
                  .type       = "sphere",
                  .parameters = {
                      {"radius", radius},
-                     {"segments", (float)xSegments}, 
-                     {"segments", (float)ySegments}
+                     {"xSegments", (float)xSegments}, 
+                     {"ySegments", (float)ySegments}
                  }
              };
 
@@ -197,7 +189,17 @@
 				 }
 			 }
 
-			 return createRef<Mesh>(vertices, indices, "");
+             Renderer::Mesh::PrimitiveDescriptor desc = {
+                 .type       = "sphere",
+                 .parameters = {
+                     {"majorRadius", majorRadius},
+                     {"minorRadius", minorRadius},
+                     {"xSegments", (float)segments.u}, 
+                     {"ySegments", (float)segments.v}
+                 }
+             };
+
+			 return createRef<Mesh>(vertices, indices, "", desc);
 		 }
 
       

@@ -48,6 +48,7 @@
 #include <Serialize/JsonArchive.hpp>
 
 #include "ComponentBrowser.hpp"
+#include "PrimitiveCreationDialog.hpp"
 
 
 void EditorApp::openColorPickerWindow()
@@ -1502,6 +1503,85 @@ void EditorApp::addSphereToEntity(
     scene.invalidateBvh();
 }
 
+void EditorApp::spawnPrimitive(
+    const Widgets::ModelIndex& index,
+    void*                      data,
+    nb::Reflect::TypeInfo*     typeInfo
+) noexcept
+{
+    if (!index.isValid() || !data || !typeInfo)
+    {
+        return;
+    }
+
+    auto* item = sceneModel->findById(index.getUuid());
+    if (!item)
+    {
+        return;
+    }
+
+    auto  parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+    auto& scene    = nb::Scene::getInstance();
+
+    auto node = scene.createNode(parentId);
+
+    std::shared_ptr<nb::Renderer::Mesh>     mesh;
+    nb::Renderer::Mesh::PrimitiveDescriptor desc;
+    desc.type = typeInfo->name;
+
+    for (auto& field : typeInfo->fields)
+    {
+        void* fieldPtr = (uint8_t*)data + field.offset;
+
+        if (strcmp(field.type->name, "float") == 0)
+        {
+            desc.parameters[field.name] = *static_cast<float*>(fieldPtr);
+        }
+        else if (strcmp(field.type->name, "int") == 0 || strcmp(field.type->name, "uint32_t") == 0)
+        {
+            desc.parameters[field.name] = static_cast<float>(*static_cast<int*>(fieldPtr));
+        }
+    }
+
+    if (strcmp(typeInfo->name, "SphereParams") == 0)
+    {
+        auto* p = static_cast<SphereParams*>(data);
+        mesh =
+            nb::Renderer::PrimitiveGenerators::createSphere(p->radius, p->xSegments, p->ySegments);
+    }
+    else if (strcmp(typeInfo->name, "TorusParams") == 0)
+    {
+        auto* p = static_cast<TorusParams*>(data);
+        mesh    = nb::Renderer::PrimitiveGenerators::createTorus(
+            {(float)p->xSegments, (float)p->ySegments},
+            p->majorRadius,
+            p->minorRadius
+        );
+    }
+    else if (strcmp(typeInfo->name, "CubeParams") == 0)
+    {
+        //auto* p = static_cast<CubeParams*>(data);
+        //mesh = nb::Renderer::PrimitiveGenerators::createCube(p->sizeX, p->sizeY, p->sizeZ);
+    }
+
+    if (mesh)
+    {
+
+        node.addComponent<MeshComponent>({.mesh = mesh, .material = nullptr});
+        node.addComponent<TransformComponent>({});
+
+        sceneModel->addEntity(parentId, node.getId());
+        
+        
+        //tv->refresh();
+
+        activeNode = scene.getNode(node.getId());
+        onActiveNodeChanged.emit();
+        scene.invalidateBvh();
+    }
+}
+
+
 void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 {
     using namespace nbui;
@@ -1532,7 +1612,17 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 L"➕ Добавить куб",
                 [this, index, tv]()
                 {
-                    this->addCubeToEntity(index, tv);
+                    auto dialog = new PrimitiveCreationDialog(
+                        inspectorWindow.get(),
+                        "SphereParams", 
+                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                        {
+                            this->spawnPrimitive(index, data, typeInfo);
+                        }
+                    );
+                    dialog->show();
+                    //m_activeDialog = dialog; 
+                    //this->addCubeToEntity(index, tv);
                 }
             );
 
@@ -1541,6 +1631,22 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 [this, index, tv]()
                 {
                     this->addSphereToEntity(index, tv);
+                }
+            );
+
+            popup->addItem(
+                L"➕ Добавить тор",
+                [this, index, tv]()
+                {
+                    auto dialog = new PrimitiveCreationDialog(
+                        inspectorWindow.get(), "TorusParams",
+                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                        {
+                            this->spawnPrimitive(index, data, typeInfo);
+                        }
+                    );
+                    dialog->show();
+                    // m_activeDialog = dialog;
                 }
             );
 

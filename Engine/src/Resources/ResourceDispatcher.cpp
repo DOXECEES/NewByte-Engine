@@ -10,14 +10,23 @@
 
 namespace nb::Resources
 {
-    // Внутренние константы (скрыты в единице трансляции)
     static constexpr std::string_view KEY_TYPE       = "type";
     static constexpr std::string_view KEY_PARAMETERS = "parameters";
     static constexpr std::string_view KEY_RADIUS     = "radius";
-    static constexpr std::string_view KEY_SEGMENTS   = "segments";
+    static constexpr std::string_view KEY_X_SEGMENTS   = "xSegments";
+    static constexpr std::string_view KEY_Y_SEGMENTS   = "ySegments";
+
+
+
+    static constexpr std::string_view KEY_MAJOR_RADIUS = "minorRadius";
+    static constexpr std::string_view KEY_MINOR_RADIUS = "majorRadius";
+
 
     static constexpr std::string_view VALUE_SPHERE   = "sphere";
     static constexpr std::string_view VALUE_CUBE     = "cube";
+
+    static constexpr std::string_view VALUE_TORUS    = "torus";
+
 
     struct ResourceDispatcher::Impl
     {
@@ -57,14 +66,16 @@ namespace nb::Resources
             {
                 const auto& params   = node[KEY_PARAMETERS.data()];
                 const float radius   = params[KEY_RADIUS.data()].get<float>();
-                const int   segments = static_cast<int>(params[KEY_SEGMENTS.data()].get<float>());
+                const int   xSegments = static_cast<int>(params[KEY_X_SEGMENTS.data()].get<float>());
+                const int   ySegments  = static_cast<int>(params[KEY_Y_SEGMENTS.data()].get<float>());
 
                 nb::Error::ErrorManager::instance()
                     .report(nb::Error::Type::INFO, "Generating primitive sphere")
                     .with("r", radius)
-                    .with("s", segments);
+                    .with("xSeg", xSegments)
+                    .with("ySeg", ySegments);
 
-                *targetField = nb::Renderer::PrimitiveGenerators::createSphere(radius, segments, segments);
+                *targetField = nb::Renderer::PrimitiveGenerators::createSphere(radius, xSegments, ySegments);
             }
             else if (meshType == VALUE_CUBE)
             {
@@ -72,6 +83,25 @@ namespace nb::Resources
                     .report(nb::Error::Type::INFO, "Generating primitive cube");
 
                 *targetField = nb::Renderer::PrimitiveGenerators::createCube();
+            }
+            else if (meshType == VALUE_TORUS)
+            {
+                const auto& params   = node[KEY_PARAMETERS.data()];
+                const float major   = params[KEY_MAJOR_RADIUS.data()].get<float>();
+                const float minor    = params[KEY_MINOR_RADIUS.data()].get<float>();
+
+                const float xSegments = (params[KEY_X_SEGMENTS.data()].get<float>());
+                const float ySegments = (params[KEY_Y_SEGMENTS.data()].get<float>());
+
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Generating primitive torus")
+                    .with("minor", minor)
+                    .with("major", major)
+                    .with("xSeg", xSegments)
+                    .with("ySeg", ySegments);
+
+                *targetField =
+                    nb::Renderer::PrimitiveGenerators::createTorus({xSegments, ySegments}, major, minor);
             }
             else
             {
