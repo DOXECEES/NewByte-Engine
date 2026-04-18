@@ -62,6 +62,116 @@ NB_REFLECT_STRUCT(
     )
 )
 
+
+struct CylinderParams
+{
+    float radius;
+    float height;
+    int   xSegments;
+    int   ySegments;
+};
+
+
+NB_REFLECT_STRUCT(
+    CylinderParams,
+    NB_FIELD(
+        CylinderParams,
+        radius
+    ),
+    NB_FIELD(
+        CylinderParams,
+        height
+    ),
+    NB_FIELD(
+        CylinderParams,
+        xSegments
+    ),
+    NB_FIELD(
+        CylinderParams,
+        ySegments
+    )
+)
+
+struct PlaneParams
+{
+    float width;
+    float height;
+    int   xSegments;
+    int   ySegments;
+};
+
+NB_REFLECT_STRUCT(
+    PlaneParams,
+    NB_FIELD(
+        PlaneParams,
+        width
+    ),
+    NB_FIELD(
+        PlaneParams,
+        height
+    ),
+    NB_FIELD(
+        PlaneParams,
+        xSegments
+    ),
+    NB_FIELD(
+        PlaneParams,
+        ySegments
+    )
+)
+
+struct ConeParams
+{
+    float radius;
+    float height;
+    int radialSegments;
+    int heightSegments;
+};
+
+NB_REFLECT_STRUCT(
+    ConeParams,
+    NB_FIELD(
+        ConeParams,
+        radius
+    ),
+    NB_FIELD(
+        ConeParams,
+        height
+    ),
+    NB_FIELD(
+        ConeParams,
+        radialSegments
+    ),
+    NB_FIELD(
+        ConeParams,
+        heightSegments
+    )
+)
+
+struct PyramidParams
+{
+    float radius;
+    float height;
+    int sides;
+};
+
+NB_REFLECT_STRUCT(
+    PyramidParams,
+    NB_FIELD(
+        PyramidParams,
+        radius
+    ),
+    NB_FIELD(
+        PyramidParams,
+        height
+    ),
+    NB_FIELD(
+        PyramidParams,
+        sides
+    )
+)
+
+
 namespace nb
 {
     namespace Renderer
@@ -82,6 +192,33 @@ namespace nb
                 ParametricSegments segments,
                 const float majorRadius,
                 const float minorRadius
+            ) noexcept;
+
+            Ref<Mesh> createCylinder(
+                const float radius,
+                const float height,
+                uint32      radialSegments,
+                uint32      heightSegments
+            ) noexcept;
+
+            Ref<Mesh> createPlane(
+                const float width,
+                const float height,
+                uint32      xSegments,
+                uint32      ySegments
+            ) noexcept;
+
+            Ref<Mesh> createCone(
+                const float radius,
+                const float height,
+                uint32      radialSegments,
+                uint32      heightSegments
+            ) noexcept;
+
+            Ref<Mesh> createPyramid(
+                const float radius,
+                const float height,
+                uint32      sides
             ) noexcept;
         };
 

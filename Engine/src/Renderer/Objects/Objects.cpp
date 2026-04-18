@@ -121,88 +121,509 @@
 
 		 Ref<Mesh> PrimitiveGenerators::createTorus(
              ParametricSegments segments,
-             const float majorRadius,
-             const float minorRadius
+             const float        majorRadius,
+             const float        minorRadius
          ) noexcept
-		 {
-			 const int segU = segments.u;
-			 const int segV = segments.v;
-			 const float R = majorRadius;
-			 const float r = minorRadius;
+         {
+             std::vector<Vertex> vertices;
+             std::vector<uint32> indices;
 
-			 const float uStep = 2.0f * nb::Math::Constants::PI / segU;
-			 const float vStep = 2.0f * nb::Math::Constants::PI / segV;
+             const uint32 xSegments = segments.u;
+             const uint32 ySegments = segments.v;
+             const float  PI        = 3.14159265359f;
 
-			 std::vector<Vertex> vertices;
-			 vertices.reserve(segU * segV);
+             vertices.reserve((xSegments + 1) * (ySegments + 1));
+             indices.reserve(xSegments * ySegments * 6);
 
-			 for (int i = 0; i < segU; ++i)
-			 {
-				 float u = i * uStep;
-				 float cosU = std::cos(u);
-				 float sinU = std::sin(u);
-
-				 for (int j = 0; j < segV; ++j)
-				 {
-					 float v = j * vStep;
-					 float cosV = std::cos(v);
-					 float sinV = std::sin(v);
-
-                     Math::Vector3<float> normal = Math::Vector3<float>{ cosU * cosV, sinU * cosV, sinV };
-                     normal.normalize();
-
-                     Vertex vertex = {
-                         Math::Vector3<float>{
-                             (R + r * cosV)* cosU,
-                             (R + r * cosV)* sinU,
-                             r* sinV
-                         },
-                         nb::Colors::GOLD.asVec3(),
-						 normal,
-						 Math::Vector2<float>{ u / (float)(2.0f * nb::Math::Constants::PI), v / (float)(2.0f * nb::Math::Constants::PI) }
-					 };
-
-					 vertices.push_back(vertex);
-				 }
-			 }
-
-			 auto index = [](int i, int j, int segV) {
-				 return i * segV + j;
-		     };
-
-			 std::vector<uint32_t> indices;
-			 indices.reserve(segU * segV * 6);
-
-			 for (int i = 0; i < segU; ++i)
+             for (uint32 y = 0; y <= ySegments; ++y)
              {
-				 for (int j = 0; j < segV; ++j)
+                 float v      = (float)y / (float)ySegments;
+                 float phi    = v * 2.0f * PI; 
+                 float cosPhi = std::cos(phi);
+                 float sinPhi = std::sin(phi);
+
+                 for (uint32 x = 0; x <= xSegments; ++x)
                  {
-					 int nextI = (i + 1) % segU;
-					 int nextJ = (j + 1) % segV;
+                     float u        = (float)x / (float)xSegments;
+                     float theta    = u * 2.0f * PI; 
+                     float cosTheta = std::cos(theta);
+                     float sinTheta = std::sin(theta);
 
-					 uint32_t i0 = index(i, j, segV);
-					 uint32_t i1 = index(nextI, j, segV);
-					 uint32_t i2 = index(i, nextJ, segV);
-					 uint32_t i3 = index(nextI, nextJ, segV);
+                     float xPos = (majorRadius + minorRadius * cosPhi) * cosTheta;
+                     float yPos = (majorRadius + minorRadius * cosPhi) * sinTheta;
+                     float zPos = minorRadius * sinPhi;
 
-					 indices.insert(indices.end(), { i0, i1, i2, i2, i1, i3 });
-				 }
-			 }
+                     Math::Vector3<float> pos(xPos, yPos, zPos);
+
+                     Math::Vector3<float> normal(cosPhi * cosTheta, cosPhi * sinTheta, sinPhi);
+
+                     Math::Vector4<float> tangent(-sinTheta, cosTheta, 0.0f, 1.0f);
+
+                     Math::Vector2<float> uv(u, v);
+
+                     vertices.emplace_back(
+                         pos, normal, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, uv, tangent
+                     );
+                 }
+             }
+
+             for (uint32 y = 0; y < ySegments; ++y)
+             {
+                 for (uint32 x = 0; x < xSegments; ++x)
+                 {
+                     uint32 first  = y * (xSegments + 1) + x;
+                     uint32 second = first + xSegments + 1;
+
+                     indices.push_back(first);
+                     indices.push_back(second);
+                     indices.push_back(first + 1);
+
+                     indices.push_back(second);
+                     indices.push_back(second + 1);
+                     indices.push_back(first + 1);
+                 }
+             }
 
              Renderer::Mesh::PrimitiveDescriptor desc = {
-                 .type       = "sphere",
+                 .type       = "torus",
                  .parameters = {
                      {"majorRadius", majorRadius},
                      {"minorRadius", minorRadius},
-                     {"xSegments", (float)segments.u}, 
-                     {"ySegments", (float)segments.v}
+                     {"xSegments", (float)xSegments},
+                     {"ySegments", (float)ySegments}
                  }
              };
 
-			 return createRef<Mesh>(vertices, indices, "", desc);
-		 }
+             return std::make_shared<Mesh>(vertices, indices, "", desc);
+         }
 
+
+         Ref<Mesh> PrimitiveGenerators::createCylinder(
+             const float radius,
+             const float height,
+             uint32      radialSegments,
+             uint32      heightSegments
+         ) noexcept
+         {
+             std::vector<Vertex> vertices;
+             std::vector<uint32> indices;
+
+             const float PI         = 3.14159265359f;
+             const float halfHeight = height * 0.5f;
+
+             vertices.reserve((radialSegments + 1) * (heightSegments + 3) + 2);
+             indices.reserve(radialSegments * heightSegments * 6 + radialSegments * 6);
+
+             for (uint32 y = 0; y <= heightSegments; ++y)
+             {
+                 float v    = (float)y / (float)heightSegments;
+                 float yPos = v * height - halfHeight; 
+
+                 for (uint32 x = 0; x <= radialSegments; ++x)
+                 {
+                     float u     = (float)x / (float)radialSegments;
+                     float theta = u * 2.0f * PI;
+
+                     float cosTheta = std::cos(theta);
+                     float sinTheta = std::sin(theta);
+
+                     Math::Vector3<float> pos(radius * cosTheta, yPos, radius * sinTheta);
+                     Math::Vector3<float> normal(cosTheta, 0.0f, sinTheta);
+                     Math::Vector2<float> uv(u, v);
+                     Math::Vector4<float> tangent(-sinTheta, 0.0f, cosTheta, 1.0f);
+
+                     vertices.emplace_back(
+                         pos, normal, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, uv, tangent
+                     );
+                 }
+             }
+
+             for (uint32 y = 0; y < heightSegments; ++y)
+             {
+                 for (uint32 x = 0; x < radialSegments; ++x)
+                 {
+                     uint32 first  = y * (radialSegments + 1) + x;
+                     uint32 second = first + radialSegments + 1;
+
+                     indices.push_back(first);
+                     indices.push_back(second);
+                     indices.push_back(first + 1);
+
+                     indices.push_back(second);
+                     indices.push_back(second + 1);
+                     indices.push_back(first + 1);
+                 }
+             }
+
+             uint32 baseVertexIndex = (uint32)vertices.size();
+
+             uint32 topCenterIndex = (uint32)vertices.size();
+             vertices.emplace_back(
+                 Math::Vector3<float>{0.0f, halfHeight, 0.0f}, // pos
+                 Math::Vector3<float>{0.0f, 1.0f, 0.0f},       // normal
+                 Math::Vector3<float>{1.0f, 1.0f, 1.0f},       // color
+                 Math::Vector2<float>{0.5f, 0.5f},             // uv
+                 Math::Vector4<float>{1.0f, 0.0f, 0.0f, 1.0f}  // tangent
+             );
+
+             for (uint32 x = 0; x <= radialSegments; ++x)
+             {
+                 float u        = (float)x / (float)radialSegments;
+                 float theta    = u * 2.0f * PI;
+                 float cosTheta = std::cos(theta);
+                 float sinTheta = std::sin(theta);
+
+                 vertices.emplace_back(
+                     Math::Vector3<float>{radius * cosTheta, halfHeight, radius * sinTheta},
+                     Math::Vector3<float>{0.0f, 1.0f, 0.0f}, Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+                     Math::Vector2<float>{cosTheta * 0.5f + 0.5f, sinTheta * 0.5f + 0.5f},
+                     Math::Vector4<float>{1.0f, 0.0f, 0.0f, 1.0f}
+                 );
+
+                 if (x < radialSegments)
+                 {
+                     uint32 current = topCenterIndex + 1 + x;
+                     indices.push_back(topCenterIndex);
+                     indices.push_back(current);
+                     indices.push_back(current + 1);
+                 }
+             }
+
+             uint32 bottomCenterIndex = (uint32)vertices.size();
+             vertices.emplace_back(
+                 Math::Vector3<float>{0.0f, -halfHeight, 0.0f},
+                 Math::Vector3<float>{0.0f, -1.0f, 0.0f}, Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+                 Math::Vector2<float>{0.5f, 0.5f}, Math::Vector4<float>{1.0f, 0.0f, 0.0f, 1.0f}
+             );
+
+             for (uint32 x = 0; x <= radialSegments; ++x)
+             {
+                 float u        = (float)x / (float)radialSegments;
+                 float theta    = u * 2.0f * PI;
+                 float cosTheta = std::cos(theta);
+                 float sinTheta = std::sin(theta);
+
+                 vertices.emplace_back(
+                     Math::Vector3<float>{radius * cosTheta, -halfHeight, radius * sinTheta},
+                     Math::Vector3<float>{0.0f, -1.0f, 0.0f},
+                     Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+                     Math::Vector2<float>{cosTheta * 0.5f + 0.5f, sinTheta * 0.5f + 0.5f},
+                     Math::Vector4<float>{1.0f, 0.0f, 0.0f, 1.0f}
+                 );
+
+                 if (x < radialSegments)
+                 {
+                     uint32 current = bottomCenterIndex + 1 + x;
+                     indices.push_back(bottomCenterIndex);
+                     indices.push_back(current + 1);
+                     indices.push_back(current);
+                 }
+             }
+
+             Renderer::Mesh::PrimitiveDescriptor desc = {
+                 .type       = "cylinder",
+                 .parameters = {
+                     {"radius", radius},
+                     {"height", height},
+                     {"xSegments", (float)radialSegments},
+                     {"ySegments", (float)heightSegments}
+                 }
+             };
+
+             return std::make_shared<Mesh>(vertices, indices, "", desc);
+         }
       
+         Ref<Mesh> PrimitiveGenerators::createPlane(
+             const float width,
+             const float height,
+             uint32      xSegments,
+             uint32      ySegments
+         ) noexcept
+         {
+             std::vector<Vertex> vertices;
+             std::vector<uint32> indices;
+
+             vertices.reserve((xSegments + 1) * (ySegments + 1));
+             indices.reserve(xSegments * ySegments * 6);
+
+             const float halfWidth  = width * 0.5f;
+             const float halfHeight = height * 0.5f;
+
+             for (uint32 y = 0; y <= ySegments; ++y)
+             {
+                 float v = (float)y / (float)ySegments;
+                 float yPos = v * height - halfHeight;
+
+                 for (uint32 x = 0; x <= xSegments; ++x)
+                 {
+                     float u = (float)x / (float)xSegments;
+                     float xPos = u * width - halfWidth;
+
+                     Math::Vector3<float> pos(xPos, yPos, 0.0f);
+
+                     Math::Vector3<float> normal(0.0f, 0.0f, 1.0f);
+
+                     Math::Vector4<float> tangent(1.0f, 0.0f, 0.0f, 1.0f);
+
+                     Math::Vector2<float> uv(u, v);
+
+                     vertices.emplace_back(
+                         pos, normal, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, uv, tangent
+                     );
+                 }
+             }
+
+             for (uint32 y = 0; y < ySegments; ++y)
+             {
+                 for (uint32 x = 0; x < xSegments; ++x)
+                 {
+                     uint32 first  = y * (xSegments + 1) + x;
+                     uint32 second = first + xSegments + 1;
+
+                     indices.push_back(first);
+                     indices.push_back(second);
+                     indices.push_back(first + 1);
+
+                     indices.push_back(second);
+                     indices.push_back(second + 1);
+                     indices.push_back(first + 1);
+                 }
+             }
+
+             Renderer::Mesh::PrimitiveDescriptor desc = {
+                 .type       = "plane",
+                 .parameters = {
+                     {"width", width},
+                     {"height", height},
+                     {"xSegments", (float)xSegments},
+                     {"ySegments", (float)ySegments}
+                 }
+             };
+
+             return std::make_shared<Mesh>(vertices, indices, "", desc);
+         }
+
+         Ref<Mesh> PrimitiveGenerators::createCone(
+             const float radius,
+             const float height,
+             uint32      radialSegments,
+             uint32      heightSegments
+         ) noexcept
+         {
+             std::vector<Vertex> vertices;
+             std::vector<uint32> indices;
+
+             const float PI         = 3.14159265359f;
+             const float halfHeight = height * 0.5f;
+
+             vertices.reserve((radialSegments + 1) * (heightSegments + 1) + (radialSegments + 2));
+             indices.reserve(radialSegments * heightSegments * 6 + radialSegments * 3);
+
+             for (uint32 y = 0; y <= heightSegments; ++y)
+             {
+                 float v = (float)y / (float)heightSegments;
+                 float yPos = v * height - halfHeight;
+
+                 float currentRadius = radius * (1.0f - v);
+
+                 for (uint32 x = 0; x <= radialSegments; ++x)
+                 {
+                     float u     = (float)x / (float)radialSegments;
+                     float theta = u * 2.0f * PI;
+
+                     float cosTheta = std::cos(theta);
+                     float sinTheta = std::sin(theta);
+
+                     Math::Vector3<float> pos(
+                         currentRadius * cosTheta, yPos, currentRadius * sinTheta
+                     );
+
+                     float                slope = radius / height;
+                     Math::Vector3<float> normal(cosTheta, slope, sinTheta);
+                     normal.normalize(); 
+
+                     Math::Vector2<float> uv(u, v);
+                     Math::Vector4<float> tangent(-sinTheta, 0.0f, cosTheta, 1.0f);
+
+                     vertices.emplace_back(
+                         pos, normal, Math::Vector3<float>{1.0f, 1.0f, 1.0f}, uv, tangent
+                     );
+                 }
+             }
+
+             for (uint32 y = 0; y < heightSegments; ++y)
+             {
+                 for (uint32 x = 0; x < radialSegments; ++x)
+                 {
+                     uint32 first  = y * (radialSegments + 1) + x;
+                     uint32 second = first + radialSegments + 1;
+
+                     indices.push_back(first);
+                     indices.push_back(second);
+                     indices.push_back(first + 1);
+
+                     indices.push_back(second);
+                     indices.push_back(second + 1);
+                     indices.push_back(first + 1);
+                 }
+             }
+
+             uint32 bottomCenterIndex = (uint32)vertices.size();
+
+             vertices.emplace_back(
+                 Math::Vector3<float>{0.0f, -halfHeight, 0.0f},
+                 Math::Vector3<float>{0.0f, -1.0f, 0.0f}, Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+                 Math::Vector2<float>{0.5f, 0.5f}, Math::Vector4<float>{1.0f, 0.0f, 0.0f, 1.0f}
+             );
+
+             for (uint32 x = 0; x <= radialSegments; ++x)
+             {
+                 float u        = (float)x / (float)radialSegments;
+                 float theta    = u * 2.0f * PI;
+                 float cosTheta = std::cos(theta);
+                 float sinTheta = std::sin(theta);
+
+                 vertices.emplace_back(
+                     Math::Vector3<float>{radius * cosTheta, -halfHeight, radius * sinTheta},
+                     Math::Vector3<float>{0.0f, -1.0f, 0.0f},
+                     Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+                     Math::Vector2<float>{cosTheta * 0.5f + 0.5f, sinTheta * 0.5f + 0.5f},
+                     Math::Vector4<float>{1.0f, 0.0f, 0.0f, 1.0f}
+                 );
+
+                 if (x < radialSegments)
+                 {
+                     uint32 current = bottomCenterIndex + 1 + x;
+                     indices.push_back(bottomCenterIndex);
+                     indices.push_back(current + 1);
+                     indices.push_back(current);
+                 }
+             }
+
+             Renderer::Mesh::PrimitiveDescriptor desc = {
+                 .type       = "cone",
+                 .parameters = {
+                     {"radius", radius},
+                     {"height", height},
+                     {"radialSegments", (float)radialSegments},
+                     {"heightSegments", (float)heightSegments}
+                 }
+             };
+
+             return std::make_shared<Mesh>(vertices, indices, "", desc);
+         }
+
+
+         Ref<Mesh> PrimitiveGenerators::createPyramid(
+             const float radius,
+             const float height,
+             uint32      sides
+         ) noexcept
+         {
+             if (sides < 3)
+             {
+                 sides = 3;
+             }
+
+             std::vector<Vertex> vertices;
+             std::vector<uint32> indices;
+
+             const float PI         = 3.14159265359f;
+             const float halfHeight = height * 0.5f;
+
+             vertices.reserve(sides * 3 + sides + 2);
+             indices.reserve(sides * 3 + sides * 3);
+
+             // --- 1. Боковые грани (Sides) ---
+             for (uint32 i = 0; i < sides; ++i)
+             {
+                 float theta1 = (float)i / (float)sides * 2.0f * PI;
+                 float theta2 = (float)(i + 1) / (float)sides * 2.0f * PI;
+
+                 Math::Vector3<float> pApex(0.0f, halfHeight, 0.0f);
+                 Math::Vector3<float> pL(
+                     radius * std::cos(theta1), -halfHeight, radius * std::sin(theta1)
+                 );
+                 Math::Vector3<float> pR(
+                     radius * std::cos(theta2), -halfHeight, radius * std::sin(theta2)
+                 );
+
+                 // Нормаль грани (векторное произведение ребер)
+                 Math::Vector3<float> edge1 = pL - pApex;
+                 Math::Vector3<float> edge2 = pR - pApex;
+                 Math::Vector3<float> normal = Math::cross(edge1, edge2);
+                 normal.normalize();
+
+                 // Тангент грани (направлен от левой вершины основания к правой)
+                 // Он лежит в плоскости грани и перпендикулярен нормали
+                 Math::Vector3<float> tangent3D = (pR - pL);
+                 tangent3D.normalize();
+                 Math::Vector4<float> tangent(tangent3D.x, tangent3D.y, tangent3D.z, 1.0f);
+
+                 uint32 baseIdx = (uint32)vertices.size();
+
+                 // UV координаты:
+                 // Apex - по центру сверху
+                 // pL - слева внизу
+                 // pR - справа внизу
+                 Math::Vector2<float> uvApex(0.5f, 1.0f);
+                 Math::Vector2<float> uvL((float)i / sides, 0.0f);
+                 Math::Vector2<float> uvR((float)(i + 1) / sides, 0.0f);
+
+                 // Добавляем 3 вершины для треугольной грани
+                 vertices.emplace_back(
+                     pApex, normal, Math::Vector3<float>{1, 1, 1}, uvApex, tangent
+                 );
+                 vertices.emplace_back(pL, normal, Math::Vector3<float>{1, 1, 1}, uvL, tangent);
+                 vertices.emplace_back(pR, normal, Math::Vector3<float>{1, 1, 1}, uvR, tangent);
+
+                 indices.push_back(baseIdx);
+                 indices.push_back(baseIdx + 1);
+                 indices.push_back(baseIdx + 2);
+             }
+
+             // --- 2. Нижнее основание (Bottom Cap) ---
+             uint32               bottomCenterIndex = (uint32)vertices.size();
+             Math::Vector3<float> bottomNormal(0.0f, -1.0f, 0.0f);
+             Math::Vector4<float> bottomTangent(1.0f, 0.0f, 0.0f, 1.0f); // Направлен вдоль оси X
+
+             // Центр дна
+             vertices.emplace_back(
+                 Math::Vector3<float>{0.0f, -halfHeight, 0.0f}, bottomNormal,
+                 Math::Vector3<float>{1.0f, 1.0f, 1.0f}, Math::Vector2<float>{0.5f, 0.5f},
+                 bottomTangent
+             );
+
+             // Вершины по кругу для дна
+             for (uint32 i = 0; i <= sides; ++i)
+             {
+                 float theta = (float)i / (float)sides * 2.0f * PI;
+                 float cosT  = std::cos(theta);
+                 float sinT  = std::sin(theta);
+
+                 vertices.emplace_back(
+                     Math::Vector3<float>{radius * cosT, -halfHeight, radius * sinT}, bottomNormal,
+                     Math::Vector3<float>{1.0f, 1.0f, 1.0f},
+                     Math::Vector2<float>{cosT * 0.5f + 0.5f, sinT * 0.5f + 0.5f}, bottomTangent
+                 );
+
+                 if (i < sides)
+                 {
+                     uint32 current = bottomCenterIndex + 1 + i;
+                     indices.push_back(bottomCenterIndex);
+                     indices.push_back(current + 1);
+                     indices.push_back(current);
+                 }
+             }
+
+             Renderer::Mesh::PrimitiveDescriptor desc = {
+                 .type       = "pyramid",
+                 .parameters = {{"radius", radius}, {"height", height}, {"sides", (float)sides}}
+             };
+
+             return std::make_shared<Mesh>(vertices, indices, "", desc);
+         }
+
 
          //Ref<Mesh> generateTorus(const uint32_t segments, const uint32_t rings, const float majorRadius, const float minorRadius) noexcept
          //{

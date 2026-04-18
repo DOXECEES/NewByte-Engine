@@ -15,6 +15,7 @@ AssetManager::AssetManager(
     window->getLayoutRoot()->addChild(buildUI());
     window->show();
 }
+
 void AssetManager::importAsset(std::filesystem::path path) noexcept
 {
     if (path.extension() == ".png")

@@ -367,155 +367,161 @@ namespace nb::Renderer
             }
 
 
-            if (!cmd.material.empty())
+            //if (!cmd.material.empty())
+            //  1. Подготовка общих данных (вне цикла)
+            auto camPos  = cam->getPosition();
+            auto viewMat = cam->getLookAt();
+            auto projMat = cam->getProjection();
+
+            // Сбор данных освещения один раз
+            std::vector<PointLight>       pointLightsStorage;
+            std::vector<DirectionalLight> dirLightsStorage;
+            for (auto lightEntityId : lights)
             {
-                auto& material = cmd.material;
-
-                api->bindTexture(3, shadowFrameBuffer->getTexture());
-
-                glActiveTexture(GL_TEXTURE4);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-
-                glActiveTexture(GL_TEXTURE5);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
-
-                api->bindTexture(6, ibl->getBrdfTexture()->getId());
-
-                for (auto& mat : material)
+                Ecs::Entity entity{lightEntityId};
+                auto&       light = registry.get<LightComponent>(entity);
+                if (light.type == LightType::DIRECTIONAL)
                 {
-                    if (mat == nullptr)
-                    {
-                        mat = nb::ResMan::ResourceManager::getInstance()
-                                  ->getResource<Resource::MaterialAsset>(
-                                      "Assets/res/plastic.material"
-                                  );
-                    }
-
-                    auto shader = mat->getShader();
-
-                    shader->setUniformVec3("u_CameraPos", cam->getPosition());
-
-                    shader->setUniformMat4("model" , cmd.model);
-                    shader->setUniformVec3("viewPos", cam->getPosition());
-                    shader->setUniformMat4("view",     cam->getLookAt());
-                    shader->setUniformMat4("proj",     cam->getProjection());
-                    // u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
-
-                    shader->setUniformMat4("lightView", lightView);
-                    shader->setUniformMat4("lightProj", lightProj);
-                    // u.intUniforms["shadowMap"] = 6;
-
-                    std::vector<PointLight>       pointLightsStorage;
-                    std::vector<DirectionalLight> dirLightsStorage;
-
-                    for (auto lightEntityId : lights)
-                    {
-                        Ecs::Entity entity{lightEntityId};
-                        auto&       light          = registry.get<LightComponent>(entity);
-                        auto&       lightTransform = registry.get<TransformComponent>(entity);
-
-                        if (light.type == LightType::DIRECTIONAL)
-                        {
-                            dirLightsStorage.emplace_back(
-                                light.ambient.asVec3(), light.diffuse.asVec3(),
-                                light.specular.asVec3(), light.direction
-                            );
-                            dirLightsStorage.back().applyUniforms(shader);
-                        }
-                        else if (light.type == LightType::POINT)
-                        {
-                            pointLightsStorage.emplace_back(
-                                light.ambient.asVec3(), light.diffuse.asVec3(),
-                                light.specular.asVec3(), lightTransform.position, light.constant,
-                                light.linear, light.quadratic, 1.0f
-                            );
-                            pointLightsStorage.back().applyUniforms(shader);
-                        }
-                    }
-
-                    shader->setUniformInt(
-                        ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data(),
-                        dirLightsStorage.size()
+                    dirLightsStorage.emplace_back(
+                        light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+                        light.direction
                     );
-                    shader->setUniformInt(
-                        ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
-                        pointLightsStorage.size()
-                    );
-
-
-
                 }
-                cmd.material = material;
-                
-            }
-            else
-            {
-                PBRMaterial mat(shader);
-                mat.setAlbedoMap(albedo);
-                mat.setNormalMap(normal);
-                mat.setMetallicMap(metal);
-                mat.setRoughnessMap(roughtness);
-                mat.setAmbientOcclusionMap(ao);
-
-                mat.setInt("albedoMap", 0);
-                mat.setInt("normalMap", 1);
-                mat.setInt("metallicMap", 2);
-                // mat.setInt("roughnessMap", 3);
-                // mat.setInt("aoMap", 4);
-
-                mat.apply(api);
-                api->bindTexture(3, shadowFrameBuffer->getTexture());
-
-                glActiveTexture(GL_TEXTURE4);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-
-                glActiveTexture(GL_TEXTURE5);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
-
-                api->bindTexture(6, ibl->getBrdfTexture()->getId());
-
-                u.vec3Uniforms["viewPos"] = cam->getPosition();
-                u.mat4Uniforms["view"]    = cam->getLookAt();
-                u.mat4Uniforms["proj"]    = cam->getProjection();
-                // u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
-
-                u.mat4Uniforms["lightView"] = lightView;
-                u.mat4Uniforms["lightProj"] = lightProj;
-                // u.intUniforms["shadowMap"] = 6;
-
-                std::vector<PointLight>       pointLightsStorage;
-                std::vector<DirectionalLight> dirLightsStorage;
-
-                for (auto lightEntityId : lights)
+                else if (light.type == LightType::POINT)
                 {
-                    Ecs::Entity entity{lightEntityId};
-                    auto&       light          = registry.get<LightComponent>(entity);
-                    auto&       lightTransform = registry.get<TransformComponent>(entity);
+                    auto& trans = registry.get<TransformComponent>(entity);
+                    pointLightsStorage.emplace_back(
+                        light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+                        trans.position, light.constant, light.linear, light.quadratic, 1.0f
+                    );
+                }
+            }
 
-                    if (light.type == LightType::DIRECTIONAL)
-                    {
-                        dirLightsStorage.emplace_back(
-                            light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
-                            light.direction
-                        );
-                        dirLightsStorage.back().applyUniforms(u.shader);
-                    }
-                    else if (light.type == LightType::POINT)
-                    {
-                        pointLightsStorage.emplace_back(
-                            light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
-                            lightTransform.position, light.constant, light.linear, light.quadratic,
-                            1.0f
-                        );
-                        pointLightsStorage.back().applyUniforms(u.shader);
-                    }
+            // 2. Глобальные текстуры (Shadow, IBL)
+            api->bindTexture(3, shadowFrameBuffer->getTexture());
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+            api->bindTexture(6, ibl->getBrdfTexture()->getId());
+
+            // 3. ПРОВЕРКА: Если материалов нет, добавляем дефолтный
+            if (cmd.material.empty())
+            {
+                cmd.material.push_back(
+                    nb::ResMan::ResourceManager::getInstance()
+                        ->getResource<Resource::MaterialAsset>("Assets/res/plastic.material")
+                );
+            }
+
+            // 4. Единый цикл отрисовки
+            for (auto& mat : cmd.material)
+            {
+                if (mat == nullptr)
+                {
+                    continue;
                 }
 
-                u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] =
-                    dirLightsStorage.size();
-                u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] =
-                    pointLightsStorage.size();
+                auto shader = mat->getShader();
+                //shader->();
+
+                // Передача общих униформов
+                shader->setUniformVec3("u_CameraPos", camPos);
+                shader->setUniformMat4("model", cmd.model);
+                shader->setUniformMat4("view", viewMat);
+                shader->setUniformMat4("proj", projMat);
+                shader->setUniformMat4("lightView", lightView);
+                shader->setUniformMat4("lightProj", lightProj);
+
+                // Применение света
+                for (auto& l : dirLightsStorage)
+                {
+                    l.applyUniforms(shader);
+                }
+                for (auto& l : pointLightsStorage)
+                {
+                    l.applyUniforms(shader);
+                }
+                shader->setUniformInt(
+                    ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data(),
+                    dirLightsStorage.size()
+                );
+                shader->setUniformInt(
+                    ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
+                    pointLightsStorage.size()
+                );
+
+                //mat->apply(api);
+                api->drawMesh(cmd);
             }
+            //else
+            //{
+            //    PBRMaterial mat(shader);
+            //    mat.setAlbedoMap(albedo);
+            //    mat.setNormalMap(normal);
+            //    mat.setMetallicMap(metal);
+            //    mat.setRoughnessMap(roughtness);
+            //    mat.setAmbientOcclusionMap(ao);
+
+            //    mat.setInt("albedoMap", 0);
+            //    mat.setInt("normalMap", 1);
+            //    mat.setInt("metallicMap", 2);
+            //    // mat.setInt("roughnessMap", 3);
+            //    // mat.setInt("aoMap", 4);
+
+            //    mat.apply(api);
+            //    api->bindTexture(3, shadowFrameBuffer->getTexture());
+
+            //    glActiveTexture(GL_TEXTURE4);
+            //    glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
+
+            //    glActiveTexture(GL_TEXTURE5);
+            //    glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
+
+            //    api->bindTexture(6, ibl->getBrdfTexture()->getId());
+
+            //    u.vec3Uniforms["viewPos"] = cam->getPosition();
+            //    u.mat4Uniforms["view"]    = cam->getLookAt();
+            //    u.mat4Uniforms["proj"]    = cam->getProjection();
+            //    // u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
+
+            //    u.mat4Uniforms["lightView"] = lightView;
+            //    u.mat4Uniforms["lightProj"] = lightProj;
+            //    // u.intUniforms["shadowMap"] = 6;
+
+            //    std::vector<PointLight>       pointLightsStorage;
+            //    std::vector<DirectionalLight> dirLightsStorage;
+
+            //    for (auto lightEntityId : lights)
+            //    {
+            //        Ecs::Entity entity{lightEntityId};
+            //        auto&       light          = registry.get<LightComponent>(entity);
+            //        auto&       lightTransform = registry.get<TransformComponent>(entity);
+
+            //        if (light.type == LightType::DIRECTIONAL)
+            //        {
+            //            dirLightsStorage.emplace_back(
+            //                light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+            //                light.direction
+            //            );
+            //            dirLightsStorage.back().applyUniforms(u.shader);
+            //        }
+            //        else if (light.type == LightType::POINT)
+            //        {
+            //            pointLightsStorage.emplace_back(
+            //                light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
+            //                lightTransform.position, light.constant, light.linear, light.quadratic,
+            //                1.0f
+            //            );
+            //            pointLightsStorage.back().applyUniforms(u.shader);
+            //        }
+            //    }
+
+            //    u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] =
+            //        dirLightsStorage.size();
+            //    u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] =
+            //        pointLightsStorage.size();
+            //}
             // Биндим текстуры ( brick, normal и т.д.)
             //u.intUniforms["ourTexture"] = 1;
             //u.intUniforms["textureNormal"] = 2;
@@ -523,7 +529,7 @@ namespace nb::Renderer
             //if (tn) tn->bind(2);
             
 
-            api->drawMesh(cmd);
+            //api->drawMesh(cmd);
         }
 
         if (isDebugPassEnabled)
@@ -1254,14 +1260,14 @@ namespace nb::Renderer
         //
         //cubeNode.addComponent(Physics::Collider { .halfSize = (aabb.halfSize() * 1.0f)  });
 
-        //cubeNode.addComponent(
-        //    Physics::Rigidbody{
-        //        .velocity = {0.0f, 0.0f, 0.0f},
-        //        .acceleration = {0.0f, 0.0f, 0.0f},
-        //        .mass = 1.0f,
-        //        .useGravity = true
-        //    }
-        //);
+        ////cubeNode.addComponent(
+        ////    Physics::Rigidbody{
+        ////        .velocity = {0.0f, 0.0f, 0.0f},
+        ////        .acceleration = {0.0f, 0.0f, 0.0f},
+        ////        .mass = 1.0f,
+        ////        .useGravity = true
+        ////    }
+        ////);
         //cubeNode.addComponent(
         //    nb::Script::ScriptComponent{
         //        .script = std::make_shared<nb::Script::Script>(
@@ -1289,10 +1295,10 @@ namespace nb::Renderer
         //    }
         //);
         ////surfNode.addComponent(Physics::Collider{.halfSize = {100.0f, 1.0f, 100.0f}});
-        //surfNode.addComponent(Physics::GroundTag());
-        //surfNode.addComponent(Physics::TerrainColliderComponent());
-        //auto bakedData = nb::Physics::bakeMesh(*surf, 0.1f);
-        //surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
+        ////surfNode.addComponent(Physics::GroundTag());
+        ////surfNode.addComponent(Physics::TerrainColliderComponent());
+        ////auto bakedData = nb::Physics::bakeMesh(*surf, 0.1f);
+        ////surfNode.getComponent<Physics::TerrainColliderComponent>().collider = std::move(bakedData);
 
         //
 
@@ -1303,7 +1309,7 @@ namespace nb::Renderer
         //    new nb::Serialize::JsonArchive("Assets/res/Scene.json");
         //Scene::getInstance().serialize(archive);
         //delete archive;
-        
+        //
 
         nb::Serialize::IArchive* archive =
             new nb::Serialize::JsonArchive("Assets/res/Scene.json");

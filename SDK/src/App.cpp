@@ -1558,11 +1558,36 @@ void EditorApp::spawnPrimitive(
             p->minorRadius
         );
     }
-    else if (strcmp(typeInfo->name, "CubeParams") == 0)
+    else if (strcmp(typeInfo->name, "CylinderParams") == 0)
     {
-        //auto* p = static_cast<CubeParams*>(data);
-        //mesh = nb::Renderer::PrimitiveGenerators::createCube(p->sizeX, p->sizeY, p->sizeZ);
+        auto* p = static_cast<CylinderParams*>(data);
+        mesh    = nb::Renderer::PrimitiveGenerators::createCylinder(
+            p->radius, p->height, p->xSegments, p->ySegments
+        );
     }
+    else if (strcmp(typeInfo->name, "PlaneParams") == 0)
+    {
+        auto* p = static_cast<PlaneParams*>(data);
+        mesh    = nb::Renderer::PrimitiveGenerators::createPlane(
+            p->width, p->height, p->xSegments, p->ySegments
+        );
+    }
+    else if (strcmp(typeInfo->name, "ConeParams") == 0)
+    {
+        auto* p = static_cast<ConeParams*>(data);
+        mesh    = nb::Renderer::PrimitiveGenerators::createCone(
+            p->radius, p->height, p->radialSegments, p->heightSegments
+        );
+    }
+    else if (strcmp(typeInfo->name, "PyramidParams") == 0)
+    {
+        auto* p = static_cast<PyramidParams*>(data);
+        mesh    = nb::Renderer::PrimitiveGenerators::createPyramid(
+            p->radius, p->height, p->sides
+        );
+    }
+
+
 
     if (mesh)
     {
@@ -1640,6 +1665,70 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 {
                     auto dialog = new PrimitiveCreationDialog(
                         inspectorWindow.get(), "TorusParams",
+                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                        {
+                            this->spawnPrimitive(index, data, typeInfo);
+                        }
+                    );
+                    dialog->show();
+                    // m_activeDialog = dialog;
+                }
+            );
+
+            popup->addItem(
+                L"➕ Добавить цилиндр",
+                [this, index, tv]()
+                {
+                    auto dialog = new PrimitiveCreationDialog(
+                        inspectorWindow.get(), "CylinderParams",
+                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                        {
+                            this->spawnPrimitive(index, data, typeInfo);
+                        }
+                    );
+                    dialog->show();
+                    // m_activeDialog = dialog;
+                }
+            );
+
+            popup->addItem(
+                L"➕ Добавить плоскость",
+                [this, index, tv]()
+                {
+                    auto dialog = new PrimitiveCreationDialog(
+                        inspectorWindow.get(), "PlaneParams",
+                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                        {
+                            this->spawnPrimitive(index, data, typeInfo);
+                        }
+                    );
+                    dialog->show();
+                    // m_activeDialog = dialog;
+                }
+            );
+
+            popup->addItem(
+                L"➕ Добавить конус",
+                [this, index, tv]()
+                {
+                    auto dialog = new PrimitiveCreationDialog(
+                        inspectorWindow.get(), "ConeParams",
+                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                        {
+                            this->spawnPrimitive(index, data, typeInfo);
+                        }
+                    );
+                    dialog->show();
+                    // m_activeDialog = dialog;
+                }
+            );
+
+            popup->addItem(
+                L"➕ Добавить пирамиду",
+                [this, index, tv]()
+                {
+                    auto dialog = new PrimitiveCreationDialog(
+                        inspectorWindow.get(), "PyramidParams",
                         [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
                         {
                             this->spawnPrimitive(index, data, typeInfo);

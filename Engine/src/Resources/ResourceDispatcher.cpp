@@ -13,19 +13,30 @@ namespace nb::Resources
     static constexpr std::string_view KEY_TYPE       = "type";
     static constexpr std::string_view KEY_PARAMETERS = "parameters";
     static constexpr std::string_view KEY_RADIUS     = "radius";
+    static constexpr std::string_view KEY_HEIGHT     = "height";
+    static constexpr std::string_view KEY_WIDTH     = "width";
+
     static constexpr std::string_view KEY_X_SEGMENTS   = "xSegments";
     static constexpr std::string_view KEY_Y_SEGMENTS   = "ySegments";
 
 
 
-    static constexpr std::string_view KEY_MAJOR_RADIUS = "minorRadius";
-    static constexpr std::string_view KEY_MINOR_RADIUS = "majorRadius";
+    static constexpr std::string_view KEY_MAJOR_RADIUS = "majorRadius";
+    static constexpr std::string_view KEY_MINOR_RADIUS = "minorRadius";
+    static constexpr std::string_view KEY_RADIAL_SEGMENTS= "radialSegments";
+    static constexpr std::string_view KEY_HEIGHT_SEGMENTS = "heightSegments";
+    static constexpr std::string_view KEY_SIDES = "sides";
 
 
     static constexpr std::string_view VALUE_SPHERE   = "sphere";
     static constexpr std::string_view VALUE_CUBE     = "cube";
-
     static constexpr std::string_view VALUE_TORUS    = "torus";
+    static constexpr std::string_view VALUE_CYLINDER    = "cylinder";
+    static constexpr std::string_view VALUE_PLANE = "plane";
+    static constexpr std::string_view VALUE_CONE       = "cone";
+    static constexpr std::string_view VALUE_PYRAMID        = "pyramid";
+
+
 
 
     struct ResourceDispatcher::Impl
@@ -102,6 +113,84 @@ namespace nb::Resources
 
                 *targetField =
                     nb::Renderer::PrimitiveGenerators::createTorus({xSegments, ySegments}, major, minor);
+            }
+            else if (meshType == VALUE_CYLINDER)
+            {
+                const auto& params = node[KEY_PARAMETERS.data()];
+                const float radius  = params[KEY_RADIUS.data()].get<float>();
+                const float height  = params[KEY_HEIGHT.data()].get<float>();
+
+                const float xSegments = (params[KEY_X_SEGMENTS.data()].get<float>());
+                const float ySegments = (params[KEY_Y_SEGMENTS.data()].get<float>());
+
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Generating primitive cylinder")
+                    .with("radius", radius)
+                    .with("height", height)
+                    .with("xSeg", xSegments)
+                    .with("ySeg", ySegments);
+
+                *targetField = nb::Renderer::PrimitiveGenerators::createCylinder(
+                    radius, height, xSegments, ySegments
+                );
+            }
+            else if (meshType == VALUE_PLANE)
+            {
+                const auto& params = node[KEY_PARAMETERS.data()];
+                const float width = params[KEY_WIDTH.data()].get<float>();
+                const float height = params[KEY_HEIGHT.data()].get<float>();
+
+                const float xSegments = (params[KEY_X_SEGMENTS.data()].get<float>());
+                const float ySegments = (params[KEY_Y_SEGMENTS.data()].get<float>());
+
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Generating primitive plane")
+                    .with("width", width)
+                    .with("height", height)
+                    .with("xSeg", xSegments)
+                    .with("ySeg", ySegments);
+
+                *targetField = nb::Renderer::PrimitiveGenerators::createPlane(
+                    width, height, xSegments, ySegments
+                );
+            }
+            else if (meshType == VALUE_CONE)
+            {
+                const auto& params = node[KEY_PARAMETERS.data()];
+                const float radius  = params[KEY_RADIUS.data()].get<float>();
+                const float height = params[KEY_HEIGHT.data()].get<float>();
+
+                const float radialSegments = (params[KEY_RADIAL_SEGMENTS.data()].get<float>());
+                const float heightSegments = (params[KEY_HEIGHT_SEGMENTS.data()].get<float>());
+
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Generating primitive cone")
+                    .with("radius", radius)
+                    .with("height", height)
+                    .with("radialSegments", radialSegments)
+                    .with("heightSegments", heightSegments);
+
+                *targetField = nb::Renderer::PrimitiveGenerators::createCone(
+                    radius, height, radialSegments, heightSegments
+                );
+            }
+            else if (meshType == VALUE_PYRAMID)
+            {
+                const auto& params = node[KEY_PARAMETERS.data()];
+                const float radius = params[KEY_RADIUS.data()].get<float>();
+                const float height = params[KEY_HEIGHT.data()].get<float>();
+
+                const float sides = (params[KEY_SIDES.data()].get<float>());
+
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Generating primitive pyramid")
+                    .with("radius", radius)
+                    .with("height", height)
+                    .with("sides", sides);
+
+                *targetField = nb::Renderer::PrimitiveGenerators::createPyramid(
+                    radius, height, sides
+                );
             }
             else
             {
