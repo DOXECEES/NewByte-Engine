@@ -99,6 +99,7 @@ private:
 
     bool shouldRebuildInspector = false; 
 
+    Signal<void()> refreshHierarchyTreeViewSignal;
     Signal<void()> onActiveNodeChanged;
 
     void initSystems() noexcept;
@@ -142,6 +143,13 @@ private:
         const nb::Reflect::FieldInfo& field
     ) noexcept;
 
+    void spawnPrimitive(
+        const Widgets::ModelIndex& index,
+        void*                      data,
+        nb::Reflect::TypeInfo*     typeInfo
+    ) noexcept;
+
+
     void showAllWindows()
     {
         sceneWindow->show();
@@ -152,12 +160,6 @@ private:
         mainWindow->show();
         mainWindow->repaint();
     }
-
-
-    void addCubeToEntity(
-        const Widgets::ModelIndex& index,
-        Widgets::TreeView*         tv
-    ) noexcept; 
 
    void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 

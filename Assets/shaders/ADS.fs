@@ -113,7 +113,30 @@ vec3 ApplyPostProcessing(vec3 color) {
 
 void main() {
     // 1. Сбор данных материала
-    vec3 orm = texture(ormMap, v_TexCoords).rgb;
+	
+	
+	ivec2 albedoSize = textureSize(albedoMap, 0);
+	vec3 albedo;
+
+	if (albedoSize.x < 1) { // Если текстура не привязана, её размер будет 0
+		// Рисуем квадратики программно
+		vec2 check = floor(v_TexCoords * 10.0);
+		float pattern = mod(check.x + check.y, 2.0);
+		albedo = mix(vec3(0.2), vec3(0.7), pattern);
+	} else {
+		albedo = pow(texture(albedoMap, v_TexCoords).rgb, vec3(2.2));
+	}
+
+	// Аналогично для нормалей
+	ivec2 normalSize = textureSize(normalMap, 0);
+	vec3 nMap = (normalSize.x < 1) ? vec3(0, 0, 1) : texture(normalMap, v_TexCoords).rgb * 2.0 - 1.0;
+
+	// Аналогично для ORM
+	ivec2 ormSize = textureSize(ormMap, 0);
+	vec3 orm = (ormSize.x < 1) ? vec3(1.0, 0.5, 0.0) : texture(ormMap, v_TexCoords).rgb;
+
+	
+    //vec3 orm = texture(ormMap, v_TexCoords).rgb;
     float ao        = orm.r;
     float roughness = max(orm.g, 0.05);
 
@@ -122,8 +145,8 @@ void main() {
     float metallic  = orm.b;
     //float metallic  = 1.0;
 
-    vec3 albedo = pow(texture(albedoMap, v_TexCoords).rgb, vec3(2.2));
-    vec3 nMap   = texture(normalMap, v_TexCoords).rgb * 2.0 - 1.0;
+    //vec3 albedo = pow(texture(albedoMap, v_TexCoords).rgb, vec3(2.2));
+    //vec3 nMap   = texture(normalMap, v_TexCoords).rgb * 2.0 - 1.0;
     mat3 vTBN = TBN;
 	vTBN[0] = normalize(vTBN[0]);
 	vTBN[1] = normalize(vTBN[1]);

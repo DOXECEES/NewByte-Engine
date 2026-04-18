@@ -539,7 +539,6 @@ namespace nb
             return;
         }
 
-        // Проверяем, есть ли вообще поля для сериализации
         bool hasFields = false;
         for (auto& field : type->fields)
         {
@@ -551,7 +550,6 @@ namespace nb
             break;
         }
 
-        // Если полей нет, ничего не делаем
         if (!hasFields)
         {
             return;
@@ -568,9 +566,16 @@ namespace nb
 
             if (field.getResourcePath)
             {
-                std::string path = field.getResourcePath(fieldPtr);
-                archive->value(field.name, path);
+                bool handledAsComplex =
+                    dispatcher.serialize(archive, field.name, fieldPtr, field.type);
+
+                if (!handledAsComplex)
+                {
+                    std::string path = field.getResourcePath(fieldPtr);
+                    archive->value(field.name, path);
+                }
                 continue;
+
             }
             else if (field.getResourcePaths)
             {
@@ -792,10 +797,8 @@ namespace nb
 
             storage->addDefault(entity.id);
 
-            // 2. Получаем указатель на созданный объект
             void* componentPtr = storage->getRaw(entity.id);
 
-            // 3. Заполняем поля
             if (componentPtr)
             {
                 deserializeFields(compJson, componentPtr, typeInfo);
@@ -860,11 +863,20 @@ void Scene::deserializeFields(
                 int value = fieldJson.get<int>();
                 std::memcpy(fieldPtr, &value, sizeof(int));
             }
-            else if (fieldJson.isValue() && field.loadResource)
-            { 
-                std::string path = fieldJson.get<std::string>();
-                field.loadResource(fieldPtr, path); 
+            else if (field.loadResource)
+            {
+                if (fieldJson.isValue())
+                {
+                    field.loadResource(fieldPtr, fieldJson.get<std::string>());
+                }
+                else if (fieldJson.isObject())
+                {
+                    
+                    dispatcher.dispatch(fieldPtr, field.type, fieldJson);
+                    
+                }
             }
+
             else if (field.loadResources && fieldJson.isArray())
             {
                 std::vector<std::string> paths;

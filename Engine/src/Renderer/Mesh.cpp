@@ -96,17 +96,27 @@ namespace nb
 
         // }
 
-        Mesh::Mesh(const std::vector<Vertex> &vert, const std::vector<uint32_t> &ind, const std::filesystem::path& pathToFile)
+        Mesh::Mesh(
+            const std::vector<Vertex>&   vert,
+            const std::vector<uint32_t>& ind,
+            const std::filesystem::path& pathToFile,
+            const PrimitiveDescriptor&   desc 
+        )
             : verticies(vert)
             , IResource(pathToFile)
+           
+
         {
             meshes.push_back(std::make_unique<SubMesh>(ind));
-            calculateTagnentArray();
 
             this->ind = uniteIndicies();
 
             VAO.linkData(verticies, ind);
             recalculateAabb3dForce();
+            
+            primitiveDescriptor = desc.type.empty() ? std::optional<PrimitiveDescriptor>{}
+                                                    : std::optional<PrimitiveDescriptor>{desc};
+
         }
 
         Mesh::Mesh(const Mesh& other) noexcept
