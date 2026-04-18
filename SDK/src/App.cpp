@@ -1437,72 +1437,6 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     return parentBuilder;
 }
 
-void EditorApp::addCubeToEntity(
-    const Widgets::ModelIndex& index,
-    Widgets::TreeView*         tv
-) noexcept
-{
-    if (!index.isValid())
-    {
-        return;
-    }
-
-    auto* item = sceneModel->findById(index.getUuid());
-    if (!item)
-    {
-        return;
-    }
-
-    auto  parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-    auto& scene    = nb::Scene::getInstance();
-
-    auto entity = scene.createNode(parentId);
-    entity.addComponent<MeshComponent>(
-        {.mesh = nb::Renderer::PrimitiveGenerators::createCube(), .material = nullptr}
-    );
-    entity.addComponent<TransformComponent>({});
-
-    sceneModel->addEntity(parentId, entity.getId());
-    tv->refresh();
-
-    activeNode = scene.getNode(entity.getId());
-    onActiveNodeChanged.emit();
-    scene.invalidateBvh();
-}
-
-void EditorApp::addSphereToEntity(
-    const Widgets::ModelIndex& index,
-    Widgets::TreeView*         tv
-) noexcept
-{
-    if (!index.isValid())
-    {
-        return;
-    }
-
-    auto* item = sceneModel->findById(index.getUuid());
-    if (!item)
-    {
-        return;
-    }
-
-    auto  parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-    auto& scene    = nb::Scene::getInstance();
-
-    auto entity = scene.createNode(parentId);
-    entity.addComponent<MeshComponent>(
-        {.mesh = nb::Renderer::PrimitiveGenerators::createSphere(1.0f, 32, 32), .material = nullptr}
-    );
-    entity.addComponent<TransformComponent>({});
-
-    sceneModel->addEntity(parentId, entity.getId());
-    tv->refresh();
-
-    activeNode = scene.getNode(entity.getId());
-    onActiveNodeChanged.emit();
-    scene.invalidateBvh();
-}
-
 void EditorApp::spawnPrimitive(
     const Widgets::ModelIndex& index,
     void*                      data,
@@ -1511,98 +1445,116 @@ void EditorApp::spawnPrimitive(
 {
     if (!index.isValid() || !data || !typeInfo)
     {
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::WARNING, "Invalid spawn parameters")
+            .with("hasData", data != nullptr)
+            .with("hasType", typeInfo != nullptr);
         return;
     }
 
     auto* item = sceneModel->findById(index.getUuid());
     if (!item)
     {
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::WARNING, "Could not find scene item by UUID")
+            .with("uuid", index.getUuid().toString()); 
         return;
     }
 
-    auto  parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-    auto& scene    = nb::Scene::getInstance();
+    const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+    auto&      scene    = nb::Scene::getInstance();
+    auto       node     = scene.createNode(parentId);
 
-    auto node = scene.createNode(parentId);
+    Ref<nb::Renderer::Mesh> mesh     = nullptr;
+    const std::string_view  typeName = typeInfo->name;
 
-    std::shared_ptr<nb::Renderer::Mesh>     mesh;
     nb::Renderer::Mesh::PrimitiveDescriptor desc;
     desc.type = typeInfo->name;
 
-    for (auto& field : typeInfo->fields)
+    for (const auto& field : typeInfo->fields)
     {
-        void* fieldPtr = (uint8_t*)data + field.offset;
+        const void*            fieldPtr      = static_cast<const uint8_t*>(data) + field.offset;
+        const std::string_view fieldTypeName = field.type->name;
 
-        if (strcmp(field.type->name, "float") == 0)
+        if (fieldTypeName == "float")
         {
-            desc.parameters[field.name] = *static_cast<float*>(fieldPtr);
+            desc.parameters[field.name] = *static_cast<const float*>(fieldPtr);
         }
-        else if (strcmp(field.type->name, "int") == 0 || strcmp(field.type->name, "uint32_t") == 0)
+        else if (fieldTypeName == "int" || fieldTypeName == "uint32_t")
         {
-            desc.parameters[field.name] = static_cast<float>(*static_cast<int*>(fieldPtr));
+            desc.parameters[field.name] = static_cast<float>(*static_cast<const int*>(fieldPtr));
         }
     }
 
-    if (strcmp(typeInfo->name, "SphereParams") == 0)
+    if (typeName == "CubeParams")
     {
-        auto* p = static_cast<SphereParams*>(data);
-        mesh =
-            nb::Renderer::PrimitiveGenerators::createSphere(p->radius, p->xSegments, p->ySegments);
+        const auto* p = static_cast<CubeParams*>(data);
+        mesh = nb::Renderer::PrimitiveGenerators::createCube(p->size);
     }
-    else if (strcmp(typeInfo->name, "TorusParams") == 0)
+    else if(typeName == "SphereParams")
     {
-        auto* p = static_cast<TorusParams*>(data);
-        mesh    = nb::Renderer::PrimitiveGenerators::createTorus(
-            {(float)p->xSegments, (float)p->ySegments},
-            p->majorRadius,
+        const auto* p = static_cast<SphereParams*>(data);
+        mesh = nb::Renderer::PrimitiveGenerators::createSphere(p->radius, p->xSegments, p->ySegments);
+    }
+    else if (typeName == "TorusParams")
+    {
+        const auto* p = static_cast<TorusParams*>(data);
+        mesh          = nb::Renderer::PrimitiveGenerators::createTorus(
+            {static_cast<uint32>(p->xSegments), static_cast<uint32>(p->ySegments)}, p->majorRadius,
             p->minorRadius
         );
     }
-    else if (strcmp(typeInfo->name, "CylinderParams") == 0)
+    else if (typeName == "CylinderParams")
     {
-        auto* p = static_cast<CylinderParams*>(data);
-        mesh    = nb::Renderer::PrimitiveGenerators::createCylinder(
+        const auto* p = static_cast<CylinderParams*>(data);
+        mesh          = nb::Renderer::PrimitiveGenerators::createCylinder(
             p->radius, p->height, p->xSegments, p->ySegments
         );
     }
-    else if (strcmp(typeInfo->name, "PlaneParams") == 0)
+    else if (typeName == "PlaneParams")
     {
-        auto* p = static_cast<PlaneParams*>(data);
-        mesh    = nb::Renderer::PrimitiveGenerators::createPlane(
+        const auto* p = static_cast<PlaneParams*>(data);
+        mesh          = nb::Renderer::PrimitiveGenerators::createPlane(
             p->width, p->height, p->xSegments, p->ySegments
         );
     }
-    else if (strcmp(typeInfo->name, "ConeParams") == 0)
+    else if (typeName == "ConeParams")
     {
-        auto* p = static_cast<ConeParams*>(data);
-        mesh    = nb::Renderer::PrimitiveGenerators::createCone(
+        const auto* p = static_cast<ConeParams*>(data);
+        mesh          = nb::Renderer::PrimitiveGenerators::createCone(
             p->radius, p->height, p->radialSegments, p->heightSegments
         );
     }
-    else if (strcmp(typeInfo->name, "PyramidParams") == 0)
+    else if (typeName == "PyramidParams")
     {
-        auto* p = static_cast<PyramidParams*>(data);
-        mesh    = nb::Renderer::PrimitiveGenerators::createPyramid(
-            p->radius, p->height, p->sides
-        );
+        const auto* p = static_cast<PyramidParams*>(data);
+        mesh = nb::Renderer::PrimitiveGenerators::createPyramid(p->radius, p->height, p->sides);
     }
-
-
 
     if (mesh)
     {
-
         node.addComponent<MeshComponent>({.mesh = mesh, .material = nullptr});
+        node.addComponent<NameComponent>({typeName.data()});
+
         node.addComponent<TransformComponent>({});
 
         sceneModel->addEntity(parentId, node.getId());
         
-        
-        //tv->refresh();
-
         activeNode = scene.getNode(node.getId());
+        refreshHierarchyTreeViewSignal.emit();
         onActiveNodeChanged.emit();
         scene.invalidateBvh();
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "Primitive spawned successfully")
+            .with("type", typeInfo->name)
+            .with("entityId", static_cast<uint64_t>(node.getId()));
+    }
+    else
+    {
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::FATAL, "Failed to create mesh for primitive")
+            .with("type", typeInfo->name);
     }
 }
 
@@ -1610,19 +1562,29 @@ void EditorApp::spawnPrimitive(
 void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 {
     using namespace nbui;
+    subscribe(
+        this, &EditorApp::refreshHierarchyTreeViewSignal,
+        [this, tv]()
+        {
+            tv->refresh();
+        }
+    );
+
 
     subscribe(
         tv, &Widgets::TreeView::onItemClickSignal,
         [this](const auto& index)
         {
-            if (index.isValid())
+            if (!index.isValid())
             {
-                if (auto* item = sceneModel->findById(index.getUuid()))
-                {
-                    auto id    = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-                    activeNode = nb::Scene::getInstance().getNode(id);
-                    onActiveNodeChanged.emit();
-                }
+                return;
+            }
+
+            if (auto* item = sceneModel->findById(index.getUuid()))
+            {
+                const auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+                activeNode    = nb::Scene::getInstance().getNode(id);
+                onActiveNodeChanged.emit();
             }
         }
     );
@@ -1631,113 +1593,33 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
         tv, &Widgets::TreeView::onItemRightClickSignal,
         [this, tv](const auto& index)
         {
-            auto popup = new PopupMenu();
+            auto* popup = new PopupMenu();
 
-            popup->addItem(
-                L"➕ Добавить куб",
-                [this, index, tv]()
-                {
-                    auto dialog = new PrimitiveCreationDialog(
-                        inspectorWindow.get(),
-                        "SphereParams", 
-                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
-                        {
-                            this->spawnPrimitive(index, data, typeInfo);
-                        }
-                    );
-                    dialog->show();
-                    //m_activeDialog = dialog; 
-                    //this->addCubeToEntity(index, tv);
-                }
-            );
+            auto addPrimitiveAction = [&](const wchar_t* label, const char* paramsType)
+            {
+                popup->addItem(
+                    label,
+                    [this, index, paramsType]()
+                    {
+                        auto* dialog = new PrimitiveCreationDialog(
+                            inspectorWindow.get(), paramsType,
+                            [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
+                            {
+                                this->spawnPrimitive(index, data, typeInfo);
+                            }
+                        );
+                        dialog->show();
+                    }
+                );
+            };
 
-            popup->addItem(
-                L"➕ Добавить сферу",
-                [this, index, tv]()
-                {
-                    this->addSphereToEntity(index, tv);
-                }
-            );
-
-            popup->addItem(
-                L"➕ Добавить тор",
-                [this, index, tv]()
-                {
-                    auto dialog = new PrimitiveCreationDialog(
-                        inspectorWindow.get(), "TorusParams",
-                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
-                        {
-                            this->spawnPrimitive(index, data, typeInfo);
-                        }
-                    );
-                    dialog->show();
-                    // m_activeDialog = dialog;
-                }
-            );
-
-            popup->addItem(
-                L"➕ Добавить цилиндр",
-                [this, index, tv]()
-                {
-                    auto dialog = new PrimitiveCreationDialog(
-                        inspectorWindow.get(), "CylinderParams",
-                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
-                        {
-                            this->spawnPrimitive(index, data, typeInfo);
-                        }
-                    );
-                    dialog->show();
-                    // m_activeDialog = dialog;
-                }
-            );
-
-            popup->addItem(
-                L"➕ Добавить плоскость",
-                [this, index, tv]()
-                {
-                    auto dialog = new PrimitiveCreationDialog(
-                        inspectorWindow.get(), "PlaneParams",
-                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
-                        {
-                            this->spawnPrimitive(index, data, typeInfo);
-                        }
-                    );
-                    dialog->show();
-                    // m_activeDialog = dialog;
-                }
-            );
-
-            popup->addItem(
-                L"➕ Добавить конус",
-                [this, index, tv]()
-                {
-                    auto dialog = new PrimitiveCreationDialog(
-                        inspectorWindow.get(), "ConeParams",
-                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
-                        {
-                            this->spawnPrimitive(index, data, typeInfo);
-                        }
-                    );
-                    dialog->show();
-                    // m_activeDialog = dialog;
-                }
-            );
-
-            popup->addItem(
-                L"➕ Добавить пирамиду",
-                [this, index, tv]()
-                {
-                    auto dialog = new PrimitiveCreationDialog(
-                        inspectorWindow.get(), "PyramidParams",
-                        [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
-                        {
-                            this->spawnPrimitive(index, data, typeInfo);
-                        }
-                    );
-                    dialog->show();
-                    // m_activeDialog = dialog;
-                }
-            );
+            addPrimitiveAction(L"➕ Добавить куб", "CubeParams");
+            addPrimitiveAction(L"➕ Добавить сферу", "SphereParams");
+            addPrimitiveAction(L"➕ Добавить тор", "TorusParams");
+            addPrimitiveAction(L"➕ Добавить цилиндр", "CylinderParams");
+            addPrimitiveAction(L"➕ Добавить плоскость", "PlaneParams");
+            addPrimitiveAction(L"➕ Добавить конус", "ConeParams");
+            addPrimitiveAction(L"➕ Добавить пирамиду", "PyramidParams");
 
             popup->addItem(
                 L"✏️ Переименовать",
@@ -1746,8 +1628,6 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                     tv->startEditing(index);
                 }
             );
-
-            //popup->addSeparator();
 
             popup->addItem(
                 L"🗑️ Удалить",
@@ -1759,11 +1639,12 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 }
             );
 
-            auto mousePos = this->mainWindow->getMousePosition();
+            const auto mousePos = this->mainWindow->getMousePosition();
             this->hierarchyWindow->getPopupManager().show(popup, mousePos.x, mousePos.y);
         }
     );
 }
+
 
 
 void EditorApp::markComponentDirty(

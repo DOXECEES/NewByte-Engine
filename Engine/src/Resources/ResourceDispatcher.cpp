@@ -14,27 +14,25 @@ namespace nb::Resources
     static constexpr std::string_view KEY_PARAMETERS = "parameters";
     static constexpr std::string_view KEY_RADIUS     = "radius";
     static constexpr std::string_view KEY_HEIGHT     = "height";
-    static constexpr std::string_view KEY_WIDTH     = "width";
+    static constexpr std::string_view KEY_WIDTH      = "width";
 
-    static constexpr std::string_view KEY_X_SEGMENTS   = "xSegments";
-    static constexpr std::string_view KEY_Y_SEGMENTS   = "ySegments";
+    static constexpr std::string_view KEY_X_SEGMENTS = "xSegments";
+    static constexpr std::string_view KEY_Y_SEGMENTS = "ySegments";
 
-
-
-    static constexpr std::string_view KEY_MAJOR_RADIUS = "majorRadius";
-    static constexpr std::string_view KEY_MINOR_RADIUS = "minorRadius";
-    static constexpr std::string_view KEY_RADIAL_SEGMENTS= "radialSegments";
+    static constexpr std::string_view KEY_MAJOR_RADIUS    = "majorRadius";
+    static constexpr std::string_view KEY_MINOR_RADIUS    = "minorRadius";
+    static constexpr std::string_view KEY_RADIAL_SEGMENTS = "radialSegments";
     static constexpr std::string_view KEY_HEIGHT_SEGMENTS = "heightSegments";
-    static constexpr std::string_view KEY_SIDES = "sides";
+    static constexpr std::string_view KEY_SIDES           = "sides";
+    static constexpr std::string_view KEY_SIZE            = "size";
 
-
-    static constexpr std::string_view VALUE_SPHERE   = "sphere";
     static constexpr std::string_view VALUE_CUBE     = "cube";
+    static constexpr std::string_view VALUE_SPHERE   = "sphere";
     static constexpr std::string_view VALUE_TORUS    = "torus";
-    static constexpr std::string_view VALUE_CYLINDER    = "cylinder";
-    static constexpr std::string_view VALUE_PLANE = "plane";
-    static constexpr std::string_view VALUE_CONE       = "cone";
-    static constexpr std::string_view VALUE_PYRAMID        = "pyramid";
+    static constexpr std::string_view VALUE_CYLINDER = "cylinder";
+    static constexpr std::string_view VALUE_PLANE    = "plane";
+    static constexpr std::string_view VALUE_CONE     = "cone";
+    static constexpr std::string_view VALUE_PYRAMID  = "pyramid";
 
 
 
@@ -72,8 +70,20 @@ namespace nb::Resources
 
             const std::string meshType = node[KEY_TYPE.data()].get<std::string>();
             auto* targetField = static_cast<std::shared_ptr<nb::Renderer::Mesh>*>(fieldPtr);
+            
+            if (meshType == VALUE_CUBE)
+            {
+                const auto& params  = node[KEY_PARAMETERS.data()];
+                const float size  = params[KEY_SIZE.data()].get<float>();
+                
 
-            if (meshType == VALUE_SPHERE)
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::INFO, "Generating primitive cube")
+                    .with("size", size);
+                    
+                *targetField = nb::Renderer::PrimitiveGenerators::createCube(size);
+            }
+            else if (meshType == VALUE_SPHERE)
             {
                 const auto& params   = node[KEY_PARAMETERS.data()];
                 const float radius   = params[KEY_RADIUS.data()].get<float>();
@@ -87,13 +97,6 @@ namespace nb::Resources
                     .with("ySeg", ySegments);
 
                 *targetField = nb::Renderer::PrimitiveGenerators::createSphere(radius, xSegments, ySegments);
-            }
-            else if (meshType == VALUE_CUBE)
-            {
-                nb::Error::ErrorManager::instance()
-                    .report(nb::Error::Type::INFO, "Generating primitive cube");
-
-                *targetField = nb::Renderer::PrimitiveGenerators::createCube();
             }
             else if (meshType == VALUE_TORUS)
             {
@@ -112,7 +115,7 @@ namespace nb::Resources
                     .with("ySeg", ySegments);
 
                 *targetField =
-                    nb::Renderer::PrimitiveGenerators::createTorus({xSegments, ySegments}, major, minor);
+                    nb::Renderer::PrimitiveGenerators::createTorus({(uint32)xSegments, (uint32)ySegments}, major, minor);
             }
             else if (meshType == VALUE_CYLINDER)
             {

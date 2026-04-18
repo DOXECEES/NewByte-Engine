@@ -99,6 +99,7 @@ private:
 
     bool shouldRebuildInspector = false; 
 
+    Signal<void()> refreshHierarchyTreeViewSignal;
     Signal<void()> onActiveNodeChanged;
 
     void initSystems() noexcept;
@@ -159,17 +160,6 @@ private:
         mainWindow->show();
         mainWindow->repaint();
     }
-
-
-    void addCubeToEntity(
-        const Widgets::ModelIndex& index,
-        Widgets::TreeView*         tv
-    ) noexcept; 
-
-    void addSphereToEntity(
-        const Widgets::ModelIndex& index,
-        Widgets::TreeView*         tv
-    ) noexcept;
 
    void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 
