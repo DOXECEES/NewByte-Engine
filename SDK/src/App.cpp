@@ -185,8 +185,10 @@ void EditorApp::createWindows() noexcept
 
     //tempWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     //tempWindow->setTitle(L"tempWindow");
-
-
+    previewWindow = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    previewWindow->setTitle(L"prev");
+    previewWindow->addCaption();
+    previewWindow->setRenderable(false);
 }
 
 void EditorApp::setupDocking() noexcept
@@ -633,6 +635,8 @@ void EditorApp::setupEngineDependentUi() noexcept
     setupDebugUI();
     setupAssetManager();
     debugWindow->show();
+
+    sharedContext = engine->getRenderer()->createSharedContextForWindow(previewWindow->getHandle().as<HWND>());
 }
 
 void EditorApp::setupDebugUI() noexcept
@@ -1533,7 +1537,7 @@ void EditorApp::spawnPrimitive(
 
     if (mesh)
     {
-        node.addComponent<MeshComponent>({.mesh = mesh, .material = nullptr});
+        node.addComponent<MeshComponent>({.mesh = mesh, .material = {}});
         node.addComponent<NameComponent>({typeName.data()});
 
         node.addComponent<TransformComponent>({});

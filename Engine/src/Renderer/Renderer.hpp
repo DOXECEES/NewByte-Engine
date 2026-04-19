@@ -70,7 +70,7 @@ namespace nb
 
             struct TexturePreviewRequest
             {
-                Texture* source = nullptr;
+                uint32 source;
                 nb::Math::Vector3<float> channelMask = {1.0f, 1.0f, 1.0f};
                 float gamma = 2.2f;
                 float exposure = 1.0f;
@@ -79,12 +79,21 @@ namespace nb
 
             void blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request);
 
+             void renderShadowPreview(
+                const SharedWindowContext& out,
+                uint32_t                   shadowTextureId,
+                float                      nearPlane,
+                float                      farPlane
+            );
+
             struct MaterialPreviewRequest
             {
                 Resource::MaterialAsset* material;
                 float x = 0.0f;
                 float y = 0.0f;
             };
+            
+            
             void renderMaterialPreview(const SharedWindowContext& out, MaterialPreviewRequest& request);
 
             struct ThumbnailImageData
@@ -93,6 +102,8 @@ namespace nb
                 int                        width;
                 int                        height;
             };
+
+
 
             void saveSpherePreview(
                 const std::filesystem::path& materialPath,

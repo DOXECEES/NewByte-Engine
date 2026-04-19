@@ -219,15 +219,23 @@ namespace nb::Renderer
                     mainP.shader = shader;
                     mainP.polygonMode = polygonMode;
 
-                    // Берем уже вычисленную в пункте 1 матрицу
-                    //meshPtr->uniforms.mat4Uniforms["model"] = transform.worldMatrix;
+                    if (meshComp.material.empty())
+                    {
+                        meshComp.material.push_back(
+                            nb::ResMan::ResourceManager::getInstance()
+                                ->getResource<Resource::MaterialAsset>(
+                                    "Assets/materials/placeholder.material"
+                                )
+                        );
+                    }
 
-                    mainQueue.pushBack({
-                        .mesh     = meshPtr,
-                        .material = meshComp.material,
-                        .pipeline = api->getCache().getOrCreate(mainP),
-                        .model    = transform.worldMatrix
-                    });
+
+                     mainQueue.pushBack({
+                         .mesh     = meshPtr,
+                         .material = meshComp.material,
+                         .pipeline = api->getCache().getOrCreate(mainP),
+                         .model    = transform.worldMatrix
+                     });
                 }
             }
         );
@@ -252,21 +260,25 @@ namespace nb::Renderer
         api->setClearColor(Colors::BROWN, 1.0f, 0);
         api->clear(false, true, false); 
 
-        float size = 35.0f; 
+        float size = 45.0f; 
 
         Math::Mat4 lightProj = Math::ortho(-size, size, -size, size, 0.1f, 75.0f);
         
 
-        Math::Vector3<float> lightDir = { -1.0f, -0.2f, -0.2f };
+        Math::Vector3<float> lightDir =
+            registry.get<LightComponent>(Ecs::Entity{lights[0]}).direction;
         lightDir.normalize();
-        float distance = 20.0f; 
-        Math::Vector3<float> lightPos = -lightDir * distance; 
+
+        float                distance = 30.0f;
+        Math::Vector3<float> sceneCenter = {0.0f, 0.0f, 0.0f}; // Центр вашего мира
+
+        Math::Vector3<float> lightPos = sceneCenter - (lightDir * distance);
 
 
         Math::Mat4 lightView = Math::lookAt(
-            registry.get<TransformComponent>(Ecs::Entity{lights[0]}).position,
-            Math::Vector3<float>{ 0.0f, 0.0f, 0.0f },  
-            Math::Vector3<float>{ 0.0f, 1.0f, 0.0f }   
+            lightPos,                      
+            sceneCenter,
+            Math::Vector3<float>{0, 1, 0} 
         );
 
         
@@ -291,9 +303,6 @@ namespace nb::Renderer
 
         api->bindDefaultFrameBuffer();
        
-
-
-
 
         api->bindFrameBuffer(mainFrameBuffer);
         api->setViewport({ 0, 0, (float)width, (float)height });
@@ -410,7 +419,7 @@ namespace nb::Renderer
             {
                 cmd.material.push_back(
                     nb::ResMan::ResourceManager::getInstance()
-                        ->getResource<Resource::MaterialAsset>("Assets/res/plastic.material")
+                        ->getResource<Resource::MaterialAsset>("Assets/materials/placeholder.material")
                 );
             }
 
@@ -454,82 +463,6 @@ namespace nb::Renderer
                 //mat->apply(api);
                 api->drawMesh(cmd);
             }
-            //else
-            //{
-            //    PBRMaterial mat(shader);
-            //    mat.setAlbedoMap(albedo);
-            //    mat.setNormalMap(normal);
-            //    mat.setMetallicMap(metal);
-            //    mat.setRoughnessMap(roughtness);
-            //    mat.setAmbientOcclusionMap(ao);
-
-            //    mat.setInt("albedoMap", 0);
-            //    mat.setInt("normalMap", 1);
-            //    mat.setInt("metallicMap", 2);
-            //    // mat.setInt("roughnessMap", 3);
-            //    // mat.setInt("aoMap", 4);
-
-            //    mat.apply(api);
-            //    api->bindTexture(3, shadowFrameBuffer->getTexture());
-
-            //    glActiveTexture(GL_TEXTURE4);
-            //    glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-
-            //    glActiveTexture(GL_TEXTURE5);
-            //    glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
-
-            //    api->bindTexture(6, ibl->getBrdfTexture()->getId());
-
-            //    u.vec3Uniforms["viewPos"] = cam->getPosition();
-            //    u.mat4Uniforms["view"]    = cam->getLookAt();
-            //    u.mat4Uniforms["proj"]    = cam->getProjection();
-            //    // u.mat4Uniforms["lightSpaceMatrix"] = lightSpaceMatrix;
-
-            //    u.mat4Uniforms["lightView"] = lightView;
-            //    u.mat4Uniforms["lightProj"] = lightProj;
-            //    // u.intUniforms["shadowMap"] = 6;
-
-            //    std::vector<PointLight>       pointLightsStorage;
-            //    std::vector<DirectionalLight> dirLightsStorage;
-
-            //    for (auto lightEntityId : lights)
-            //    {
-            //        Ecs::Entity entity{lightEntityId};
-            //        auto&       light          = registry.get<LightComponent>(entity);
-            //        auto&       lightTransform = registry.get<TransformComponent>(entity);
-
-            //        if (light.type == LightType::DIRECTIONAL)
-            //        {
-            //            dirLightsStorage.emplace_back(
-            //                light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
-            //                light.direction
-            //            );
-            //            dirLightsStorage.back().applyUniforms(u.shader);
-            //        }
-            //        else if (light.type == LightType::POINT)
-            //        {
-            //            pointLightsStorage.emplace_back(
-            //                light.ambient.asVec3(), light.diffuse.asVec3(), light.specular.asVec3(),
-            //                lightTransform.position, light.constant, light.linear, light.quadratic,
-            //                1.0f
-            //            );
-            //            pointLightsStorage.back().applyUniforms(u.shader);
-            //        }
-            //    }
-
-            //    u.intUniforms[ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data()] =
-            //        dirLightsStorage.size();
-            //    u.intUniforms[ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data()] =
-            //        pointLightsStorage.size();
-            //}
-            // Биндим текстуры ( brick, normal и т.д.)
-            //u.intUniforms["ourTexture"] = 1;
-            //u.intUniforms["textureNormal"] = 2;
-            //if (t) t->bind(1);
-            //if (tn) tn->bind(2);
-            
-
-            //api->drawMesh(cmd);
         }
 
         if (isDebugPassEnabled)
@@ -656,76 +589,6 @@ namespace nb::Renderer
                 }
             }
         }
-
-
-        //auto terrainEntities =
-        //    scene.getEntitiesWith<nb::Physics::TerrainColliderComponent, TransformComponent>();
-
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        //Ref<Shader> debugShader = rm->getResource<Shader>("aabb.shader");
-
-        //Ref<Mesh> unitCube = rm->getResource<Mesh>("unit_cube.obj");
-        //for (auto entity : terrainEntities)
-        //{
-        //    auto& terrComp = scene.getComponent<nb::Physics::TerrainColliderComponent>(entity.id);
-        //    auto& tTerr = scene.getComponent<TransformComponent>(entity.id);
-        //    auto& hm = terrComp.collider;
-
-        //    // Если данных нет, пропускаем
-        //    if (hm.heights.empty())
-        //    {
-        //        continue;
-        //    }
-
-        //    for (int z = 0; z < hm.rows; z += 4)
-        //    {
-        //        for (int x = 0; x < hm.cols; x += 4)
-        //        {
-        //            float height = hm.heights[z * hm.cols + x];
-
-        //            // Пропускаем "пустые" зоны
-        //            if (height < -1e9f)
-        //            {
-        //                continue;
-        //            }
-
-        //            float worldX = hm.minX + (float)x * hm.cellSize + tTerr.position.x;
-        //            float worldZ = hm.minZ + (float)z * hm.cellSize + tTerr.position.z;
-        //            float worldY = height + tTerr.position.y;
-
-        //            nb::Math::Mat4<float> model = nb::Math::Mat4<float>::identity();
-        //            model = Math::translate(model, {worldX, worldY, worldZ});
-
-        //            float displaySize = hm.cellSize * 0.9f;
-        //            model = Math::scale(model, {displaySize, 0.05f, displaySize}); // Тонкая плитка
-
-        //            debugShader->setUniformMat4("model", model);
-        //            debugShader->setUniformMat4("view", view);
-        //            debugShader->setUniformMat4("projection", proj);
-
-
-        //            Pipeline aabbVisualisation = {};
-        //            aabbVisualisation.shader = debugShader;
-        //            aabbVisualisation.polygonMode = PolygonMode::LINES;
-        //            aabbVisualisation.isDepthTestEnable = true;
-        //            uint32 aabbPSO = api->getCache().getOrCreate(aabbVisualisation);
-
-        //            RendererCommand rcmd = {unitCube.get(), aabbPSO}; 
-        //            api->drawMesh(rcmd);
-        //        }
-        //    }
-        //}
-
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-
-        //if (stbi_write_png(
-        //        "Assets/materials/material.png", r.width, r.height, 4, r.data.data(), r.height * 4
-        //    ))
-        //{
-        //    // Debug::debug("Sphere preview saved: " + "Assets/materials/material.png");
-        //}
-
         gizmoCtx.draw();
 
         renderNavigationalGizmo();
@@ -751,7 +614,6 @@ namespace nb::Renderer
 
         RendererCommand postCmd = { .mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(quadPipeline) };
         api->drawMesh(postCmd);
-
 
 
         api->endFrame(); 
@@ -875,7 +737,7 @@ namespace nb::Renderer
         quadShader->setUniformFloat("exposure", request.exposure);
 
          
-        api->bindTexture(0, request.source->getId());
+        api->bindTexture(0, request.source);
 
         Pipeline texPipeline = {};
         texPipeline.shader = std::move(quadShader);
@@ -888,6 +750,68 @@ namespace nb::Renderer
 
         api->drawContextMesh(*mesh, texPso);
 
+        SwapBuffers(out.hdc);
+        api->setDefaultContext();
+    }
+
+    void Renderer::renderShadowPreview(
+        const SharedWindowContext& out,
+        uint32_t                   shadowTextureId,
+        float                      nearPlane,
+        float                      farPlane
+    )
+    {
+        if (!api->setContext(out.hdc, out.hglrc))
+        {
+            return;
+        }
+
+        RECT rc;
+        GetClientRect(out.handle, &rc);
+        int width  = rc.right - rc.left;
+        int height = rc.bottom - rc.top;
+
+        api->setViewport({0.0f, 0.0f, (float)width, (float)height});
+        api->clear(true, false, false); // Очистка цветом
+
+        // 2. Получение меша (Full Screen Quad)
+        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
+        if (!mesh)
+        {
+            mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
+        }
+
+        // 3. Работа с шейдером визуализации теней
+        // Рекомендуется использовать специальный шейдер, который умеет делать линеаризацию
+        auto shadowVizShader =
+            ResMan::ResourceManager::getInstance()->getResource<Shader>("shadow_viz.shader");
+        shadowVizShader->use();
+
+        // Передаем параметры для корректного отображения глубины
+        shadowVizShader->setUniformInt("shadowMap", 0);
+        //shadowVizShader->setUniformFloat("near_plane", nearPlane); // например, 0.1f
+        //shadowVizShader->setUniformFloat("far_plane", farPlane);   // например, 100.0f
+        //shadowVizShader->setUniformInt()
+        // Биндим текстуру тени
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, shadowTextureId);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+
+
+
+        // 4. Настройка конвейера (Pipeline)
+        Pipeline pipeline          = {};
+        pipeline.shader            = std::move(shadowVizShader);
+        pipeline.isDepthTestEnable = false; // Нам не нужен тест глубины для вывода на экран
+        pipeline.isBlendEnable     = false; // Выводим как есть
+        pipeline.polygonMode       = PolygonMode::FULL;
+
+        uint32 pso = api->getCache().getOrCreate(pipeline);
+
+        // 5. Отрисовка
+        api->drawContextMesh(*mesh, pso);
+
+        // 6. Вывод на экран
         SwapBuffers(out.hdc);
         api->setDefaultContext();
     }

@@ -76,8 +76,8 @@ private:
     std::shared_ptr<Win32Window::ChildWindow> assetManager;
     std::shared_ptr<Win32Window::ChildWindow> toolbarWindow;
     //std::shared_ptr<Win32Window::ChildWindow> tempWindow;
-
-
+    std::shared_ptr<Win32Window::ChildWindow> previewWindow;
+    nb::Renderer::SharedWindowContext         sharedContext;
     //
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
     std::shared_ptr<Win32Window::ModalWindow> filePickerWindow;
@@ -293,7 +293,14 @@ private:
             {               
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
- 
+
+                
+               
+                engine->getRenderer()->renderShadowPreview(
+                    sharedContext, engine->getRenderer()->getShadowTextureId(), 0.1f, 100.0f
+                );
+                
+
                 if (engine->shouldHideCursor())
                     mainWindow->hideCursor();
                 else

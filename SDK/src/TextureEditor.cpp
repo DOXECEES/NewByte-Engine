@@ -44,7 +44,7 @@ TextureEditor::TextureEditor(
     textureEditorWindow->getLayoutRoot()->addChild(std::move(buildEditorUI()));
     inspectorWindow->getLayoutRoot()->addChild(std::move(buildInspectorUI()));
 
-    settings.source = texture->getInternalTexture().get();
+    settings.source = texture->getInternalTexture()->getId();
     settings.exposure = texture->getSettings().exposure;
     settings.gamma = texture->getSettings().gamma;
     targetTexture = texture;
@@ -406,7 +406,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
 }
 
 void TextureEditor::setTargetTexture(nb::Renderer::Texture* tex) {
-    settings.source = tex;
+    settings.source = tex->getId();
 }
 
 void TextureEditor::onRender()

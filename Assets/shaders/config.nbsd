@@ -118,5 +118,11 @@
 			"Assets/shaders/infinite_grid.vs",
 			"Assets/shaders/infinite_grid.fs"
 		]
+	},
+	"shadow_viz.shader" : {
+		"sources": [
+			"Assets/shaders/shadow_viz.vs",
+			"Assets/shaders/shadow_viz.fs"
+		]
 	}		
 }
