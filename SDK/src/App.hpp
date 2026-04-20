@@ -194,7 +194,7 @@ private:
 
 
 
-                    if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
+                if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
                 {
                     NbPoint<int> mousePos = sceneWindow->mousePosition;
 
@@ -216,25 +216,25 @@ private:
 
                     gizmo_ctx.update(state);
 
-                    static bool dragging = false;
-
                     if (activeNode.isValid())
                     {
                         auto& tc = activeNode.getComponent<TransformComponent>();
 
+                        // Извлекаем ТЕКУЩИЕ мировые данные
                         nb::Math::Vector3 worldPos =
                             nb::Math::getPositionFromModelMatrix(tc.worldMatrix);
-
                         nb::Math::Vector3 worldScale =
                             nb::Math::getScaleFromModelMatrix(tc.worldMatrix);
-
                         nb::Math::Quaternion worldQuat =
                             nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
 
                         tinygizmo::rigid_transform t;
-                        t.position    = {worldPos.x, worldPos.y, worldPos.z};
-                        t.scale       = {worldScale.x, worldScale.y, worldScale.z};
-                        t.orientation = {-worldQuat.x, -worldQuat.y, -worldQuat.z, worldQuat.w};
+                        t.position = {worldPos.x, worldPos.y, worldPos.z};
+                        t.scale    = {worldScale.x, worldScale.y, worldScale.z};
+
+                        // ЧТОБЫ ГИЗМО НЕ ПОВОРАЧИВАЛОСЬ: передаем Identity
+                        // Стрелки всегда будут Global
+                        t.orientation = {0.0f, 0.0f, 0.0f, 1.0f};
 
                         bool gizmoInteracted =
                             tinygizmo::transform_gizmo("object_gizmo", gizmo_ctx, t);
@@ -250,26 +250,36 @@ private:
                                 t.position.x, t.position.y, t.position.z
                             };
                             nb::Math::Vector3<float> G_worldScale{t.scale.x, t.scale.y, t.scale.z};
-                            nb::Math::Quaternion<float> G_worldQuat(
+
+                            // Это "дельта" вращения из гизмо относительно мировых осей
+                            nb::Math::Quaternion<float> G_deltaQuat(
                                 -t.orientation.x, -t.orientation.y, -t.orientation.z,
                                 t.orientation.w
                             );
+
+                            // Итоговое новое мировое вращение: Дельта * Старое_Мировое
+                            nb::Math::Quaternion<float> finalWorldQuat = G_deltaQuat * worldQuat;
 
                             if (auto parent = activeNode.getParent(); parent.has_value())
                             {
                                 auto& ptc = parent->getComponent<TransformComponent>();
 
+                                // Инверсия родителя (используем исправленную версию без лишнего
+                                // транспонирования)
                                 nb::Math::Mat4<float> invParent =
                                     nb::Math::inverseWithoutTranspose(ptc.worldMatrix);
 
+                                // Собираем мировую SRT матрицу
                                 nb::Math::Mat4<float> targetWorldMat =
                                     nb::Math::Mat4<float>::identity();
                                 targetWorldMat = nb::Math::scale(targetWorldMat, G_worldScale);
-                                targetWorldMat = targetWorldMat * G_worldQuat.toMatrix4();
+                                targetWorldMat = targetWorldMat * finalWorldQuat.toMatrix4();
                                 targetWorldMat = nb::Math::translate(targetWorldMat, G_worldPos);
 
+                                // Переходим в локальное пространство: Local = inv(Parent) * World
                                 nb::Math::Mat4<float> localMatrix = invParent * targetWorldMat;
 
+                                // Извлекаем локальные SRT компоненты
                                 tc.position = nb::Math::getPositionFromModelMatrix(localMatrix);
                                 tc.rotation = nb::Math::getRotationFromModelMatrix(localMatrix);
                                 tc.scale    = nb::Math::getScaleFromModelMatrix(localMatrix);
@@ -277,7 +287,7 @@ private:
                             else
                             {
                                 tc.position = G_worldPos;
-                                tc.rotation = G_worldQuat;
+                                tc.rotation = finalWorldQuat;
                                 tc.scale    = G_worldScale;
                             }
 
@@ -290,10 +300,10 @@ private:
                         }
                     }
 
+                    // Picking logic
                     if (msg.message == WM_LBUTTONDOWN && !isGizmoHit)
                     {
-                        NbPoint<int> point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
-
+                        NbPoint<int>  point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
                         nb::Math::Ray pickRay;
                         nb::Node      node = engine->rayPick(point.x, point.y, pickRay);
 
@@ -310,7 +320,6 @@ private:
                     }
 
                     isGizmoHit = false;
-
                 }
 
 
