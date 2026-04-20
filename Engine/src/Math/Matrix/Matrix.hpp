@@ -154,7 +154,7 @@ namespace nb
             {
                 // static_assert(Cols == Rows, "Matrix multiplication requires the number of columns in the first matrix to match the number of rows in the second.");
 
-                Matrix<T, Rows, OtherCols> result;
+                Matrix<T, Rows, OtherCols> result = {};
                 for (size_t i = 0; i < Rows; ++i)
                 {
                     for (size_t j = 0; j < OtherCols; ++j)
@@ -272,6 +272,8 @@ namespace nb
                 return T(0);
             }
         }
+
+
 
     };
 }

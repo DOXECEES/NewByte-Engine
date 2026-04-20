@@ -192,78 +192,110 @@ private:
                 }
                 bool isGizmoHit = false;
 
-                if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
+
+
+                    if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
                 {
-                    //
                     NbPoint<int> mousePos = sceneWindow->mousePosition;
 
                     nb::Renderer::Camera* camera = engine->getRenderer()->getCamera();
                     nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
 
                     auto& gizmo_ctx = engine->getRenderer()->getGizmoContext();
+
                     tinygizmo::gizmo_application_state state;
-                    state.ray_origin = {ray.origin.x, ray.origin.y, ray.origin.z};
+                    state.ray_origin    = {ray.origin.x, ray.origin.y, ray.origin.z};
                     state.ray_direction = {ray.direction.x, ray.direction.y, ray.direction.z};
 
-                    state.hotkey_ctrl = GetAsyncKeyState(VK_CONTROL) & 0x8000;
-                    state.mouse_left = sceneWindow->leftMouseClicked;
-                    state.hotkey_translate = GetAsyncKeyState(VK_F1) & 0x8000;
-                    state.hotkey_rotate = GetAsyncKeyState(VK_F2) & 0x8000;
-                    state.hotkey_scale = GetAsyncKeyState(VK_F3) & 0x8000;
+                    state.mouse_left = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+
+                    state.hotkey_ctrl      = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+                    state.hotkey_translate = (GetAsyncKeyState(VK_F1) & 0x8000) != 0;
+                    state.hotkey_rotate    = (GetAsyncKeyState(VK_F2) & 0x8000) != 0;
+                    state.hotkey_scale     = (GetAsyncKeyState(VK_F3) & 0x8000) != 0;
 
                     gizmo_ctx.update(state);
+
+                    static bool dragging = false;
 
                     if (activeNode.isValid())
                     {
                         auto& tc = activeNode.getComponent<TransformComponent>();
 
+                        nb::Math::Vector3 worldPos =
+                            nb::Math::getPositionFromModelMatrix(tc.worldMatrix);
+
+                        nb::Math::Vector3 worldScale =
+                            nb::Math::getScaleFromModelMatrix(tc.worldMatrix);
+
+                        nb::Math::Quaternion worldQuat =
+                            nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
+
                         tinygizmo::rigid_transform t;
-                        t.position = {tc.position.x, tc.position.y, tc.position.z};
-                        t.scale = {tc.scale.x, tc.scale.y, tc.scale.z};
+                        t.position    = {worldPos.x, worldPos.y, worldPos.z};
+                        t.scale       = {worldScale.x, worldScale.y, worldScale.z};
+                        t.orientation = {-worldQuat.x, -worldQuat.y, -worldQuat.z, worldQuat.w};
 
-                        auto quat = tc.rotation;
-                        quat.normalize();
+                        bool gizmoInteracted =
+                            tinygizmo::transform_gizmo("object_gizmo", gizmo_ctx, t);
 
-                        t.orientation = {-quat.x, -quat.y, -quat.z, quat.w};
-
-                        if (tinygizmo::transform_gizmo("object_gizmo", gizmo_ctx, t))
+                        if (gizmoInteracted)
                         {
-                            tc.position = {t.position.x, t.position.y, t.position.z};
-                            tc.scale = {t.scale.x, t.scale.y, t.scale.z};
+                            isGizmoHit = true;
+                        }
 
-                            nb::Math::Quaternion resultQuat(
-                                -t.orientation.x, -t.orientation.y, -t.orientation.z, t.orientation.w
+                        if (gizmoInteracted && state.mouse_left)
+                        {
+                            nb::Math::Vector3<float> G_worldPos{
+                                t.position.x, t.position.y, t.position.z
+                            };
+                            nb::Math::Vector3<float> G_worldScale{t.scale.x, t.scale.y, t.scale.z};
+                            nb::Math::Quaternion<float> G_worldQuat(
+                                -t.orientation.x, -t.orientation.y, -t.orientation.z,
+                                t.orientation.w
                             );
 
-                            if (resultQuat.w < 0.0f)
+                            if (auto parent = activeNode.getParent(); parent.has_value())
                             {
-                                resultQuat.x = -resultQuat.x;
-                                resultQuat.y = -resultQuat.y;
-                                resultQuat.z = -resultQuat.z;
-                                resultQuat.w = -resultQuat.w;
+                                auto& ptc = parent->getComponent<TransformComponent>();
+
+                                nb::Math::Mat4<float> invParent =
+                                    nb::Math::inverseWithoutTranspose(ptc.worldMatrix);
+
+                                nb::Math::Mat4<float> targetWorldMat =
+                                    nb::Math::Mat4<float>::identity();
+                                targetWorldMat = nb::Math::scale(targetWorldMat, G_worldScale);
+                                targetWorldMat = targetWorldMat * G_worldQuat.toMatrix4();
+                                targetWorldMat = nb::Math::translate(targetWorldMat, G_worldPos);
+
+                                nb::Math::Mat4<float> localMatrix = invParent * targetWorldMat;
+
+                                tc.position = nb::Math::getPositionFromModelMatrix(localMatrix);
+                                tc.rotation = nb::Math::getRotationFromModelMatrix(localMatrix);
+                                tc.scale    = nb::Math::getScaleFromModelMatrix(localMatrix);
                             }
-                            resultQuat.normalize();
+                            else
+                            {
+                                tc.position = G_worldPos;
+                                tc.rotation = G_worldQuat;
+                                tc.scale    = G_worldScale;
+                            }
 
-                            tc.rotation = resultQuat;
-
+                            tc.rotation.normalize();
                             tc.eulerAngle = tc.rotation.toEulerXYZ();
-                            tc.lastEuler  = tc.eulerAngle; 
+                            tc.lastEuler  = tc.eulerAngle;
 
-
-                            tc.dirty = true;
+                            tc.dirty        = true;
                             tc.physicsDirty = true;
-                            isGizmoHit = true;
                         }
                     }
 
-
-                    //
                     if (msg.message == WM_LBUTTONDOWN && !isGizmoHit)
                     {
                         NbPoint<int> point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
 
-                        nb::Math::Ray ray;
-                        nb::Node node = engine->rayPick(point.x, point.y, ray);
+                        nb::Math::Ray pickRay;
+                        nb::Node      node = engine->rayPick(point.x, point.y, pickRay);
 
                         if (node.isValid())
                         {
@@ -271,14 +303,16 @@ private:
                         }
                         else
                         {
-                            activeNode = nb::Node::createInvalid(); 
+                            activeNode = nb::Node::createInvalid();
                         }
 
                         onActiveNodeChanged.emit();
                     }
 
                     isGizmoHit = false;
+
                 }
+
 
                 if (msg.message == WM_INPUT) 
                 {

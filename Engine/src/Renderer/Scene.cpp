@@ -46,6 +46,17 @@ namespace nb
         return Node(INVALID_VALUE, nullptr);
     }
 
+    std::optional<Node> Node::getParent() noexcept
+    {
+        if (!hasComponent<HierarchyComponent>())
+        {
+            return std::nullopt;
+        }
+
+        auto& hierarchy = getComponent<HierarchyComponent>();
+        return Node(hierarchy.parent, scene);
+
+    }
 
     Node Scene::createNode(Ecs::EntityID parent) noexcept
     {
@@ -88,15 +99,13 @@ namespace nb
     }
 
     void Scene::updateWorldTransform(
-        Ecs::EntityID entityId,
+        Ecs::EntityID                entityId,
         const nb::Math::Mat4<float>& parentTransform,
-        bool parentDirty
+        bool                         parentDirty
     ) noexcept
     {
         auto& transform = ecs.get<TransformComponent>(Ecs::Entity{entityId});
         auto& hierarchy = ecs.get<HierarchyComponent>(Ecs::Entity{entityId});
-
-        bool isDirty = transform.dirty || parentDirty;
 
         if (transform.eulerAngle.x != transform.lastEuler.x ||
             transform.eulerAngle.y != transform.lastEuler.y ||
@@ -105,35 +114,27 @@ namespace nb
             transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionXYZ(
                 transform.eulerAngle.x, transform.eulerAngle.y, transform.eulerAngle.z
             );
-            transform.lastEuler = transform.eulerAngle; 
+
+            transform.rotation.normalize();
+            transform.lastEuler = transform.eulerAngle;
             transform.dirty     = true;
         }
 
+        bool isDirty = transform.dirty || parentDirty;
 
         if (isDirty)
         {
-            nb::Math::Mat4<float> local = nb::Math::Mat4<float>::identity();
-
-            //transform.rotation.normalize();
-
-            
-            //transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionYXZ(
-            //    transform.eulerAngle.x, 
-            //    transform.eulerAngle.y, 
-            //    transform.eulerAngle.z  
-            //);
-
             transform.rotation.normalize();
 
-            local = Math::scale(local, transform.scale);
+            nb::Math::Mat4<float> local = nb::Math::Mat4<float>::identity();
 
+            // S * R * T
+            local = nb::Math::scale(local, transform.scale);
             local = local * transform.rotation.toMatrix4();
-
-            local = Math::translate(local, transform.position);
+            local = nb::Math::translate(local, transform.position);
 
             transform.localMatrix = local;
-
-            transform.worldMatrix = parentTransform * transform.localMatrix;
+            transform.worldMatrix = parentTransform * local;
 
             transform.dirty = false;
             invalidateBvh();
