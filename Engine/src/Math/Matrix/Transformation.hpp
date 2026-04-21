@@ -409,7 +409,7 @@ namespace nb
         {
             Mat4<T> matrix = Mat4<T>::identity();
 
-            matrix         = Math::scale(matrix, scale);
+            matrix = Math::scale(matrix, scale);
             matrix = matrix * rotation.toMatrix4();
             matrix = Math::translate(matrix, position);
             

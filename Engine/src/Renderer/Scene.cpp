@@ -134,7 +134,7 @@ namespace nb
             local = nb::Math::translate(local, transform.position);
 
             transform.localMatrix = local;
-            transform.worldMatrix = parentTransform * local;
+            transform.worldMatrix = local * parentTransform;
 
             transform.dirty = false;
             invalidateBvh();
