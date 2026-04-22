@@ -166,7 +166,7 @@ void main() {
 
     // 2. Направленные источники
     for(int i = 0; i < _COUNT_OF_DIRECTIONLIGHT_; ++i) {
-        vec3 L = normalize(light[i].direction);
+        vec3 L = normalize(-light[i].direction);
         vec3 H = normalize(V + L);
         vec3 radiance = light[i].Ld; 
 

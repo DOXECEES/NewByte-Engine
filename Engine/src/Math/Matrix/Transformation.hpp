@@ -49,61 +49,9 @@ namespace nb
 
 
         template<typename T>
-        Matrix<T, 4, 4> inverse(const Matrix<T, 4, 4>& m) {
-            // // 
-            
-            // auto A2323 = m[2][2] * m[3][3] - m[2][3] * m[3][2] ;
-            // auto A1323 = m[2][1] * m[3][3] - m[2][3] * m[3][1] ;
-            // auto A1223 = m[2][1] * m[3][2] - m[2][2] * m[3][1] ;
-            // auto A0323 = m[2][0] * m[3][3] - m[2][3] * m[3][0] ;
-            // auto A0223 = m[2][0] * m[3][2] - m[2][2] * m[3][0] ;
-            // auto A0123 = m[2][0] * m[3][1] - m[2][1] * m[3][0] ;
-            // auto A2313 = m[1][2] * m[3][3] - m[1][3] * m[3][2] ;
-            // auto A1313 = m[1][1] * m[3][3] - m[1][3] * m[3][1] ;
-            // auto A1213 = m[1][1] * m[3][2] - m[1][2] * m[3][1] ;
-            // auto A2312 = m[1][2] * m[2][3] - m[1][3] * m[2][2] ;
-            // auto A1312 = m[1][1] * m[2][3] - m[1][3] * m[2][1] ;
-            // auto A1212 = m[1][1] * m[2][2] - m[1][2] * m[2][1] ;
-            // auto A0313 = m[1][0] * m[3][3] - m[1][3] * m[3][0] ;
-            // auto A0213 = m[1][0] * m[3][2] - m[1][2] * m[3][0] ;
-            // auto A0312 = m[1][0] * m[2][3] - m[1][3] * m[2][0] ;
-            // auto A0212 = m[1][0] * m[2][2] - m[1][2] * m[2][0] ;
-            // auto A0113 = m[1][0] * m[3][1] - m[1][1] * m[3][0] ;
-            // auto A0112 = m[1][0] * m[2][1] - m[1][1] * m[2][0] ;
+        Matrix<T, 4, 4> inverse(const Matrix<T, 4, 4>& m) 
+        {
 
-            // auto det = m[0][0] * ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 ) 
-            //         - m[0][1] * ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 ) 
-            //         + m[0][2] * ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 ) 
-            //         - m[0][3] * ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ) ;
-            // det = 1.0f / det;
-
-            // return
-            // {
-            //     {
-            //         det *   ( m[1][1] * A2323 - m[1][2] * A1323 + m[1][3] * A1223 ),
-            //         det * - ( m[0][1] * A2323 - m[0][2] * A1323 + m[0][3] * A1223 ),
-            //         det *   ( m[0][1] * A2313 - m[0][2] * A1313 + m[0][3] * A1213 ),
-            //         det * - ( m[0][1] * A2312 - m[0][2] * A1312 + m[0][3] * A1212 )
-            //     },
-            //     {
-            //         det * - ( m[1][0] * A2323 - m[1][2] * A0323 + m[1][3] * A0223 ),
-            //         det *   ( m[0][0] * A2323 - m[0][2] * A0323 + m[0][3] * A0223 ),
-            //         det * - ( m[0][0] * A2313 - m[0][2] * A0313 + m[0][3] * A0213 ),
-            //         det *   ( m[0][0] * A2312 - m[0][2] * A0312 + m[0][3] * A0212 )
-            //     },
-            //     {
-            //         det *   ( m[1][0] * A1323 - m[1][1] * A0323 + m[1][3] * A0123 ),
-            //         det * - ( m[0][0] * A1323 - m[0][1] * A0323 + m[0][3] * A0123 ),
-            //         det *   ( m[0][0] * A1313 - m[0][1] * A0313 + m[0][3] * A0113 ),
-            //         det * - ( m[0][0] * A1312 - m[0][1] * A0312 + m[0][3] * A0112 )
-            //     },
-            //     {
-            //         det * - ( m[1][0] * A1223 - m[1][1] * A0223 + m[1][2] * A0123 ),
-            //         det *   ( m[0][0] * A1223 - m[0][1] * A0223 + m[0][2] * A0123 ),
-            //         det * - ( m[0][0] * A1213 - m[0][1] * A0213 + m[0][2] * A0113 ),
-            //         det *   ( m[0][0] * A1212 - m[0][1] * A0212 + m[0][2] * A0112 )
-            //     }
-            // };
 
             T Coef00 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
             T Coef02 = m[1][2] * m[3][3] - m[3][2] * m[1][3];
@@ -163,7 +111,6 @@ namespace nb
 
             auto finalInv = Inverse * OneOverDeterminant;
 
-            // Добавьте транспонирование вручную или вызовом функции:
             Matrix<T, 4, 4> result;
             for (int i = 0; i < 4; i++)
             {
@@ -173,6 +120,71 @@ namespace nb
                 }
             }
             return result;
+        }
+
+        template<typename T>
+        Matrix<T, 4, 4> inverseWithoutTranspose(const Matrix<T, 4, 4>& m)
+        {
+
+            T Coef00 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
+            T Coef02 = m[1][2] * m[3][3] - m[3][2] * m[1][3];
+            T Coef03 = m[1][2] * m[2][3] - m[2][2] * m[1][3];
+
+            T Coef04 = m[2][1] * m[3][3] - m[3][1] * m[2][3];
+            T Coef06 = m[1][1] * m[3][3] - m[3][1] * m[1][3];
+            T Coef07 = m[1][1] * m[2][3] - m[2][1] * m[1][3];
+
+            T Coef08 = m[2][1] * m[3][2] - m[3][1] * m[2][2];
+            T Coef10 = m[1][1] * m[3][2] - m[3][1] * m[1][2];
+            T Coef11 = m[1][1] * m[2][2] - m[2][1] * m[1][2];
+
+            T Coef12 = m[2][0] * m[3][3] - m[3][0] * m[2][3];
+            T Coef14 = m[1][0] * m[3][3] - m[3][0] * m[1][3];
+            T Coef15 = m[1][0] * m[2][3] - m[2][0] * m[1][3];
+
+            T Coef16 = m[2][0] * m[3][2] - m[3][0] * m[2][2];
+            T Coef18 = m[1][0] * m[3][2] - m[3][0] * m[1][2];
+            T Coef19 = m[1][0] * m[2][2] - m[2][0] * m[1][2];
+
+            T Coef20 = m[2][0] * m[3][1] - m[3][0] * m[2][1];
+            T Coef22 = m[1][0] * m[3][1] - m[3][0] * m[1][1];
+            T Coef23 = m[1][0] * m[2][1] - m[2][0] * m[1][1];
+
+            Vector4<T> Fac0(Coef00, Coef00, Coef02, Coef03);
+            Vector4<T> Fac1(Coef04, Coef04, Coef06, Coef07);
+            Vector4<T> Fac2(Coef08, Coef08, Coef10, Coef11);
+            Vector4<T> Fac3(Coef12, Coef12, Coef14, Coef15);
+            Vector4<T> Fac4(Coef16, Coef16, Coef18, Coef19);
+            Vector4<T> Fac5(Coef20, Coef20, Coef22, Coef23);
+            
+            Vector4<T> Vec0(m[1][0], m[0][0], m[0][0], m[0][0]);
+            Vector4<T> Vec1(m[1][1], m[0][1], m[0][1], m[0][1]);
+            Vector4<T> Vec2(m[1][2], m[0][2], m[0][2], m[0][2]);
+            Vector4<T> Vec3(m[1][3], m[0][3], m[0][3], m[0][3]);
+
+            Vector4<T> Inv0(Vec1 * Fac0 - Vec2 * Fac1 + Vec3 * Fac2);
+            Vector4<T> Inv1(Vec0 * Fac0 - Vec2 * Fac3 + Vec3 * Fac4);
+            Vector4<T> Inv2(Vec0 * Fac1 - Vec1 * Fac3 + Vec3 * Fac5);
+            Vector4<T> Inv3(Vec0 * Fac2 - Vec1 * Fac4 + Vec2 * Fac5);
+
+            Vector4<T> SignA(+1, -1, +1, -1);
+            Vector4<T> SignB(-1, +1, -1, +1);
+            Mat4<T> Inverse = {
+                {Inv0 * SignA},
+                {Inv1 * SignB},
+                {Inv2 * SignA},
+                {Inv3 * SignB}
+                };
+
+            Vector4<T> Row0(Inverse[0][0], Inverse[1][0], Inverse[2][0], Inverse[3][0]);
+            Vector4<T> Dot0(m[0] * Row0);
+            T Dot1 = (Dot0[0] + Dot0[1]) + (Dot0[2] + Dot0[3]);
+
+            T OneOverDeterminant = static_cast<T>(1) / Dot1;
+
+            auto finalInv = Inverse * OneOverDeterminant;
+
+            return finalInv;
         }
 
 
@@ -200,18 +212,18 @@ namespace nb
         }
 
         template<typename T>
-        constexpr Matrix<T,4, 4> translate(Matrix<T, 4, 4> mat, const Vector3<T>& vec)
+        constexpr Matrix<T, 4, 4> translate(
+            Matrix<T, 4, 4> mat,
+            const Vector3<T>& vec
+        )
         {
-            // mat *=  Matrix<T,4, 4>({
-            //             {1, 0, 0, 0},
-            //             {0, 1, 0, 0},
-            //             {0, 0, 1, 0},
-            //             {vec.x, vec.y, vec.z, 1}
-            //         });
+            mat *= Matrix<T,4,4>({
+                {1, 0, 0, 0},
+                {0, 1, 0, 0},
+                {0, 0, 1, 0},
+                {vec.x, vec.y, vec.z, 1}
+            });
 
-            mat[3][0] = vec.x;
-            mat[3][1] = vec.y;
-            mat[3][2] = vec.z;
             return mat;
         }
 
@@ -282,16 +294,15 @@ namespace nb
         template<typename T>
         constexpr Matrix<T, 4, 4> ortho(const T& left, const T& right, const T& bot, const T& top, const T& nearPlane, const T& farPlane)
         {
-            // Каждая фигурная скобка здесь — это СТОЛБЕЦ (Column)
             return Matrix<T, 4, 4>({
-                { 2.0f / (right - left), 0.0f, 0.0f, 0.0f },                                 // Столбец 0
-                { 0.0f, 2.0f / (top - bot), 0.0f, 0.0f },                                    // Столбец 1
-                { 0.0f, 0.0f, -2.0f / (farPlane - nearPlane), 0.0f },                        // Столбец 2
+                { 2.0f / (right - left), 0.0f, 0.0f, 0.0f },                                 
+                { 0.0f, 2.0f / (top - bot), 0.0f, 0.0f },                                    
+                { 0.0f, 0.0f, -2.0f / (farPlane - nearPlane), 0.0f },                        
                 {
-                    -(right + left) / (right - left),                                        // Столбец 3, строка 0
-                    -(top + bot) / (top - bot),                                              // Столбец 3, строка 1
-                    -(farPlane + nearPlane) / (farPlane - nearPlane),                        // Столбец 3, строка 2
-                    1.0f                                                                     // Столбец 3, строка 3
+                    -(right + left) / (right - left),                                        
+                    -(top + bot) / (top - bot),                                              
+                    -(farPlane + nearPlane) / (farPlane - nearPlane),                        
+                    1.0f                                                                     
                 }
                 });
         }
@@ -389,6 +400,125 @@ namespace nb
             return Vector3<float>(x, y, z);
         }
 
+        template<typename T>
+        constexpr Matrix<T, 4, 4> transform(
+            const Vector3<T>& position,
+            const nb::Math::Quaternion<T>& rotation,
+            const Vector3<T>& scale
+        ) noexcept
+        {
+            Mat4<T> matrix = Mat4<T>::identity();
+
+            matrix = Math::scale(matrix, scale);
+            matrix = matrix * rotation.toMatrix4();
+            matrix = Math::translate(matrix, position);
+            
+            return matrix;
+        }
+
+        template<typename T>
+        Vector3<T> getPositionFromModelMatrix(const Mat4<T>& model) noexcept
+        {
+            return {
+                model[3][0],
+                model[3][1],
+                model[3][2]
+            };
+        }
+
+        template <typename T>
+        Quaternion<T> getRotationFromModelMatrix(const Mat4<T>& model) noexcept
+        {
+            Vector3<T> scale = getScaleFromModelMatrix(model);
+
+            T m00 = model[0][0] / scale.x;
+            T m01 = model[0][1] / scale.x;
+            T m02 = model[0][2] / scale.x;
+
+            T m10 = model[1][0] / scale.y;
+            T m11 = model[1][1] / scale.y;
+            T m12 = model[1][2] / scale.y;
+
+            T m20 = model[2][0] / scale.z;
+            T m21 = model[2][1] / scale.z;
+            T m22 = model[2][2] / scale.z;
+
+            Quaternion<T> q;
+            T             trace = m00 + m11 + m22;
+
+            if (trace > 0.0f)
+            {
+                T s = 0.5f / std::sqrt(trace + 1.0f);
+                q.w = 0.25f / s;
+                q.x = (m21 - m12) * s;
+                q.y = (m02 - m20) * s;
+                q.z = (m10 - m01) * s;
+            }
+            else
+            {
+                if (m00 > m11 && m00 > m22)
+                {
+                    T s = 2.0f * std::sqrt(1.0f + m00 - m11 - m22);
+                    q.w = (m21 - m12) / s;
+                    q.x = 0.25f * s;
+                    q.y = (m01 + m10) / s;
+                    q.z = (m02 + m20) / s;
+                }
+                else if (m11 > m22)
+                {
+                    T s = 2.0f * std::sqrt(1.0f + m11 - m00 - m22);
+                    q.w = (m02 - m20) / s; 
+                    q.x = (m01 + m10) / s;
+                    q.y = 0.25f * s;
+                    q.z = (m12 + m21) / s;
+                }
+                else
+                {
+                    T s = 2.0f * std::sqrt(1.0f + m22 - m00 - m11);
+                    q.w = (m10 - m01) / s; 
+                    q.x = (m02 + m20) / s;
+                    q.y = (m12 + m21) / s;
+                    q.z = 0.25f * s;
+                }
+            }
+            q.normalize();
+            return q;
+        }
+
+
+        template <typename T>
+        Vector3<T> getScaleFromModelMatrix(const Mat4<T>& model) noexcept
+        {
+            return {
+                std::sqrt(
+                    model[0][0] * model[0][0] + model[0][1] * model[0][1] +
+                    model[0][2] * model[0][2]
+                ),
+                std::sqrt(
+                    model[1][0] * model[1][0] + model[1][1] * model[1][1] +
+                    model[1][2] * model[1][2]
+                ),
+                std::sqrt(
+                    model[2][0] * model[2][0] + model[2][1] * model[2][1] +
+                    model[2][2] * model[2][2]
+                )
+            };
+        }
+
+        template <typename T>
+        constexpr Quaternion<T> inverse(const Quaternion<T>& q) noexcept
+        {
+            T normSq = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+
+            if (normSq > 0)
+            {
+                T invNormSq = static_cast<T>(1.0) / normSq;
+                return Quaternion<T>{
+                    -q.x * invNormSq, -q.y * invNormSq, -q.z * invNormSq, q.w * invNormSq
+                };
+            }
+            return Quaternion<T>{0, 0, 0, 1}; 
+        }
     };
 };
 

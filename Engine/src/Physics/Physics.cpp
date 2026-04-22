@@ -370,50 +370,21 @@ namespace nb::Physics
     )
     {
         auto& rb = scene.getComponent<Rigidbody>(entityId);
-        auto& t  = scene.getComponent<TransformComponent>(entityId);
+        auto& tc = scene.getComponent<TransformComponent>(entityId);
         auto& c  = scene.getComponent<Collider>(entityId);
 
-        //float sx = c.halfSize.x * t.scale.x;
-        //float sy = c.halfSize.y * t.scale.y;
-        //float sz = c.halfSize.z * t.scale.z;
-
-        //if (sx <= 0.0f || sy <= 0.0f || sz <= 0.0f)
-        //{
-        //    nb::Error::ErrorManager::instance()
-        //        .report(nb::Error::Type::FATAL, "Invalid collider size (<= 0)")
-        //        .with("entity", (uint64_t)entityId)
-        //        .with("sx", sx)
-        //        .with("sy", sy)
-        //        .with("sz", sz);
-
-        //    return;
-        //}
-
-        //JPH::BoxShapeSettings shapeSettings(JPH::Vec3(sx, sy, sz));
-
-        //auto shapeResult = shapeSettings.Create();
-        //if (shapeResult.HasError())
-        //{
-        //    nb::Error::ErrorManager::instance()
-        //        .report(nb::Error::Type::FATAL, "Jolt shape creation failed")
-        //        .with("entity", (uint64_t)entityId)
-        //        .with("error", shapeResult.GetError().c_str());
-
-        //    return;
-        //}
+        nb::Math::Vector3<float> worldScale = nb::Math::getScaleFromModelMatrix(tc.worldMatrix);
 
         JPH::ShapeRefC shape;
-        ;
-
         switch (c.type)
         {
         case ColliderType::BOX:
         {
             JPH::BoxShapeSettings settings(
                 JPH::Vec3(
-                    std::max(0.01f, c.halfSize.x * t.scale.x),
-                    std::max(0.01f, c.halfSize.y * t.scale.y),
-                    std::max(0.01f, c.halfSize.z * t.scale.z)
+                    std::max(0.01f, c.halfSize.x * worldScale.x),
+                    std::max(0.01f, c.halfSize.y * worldScale.y),
+                    std::max(0.01f, c.halfSize.z * worldScale.z)
                 )
             );
             shape = settings.Create().Get();
@@ -421,14 +392,16 @@ namespace nb::Physics
         }
         case ColliderType::SPHERE:
         {
-            float                    maxScale = std::max({t.scale.x, t.scale.y, t.scale.z});
+            float maxScale = std::max({worldScale.x, worldScale.y, worldScale.z});
             JPH::SphereShapeSettings settings(std::max(0.01f, c.radius * maxScale));
             shape = settings.Create().Get();
             break;
         }
         case ColliderType::CAPSULE:
         {
-            JPH::CapsuleShapeSettings settings(c.height * 0.5f * t.scale.y, c.radius * t.scale.x);
+            JPH::CapsuleShapeSettings settings(
+                c.height * 0.5f * worldScale.y, c.radius * worldScale.x
+            );
             shape = settings.Create().Get();
             break;
         }
@@ -442,58 +415,40 @@ namespace nb::Physics
             shape = offsetSettings.Create().Get();
         }
 
-
         JPH::EMotionType motionType =
             rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
-
         JPH::ObjectLayer layer = rb.isStatic ? Layers::NON_MOVING : Layers::MOVING;
 
+        nb::Math::Vector3<float>    wPos = nb::Math::getPositionFromModelMatrix(tc.worldMatrix);
+        nb::Math::Quaternion<float> wRot = nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
+
         JPH::BodyCreationSettings settings(
-            shape, JPH::RVec3(t.position.x, t.position.y, t.position.z),
-            JPH::Quat(t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w), motionType, layer
+            shape, JPH::RVec3(wPos.x, wPos.y, wPos.z),
+            JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), 
+            motionType, layer
         );
 
         settings.mUserData = (JPH::uint64)entityId;
-        settings.mIsSensor = rb.isTrigger; 
+        settings.mIsSensor = rb.isTrigger;
 
         if (!rb.isStatic)
         {
             settings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
-
-            JPH::MassProperties mp = shape->GetMassProperties();
-
-            mp.ScaleToMass(rb.mass); 
-
+            JPH::MassProperties mp           = shape->GetMassProperties();
+            mp.ScaleToMass(rb.mass);
             settings.mMassPropertiesOverride = mp;
-
-
         }
 
         settings.mFriction    = rb.friction;
         settings.mRestitution = rb.restitution;
 
         JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
+        JPH::Body*          body          = bodyInterface.CreateBody(settings);
 
-        JPH::Body* body = bodyInterface.CreateBody(settings);
-        if (!body)
+        if (body)
         {
-            nb::Error::ErrorManager::instance()
-                .report(nb::Error::Type::FATAL, "CreateBody returned nullptr")
-                .with("entity", (uint64_t)entityId);
-
-            return;
-        }
-
-        rb.bodyID = body->GetID();
-
-        bodyInterface.AddBody(rb.bodyID, JPH::EActivation::Activate);
-
-        if (!bodyInterface.IsAdded(rb.bodyID))
-        {
-            nb::Error::ErrorManager::instance()
-                .report(nb::Error::Type::FATAL, "Body NOT added after AddBody")
-                .with("entity", (uint64_t)entityId)
-                .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber());
+            rb.bodyID = body->GetID();
+            bodyInterface.AddBody(rb.bodyID, JPH::EActivation::Activate);
         }
     }
 
@@ -507,8 +462,7 @@ namespace nb::Physics
             return;
         }
 
-        auto view = scene.getEntitiesWith<Rigidbody, TransformComponent, Collider>();
-
+        auto                view = scene.getEntitiesWith<Rigidbody, TransformComponent, Collider>();
         JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
 
         for (auto entity : view)
@@ -525,13 +479,17 @@ namespace nb::Physics
             {
                 if (!rb.bodyID.IsInvalid() && bodyInterface.IsAdded(rb.bodyID))
                 {
+                    nb::Math::Vector3<float> wPos =
+                        nb::Math::getPositionFromModelMatrix(tc.worldMatrix);
+                    nb::Math::Quaternion<float> wRot =
+                        nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
+
                     bodyInterface.SetPositionAndRotation(
-                        rb.bodyID, JPH::RVec3(tc.position.x, tc.position.y, tc.position.z),
-                        JPH::Quat(-tc.rotation.x, -tc.rotation.y, -tc.rotation.z, tc.rotation.w),
+                        rb.bodyID, JPH::RVec3(wPos.x, wPos.y, wPos.z),
+                        JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), 
                         JPH::EActivation::Activate
                     );
                 }
-
                 tc.physicsDirty = false;
             }
         }
@@ -545,18 +503,14 @@ namespace nb::Physics
 
         physicsSystem->Update(dt, 1, tempAllocator, jobSystem);
 
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::INFO, "Physics step finished")
-            .with("dt", dt);
-
-
         {
             std::lock_guard<std::mutex> lock(triggerMutex);
             for (const auto& event : triggerEventQueue)
             {
                 if (scene.hasComponent<nb::Script::ScriptComponent>(event.triggerEntity))
                 {
-                    auto& script = scene.getComponent<nb::Script::ScriptComponent>(event.triggerEntity);
+                    auto& script =
+                        scene.getComponent<nb::Script::ScriptComponent>(event.triggerEntity);
 
                     if (event.entered)
                     {
@@ -566,70 +520,62 @@ namespace nb::Physics
                     {
                         script.call("onTriggerExit", event.otherEntity);
                     }
-
                 }
             }
             triggerEventQueue.clear();
         }
-
 
         for (auto entity : view)
         {
             auto& rb = scene.getComponent<Rigidbody>(entity.id);
             auto& tc = scene.getComponent<TransformComponent>(entity.id);
 
-            if (rb.isStatic || rb.bodyID.IsInvalid())
+            if (rb.isStatic || rb.bodyID.IsInvalid() || !bodyInterface.IsActive(rb.bodyID))
             {
-                continue;
-            }
-
-            if (!bodyInterface.IsAdded(rb.bodyID))
-            {
-                nb::Error::ErrorManager::instance()
-                    .report(nb::Error::Type::FATAL, "Body exists in ECS but not added in Jolt")
-                    .with("entity", (uint64_t)entity.id)
-                    .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber());
-
-                continue;
-            }
-
-            if (!bodyInterface.IsActive(rb.bodyID))
-            {
-                nb::Error::ErrorManager::instance()
-                    .report(nb::Error::Type::INFO, "Body is sleeping (inactive)")
-                    .with("entity", (uint64_t)entity.id)
-                    .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber());
-
                 continue;
             }
 
             JPH::RVec3 pos;
             JPH::Quat  rot;
-
             bodyInterface.GetPositionAndRotation(rb.bodyID, pos, rot);
 
-            JPH::Vec3 vel = bodyInterface.GetLinearVelocity(rb.bodyID);
-            JPH::Vec3 ang = bodyInterface.GetAngularVelocity(rb.bodyID);
-
-            nb::Error::ErrorManager::instance()
-                .report(nb::Error::Type::INFO, "Body state after sim")
-                .with("entity", (uint64_t)entity.id)
-                .with("bodyIndexAndSeq", (uint64_t)rb.bodyID.GetIndexAndSequenceNumber())
-                .with("px", (float)pos.GetX())
-                .with("py", (float)pos.GetY())
-                .with("pz", (float)pos.GetZ())
-                .with("vx", vel.GetX())
-                .with("vy", vel.GetY())
-                .with("vz", vel.GetZ())
-                .with("wx", ang.GetX())
-                .with("wy", ang.GetY())
-                .with("wz", ang.GetZ());
-
-            tc.position = {(float)pos.GetX(), (float)pos.GetY(), (float)pos.GetZ()};
-
-            tc.rotation = {
+            nb::Math::Vector3<float> W_pos((float)pos.GetX(), (float)pos.GetY(), (float)pos.GetZ());
+            nb::Math::Quaternion<float> W_rot(
                 -(float)rot.GetX(), -(float)rot.GetY(), -(float)rot.GetZ(), (float)rot.GetW()
-            };
+            );
+
+            nb::Node currentNode = scene.getNode(entity.id);
+            auto     parentOpt   = currentNode.getParent();
+
+            if (parentOpt.has_value())
+            {
+                auto& ptc = parentOpt->getComponent<TransformComponent>();
+
+                nb::Math::Vector3<float> pWPos =
+                    nb::Math::getPositionFromModelMatrix(ptc.worldMatrix);
+                nb::Math::Quaternion<float> pWRot =
+                    nb::Math::getRotationFromModelMatrix(ptc.worldMatrix);
+                nb::Math::Vector3<float> pWScale =
+                    nb::Math::getScaleFromModelMatrix(ptc.worldMatrix);
+
+                nb::Math::Vector3<float> deltaPos       = W_pos - pWPos;
+                nb::Math::Vector3<float> unrotatedDelta = pWRot.conjugate() * deltaPos;
+
+                tc.position.x = (pWScale.x != 0) ? (unrotatedDelta.x / pWScale.x) : 0.0f;
+                tc.position.y = (pWScale.y != 0) ? (unrotatedDelta.y / pWScale.y) : 0.0f;
+                tc.position.z = (pWScale.z != 0) ? (unrotatedDelta.z / pWScale.z) : 0.0f;
+
+                tc.rotation = W_rot * pWRot.conjugate();
+            }
+            else
+            {
+                tc.position = W_pos;
+                tc.rotation = W_rot;
+            }
+
+            tc.rotation.normalize();
+            tc.eulerAngle = tc.rotation.toEulerXYZ();
+            tc.lastEuler  = tc.eulerAngle;
 
             tc.dirty = true;
         }

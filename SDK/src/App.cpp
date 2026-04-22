@@ -185,8 +185,10 @@ void EditorApp::createWindows() noexcept
 
     //tempWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     //tempWindow->setTitle(L"tempWindow");
-
-
+    previewWindow = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    previewWindow->setTitle(L"prev");
+    previewWindow->addCaption();
+    previewWindow->setRenderable(false);
 }
 
 void EditorApp::setupDocking() noexcept
@@ -633,6 +635,8 @@ void EditorApp::setupEngineDependentUi() noexcept
     setupDebugUI();
     setupAssetManager();
     debugWindow->show();
+
+    sharedContext = engine->getRenderer()->createSharedContextForWindow(previewWindow->getHandle().as<HWND>());
 }
 
 void EditorApp::setupDebugUI() noexcept
@@ -1533,7 +1537,7 @@ void EditorApp::spawnPrimitive(
 
     if (mesh)
     {
-        node.addComponent<MeshComponent>({.mesh = mesh, .material = nullptr});
+        node.addComponent<MeshComponent>({.mesh = mesh, .material = {}});
         node.addComponent<NameComponent>({typeName.data()});
 
         node.addComponent<TransformComponent>({});
@@ -1585,6 +1589,36 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 const auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
                 activeNode    = nb::Scene::getInstance().getNode(id);
                 onActiveNodeChanged.emit();
+            }
+        }
+    );
+
+    subscribe(
+        this, &EditorApp::onActiveNodeChanged,
+        [this, tv]()
+        {
+            if (!activeNode.isValid() || !sceneModel)
+            {
+                return;
+            }
+
+            const auto targetEntityId = activeNode.getId();
+
+            Widgets::ModelIndex foundIndex;
+
+            sceneModel->forEach(
+                [&](const Widgets::ModelItem& item)
+                {
+                    if (reinterpret_cast<nb::Ecs::EntityID>(item.getData()) == targetEntityId)
+                    {
+                        foundIndex = Widgets::ModelIndex(item.getUuid());
+                    }
+                }
+            );
+
+            if (foundIndex.isValid())
+            {
+                tv->setSelectedItem(foundIndex);
             }
         }
     );
