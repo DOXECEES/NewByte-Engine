@@ -304,6 +304,8 @@ set (SRC
         src/Utils/Timer.hpp
         src/Utils/Indexator.cpp
         src/Utils/Indexator.hpp
+        src/Utils/PrimitiveNameManager.cpp
+        src/Utils/PrimitiveNameManager.hpp
 
         src/Error/ErrorManager.cpp
         src/Error/ErrorManager.hpp

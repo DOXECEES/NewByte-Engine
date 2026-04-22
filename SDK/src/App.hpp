@@ -27,7 +27,7 @@
 #include <Win32Window/Win32ModalWindow.hpp>
 #include <tiny-gizmo.hpp>
 //
-
+#include <Utils/PrimitiveNameManager.hpp>
 
 namespace nbui
 {
@@ -98,6 +98,7 @@ private:
     std::atomic<bool> running;
 
     bool shouldRebuildInspector = false; 
+    nb::Utils::PrimitiveNameManager primitiveNameManager;
 
     Signal<void()> refreshHierarchyTreeViewSignal;
     Signal<void()> onActiveNodeChanged;
@@ -164,6 +165,8 @@ private:
 
     void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 
+    void deleteEntity(const Widgets::ModelIndex& index) noexcept;
+    void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
 
     int mainLoop() {
         MSG msg = { 0 };

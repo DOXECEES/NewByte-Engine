@@ -1538,7 +1538,8 @@ void EditorApp::spawnPrimitive(
     if (mesh)
     {
         node.addComponent<MeshComponent>({.mesh = mesh, .material = {}});
-        node.addComponent<NameComponent>({typeName.data()});
+        std::string primitiveName = primitiveNameManager.generateName(typeName);
+        node.addComponent<NameComponent>({primitiveName});
 
         node.addComponent<TransformComponent>({});
 
@@ -1552,6 +1553,7 @@ void EditorApp::spawnPrimitive(
         nb::Error::ErrorManager::instance()
             .report(nb::Error::Type::INFO, "Primitive spawned successfully")
             .with("type", typeInfo->name)
+            .with("name", primitiveName)
             .with("entityId", static_cast<uint64_t>(node.getId()));
     }
     else
@@ -1665,8 +1667,10 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 
             popup->addItem(
                 L"🗑️ Удалить",
-                []()
+                [this, index]()
                 {
+                    this->deleteEntity(index);
+
                     nb::Error::ErrorManager::instance().report(
                         nb::Error::Type::INFO, "Delete requested"
                     );
@@ -1677,6 +1681,58 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             this->hierarchyWindow->getPopupManager().show(popup, mousePos.x, mousePos.y);
         }
     );
+}
+
+void EditorApp::deleteEntity(const Widgets::ModelIndex& index) noexcept
+{
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
+    auto&             scene = nb::Scene::getInstance();
+
+    // 1. Освобождаем имена всех удаляемых объектов (самого узла и его детей)
+    // Важно сделать это ДО того, как сцена удалит компоненты из ECS
+    releaseNamesRecursive(id);
+
+    // 2. Удаляем из UI модели (очистка дерева unique_ptr и карт uuidMap/entityMap)
+    sceneModel->removeEntity(id);
+
+    // 3. Удаляем физически из ECS (вызывает вашу рекурсивную Scene::deleteEntity)
+    scene.deleteEntity(id);
+
+    // 4. Сбрасываем выделение, так как объекта больше нет
+    activeNode = nb::Node::createInvalid();
+
+    // 5. Обновляем UI и внутренние системы
+    refreshHierarchyTreeViewSignal.emit();
+    onActiveNodeChanged.emit();
+    scene.invalidateBvh();
+}
+
+// Добавьте этот вспомогательный метод в EditorApp
+void EditorApp::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
+{
+    auto& scene = nb::Scene::getInstance();
+
+    // Если у сущности есть имя, разбираем его и возвращаем индекс в пул
+    if (scene.hasComponent<NameComponent>(id))
+    {
+        const std::string& name = scene.getComponent<NameComponent>(id).name;
+        primitiveNameManager.releaseName(name);
+    }
+
+    // Рекурсивно проходим по детям в ECS, чтобы освободить и их имена тоже
+    if (scene.hasComponent<HierarchyComponent>(id))
+    {
+        const auto& hierarchy = scene.getComponent<HierarchyComponent>(id);
+        for (auto childId : hierarchy.children)
+        {
+            releaseNamesRecursive(childId);
+        }
+    }
 }
 
 

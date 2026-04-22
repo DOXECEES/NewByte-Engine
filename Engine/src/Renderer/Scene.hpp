@@ -253,6 +253,7 @@ namespace nb
             return result;
         }
 
+        void deleteEntity(Ecs::EntityID id) noexcept;
 
         Node getNode(Ecs::EntityID id) noexcept;
 

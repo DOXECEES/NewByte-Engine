@@ -83,6 +83,33 @@ namespace nb
         return Node{entity.id, this};
     }
 
+    void Scene::deleteEntity(Ecs::EntityID id) noexcept
+    {
+        if (hasComponent<HierarchyComponent>(id))
+        {
+            Ecs::EntityID parentId = getComponent<HierarchyComponent>(id).parent;
+            if (parentId != 0 && hasComponent<HierarchyComponent>(parentId))
+            {
+                auto& parentHierarchy = getComponent<HierarchyComponent>(parentId);
+                auto& children        = parentHierarchy.children;
+
+                children.erase(std::remove(children.begin(), children.end(), id), children.end());
+            }
+        }
+
+        if (hasComponent<HierarchyComponent>(id))
+        {
+            auto childrenCopy = getComponent<HierarchyComponent>(id).children;
+
+            for (auto childId : childrenCopy)
+            {
+                deleteEntity(childId);
+            }
+        }
+
+        ecs.destroyEntity(Ecs::Entity{id});
+    }
+
     Node Scene::getNode(Ecs::EntityID id) noexcept
     {
         return Node{id, this};
