@@ -292,8 +292,8 @@ namespace nb
 
 NB_REFLECT_ENUM(
     nb::Renderer::LightType,
-    NB_ENUM_VALUE(nb::Renderer::LightType::POINT),
     NB_ENUM_VALUE(nb::Renderer::LightType::DIRECTIONAL),
+    NB_ENUM_VALUE(nb::Renderer::LightType::POINT),
     NB_ENUM_VALUE(nb::Renderer::LightType::SPOT)
 )
 

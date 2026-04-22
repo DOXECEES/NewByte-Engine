@@ -281,7 +281,6 @@ namespace nb
 
             renderer->render();
             
-
           
             return true;
         }
@@ -303,7 +302,10 @@ namespace nb
                     if (registry.has<nb::Script::ScriptComponent>(entity))
                     {
                         auto& script = registry.get<nb::Script::ScriptComponent>(entity);
-                        script.script->onUpdate(entity, deltaTime);
+                        if (script.script)
+                        {
+                            script.script->onUpdate(entity, deltaTime);
+                        }
                     }
                 }
             );
@@ -316,8 +318,17 @@ namespace nb
                 auto* camera    = camComp.controller.get();
 
                 // TODO: отдать скриптам
-                camera->moveTo(transform.position);
+                camera->moveTo(Math::getPositionFromModelMatrix(transform.worldMatrix));
+                //if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
+                //{
+                //    camera->moveAt(camera->getDirection() * 5.0f * deltaTime);
+                //}
+
                 
+
+                
+
+
                 camera->update(
                     static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY())
                 );

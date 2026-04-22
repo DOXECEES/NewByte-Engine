@@ -1594,6 +1594,36 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
     );
 
     subscribe(
+        this, &EditorApp::onActiveNodeChanged,
+        [this, tv]()
+        {
+            if (!activeNode.isValid() || !sceneModel)
+            {
+                return;
+            }
+
+            const auto targetEntityId = activeNode.getId();
+
+            Widgets::ModelIndex foundIndex;
+
+            sceneModel->forEach(
+                [&](const Widgets::ModelItem& item)
+                {
+                    if (reinterpret_cast<nb::Ecs::EntityID>(item.getData()) == targetEntityId)
+                    {
+                        foundIndex = Widgets::ModelIndex(item.getUuid());
+                    }
+                }
+            );
+
+            if (foundIndex.isValid())
+            {
+                tv->setSelectedItem(foundIndex);
+            }
+        }
+    );
+
+    subscribe(
         tv, &Widgets::TreeView::onItemRightClickSignal,
         [this, tv](const auto& index)
         {

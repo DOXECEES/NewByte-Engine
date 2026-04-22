@@ -157,11 +157,12 @@ private:
         inspectorWindow->show();
         debugWindow->show();
         //textureInspector->show();
+
         mainWindow->show();
         mainWindow->repaint();
     }
 
-   void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
+    void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 
 
     int mainLoop() {

@@ -68,6 +68,11 @@ namespace nb::Script
                     t.position.y += dy;
                     t.position.z += dz;
                     t.dirty = true;
+                },
+                "getWorldPosition",
+                [](TransformComponent& t)
+                {
+                    return Math::getPositionFromModelMatrix(t.worldMatrix);
                 }
             );
 
@@ -152,10 +157,6 @@ namespace nb::Script
                     return input.isKeyHeld(code);
                 }
             );
-
-           
-            
-
         }
 
         bool runScript(const std::string& path)

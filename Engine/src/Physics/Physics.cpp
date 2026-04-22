@@ -486,7 +486,7 @@ namespace nb::Physics
 
                     bodyInterface.SetPositionAndRotation(
                         rb.bodyID, JPH::RVec3(wPos.x, wPos.y, wPos.z),
-                        JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), /
+                        JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), 
                         JPH::EActivation::Activate
                     );
                 }
