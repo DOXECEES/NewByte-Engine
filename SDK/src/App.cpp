@@ -56,6 +56,7 @@ void EditorApp::openColorPickerWindow()
     colorPickerWindow = std::make_shared<Win32Window::ModalWindow>(NbSize<int>{300,300}, inspectorWindow.get());
     colorPickerWindow->setTitle(L"Color picker");
 
+
     using namespace nbui;
     auto ui =
         LayoutBuilder::vBox()
@@ -1693,26 +1694,19 @@ void EditorApp::deleteEntity(const Widgets::ModelIndex& index) noexcept
     nb::Ecs::EntityID id    = sceneModel->getEntity(index);
     auto&             scene = nb::Scene::getInstance();
 
-    // 1. Освобождаем имена всех удаляемых объектов (самого узла и его детей)
-    // Важно сделать это ДО того, как сцена удалит компоненты из ECS
     releaseNamesRecursive(id);
 
-    // 2. Удаляем из UI модели (очистка дерева unique_ptr и карт uuidMap/entityMap)
     sceneModel->removeEntity(id);
 
-    // 3. Удаляем физически из ECS (вызывает вашу рекурсивную Scene::deleteEntity)
     scene.deleteEntity(id);
 
-    // 4. Сбрасываем выделение, так как объекта больше нет
     activeNode = nb::Node::createInvalid();
 
-    // 5. Обновляем UI и внутренние системы
     refreshHierarchyTreeViewSignal.emit();
     onActiveNodeChanged.emit();
     scene.invalidateBvh();
 }
 
-// Добавьте этот вспомогательный метод в EditorApp
 void EditorApp::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
 {
     auto& scene = nb::Scene::getInstance();
@@ -1724,7 +1718,6 @@ void EditorApp::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
         primitiveNameManager.releaseName(name);
     }
 
-    // Рекурсивно проходим по детям в ECS, чтобы освободить и их имена тоже
     if (scene.hasComponent<HierarchyComponent>(id))
     {
         const auto& hierarchy = scene.getComponent<HierarchyComponent>(id);

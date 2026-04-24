@@ -147,15 +147,15 @@ namespace nb::Renderer
         mainFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         mainFrameBuffer->finalize();
 
-        shadowFrameBuffer = api->createFrameBuffer(1024, 1024);
+        shadowFrameBuffer = api->createFrameBuffer(2048, 2048);
         shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
         shadowFrameBuffer->finalize();
         
+
         navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
         navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
         navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         navigationalGizmoFrameBuffer->finalize();
-
 
         if (!albedo)
         {
@@ -253,7 +253,7 @@ namespace nb::Renderer
 
 
 
-        const float shadowSize = 1024.0f;
+        const float shadowSize = 2048.0f;
       
         api->setViewport({ 0, 0, shadowSize, shadowSize });
         api->bindFrameBuffer(shadowFrameBuffer);

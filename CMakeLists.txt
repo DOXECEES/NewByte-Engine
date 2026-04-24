@@ -13,7 +13,6 @@ option(USE_VS_PROFILER "Enable VS Memory Profiler for memory tracking" ON)
 
 if(MSVC)
     # Кодировка исходников UTF-8
-    add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
     
     if(USE_VS_PROFILER)
         add_compile_definitions(_CRTDBG_MAP_ALLOC)

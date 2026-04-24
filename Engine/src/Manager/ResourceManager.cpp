@@ -19,8 +19,10 @@ namespace nb
             registerLoader(".nbsd", createRef<nb::Loaders::JsonFactory>());
             registerLoader(".shader", createRef<nb::Loaders::Factory::ShaderFactory>());
             registerLoader(".obj", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".fbx", createRef<nb::Loaders::Factory::ObjFactory>());
             registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
             registerLoader(".material", createRef<nb::Loaders::Factory::MaterialFactory>());
+
 
         }
 

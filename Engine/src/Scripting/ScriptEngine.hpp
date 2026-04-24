@@ -111,8 +111,14 @@ namespace nb::Script
                         throw std::runtime_error("Entity has no RigidbodyComponent");
                     }
                     return registry.get<nb::Physics::Rigidbody>({entityId});
+                },
+                "findEntityByName",
+                [](nb::Scene& scene, std::string_view name) -> uint32_t
+                {
+                    return scene.findNodeByName(name).getId();
                 }
             );
+
 
 
 
@@ -157,6 +163,31 @@ namespace nb::Script
                     return input.isKeyHeld(code);
                 }
             );
+
+
+            lua.set_function(
+                "print",
+                [](sol::variadic_args args, sol::this_state s)
+                {
+                    std::string     output;
+                    sol::state_view lua(s);
+
+                    for (auto it = args.begin(); it != args.end(); ++it)
+                    {
+                        if (it != args.begin())
+                        {
+                            output += "\t";
+                        }
+
+                        std::string str = lua["tostring"](*it).get<std::string>();
+                        output += str;
+                    }
+
+                    nb::Error::ErrorManager::instance().report(nb::Error::Type::WARNING, output);
+
+                }
+            );
+
         }
 
         bool runScript(const std::string& path)

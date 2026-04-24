@@ -255,6 +255,9 @@ namespace nb
 
         void deleteEntity(Ecs::EntityID id) noexcept;
 
+        Node findNodeByName(std::string_view name) noexcept;
+        
+
         Node getNode(Ecs::EntityID id) noexcept;
 
         Ecs::ECSRegistry& getRegistry() noexcept;

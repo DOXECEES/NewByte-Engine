@@ -110,6 +110,23 @@ namespace nb
         ecs.destroyEntity(Ecs::Entity{id});
     }
 
+    Node Scene::findNodeByName(std::string_view name) noexcept
+    {
+        auto entities = getEntitiesWith<NameComponent>();
+
+        for (auto& entity : entities)
+        {
+            auto& nameComp = ecs.get<NameComponent>(entity);
+            if (nameComp.name == name)
+            {
+                return Node(entity.id, this);
+            }
+        }
+
+        return Node::createInvalid();
+    }
+
+
     Node Scene::getNode(Ecs::EntityID id) noexcept
     {
         return Node{id, this};
@@ -835,7 +852,7 @@ namespace nb
         }
     }
 
-void Scene::deserializeFields(
+    void Scene::deserializeFields(
         const nb::Loaders::Node& node,
         void* object,
         nb::Reflect::TypeInfo* type

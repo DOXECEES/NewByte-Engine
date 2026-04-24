@@ -514,7 +514,7 @@ namespace nb::Physics
 
                     if (event.entered)
                     {
-                        script.call("onTriggerEnter", event.otherEntity);
+                        script.call("onTriggerEnter", (uint32_t)event.otherEntity);
                     }
                     else
                     {

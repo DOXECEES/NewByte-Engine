@@ -2,7 +2,7 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "ObjFactory.hpp"
-
+#include "Loaders/AsimpLoader.hpp"
 namespace nb
 {
     namespace Loaders
@@ -14,6 +14,10 @@ namespace nb
                 if(path.extension() == ".obj")
                 {
                     return ObjLoader::loadMesh(path);
+                }
+                else if (path.extension() == ".fbx")
+                {
+                    return nb::Renderer::AssimpLoader::load(path);
                 }
 
                 return nullptr;
