@@ -196,7 +196,7 @@ namespace nb::Renderer
 
         std::vector<Ecs::EntityID> lights;
         nbstl::Vector<RendererCommand> mainQueue;
-        auto shader = rm->getResource<Shader>("ADS.shader");
+        auto                           shader = rm->getResource<Shader>("ADS.shader");
 
         scene.traverseAll(
             [&](Ecs::EntityID entityId)
@@ -599,9 +599,10 @@ namespace nb::Renderer
         api->setClearColor(Colors::WHITE, 1.0f, 0);
         api->clear(true, false, false); 
 
-        auto quadShader = rm->getResource<Shader>("quadShader.shader");
+        auto quadShader = rm->getResource<Shader>("quadShader.shader", {std::string("USE_FXAA")});
         quadShader->setUniformInt("depthMap", 3); 
         quadShader->setUniformVec2("screenSize", { (float)width, (float)height });
+
 
 
         glActiveTexture(GL_TEXTURE3);
@@ -993,6 +994,7 @@ namespace nb::Renderer
 
         auto gizmoShader = nb::ResMan::ResourceManager::getInstance()
             ->getResource<nb::Renderer::Shader>("gizmoShader.shader");
+
 
         Pipeline pipeline = {};
         pipeline.shader = gizmoShader;

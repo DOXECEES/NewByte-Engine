@@ -14,7 +14,10 @@ namespace nb::Loaders::Factory
     class TextureFactory : public Factory::IFactoryLoader
     {
     public:
-        Ref<nb::Resource::IResource> create(const std::filesystem::path& path) const override;
+        Ref<nb::Resource::IResource> create(
+            const std::filesystem::path& path,
+            nbstl::Span<std::string>     params = {}
+        ) const override;
         std::type_index getResourceType() const noexcept override
         {
             return std::type_index(typeid(nb::Resource::TextureAsset));

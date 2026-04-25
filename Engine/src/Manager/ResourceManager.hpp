@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <typeinfo>
 
-
+#include <Span.hpp>
 #include "../Resources/IResource.hpp"
 #include "../Loaders/Factory/IFactoryLoader.hpp"
 #include "../Loaders/Factory/ShaderFactory.hpp"
@@ -39,28 +39,37 @@ namespace nb
             static ResourceManager *getInstance() noexcept;
 
             template <typename T>
-            Ref<T> getResource(std::string_view resourcePath) noexcept
+            Ref<T> getResource(
+                std::string_view         resourcePath,
+                nbstl::Span<std::string> params = {}
+            ) noexcept
             {
-                std::string path(resourcePath);
+                std::string      path(resourcePath);
                 std::string_view extension = extractExtension(path);
 
+                std::string resourceKey = path;
+                for (const auto& param : params)
+                {
+                    resourceKey += "|" + param;
+                }
 
                 auto loaderIt = loaders.find(extension.data());
                 if (loaderIt == loaders.end())
                 {
-                    Debug::debug("Unsupported file format: " + std::string(extension));
+                    Error::ErrorManager::instance().report(Error::Type::FATAL, "Unsupported file format: " + std::string(extension));
                     abort();
                 }
 
                 std::type_index type = loaderIt->second->getResourceType();
 
-                if (!isResourceLoaded(path))
+                if (pool[type].find(resourceKey) == pool[type].end())
                 {
-                    load(path);
+                    load(path, resourceKey, params);
                 }
 
-                return std::dynamic_pointer_cast<T>(pool.at(type).at(path));
+                return std::dynamic_pointer_cast<T>(pool.at(type).at(resourceKey));
             }
+
 
             template <typename T>
             const ResourcePool& getAllResources() noexcept
@@ -84,7 +93,11 @@ namespace nb
         private:
             std::string_view extractExtension(std::string_view path) const noexcept;
 
-            void load(const std::filesystem::path &path) noexcept;
+            void load(
+                const std::filesystem::path& path,
+                const std::string&           key,
+                nbstl::Span<std::string>     params
+            ) noexcept;
 
             void unload() noexcept;
 

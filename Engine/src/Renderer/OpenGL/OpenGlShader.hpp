@@ -10,6 +10,8 @@
 #include <string>
 #include <sstream>
 
+#include <Span.hpp>
+
 #include "../../Resources/IResource.hpp"
 #include "../Shader.hpp"
 
@@ -39,8 +41,14 @@ namespace nb
             };
 
             OpenGlShader() noexcept = default;
-            explicit OpenGlShader(const std::filesystem::path &pathToShader) noexcept;
-            explicit OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept;
+            explicit OpenGlShader(
+                const std::filesystem::path& pathToShader,
+                nbstl::Span<std::string>     params = {}
+            ) noexcept;
+            explicit OpenGlShader(
+                const std::vector<std::filesystem::path>& vecOfShaders,
+                nbstl::Span<std::string>                  params = {}
+            ) noexcept;
             ~OpenGlShader() noexcept;
 
             void recompile() noexcept override;
@@ -84,6 +92,7 @@ namespace nb
 
             std::vector<GLuint>                 shaders;
             std::vector<std::filesystem::path>  pathsToShaderSources;
+            std::vector<std::string>            shaderParams;
             GLuint                              program                 = 0;
 
         };

@@ -3,16 +3,32 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "OpenGlShader.hpp"
 
-nb::OpenGl::OpenGlShader::OpenGlShader(const std::filesystem::path &pathToShader) noexcept
+nb::OpenGl::OpenGlShader::OpenGlShader(
+    const std::filesystem::path& pathToShader,
+    nbstl::Span<std::string>     params
+) noexcept
 {
+    for (const auto& p : params)
+    {
+        shaderParams.push_back(p);
+    }
+
     pathsToShaderSources.push_back(pathToShader);
     link(pathToShader);
     createProgram();
 }
 
-nb::OpenGl::OpenGlShader::OpenGlShader(const std::vector<std::filesystem::path> &vecOfShaders) noexcept
+nb::OpenGl::OpenGlShader::OpenGlShader(
+    const std::vector<std::filesystem::path>& vecOfShaders,
+    nbstl::Span<std::string>                  params
+) noexcept
     : pathsToShaderSources(vecOfShaders)
 {
+    for (const auto& p : params)
+    {
+        shaderParams.push_back(p);
+    }
+
     for (const auto &shaderPath : vecOfShaders)
     {
         link(shaderPath);
@@ -170,6 +186,27 @@ void nb::OpenGl::OpenGlShader::createProgram() noexcept
 void nb::OpenGl::OpenGlShader::load(const std::filesystem::path &pathToShader) noexcept
 {
     auto s = loadFromFile(pathToShader);
+
+    std::string definesCode = "\n";
+    for (const auto& param : shaderParams)
+    {
+        definesCode += "#define " + param + "\n";
+    }
+
+    size_t versionPos = s.find("#version");
+    if (versionPos != std::string::npos)
+    {
+        size_t nextLine = s.find('\n', versionPos);
+        if (nextLine != std::string::npos)
+        {
+            s.insert(nextLine + 1, definesCode);
+        }
+    }
+    else
+    {
+        s.insert(0, definesCode);
+    }
+
     const char *shaderSource = s.c_str();
     glShaderSource(shaders.back(), 1, &shaderSource, NULL);
     glCompileShader(shaders.back());

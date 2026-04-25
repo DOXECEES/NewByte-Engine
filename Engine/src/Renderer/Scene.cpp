@@ -870,6 +870,7 @@ namespace nb
                 continue;
             }
 
+
             const auto& fieldJson = node[field.name];
             void* fieldPtr = reinterpret_cast<uint8_t*>(object) + field.offset;
             auto* fieldType = field.type;
