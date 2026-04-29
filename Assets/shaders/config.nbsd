@@ -124,5 +124,11 @@
 			"Assets/shaders/shadow_viz.vs",
 			"Assets/shaders/shadow_viz.fs"
 		]
+	},
+	"ssr.shader" : {
+		"sources": [
+			"Assets/shaders/ssr.vs",
+			"Assets/shaders/ssr.fs"
+		]
 	}		
 }

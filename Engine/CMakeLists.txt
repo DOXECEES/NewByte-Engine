@@ -144,6 +144,8 @@ set(SRC
 
     src/Manager/ResourceManager.cpp
     src/Manager/ResourceManager.hpp
+    src/Manager/AssetImporter.cpp
+    src/Manager/AssetImporter.hpp
 
     src/Resources/IResource.cpp
     src/Resources/IResource.hpp

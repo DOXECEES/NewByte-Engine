@@ -108,10 +108,62 @@ NB_REFLECT_RESOURCE_VECTOR_PTR(
         field->clear();
         for (const auto& path : paths)
         {
-            auto res = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::MaterialAsset>(path);
-            if (res)
+            std::filesystem::path fsPath(path);
+
+
+            // Проверяем расширение файла
+            if (fsPath.extension() == ".model")
             {
-                field->push_back(res);
+                nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, "MODEL");
+                try
+                {
+                    nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, fsPath.string());
+                    auto modelJson = nb::Loaders::Json(fsPath);
+
+                    //if (modelJson.contains("submeshes"))
+                    {
+                        for (int i = 0; i < modelJson["submeshes"].size(); i++)
+                        {
+                            nb::Error::ErrorManager::instance().report(
+                                nb::Error::Type::FATAL, "MODEL2"
+                            );
+
+                            //if (sub.contains("material"))
+                            {
+                                std::string matName =
+                                    modelJson["submeshes"][i]["material"].get<std::string>();
+
+                                std::filesystem::path fullMatPath = matName;
+
+                                auto res = nb::ResMan::ResourceManager::getInstance()
+                                               ->getResource<nb::Resource::MaterialAsset>(
+                                    fullMatPath.generic_string()
+                                );
+                                if (res)
+                                {
+                                    nb::Error::ErrorManager::instance().report(
+                                        nb::Error::Type::FATAL, "MODEL3"
+                                    );
+
+                                    field->push_back(res);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (...)
+                {
+                }
+            }
+
+            else
+            {
+                auto res = nb::ResMan::ResourceManager::getInstance()
+                               ->getResource<nb::Resource::MaterialAsset>(path);
+                if (res)
+                {
+                    field->push_back(res);
+                }
             }
         }
     }
@@ -138,6 +190,13 @@ struct CameraComponent
     float fov    = 60.0f;
     float aspect = 1.77f;
 
+    bool isFfxaEnabled                 = false;
+    bool isChromaticAbbernationEnabled = false;
+    bool isDepthOfFieldEnabled         = false;
+    bool isTonemappingEnabled          = false;
+    bool isFilmGrainEnabled            = false;
+    bool isVignetteEnabled             = false;
+
     CameraComponent() : controller(std::make_unique<nb::Renderer::Camera>())
     {
     }
@@ -150,9 +209,32 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         CameraComponent,
         isPrimary
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isFfxaEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isChromaticAbbernationEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isDepthOfFieldEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isTonemappingEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isFilmGrainEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isVignetteEnabled
     )
 )
-
 
 
 

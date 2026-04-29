@@ -56,7 +56,6 @@ void EditorApp::openColorPickerWindow()
     colorPickerWindow = std::make_shared<Win32Window::ModalWindow>(NbSize<int>{300,300}, inspectorWindow.get());
     colorPickerWindow->setTitle(L"Color picker");
 
-
     using namespace nbui;
     auto ui =
         LayoutBuilder::vBox()
@@ -171,6 +170,10 @@ void EditorApp::createWindows() noexcept
 
     assetManager = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     assetManager->setTitle(L"Asset");
+
+    importManager = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    importManager->addCaption();
+    importManager->setTitle(L"import");
     // textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
     // textureInspector->setTitle(
     //     Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
@@ -733,6 +736,7 @@ void EditorApp::setupDebugUI() noexcept
         .child(LayoutBuilder::label(L"STATISTICS")
             .relativeWidth(1.0f).absoluteHeight(25)
             .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
 
 
         .child(LayoutBuilder::widget(new Widgets::ComboBox())

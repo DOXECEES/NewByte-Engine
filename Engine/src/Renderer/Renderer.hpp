@@ -200,6 +200,7 @@ namespace nb
             Camera* cam;
 
             Ref<IFrameBuffer> mainFrameBuffer;         
+            Ref<IFrameBuffer> ssrResultBuffer;
             Ref<IFrameBuffer> shadowFrameBuffer;
             Ref<IFrameBuffer> navigationalGizmoFrameBuffer;
 

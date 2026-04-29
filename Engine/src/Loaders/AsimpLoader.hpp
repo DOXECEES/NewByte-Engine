@@ -20,8 +20,14 @@ namespace nb::Renderer
 
             // Настройка: если Blender экспортирует в см, а вам нужны метры.
             // 0.01 уменьшит модель в 100 раз. Если размер в Blender устраивает, поставьте 1.0f
-            importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
-
+            if (path.extension() == ".fbx")
+            {
+                importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
+            }
+            else
+            {
+                importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
+            }
             // КРИТИЧЕСКИЕ ФЛАГИ:
             // 1. aiProcess_PreTransformVertices - Assimp сам применит все матрицы узлов.
             //    Это решит проблему сплющивания, так как иерархия будет "схлопнута" правильно.
@@ -29,6 +35,7 @@ namespace nb::Renderer
             // 3. aiProcess_MakeLeftHanded - если ваш движок Row-Major (DirectX стиль),
             //    часто требуется левосторонняя система.
             uint32_t flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                             aiProcess_OptimizeMeshes  |  
                              aiProcess_FlipUVs | aiProcess_PreTransformVertices |
                              aiProcess_GlobalScale | aiProcess_CalcTangentSpace |
                              aiProcess_JoinIdenticalVertices;

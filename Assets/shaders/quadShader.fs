@@ -74,6 +74,5 @@ void main()
     float dist = length(TexCoords - center);
     float vignette = smoothstep(0.45, 0.75, dist);
     finalColor *= mix(1.0, 0.7, vignette);
-
     FragColor = vec4(finalColor, 1.0);
 }

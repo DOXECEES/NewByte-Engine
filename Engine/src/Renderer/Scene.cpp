@@ -101,6 +101,7 @@ namespace nb
         {
             auto childrenCopy = getComponent<HierarchyComponent>(id).children;
 
+
             for (auto childId : childrenCopy)
             {
                 deleteEntity(childId);

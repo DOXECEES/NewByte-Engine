@@ -143,14 +143,23 @@ namespace nb::Renderer
         }
 
         mainFrameBuffer = api->createFrameBuffer(width, heigth);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
-        mainFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
         mainFrameBuffer->finalize();
+
+        mainFrameBuffer->setDrawBuffers(4);
 
         shadowFrameBuffer = api->createFrameBuffer(2048, 2048);
         shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
         shadowFrameBuffer->finalize();
         
+        ssrResultBuffer = api->createFrameBuffer(width, heigth);
+        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        ssrResultBuffer->finalize();
+
 
         navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
         navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
@@ -303,6 +312,8 @@ namespace nb::Renderer
 
         api->bindDefaultFrameBuffer();
        
+        // 3
+
 
         api->bindFrameBuffer(mainFrameBuffer);
         api->setViewport({ 0, 0, (float)width, (float)height });
@@ -324,13 +335,11 @@ namespace nb::Renderer
         skyboxShader->setUniformMat4("view", view);
         skyboxShader->setUniformMat4("projection", proj);
         sky.bindCubemap(ibl->getCubemap());
-        sky.render(skyboxShader);
+        
 
+        sky.render(skyboxShader);
         //glActiveTexture(GL_TEXTURE5);
         //glBindTexture(GL_TEXTURE_2D, shadowFrameBuffer->getTexture(0));
-
-
-        //
 
 
         if (isShowGridEnabled)
@@ -465,6 +474,10 @@ namespace nb::Renderer
             }
         }
 
+
+
+
+
         if (isDebugPassEnabled)
         {
             Pipeline debugP = {};
@@ -591,33 +604,71 @@ namespace nb::Renderer
         }
         gizmoCtx.draw();
 
-        renderNavigationalGizmo();
+        //renderNavigationalGizmo();
+        //api->bindDefaultFrameBuffer();
+        //
+
+        api->bindFrameBuffer(ssrResultBuffer);
+        api->setViewport({0, 0, (float)width, (float)height});
+        api->clear(true, false, false); // Чистим только цвет
+
+        auto ssrShader = rm->getResource<Shader>("ssr.shader"); // Создай этот файл
+        ssrShader->use();
+
+        // Передаем данные из основного буфера
+        api->bindTexture(0, mainFrameBuffer->getTexture(0)); // Цвет сцены
+        api->bindTexture(1, mainFrameBuffer->getTexture(1)); // Нормали (View Space)
+        api->bindTexture(2, mainFrameBuffer->getTexture(2)); // extra
+        api->bindTexture(3, mainFrameBuffer->getTexture(3)); // pos
+        api->bindTexture(4, mainFrameBuffer->getTexture(4)); // Глубина
+
+        ssrShader->setUniformMat4("invView", Math::inverseWithoutTranspose(cam->getLookAt()));
+        ssrShader->setUniformMat4(
+            "invProjection", Math::inverseWithoutTranspose(cam->getProjection())
+        );
+        ssrShader->setUniformMat4("projection", cam->getProjection());
+        ssrShader->setUniformMat4("view", cam->getLookAt());
+
+        ssrShader->setUniformVec2("u_ScreenSize", {(float)width, (float)height});
+
+        // Рисуем полноэкранный квадрат (используй свой quadScreenMesh)
+        Pipeline ssrP          = {};
+        ssrP.shader            = ssrShader;
+        ssrP.isDepthTestEnable = false;
+        uint32 ssrPSO          = api->getCache().getOrCreate(ssrP);
+
+        RendererCommand ssrCmd = {.mesh = quadScreenMesh.get(), .pipeline = ssrPSO};
+        api->drawMesh(ssrCmd);
+
+        //
 
 
-        api->bindDefaultFrameBuffer(); 
-        api->setViewport({ 0, 0, (float)width, (float)height });
+
+        api->bindDefaultFrameBuffer();
+        api->setViewport({0, 0, (float)width, (float)height});
         api->setClearColor(Colors::WHITE, 1.0f, 0);
-        api->clear(true, false, false); 
+        api->clear(true, false, false);
 
         auto quadShader = rm->getResource<Shader>("quadShader.shader", {std::string("USE_FXAA")});
-        quadShader->setUniformInt("depthMap", 3); 
-        quadShader->setUniformVec2("screenSize", { (float)width, (float)height });
-
-
+        quadShader->use(); // Важно вызвать use() перед установкой юниформов
+        quadShader->setUniformInt("depthMap", 3);
+        quadShader->setUniformVec2("screenSize", {(float)width, (float)height});
 
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->getTexture(0));
+        glBindTexture(GL_TEXTURE_2D, ssrResultBuffer->getTexture(0));
 
-        Pipeline quadPipeline = {};
-        quadPipeline.shader = std::move(quadShader);
+        Pipeline quadPipeline    = {};
+        quadPipeline.shader      = quadShader; 
         quadPipeline.polygonMode = PolygonMode::FULL;
-        quadPipeline.isDepthTestEnable = false; 
+        quadPipeline.isDepthTestEnable = false;
 
-        RendererCommand postCmd = { .mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(quadPipeline) };
+        RendererCommand postCmd = {
+            .mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(quadPipeline)
+        };
         api->drawMesh(postCmd);
 
-
         api->endFrame(); 
+
     }
 
     void Renderer::togglePolygonVisibilityMode(PolygonMode mode) const noexcept

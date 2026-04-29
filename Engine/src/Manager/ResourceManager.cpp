@@ -20,6 +20,8 @@ namespace nb
             registerLoader(".shader", createRef<nb::Loaders::Factory::ShaderFactory>());
             registerLoader(".obj", createRef<nb::Loaders::Factory::ObjFactory>());
             registerLoader(".fbx", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".gltf", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".model", createRef<nb::Loaders::Factory::ObjFactory>());
             registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
             registerLoader(".material", createRef<nb::Loaders::Factory::MaterialFactory>());
 

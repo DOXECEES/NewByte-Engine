@@ -8,18 +8,6 @@ project(NewByte LANGUAGES CXX)
 option(USE_VS_PROFILER "Enable VS Memory Profiler for memory tracking" ON)
 
 # ============================================================================  
-# Глобальные опции компилятора для MSVC
-# ============================================================================  
-
-if(MSVC)
-    # Кодировка исходников UTF-8
-    
-    if(USE_VS_PROFILER)
-        add_compile_definitions(_CRTDBG_MAP_ALLOC)
-    endif()
-endif()
-
-# ============================================================================  
 # Поддиректории проекта
 # ============================================================================  
 
@@ -34,73 +22,81 @@ enable_testing()
 add_subdirectory(tests)
 
 # ============================================================================  
-# Функция для применения debug-флагов к таргету
+# Функция для применения настроек (UTF-8 и отладка)
 # ============================================================================  
 
-function(apply_debug_flags target)
-    if(TARGET ${target} AND USE_VS_PROFILER)
-        # Полная отладочная информация только для Debug
-        target_compile_options(${target} PRIVATE
-            $<$<CONFIG:Debug>:/Zi /Od>
-        )
-        target_link_options(${target} PRIVATE
-            $<$<CONFIG:Debug>:/DEBUG>
-        )
-        target_compile_definitions(${target} PRIVATE
+function(apply_project_settings target)
+    if(NOT TARGET ${target})
+        return()
+    endif()
+
+    # Проверяем тип таргета. Для INTERFACE библиотек используем режим INTERFACE,
+    # для обычных (static, shared, exe) — PRIVATE.
+    get_target_property(target_type ${target} TYPE)
+    if (target_type STREQUAL "INTERFACE_LIBRARY")
+        set(scope INTERFACE)
+    else()
+        set(scope PRIVATE)
+    endif()
+
+    # 1. Исправление русского языка (только для MSVC)
+    if(MSVC)
+        target_compile_options(${target} ${scope} /utf-8)
+    endif()
+
+    # 2. Настройки профайлера
+    if(USE_VS_PROFILER)
+        # Для INTERFACE библиотек мы не можем задать настройки компиляции/линковки "внутри" них,
+        # но мы можем пробросить их тем, кто их использует.
+        
+        target_compile_definitions(${target} ${scope}
             $<$<CONFIG:Debug>:USE_VS_PROFILER>
+            $<$<CONFIG:Debug>:_CRTDBG_MAP_ALLOC>
         )
-        # MSVC Runtime Debug DLL
-        set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
-        message(STATUS "VS Memory Profiler enabled for target: ${target}")
+
+        # Опции компиляции и линковки (только для не-INTERFACE таргетов, 
+        # так как INTERFACE таргеты сами не компилируются)
+        if (NOT target_type STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(${target} PRIVATE $<$<CONFIG:Debug>:/Zi /Od>)
+            target_link_options(${target} PRIVATE $<$<CONFIG:Debug>:/DEBUG>)
+            
+            set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL")
+        endif()
     endif()
 endfunction()
 
 # ============================================================================  
-# Применяем флаги ко всем основным таргетам
+# Применяем настройки ко всем твоим таргетам
 # ============================================================================  
 
-set(ALL_TARGETS NewByte-Engine SDK NewByte-UI-Lib Common nbstl tests)
+# Важно: список имен должен точно совпадать с именами в add_library/add_executable
+set(ALL_TARGETS 
+    NewByte-Engine 
+    SDK 
+    NewByte-UI-Lib 
+    Common 
+    nbstl 
+    tests
+)
 
-#foreach(t ${ALL_TARGETS})
-    #apply_debug_flags(${t})
-#endforeach()
-
-# ============================================================================  
-# Code coverage (опционально)
-# ============================================================================  
-
-option(BUILD_COVERAGE "Build with code coverage support" OFF)
-
-if(BUILD_COVERAGE)
-    find_program(OPENCPPCOVERAGE OpenCppCoverage)
-    if(OPENCPPCOVERAGE)
-        message(STATUS "OpenCppCoverage found: ${OPENCPPCOVERAGE}")
-    else()
-        message(WARNING "OpenCppCoverage not found. Please install it from GitHub")
-    endif()
-endif()
+foreach(t ${ALL_TARGETS})
+    apply_project_settings(${t})
+endforeach()
 
 # ============================================================================  
-# PVS-Studio integration
+# PVS-Studio и остальное
 # ============================================================================  
 
 find_program(PVS_ANALYZER NAMES pvs-studio-analyzer.exe)
 find_program(PVS_CONVERTER NAMES plog-converter.exe)
 
 if(PVS_ANALYZER AND PVS_CONVERTER)
-    add_custom_target(pvs
-        COMMAND ${PVS_ANALYZER} analyze --build ${CMAKE_BINARY_DIR} --output ${CMAKE_BINARY_DIR}/pvs.log
-        COMMAND ${PVS_CONVERTER} -a GA:1,2,3,4 -t html -o ${CMAKE_BINARY_DIR}/pvs.html ${CMAKE_BINARY_DIR}/pvs.log
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Running PVS-Studio analysis"
-    )
+    if(NOT TARGET pvs)
+        add_custom_target(pvs
+            COMMAND ${PVS_ANALYZER} analyze --build ${CMAKE_BINARY_DIR} --output ${CMAKE_BINARY_DIR}/pvs.log
+            COMMAND ${PVS_CONVERTER} -a GA:1,2,3,4 -t html -o ${CMAKE_BINARY_DIR}/pvs.html ${CMAKE_BINARY_DIR}/pvs.log
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMENT "Running PVS-Studio analysis"
+        )
+    endif()
 endif()
-
-# ============================================================================  
-# Рекомендации по snapshot (ручной)
-# ============================================================================  
-
-# #ifdef USE_VS_PROFILER
-# #include <crtdbg.h>
-# _CrtDumpMemoryLeaks(); // выведет текущие утечки в Output Window
-# #endif

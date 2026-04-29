@@ -19,6 +19,7 @@ namespace nb::Renderer
         enum class TextureAttachment
         {
             COLOR,
+            COLOR_HDR,
             DEPTH,
             STENCIL,
             DEPTH_STENCIL,
@@ -34,6 +35,9 @@ namespace nb::Renderer
         virtual uint32 getTexture(uint8 index = 0) const noexcept = 0;
         virtual void addRenderBufferAttachment(RenderBufferAttachment attachment) noexcept = 0;
         virtual void addTextureAttachment(TextureAttachment attachment) noexcept = 0;
+
+        virtual void setDrawBuffers(uint8 count) noexcept = 0;
+
 
     };
 }

@@ -12,6 +12,7 @@ namespace nb::Loaders::Factory
         {
             return materialLoader.loadAsset(path);
         }
+        
         return nullptr;
     }
 

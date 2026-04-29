@@ -765,6 +765,24 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
     glGenVertexArrays(1, &emptyVao);
 
+
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+
+    // Получаем строку производителя (NVIDIA, AMD, Intel)
+    const GLubyte* vendor = glGetString(GL_VENDOR);
+
+    // Получаем версию драйвера/OpenGL
+    const GLubyte* version = glGetString(GL_VERSION);
+
+    nb::Error::ErrorManager::instance()
+        .report(nb::Error::Type::INFO, "GPU information")
+        .with("Video Card", renderer)
+        .with("Vendor", vendor)
+        .with("OpenGL Version", version);
+           
+
+
+
     //loadScene();
     return true;
 }

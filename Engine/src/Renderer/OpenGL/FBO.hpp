@@ -79,6 +79,8 @@ namespace nb
             NB_NODISCARD inline uint8_t getColorTextureCount() const noexcept            { return colorTextureCount; }
             NB_NODISCARD inline GLuint getWidth() const noexcept override                        { return width; }
             NB_NODISCARD inline GLuint getHeight() const noexcept override                       { return height; }
+            
+            void setDrawBuffers(uint8 count) noexcept override;
 
 
         protected:

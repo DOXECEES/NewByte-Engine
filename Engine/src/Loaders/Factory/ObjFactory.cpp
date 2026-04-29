@@ -3,6 +3,9 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "ObjFactory.hpp"
 #include "Loaders/AsimpLoader.hpp"
+#include "ModelFactory.hpp"
+
+
 namespace nb
 {
     namespace Loaders
@@ -22,6 +25,15 @@ namespace nb
                 {
                     return nb::Renderer::AssimpLoader::load(path);
                 }
+                else if (path.extension() == ".gltf")
+                {
+                    return nb::Renderer::AssimpLoader::load(path);
+                }
+                else if (path.extension() == ".model")
+                {
+                    return nb::Resource::loadModel(path);
+                }
+               
 
                 return nullptr;
             }
