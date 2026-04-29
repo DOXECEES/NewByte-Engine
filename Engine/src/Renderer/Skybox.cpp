@@ -89,23 +89,22 @@ namespace nb
 
         void Skybox::render(Ref<Renderer::Shader> shader)
         {
-            glDepthFunc(GL_LEQUAL);
-            glDepthMask(GL_FALSE);
-            glDisable(GL_DEPTH_TEST);
             shader->use();
-            //auto s =
-            //    nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::IhdrResource>(
-            //        "Assets/res/lobby.hdr"
-            //    );
+
+            glDepthMask(GL_FALSE);
+
+            glDepthFunc(GL_LEQUAL);
+
+            glDisable(GL_CULL_FACE);
 
             glActiveTexture(GL_TEXTURE0);
-            //glBindTexture(GL_TEXTURE_CUBE_MAP, s->getPrefilterCubemap()->getId());
-
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
             mesh->draw(GL_TRIANGLES, shader);
-            glDepthFunc(GL_LESS);
+
             glDepthMask(GL_TRUE);
-            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+            glEnable(GL_CULL_FACE);
         }
         GLuint Skybox::getCubemapTextureId() const noexcept
         {

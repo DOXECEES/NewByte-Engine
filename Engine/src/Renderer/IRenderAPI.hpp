@@ -41,6 +41,7 @@ namespace nb
             PolygonMode polygonMode         = PolygonMode::FULL;
             bool        isDepthTestEnable   = true;
             bool        isBlendEnable       = true;
+            bool        isCullingEnable     = true;
 
         };
 
