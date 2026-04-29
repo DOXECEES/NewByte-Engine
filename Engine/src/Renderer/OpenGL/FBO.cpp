@@ -63,7 +63,7 @@ namespace nb
                     return;
                 }
 
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
                 setupTextureParams();
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorTextureCount, GL_TEXTURE_2D, texture, 0);
 
@@ -79,7 +79,7 @@ namespace nb
                 }
 
                 glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, nullptr
+                    GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr
                 );
 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -102,8 +102,8 @@ namespace nb
 
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
                 float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -252,6 +252,11 @@ namespace nb
                 bindTexture(TextureType::COLOR);
                 break;
             }
+            case nb::Renderer::IFrameBuffer::TextureAttachment::COLOR_HDR:
+            {
+                bindTexture(TextureType::COLOR_HDR);
+                break;
+            }
             case nb::Renderer::IFrameBuffer::TextureAttachment::DEPTH:
             {
                 bindTexture(TextureType::DEPTH);
@@ -306,5 +311,17 @@ namespace nb
         {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
+
+        void FBO::setDrawBuffers(uint8 count) noexcept
+        {
+            bind();
+            std::vector<GLenum> attachments;
+            for (int i = 0; i < count; ++i)
+            {
+                attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
+            }
+            glDrawBuffers(static_cast<GLsizei>(attachments.size()), attachments.data());
+        }
+
     }; 
 };

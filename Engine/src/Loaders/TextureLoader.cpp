@@ -8,7 +8,17 @@ namespace nb::Loaders
     Ref<Resource::TextureAsset> TextureLoader::loadAsset(const std::filesystem::path& path) noexcept
     {
         std::filesystem::path pngPath = path;
-        pngPath.replace_extension(".png");
+        if (std::filesystem::exists(pngPath))
+        {
+            pngPath.replace_extension(".jpeg");
+
+        }
+        else
+        {
+            pngPath.replace_extension(".png");
+        }
+
+        //pngPath.replace_extension(".png");
         std::filesystem::path metaPath = pngPath.string() + ".nbmeta";
 
         Resource::TextureSettings settings;

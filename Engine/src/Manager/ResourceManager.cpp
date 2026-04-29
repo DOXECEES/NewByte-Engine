@@ -19,8 +19,12 @@ namespace nb
             registerLoader(".nbsd", createRef<nb::Loaders::JsonFactory>());
             registerLoader(".shader", createRef<nb::Loaders::Factory::ShaderFactory>());
             registerLoader(".obj", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".fbx", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".gltf", createRef<nb::Loaders::Factory::ObjFactory>());
+            registerLoader(".model", createRef<nb::Loaders::Factory::ObjFactory>());
             registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
             registerLoader(".material", createRef<nb::Loaders::Factory::MaterialFactory>());
+
 
         }
 
@@ -64,18 +68,26 @@ namespace nb
             return path.substr(dotPos);
         }
 
-        void ResourceManager::load(const std::filesystem::path &path) noexcept
+        void ResourceManager::load(
+            const std::filesystem::path& path,
+            const std::string&           key,
+            nbstl::Span<std::string>     params
+        ) noexcept
         {
-            std::string extension = path.extension().string();
-            auto loaderIterator = loaders.find(extension);
+            std::string extension      = path.extension().string();
+            auto        loaderIterator = loaders.find(extension);
+
             if (loaderIterator == loaders.end())
             {
-                Debug::debug("Loader not found for extension: " + extension);
+                Error::ErrorManager::instance().report(
+                    Error::Type::FATAL, "Loader not found for extension: " + extension
+                );
                 abort();
             }
 
-            std::type_index type = loaderIterator->second->getResourceType();   
-            pool[type][path.string()] = loaderIterator->second->create(path);
+            std::type_index type = loaderIterator->second->getResourceType();
+
+            pool[type][key] = loaderIterator->second->create(path, params);
         }
 
         void ResourceManager::loadIfNotExists(const std::filesystem::path &path) noexcept

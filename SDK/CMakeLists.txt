@@ -11,6 +11,8 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/main.cpp
 
+    src/ImportWindow.cpp
+    src/ImportWindow.hpp
     src/App.cpp
     src/App.hpp
     src/SceneModel.hpp

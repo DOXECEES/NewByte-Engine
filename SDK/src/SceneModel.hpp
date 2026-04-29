@@ -153,6 +153,48 @@ public:
         return static_cast<nb::Ecs::EntityID>(reinterpret_cast<uintptr_t>(item.getData()));
     }
 
+    void removeEntity(nb::Ecs::EntityID id) noexcept
+    {
+        auto it = entityMap.find(id);
+        if (it == entityMap.end())
+        {
+            return;
+        }
+
+        Widgets::ModelItem* item = it->second;
+
+        removeFromMapsRecursive(item);
+
+        if (item->parent)
+        {
+            auto& siblings = item->parent->children;
+            siblings.erase(
+                std::remove_if(
+                    siblings.begin(), siblings.end(),
+                    [item](const std::unique_ptr<Widgets::ModelItem>& child)
+                    {
+                        return child.get() == item;
+                    }
+                ),
+                siblings.end()
+            );
+        }
+        else
+        {
+            rootItems.erase(
+                std::remove_if(
+                    rootItems.begin(), rootItems.end(),
+                    [item](const std::unique_ptr<Widgets::ModelItem>& root)
+                    {
+                        return root.get() == item;
+                    }
+                ),
+                rootItems.end()
+            );
+        }
+    }
+
+
 private:
     nb::Ecs::ECSRegistry& ecs;
     nb::Ecs::EntityID root;
@@ -163,6 +205,23 @@ private:
     std::unordered_map<nb::Ecs::EntityID, Widgets::ModelItem*> entityMap;
 
 private:
+
+    void removeFromMapsRecursive(Widgets::ModelItem* item) noexcept
+    {
+        if (!item)
+        {
+            return;
+        }
+
+        for (auto& child : item->children)
+        {
+            removeFromMapsRecursive(child.get());
+        }
+
+        uuidMap.erase(item->getUuid());
+        entityMap.erase(getEntity(*item));
+    }
+
     void buildModel() noexcept
     {
         rootItems.push_back(

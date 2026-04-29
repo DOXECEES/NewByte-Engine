@@ -140,6 +140,7 @@ namespace nb
             void handleGameMode(nb::Math::Vector3<float> &camDir, Scene& scene, float deltaTime) noexcept;
             void handleEditorMode(float deltaTime) noexcept;
 
+            void drawCameraFrustrum() noexcept;
 
             Node rayPick(
                 uint32_t x,

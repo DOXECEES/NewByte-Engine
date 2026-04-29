@@ -323,12 +323,6 @@ namespace nb
                 //{
                 //    camera->moveAt(camera->getDirection() * 5.0f * deltaTime);
                 //}
-
-                
-
-                
-
-
                 camera->update(
                     static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY())
                 );
@@ -336,6 +330,26 @@ namespace nb
             }
 
         }
+
+        void drawCameraFrustrum() noexcept
+        {
+            //auto& scene = Scene::getInstance();
+            //auto entities = scene.getEntitiesWith<CameraComponent, TransformComponent>();
+        
+            //for (auto& entity : entities)
+            //{
+            //    const CameraComponent& cameraComponent = scene.getComponent<CameraComponent>(entity.id);
+            //    const TransformComponent& cameraComponent = scene.getComponent<TransformComponent>(entity.id);
+
+            //    Math::Mat4<float> viewProj = cameraComponent.controller->getProjection() * cameraComponent.controller->getLookAt();
+            //    Math::Mat4<float> inverse  = Math::inverseWithoutTranspose(viewProj);
+            //
+            //}
+            
+        
+        }
+
+
 
         Node Engine::rayPick(
             uint32_t x,

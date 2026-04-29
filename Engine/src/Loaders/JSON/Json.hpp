@@ -113,7 +113,10 @@ namespace nb
         {
         public:
             JsonFactory() = default;
-            Ref<Resource::IResource> create(const std::filesystem::path& path) const override;
+            Ref<Resource::IResource> create(
+                const std::filesystem::path& path,
+                nbstl::Span<std::string>     params = {}
+            ) const override;
             std::type_index getResourceType() const noexcept override { return std::type_index(typeid(nb::Loaders::Json)); }
 
         private:

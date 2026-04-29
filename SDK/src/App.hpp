@@ -23,11 +23,12 @@
 #include "TextureEditor.hpp"
 #include "AssetManger.hpp"
 #include "MaterialEditor.hpp"
+#include "ImportWindow.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
 #include <tiny-gizmo.hpp>
 //
-
+#include <Utils/PrimitiveNameManager.hpp>
 
 namespace nbui
 {
@@ -84,6 +85,9 @@ private:
 
     std::shared_ptr<AssetManager> assetManagerWindow;
     std::shared_ptr<MaterialEditor> materialEditor;
+    std::shared_ptr<ImportWindow> importWindow;
+    std::shared_ptr<Win32Window::ChildWindow> importManager;
+
 
     Widgets::TreeView* savedTreeView = nullptr; 
 
@@ -98,6 +102,7 @@ private:
     std::atomic<bool> running;
 
     bool shouldRebuildInspector = false; 
+    nb::Utils::PrimitiveNameManager primitiveNameManager;
 
     Signal<void()> refreshHierarchyTreeViewSignal;
     Signal<void()> onActiveNodeChanged;
@@ -164,6 +169,8 @@ private:
 
     void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 
+    void deleteEntity(const Widgets::ModelIndex& index) noexcept;
+    void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
 
     int mainLoop() {
         MSG msg = { 0 };
@@ -176,6 +183,7 @@ private:
             {
                 setupEngineDependentUi();
                 assetManagerWindow = std::make_shared<AssetManager>(assetManager, engine.get());
+                importWindow       = std::make_shared<ImportWindow>(importManager, engine.get(), "Assets");
                 isEngineDependentUiInit = true;
             }
 

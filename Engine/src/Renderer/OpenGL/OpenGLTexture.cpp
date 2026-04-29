@@ -3,6 +3,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "OpenGLTexture.hpp"
 
+#include "../../dependencies/stb/stb_image.h"
 namespace nb
 {
     namespace OpenGl
@@ -19,11 +20,34 @@ namespace nb
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 
-            std::vector<uint8_t> data;
-            lodepng::decode(data, width, height, path.string());
+            stbi_set_flip_vertically_on_load(true);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-            glGenerateMipmap(GL_TEXTURE_2D);
+            int channels;
+            int            tempWidth = 0;
+            int            tempHeight = 0;
+            unsigned char* data = stbi_load(
+                path.string().c_str(), &tempWidth, &tempHeight, &channels, STBI_rgb_alpha
+            );
+
+            
+            if (data)
+            {
+                width = tempWidth;
+                height = tempHeight;
+                glTexImage2D(
+                    GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+                );
+                glGenerateMipmap(GL_TEXTURE_2D);
+            }
+            else
+            {
+                nb::Error::ErrorManager::instance()
+                    .report(nb::Error::Type::FATAL, "Failed to load texture from file!")
+                    .with("Path", path);
+            }
+
+            stbi_image_free(data);
+
         }
         OpenGlTexture::OpenGlTexture(
             int width,

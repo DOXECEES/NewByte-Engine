@@ -3,7 +3,7 @@
   "properties": {
     "u_AlbedoMap": "Assets/res/placeholder.texture",
 	"u_NormalMap": "Assets/res/lightgold_normal-ogl.texture",
-    "u_ORMMap": "Assets/res/black.texture",
+    "u_ORMMap": "Assets/res/orm_placeholder.texture",
     "u_BaseColorFactor": 0.0,
     "u_RoughnessFactor": 0.0,
     "u_MetallicFactor": 0.0,

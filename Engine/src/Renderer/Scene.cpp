@@ -83,6 +83,51 @@ namespace nb
         return Node{entity.id, this};
     }
 
+    void Scene::deleteEntity(Ecs::EntityID id) noexcept
+    {
+        if (hasComponent<HierarchyComponent>(id))
+        {
+            Ecs::EntityID parentId = getComponent<HierarchyComponent>(id).parent;
+            if (parentId != 0 && hasComponent<HierarchyComponent>(parentId))
+            {
+                auto& parentHierarchy = getComponent<HierarchyComponent>(parentId);
+                auto& children        = parentHierarchy.children;
+
+                children.erase(std::remove(children.begin(), children.end(), id), children.end());
+            }
+        }
+
+        if (hasComponent<HierarchyComponent>(id))
+        {
+            auto childrenCopy = getComponent<HierarchyComponent>(id).children;
+
+
+            for (auto childId : childrenCopy)
+            {
+                deleteEntity(childId);
+            }
+        }
+
+        ecs.destroyEntity(Ecs::Entity{id});
+    }
+
+    Node Scene::findNodeByName(std::string_view name) noexcept
+    {
+        auto entities = getEntitiesWith<NameComponent>();
+
+        for (auto& entity : entities)
+        {
+            auto& nameComp = ecs.get<NameComponent>(entity);
+            if (nameComp.name == name)
+            {
+                return Node(entity.id, this);
+            }
+        }
+
+        return Node::createInvalid();
+    }
+
+
     Node Scene::getNode(Ecs::EntityID id) noexcept
     {
         return Node{id, this};
@@ -808,7 +853,7 @@ namespace nb
         }
     }
 
-void Scene::deserializeFields(
+    void Scene::deserializeFields(
         const nb::Loaders::Node& node,
         void* object,
         nb::Reflect::TypeInfo* type
@@ -825,6 +870,7 @@ void Scene::deserializeFields(
             {
                 continue;
             }
+
 
             const auto& fieldJson = node[field.name];
             void* fieldPtr = reinterpret_cast<uint8_t*>(object) + field.offset;

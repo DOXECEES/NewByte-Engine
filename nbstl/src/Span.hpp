@@ -31,6 +31,13 @@ namespace nbstl
             : ptr(p), count(n) {
         }
 
+        constexpr Span(std::initializer_list<T> list) noexcept
+            : ptr(const_cast<pointer>(list.begin()))
+            , count(static_cast<size_type>(list.size()))
+        {
+        }
+
+
         template <size_type N>
         constexpr Span(T(&arr)[N]) noexcept
             : ptr(arr), count(N) {

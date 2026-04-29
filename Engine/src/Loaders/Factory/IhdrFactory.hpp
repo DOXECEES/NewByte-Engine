@@ -19,7 +19,10 @@ namespace nb::Loaders::Factory
     public:
         IhdrFactory(nbstl::NonOwningPtr<Renderer::IRenderAPI> renderApi) noexcept;
 
-        Ref<nb::Resource::IResource> create(const std::filesystem::path& path) const override;
+        Ref<nb::Resource::IResource> create(
+            const std::filesystem::path& path,
+            nbstl::Span<std::string> params = {}
+        ) const override;
         std::type_index getResourceType() const noexcept override;
 
     private:

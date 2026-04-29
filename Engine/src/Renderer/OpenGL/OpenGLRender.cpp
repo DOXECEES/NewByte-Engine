@@ -125,6 +125,7 @@ namespace nb::OpenGl
     {
         setClearColor(nb::Colors::WHITE, 1.0f, 0);
         clear(true, true, false);
+        
     }
 
     void OpenGLRender::endFrame() noexcept
@@ -173,6 +174,7 @@ namespace nb::OpenGl
 
         const auto& pipeline = pipelineCache.getDesc(pipelineHandle);
 
+
         pipeline.shader->use();
 
        
@@ -197,6 +199,17 @@ namespace nb::OpenGl
         {
             glDisable(GL_BLEND);
         }
+
+        if (pipeline.isCullingEnable)
+        {
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK); 
+        }
+        else
+        {
+            glDisable(GL_CULL_FACE);
+        }
+
 
         activePipeline = pipelineHandle;
     }
@@ -262,7 +275,7 @@ namespace nb::OpenGl
 
     Ref<Renderer::Cubemap> OpenGLRender::bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept
     {
-
+        glDisable(GL_CULL_FACE);
 
         Ref<OpenGLCubemap> cubemap = std::make_shared<OpenGLCubemap>(texture2d->getWidth(),GL_RGB16F);
 
@@ -315,6 +328,7 @@ namespace nb::OpenGl
 
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        glEnable(GL_CULL_FACE);
 
         return cubemap;
     }
@@ -322,6 +336,8 @@ namespace nb::OpenGl
     Ref<Renderer::Cubemap>
     OpenGLRender::bakeIrradiance(Ref<Renderer::Cubemap> enviromentCubemap) noexcept
     {
+        glDisable(GL_CULL_FACE);
+
         Math::Mat4<float> captureProjection =
             Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
@@ -380,6 +396,7 @@ namespace nb::OpenGl
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        glEnable(GL_CULL_FACE);
 
         return irradianceMap;
 
@@ -387,6 +404,8 @@ namespace nb::OpenGl
 
     Ref<Renderer::Cubemap> OpenGLRender::bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept
     {
+        glDisable(GL_CULL_FACE);
+
         Math::Mat4<float> projection = Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
         Math::Mat4<float> views[] = {
@@ -493,12 +512,15 @@ namespace nb::OpenGl
 
         glDeleteRenderbuffers(1, &rbo);
         glDeleteFramebuffers(1, &fbo);
+        glEnable(GL_CULL_FACE);
 
         return map;
     }
 
     Ref<Renderer::Texture> OpenGLRender::bakeBRDF() noexcept
     {
+        glDisable(GL_CULL_FACE);
+
         uint32_t size = 512;
 
         uint32_t brdfLUT;
@@ -563,6 +585,7 @@ namespace nb::OpenGl
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &captureFBO);
+        glEnable(GL_CULL_FACE);
 
         return createRef<OpenGlTexture>(brdfLUT, size, size);
     }
@@ -754,16 +777,35 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEPTH_CLAMP);
-    //glEnable(GL_CULL_FACE);
+    
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK); 
+    
     glDepthFunc(GL_LESS);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
     glEnable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
+
     ReleaseDC(dummyWindow, dummyHDC);
     DestroyWindow(dummyWindow);
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
     glGenVertexArrays(1, &emptyVao);
+
+
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+
+    const GLubyte* vendor = glGetString(GL_VENDOR);
+
+    const GLubyte* version = glGetString(GL_VERSION);
+
+    nb::Error::ErrorManager::instance()
+        .report(nb::Error::Type::INFO, "GPU information")
+        .with("Video Card", renderer)
+        .with("Vendor", vendor)
+        .with("OpenGL Version", version);
+           
+
+    
 
     //loadScene();
     return true;

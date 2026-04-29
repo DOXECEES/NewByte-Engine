@@ -170,6 +170,10 @@ void EditorApp::createWindows() noexcept
 
     assetManager = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     assetManager->setTitle(L"Asset");
+
+    importManager = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    importManager->addCaption();
+    importManager->setTitle(L"import");
     // textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
     // textureInspector->setTitle(
     //     Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
@@ -732,6 +736,7 @@ void EditorApp::setupDebugUI() noexcept
         .child(LayoutBuilder::label(L"STATISTICS")
             .relativeWidth(1.0f).absoluteHeight(25)
             .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
 
 
         .child(LayoutBuilder::widget(new Widgets::ComboBox())
@@ -1538,7 +1543,8 @@ void EditorApp::spawnPrimitive(
     if (mesh)
     {
         node.addComponent<MeshComponent>({.mesh = mesh, .material = {}});
-        node.addComponent<NameComponent>({typeName.data()});
+        std::string primitiveName = primitiveNameManager.generateName(typeName);
+        node.addComponent<NameComponent>({primitiveName});
 
         node.addComponent<TransformComponent>({});
 
@@ -1552,6 +1558,7 @@ void EditorApp::spawnPrimitive(
         nb::Error::ErrorManager::instance()
             .report(nb::Error::Type::INFO, "Primitive spawned successfully")
             .with("type", typeInfo->name)
+            .with("name", primitiveName)
             .with("entityId", static_cast<uint64_t>(node.getId()));
     }
     else
@@ -1665,8 +1672,10 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 
             popup->addItem(
                 L"🗑️ Удалить",
-                []()
+                [this, index]()
                 {
+                    this->deleteEntity(index);
+
                     nb::Error::ErrorManager::instance().report(
                         nb::Error::Type::INFO, "Delete requested"
                     );
@@ -1677,6 +1686,50 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             this->hierarchyWindow->getPopupManager().show(popup, mousePos.x, mousePos.y);
         }
     );
+}
+
+void EditorApp::deleteEntity(const Widgets::ModelIndex& index) noexcept
+{
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
+    auto&             scene = nb::Scene::getInstance();
+
+    releaseNamesRecursive(id);
+
+    sceneModel->removeEntity(id);
+
+    scene.deleteEntity(id);
+
+    activeNode = nb::Node::createInvalid();
+
+    refreshHierarchyTreeViewSignal.emit();
+    onActiveNodeChanged.emit();
+    scene.invalidateBvh();
+}
+
+void EditorApp::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
+{
+    auto& scene = nb::Scene::getInstance();
+
+    // Если у сущности есть имя, разбираем его и возвращаем индекс в пул
+    if (scene.hasComponent<NameComponent>(id))
+    {
+        const std::string& name = scene.getComponent<NameComponent>(id).name;
+        primitiveNameManager.releaseName(name);
+    }
+
+    if (scene.hasComponent<HierarchyComponent>(id))
+    {
+        const auto& hierarchy = scene.getComponent<HierarchyComponent>(id);
+        for (auto childId : hierarchy.children)
+        {
+            releaseNamesRecursive(childId);
+        }
+    }
 }
 
 
