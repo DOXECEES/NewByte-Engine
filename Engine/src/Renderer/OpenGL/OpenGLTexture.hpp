@@ -48,11 +48,15 @@ namespace nb
                 
 
                 uint32_t getId() const noexcept override;
+                uint64_t getHandle() const noexcept override;
+ 
+                void finalizeBindless() noexcept;
 
                 int getWidth() const noexcept override;
                 int getHeight() const noexcept override;
 
             private:
+                uint64_t handle;
                 GLuint texture;
                 uint32_t width;
                 uint32_t height;

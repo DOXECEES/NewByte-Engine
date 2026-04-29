@@ -24,6 +24,11 @@ namespace nb
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept = 0;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept = 0;
 
+            virtual void setUniformUint64(
+                std::string_view name,
+                const uint64_t   value
+            ) const noexcept = 0;
+
             virtual void setUniformVec2(std::string_view name, const Math::Vector2<float>& value) const noexcept = 0;
             virtual void setUniformVec3(std::string_view name, const Math::Vector3<float>& value) const noexcept = 0;
             virtual void setUniformVec4(std::string_view name, const Math::Vector4<float>& value) const noexcept = 0;

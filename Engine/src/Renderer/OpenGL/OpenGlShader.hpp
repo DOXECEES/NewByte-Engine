@@ -59,6 +59,12 @@ namespace nb
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept override final;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept override final;
 
+             void setUniformUint64(
+                std::string_view name,
+                const uint64_t   value
+            ) const noexcept override final;
+
+
             virtual void setUniformVec2(
                 std::string_view name,
                 const Math::Vector2<float>& value

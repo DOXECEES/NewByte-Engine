@@ -92,6 +92,15 @@ void nb::OpenGl::OpenGlShader::setUniformInt(std::string_view name, const int va
     glProgramUniform1i(program, loc, value);
 }
 
+void nb::OpenGl::OpenGlShader::setUniformUint64(
+    std::string_view name,
+    const uint64_t   value
+) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniformHandleui64ARB(program, loc, value);
+}
+
 void nb::OpenGl::OpenGlShader::setUniformVec2(
     std::string_view name,
     const Math::Vector2<float>& value

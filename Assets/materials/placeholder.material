@@ -1,7 +1,7 @@
 {
   "shader": "ADS.shader",
   "properties": {
-    "u_AlbedoMap": "Assets/res/placeholder.texture",
+    "u_AlbedoMap": "Assets/res/placeholder_albedo.texture",
 	"u_NormalMap": "Assets/res/lightgold_normal-ogl.texture",
     "u_ORMMap": "Assets/res/orm_placeholder.texture",
     "u_BaseColorFactor": 0.0,

@@ -12,7 +12,10 @@ namespace nb::Renderer
         virtual ~Cubemap() noexcept = default;
 
         virtual uint32_t getId() const noexcept = 0;
+        virtual uint64_t getHandle() const noexcept = 0; 
+
     private:
+
     };
 
 };

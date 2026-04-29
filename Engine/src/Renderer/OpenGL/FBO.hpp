@@ -75,12 +75,15 @@ namespace nb
             NB_NODISCARD inline GLuint getRenderBuffer() const noexcept                  { return renderBuffer; }
             NB_NODISCARD inline const std::vector<GLuint>& getTextures() const noexcept  { return textures; }
             NB_NODISCARD inline uint32 getTexture(uint8 index) const noexcept override   { return static_cast<uint32>(textures[index]); }
+            uint64_t getTextureHandle(uint8 index = 0) const noexcept override;
 
             NB_NODISCARD inline uint8_t getColorTextureCount() const noexcept            { return colorTextureCount; }
             NB_NODISCARD inline GLuint getWidth() const noexcept override                        { return width; }
             NB_NODISCARD inline GLuint getHeight() const noexcept override                       { return height; }
             
             void setDrawBuffers(uint8 count) noexcept override;
+
+
 
 
         protected:
@@ -99,6 +102,8 @@ namespace nb
             bool                isStencilBufferAttached = false;
             GLuint              renderBuffer            = 0;
             std::vector<GLuint> textures;
+            std::vector<uint64_t> textureHandles; 
+
             uint8_t             colorTextureCount       = 0;
             GLuint              width                   = GL_UINT_MAX;  
             GLuint              height                  = GL_UINT_MAX;   

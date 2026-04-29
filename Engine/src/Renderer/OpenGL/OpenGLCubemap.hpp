@@ -16,10 +16,17 @@ namespace nb::OpenGl
         void bind(uint32_t slot = 0) const noexcept;
         void unbind() const noexcept;
 
-        uint32_t getId() const noexcept override { return envCubemap; }
+        void finalizeBindless() noexcept;
 
-    private:
+
+        uint32_t getId() const noexcept override final;
+        uint64_t getHandle() const noexcept override final;
+
+    private: 
+        uint64_t handle     = 0;
         uint32_t envCubemap = 0;
+        uint32_t size       = 0;
+        
     };
 }
 
