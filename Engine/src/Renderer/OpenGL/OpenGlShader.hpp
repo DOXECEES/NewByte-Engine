@@ -9,7 +9,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-
+#include <variant>
 #include <Span.hpp>
 
 #include "../../Resources/IResource.hpp"
@@ -86,6 +86,8 @@ namespace nb
 
 
         private:
+            void reapplyUniforms() const noexcept;
+
             void createProgram() noexcept;
             void load(const std::filesystem::path &pathToShader) noexcept;
             bool isCompiled() const noexcept;
@@ -95,6 +97,19 @@ namespace nb
             std::string loadFromFile(const std::filesystem::path &path) noexcept;
 
         private:
+
+            using UniformValue = std::variant<
+                float,
+                int,
+                uint64_t,
+                Math::Vector2<float>,
+                Math::Vector3<float>,
+                Math::Vector4<float>,
+                Math::Mat2<float>,
+                Math::Mat3<float>,
+                Math::Mat4<float>>;
+
+            mutable std::unordered_map<std::string, UniformValue> uniformCache;
 
             std::vector<GLuint>                 shaders;
             std::vector<std::filesystem::path>  pathsToShaderSources;
