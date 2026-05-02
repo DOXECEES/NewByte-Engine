@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <glad/glad.h>
+#include "OpenGLUtils.hpp"
 
 namespace nb::OpenGl
 {
@@ -15,6 +16,7 @@ namespace nb::OpenGl
         , size(0)
     {
         glGenTextures(1, &envCubemap);
+        finalizeBindless();
     }
 
     OpenGLCubemap::OpenGLCubemap(
@@ -36,6 +38,39 @@ namespace nb::OpenGl
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+    }
+
+    OpenGLCubemap::OpenGLCubemap(const Renderer::CubemapParameters& params) noexcept
+    {
+        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &envCubemap);
+
+        GLsizei levels = calculateMipLevels(params.size);
+        glTextureStorage2D(
+            envCubemap, levels, OpenGlUtils::toFormat(params.format), params.size, params.size
+        );
+
+        glTextureParameteri(
+            envCubemap, GL_TEXTURE_MIN_FILTER, OpenGlUtils::toMinFilter(params.minFilter, params.generateMipmaps)
+        );
+        glTextureParameteri(
+            envCubemap, GL_TEXTURE_MAG_FILTER, OpenGlUtils::toMagFilter(params.magFilter)
+        );
+
+        
+        glTextureParameteri(envCubemap, GL_TEXTURE_WRAP_S, OpenGlUtils::toWrap(params.wrapU));
+        glTextureParameteri(envCubemap, GL_TEXTURE_WRAP_T, OpenGlUtils::toWrap(params.wrapV));
+        glTextureParameteri(envCubemap, GL_TEXTURE_WRAP_R, OpenGlUtils::toWrap(params.wrapW));
+        glTextureParameteri(envCubemap, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+
+        if (!params.generateMipmaps)
+        {
+            glTextureParameteri(envCubemap, GL_TEXTURE_BASE_LEVEL, 0);
+            glTextureParameteri(envCubemap, GL_TEXTURE_MAX_LEVEL, 0);
+        }
+
+        finalizeBindless();
     }
 
     OpenGLCubemap::~OpenGLCubemap()

@@ -21,7 +21,7 @@ namespace nb
             , width(0)
             , height(0)
         {
-            stbi_set_flip_vertically_on_load(true);
+            stbi_set_flip_vertically_on_load(false);
 
             int            channels;
             int            tempWidth  = 0;
@@ -51,7 +51,10 @@ namespace nb
                 );
                 glGenerateMipmap(GL_TEXTURE_2D);
 
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
                 stbi_image_free(data);
+                //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 1.0f);
 
                 finalizeBindless();
             }
@@ -81,7 +84,7 @@ namespace nb
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             GLsizei levels = data ? calculateMipLevels(width, height) : 1;
@@ -91,6 +94,8 @@ namespace nb
             {
                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, dataFormat, dataType, data);
                 glGenerateMipmap(GL_TEXTURE_2D);
+                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+                //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 1.0f);
 
                 finalizeBindless();
             }

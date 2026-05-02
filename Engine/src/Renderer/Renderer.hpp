@@ -18,8 +18,10 @@
 
 #include "Camera.hpp"
 #include "Resources/MaterialAsset.hpp"
+#include "ECS/Ecs.hpp"
 
 #include <tiny-gizmo.hpp>
+#include "Cubemap.hpp"
 
 namespace nb
 {
@@ -157,9 +159,31 @@ namespace nb
 
             tinygizmo::gizmo_context& getGizmoContext() noexcept;
 
+        private:
 
+
+            void renderDebugPasses(
+                const nb::Math::Mat4<float>&          view,
+                const nb::Math::Mat4<float>&          proj,
+                const std::vector<Ecs::EntityID>&     dirLights,
+                const std::vector<Ecs::EntityID>&     pointLights,
+                const nbstl::Vector<RendererCommand>& mainQueue
+            ) noexcept;
+
+            void renderSSR(
+                int                          width,
+                int                          height,
+                const nb::Math::Mat4<float>& view,
+                const nb::Math::Mat4<float>& proj
+            ) noexcept;
+
+            void renderFinalQuad(
+                int width,
+                int height
+            ) noexcept;
 
         private:
+
             tinygizmo::gizmo_context gizmoCtx;
 
             void renderNavigationalGizmo() noexcept;
@@ -194,20 +218,26 @@ namespace nb
 
         private:
 
+            std::unique_ptr<Skybox> skybox;
 
-            bool isResourceLoaded = false;
-
+            bool    isResourceLoaded     = false;
+            bool    isPreviewInitialized = false;
             Camera* cam;
 
             Ref<IFrameBuffer> mainFrameBuffer;         
             Ref<IFrameBuffer> ssrResultBuffer;
             Ref<IFrameBuffer> shadowFrameBuffer;
+            Ref<IFrameBuffer> pointShadowFrameBuffer;
+
             Ref<IFrameBuffer> navigationalGizmoFrameBuffer;
 
             PolygonMode polygonMode;
             IRenderAPI* api;
 
             Ref<Mesh> quadScreenMesh;
+
+            std::unordered_map<Ecs::EntityID, Ref<nb::Renderer::Cubemap>> m_pointShadowMaps;
+
         };
     };
 };

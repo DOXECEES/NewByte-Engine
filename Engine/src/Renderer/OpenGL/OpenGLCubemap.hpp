@@ -11,6 +11,10 @@ namespace nb::OpenGl
     public:
         OpenGLCubemap() noexcept;
         OpenGLCubemap(uint32_t size, int internalFormat) noexcept;
+        OpenGLCubemap(
+            const Renderer::CubemapParameters& params
+        ) noexcept;
+
         ~OpenGLCubemap();
 
         void bind(uint32_t slot = 0) const noexcept;

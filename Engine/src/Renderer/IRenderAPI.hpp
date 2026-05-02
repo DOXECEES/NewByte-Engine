@@ -16,6 +16,8 @@
 #include "Renderer/Texture.hpp"
 
 #include "Resources/MaterialAsset.hpp"
+#include "Math/Vector3.hpp"
+#include <Vector.hpp>
 
 namespace nb
 {
@@ -41,7 +43,8 @@ namespace nb
             PolygonMode polygonMode         = PolygonMode::FULL;
             bool        isDepthTestEnable   = true;
             bool        isBlendEnable       = true;
-            bool        isCullingEnable     = true;
+            bool        isCullingEnable     = false;
+
 
         };
 
@@ -90,7 +93,7 @@ namespace nb
             virtual void beginFrame() noexcept = 0;
             virtual void endFrame() noexcept = 0;
 
-            virtual void drawMesh(RendererCommand& command) noexcept = 0;
+            virtual void drawMesh(const RendererCommand& command) noexcept = 0;
             virtual void drawVertexless(RendererCommand& command) noexcept = 0;
 
             virtual void drawContextMesh(const ContextMesh& contextMesh, PipelineHandle pipeline) noexcept = 0;
@@ -103,11 +106,26 @@ namespace nb
             virtual void bindFrameBuffer(const Ref<IFrameBuffer>& frameBuffer) noexcept = 0;
 
             virtual void bindTexture(uint8 slot, uint32 textureId) noexcept = 0;
+            
+            virtual void bindCubemap(
+                uint8  slot,
+                uint32 cubemapId
+            ) noexcept = 0;
+
+            virtual Ref<Cubemap> createCubemap(
+                const CubemapParameters& params
+            ) noexcept                                                                         = 0;  
             virtual Ref<Texture> createTexture2d(const TextureDescriptor& descriptor) noexcept = 0; 
             virtual Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Texture> texture2d) noexcept = 0;
             virtual Ref<Renderer::Cubemap> bakeIrradiance(Ref<Renderer::Cubemap> enviromentCubemap) noexcept = 0;
             virtual Ref<Renderer::Cubemap> bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept = 0;
             virtual Ref<Renderer::Texture> bakeBRDF() noexcept = 0;
+
+            virtual Ref<nb::Renderer::Cubemap> bakePointLightMap(
+                const nbstl::Vector<RendererCommand>& queue,
+                Math::Vector3<float>                            lightPos,
+                float                                           farPlane
+            ) noexcept = 0;
 
             virtual void setViewport(const Viewport& viewport) noexcept = 0;
             virtual void clear(bool color, bool depth, bool stencil) noexcept = 0;

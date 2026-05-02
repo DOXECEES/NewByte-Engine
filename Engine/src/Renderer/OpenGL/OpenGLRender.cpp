@@ -15,6 +15,7 @@
 #include "Renderer/OpenGL/OpenGLTexture.hpp"
 
 
+
 namespace nb::OpenGl
 {
 
@@ -136,7 +137,7 @@ namespace nb::OpenGl
         SwapBuffers(hdc);
     }
 
-    void OpenGLRender::drawMesh(Renderer::RendererCommand& command) noexcept
+    void OpenGLRender::drawMesh(const Renderer::RendererCommand& command) noexcept
     {
         bindPipeline(command.pipeline);
         command.mesh->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader, command.material);
@@ -245,6 +246,38 @@ namespace nb::OpenGl
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
 
+    void OpenGLRender::bindCubemap(
+        uint8  slot,
+        uint32 cubemapId
+    ) noexcept
+    {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapId);
+    }
+
+
+    Ref<Renderer::Cubemap> OpenGLRender::createCubemap(
+        const Renderer::CubemapParameters& params
+    ) noexcept
+    {
+        return createRef<OpenGLCubemap>(params);
+        //cubemap->bind();
+
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        //// Явно отключаем мип-уровни
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+        //cubemap->finalizeBindless();
+        //return cubemap;
+    }
+
+
     Ref<Renderer::Texture> OpenGLRender::createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept
     {
         GLint internalFormat = GL_RGB;
@@ -283,6 +316,8 @@ namespace nb::OpenGl
 
     Ref<Renderer::Cubemap> OpenGLRender::bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept
     {
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
         glDisable(GL_CULL_FACE);
 
         Ref<OpenGLCubemap> cubemap = std::make_shared<OpenGLCubemap>(texture2d->getWidth(),GL_RGB16F);
@@ -428,7 +463,7 @@ namespace nb::OpenGl
             Math::lookAt<float>({0, 0, 0}, {0, 0, -1}, {0, -1, 0})
         };
 
-        uint32_t baseSize     = 512;
+        uint32_t baseSize     = 128;
         uint32_t maxMipLevels = 5;
 
         // 1. Создаем объект. Конструктор ВЫЗЫВАЕТ glTexStorage2D.
@@ -520,6 +555,15 @@ namespace nb::OpenGl
             GL_RG, GL_FLOAT, nullptr
         );
 
+        glBindTexture(GL_TEXTURE_2D, brdfTex->getId());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // Без мип-мапов!
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Анизотропия здесь тоже НЕ НУЖНА, так как это таблица данных, а не визуальная текстура
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f); 
+
+
         // --- Настройка FBO ---
         uint32_t captureFBO;
         glGenFramebuffers(1, &captureFBO);
@@ -574,17 +618,89 @@ namespace nb::OpenGl
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // --- ФИНАЛИЗАЦИЯ BINDLESS ---
-        // Теперь, когда данные записаны в текстуру, активируем её Bindless Handle
         brdfTex->finalizeBindless();
 
-        // Очистка
         glDeleteFramebuffers(1, &captureFBO);
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
 
         return brdfTex;
     }
+
+    Ref<nb::Renderer::Cubemap> OpenGLRender::bakePointLightMap(
+        const nbstl::Vector<Renderer::RendererCommand>& queue,
+        Math::Vector3<float> lightPos,
+        float             farPlane
+    ) noexcept
+    {
+        const float CUBEMAP_SIZE = 1024.0f;
+        glEnable(GL_DEPTH_TEST);
+
+        auto cubemap = std::make_shared<OpenGl::OpenGLCubemap>(CUBEMAP_SIZE, GL_R32F);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        Math::Mat4<float> shadowProj =
+            Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, farPlane);
+
+        Math::Mat4<float> shadowTransforms[] = {
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{1, 0, 0}, {0, -1, 0}),  // +X
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{-1, 0, 0}, {0, -1, 0}), // -X
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, 1, 0}, {0, 0, 1}),   // +Y
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, -1, 0}, {0, 0, -1}), // -Y
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, 0, 1}, {0, -1, 0}),  // +Z
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, 0, -1}, {0, -1, 0})  // -Z
+        };
+
+        auto shadowShader = ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>(
+            "point_shadow_gen.shader"
+        );
+
+        auto frameBuffer =
+            std::dynamic_pointer_cast<FBO>(this->createFrameBuffer(CUBEMAP_SIZE, CUBEMAP_SIZE));
+        frameBuffer->addRenderBufferAttachment(
+            Renderer::IFrameBuffer::RenderBufferAttachment::DEPTH
+        );
+        frameBuffer->finalize();
+
+        frameBuffer->bind();
+        setViewport({0, 0, CUBEMAP_SIZE, CUBEMAP_SIZE});
+
+        shadowShader->use();
+        shadowShader->setUniformVec3("u_LightPos", lightPos);
+        shadowShader->setUniformFloat("u_FarPlane", farPlane);
+        shadowShader->setUniformMat4("u_Projection", shadowProj);
+
+        for (int i = 0; i < 6; ++i)
+        {
+            shadowShader->setUniformMat4("u_View", shadowTransforms[i]);
+
+            frameBuffer->attachTextureId(
+                cubemap->getId(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i
+            );
+
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            for (auto i : queue)
+            {
+                drawMesh(i);
+            }
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Генерируем Bindless Handle
+        cubemap->finalizeBindless();
+
+        return cubemap;
+    }
+
     
 
     void OpenGLRender::setViewport(const Renderer::Viewport& viewport) noexcept
