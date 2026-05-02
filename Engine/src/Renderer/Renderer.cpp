@@ -22,6 +22,7 @@
 
 #include "Math/RayCast/RayPicker.hpp"
 
+#include "OpenGL/Placeholder.hpp"
 
 namespace nb::Renderer
 {
@@ -609,6 +610,9 @@ namespace nb::Renderer
             shader->setUniformMat4("proj", proj);
             shader->setUniformMat4("lightView", currentLightView);
             shader->setUniformMat4("lightProj", currentLightProj);
+
+
+            shader->setUniformUint64("u_EmissionMap", OpenGl::createPlaceholderForEmission());
 
             for (auto& l : dirLightsData)
             {

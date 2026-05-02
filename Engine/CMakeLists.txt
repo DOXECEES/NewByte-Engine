@@ -192,6 +192,10 @@ set(SRC
     src/Renderer/Objects/Objects.cpp
     src/Renderer/Objects/Objects.hpp
 
+
+    src/Renderer/OpenGL/Placeholder.cpp
+    src/Renderer/OpenGL/Placeholder.hpp
+
     src/Renderer/OpenGL/OpenGLUtils.hpp
     src/Renderer/OpenGL/OpenGLRender.cpp
     src/Renderer/OpenGL/OpenGLRender.hpp
