@@ -23,6 +23,8 @@
 #include <tiny-gizmo.hpp>
 #include "Cubemap.hpp"
 
+#include "GBuffer.hpp"
+
 namespace nb
 {
     namespace Renderer
@@ -182,6 +184,7 @@ namespace nb
                 int height
             ) noexcept;
 
+
         private:
 
             tinygizmo::gizmo_context gizmoCtx;
@@ -203,7 +206,7 @@ namespace nb
             std::shared_ptr<OpenGl::OpenGlTexture> ao;
             std::shared_ptr<OpenGl::OpenGlTexture> normal;
 
-           
+            std::unique_ptr<GBuffer> gBuffer = nullptr;
 
             Ref<Mesh> debugLightMesh = nullptr;
             Ref<Shader> debugLightShader = nullptr;

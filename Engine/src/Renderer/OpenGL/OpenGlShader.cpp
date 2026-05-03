@@ -64,7 +64,7 @@ void nb::OpenGl::OpenGlShader::recompile() noexcept
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
 {
-    Debug::debug("Loading shader: " + pathToShader.string());
+    nb::Error::ErrorManager::instance().report(Error::Type::INFO,"Loading shader: " + pathToShader.string());
     if (auto shaderType = getShaderType(pathToShader); shaderType != ShaderType::UNKNOWN)
     {
         shaders.push_back(glCreateShader(static_cast<GLenum>(shaderType)));
@@ -160,7 +160,7 @@ void nb::OpenGl::OpenGlShader::reapplyUniforms() const noexcept
         GLint loc = glGetUniformLocation(program, name.c_str());
         if (loc == -1)
         {
-            continue; // возможно, uniform больше нет в новой программе
+            continue;
         }
 
         std::visit(

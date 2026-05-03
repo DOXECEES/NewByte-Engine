@@ -171,13 +171,15 @@ namespace nb::Renderer
         glDrawBuffer(GL_NONE);
         glReadBuffer(GL_NONE);
         
-       pointShadowFrameBuffer->setDrawBuffers(1);
+        pointShadowFrameBuffer->setDrawBuffers(1);
         pointShadowFrameBuffer->finalize();
 
         navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
         navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
         navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         navigationalGizmoFrameBuffer->finalize();
+
+        gBuffer = std::make_unique<GBuffer>(api, width, heigth);
 
         if (!albedo)
         {
@@ -438,6 +440,30 @@ namespace nb::Renderer
             pointShadowFrameBuffer->unBind();
             api->setClearColor(nb::Colors::BLACK, 1.0f, 0);
         }
+
+
+        //api->bindFrameBuffer(gBuffer->getFramebuffer());
+        //api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
+        //api->setClearColor(Colors::BLACK, 1.0f, 0);
+        //api->clear(true, true, false); // Очищаем цвета G-Buffer и глубину
+
+        //for (auto& cmd : mainQueue)
+        //{
+        //    auto shader = api->getCache().getDesc(cmd.pipeline).shader;
+        //    shader->use();
+        //    shader->setUniformMat4("model", cmd.model);
+        //    shader->setUniformMat4("view", cam->getLookAt());
+        //    shader->setUniformMat4("proj", cam->getProjection());
+
+        //    // Здесь биндим только текстуры материала (albedo, normal map, roughness)
+        //    // Логика освещения здесь НЕ НУЖНА.
+        //    api->drawMesh(cmd);
+        //}
+
+
+
+
+
         glMemoryBarrier(
             GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
             GL_FRAMEBUFFER_BARRIER_BIT
