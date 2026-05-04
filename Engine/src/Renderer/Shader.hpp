@@ -37,6 +37,13 @@ namespace nb
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept = 0;
             virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept = 0;
 
+            virtual void setUniformVec3Array(
+                const std::string&          name,
+                const Math::Vector3<float>* values,
+                uint32_t                      count
+            ) const noexcept = 0;
+
+
             inline int getId() const noexcept { return id; };
 
             virtual void recompile() noexcept = 0;

@@ -117,7 +117,7 @@ namespace nb::Renderer
         };
 
         skybox = std::make_unique<Skybox>();
-        
+        ssao   = new SSAO(api, (uint32_t)400, (uint32_t)300, (uint32_t)64);
     }
 
     void Renderer::onResize(uint32 width, uint32 heigth) noexcept
@@ -180,6 +180,7 @@ namespace nb::Renderer
         navigationalGizmoFrameBuffer->finalize();
 
         gBuffer = std::make_unique<GBuffer>(api, width, heigth);
+        ssao->resize(width, heigth);
 
         if (!albedo)
         {
@@ -441,28 +442,40 @@ namespace nb::Renderer
             api->setClearColor(nb::Colors::BLACK, 1.0f, 0);
         }
 
+        ////////////
 
-        //api->bindFrameBuffer(gBuffer->getFramebuffer());
-        //api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
-        //api->setClearColor(Colors::BLACK, 1.0f, 0);
-        //api->clear(true, true, false); // Очищаем цвета G-Buffer и глубину
+         {
+            gBuffer->getFramebuffer()->bind();
+            
+            api->setViewport({0, 0, (float)width, (float)height});
 
-        //for (auto& cmd : mainQueue)
-        //{
-        //    auto shader = api->getCache().getDesc(cmd.pipeline).shader;
-        //    shader->use();
-        //    shader->setUniformMat4("model", cmd.model);
-        //    shader->setUniformMat4("view", cam->getLookAt());
-        //    shader->setUniformMat4("proj", cam->getProjection());
+            api->setClearColor(Colors::BLACK, 1.0f, 0);
+            api->clear(true, true, false);
 
-        //    // Здесь биндим только текстуры материала (albedo, normal map, roughness)
-        //    // Логика освещения здесь НЕ НУЖНА.
-        //    api->drawMesh(cmd);
-        //}
+            auto     prePassShader = resourceManager->getResource<Shader>("ssao_prepass.shader");
+            Pipeline prePipeline{
+                .shader            = prePassShader,
+            };
+            uint32   prePso = api->getCache().getOrCreate(prePipeline);
 
+            prePassShader->use();
+            prePassShader->setUniformMat4("view", cam->getLookAt());
+            prePassShader->setUniformMat4("projection", cam->getProjection());
 
+            for (const auto& cmd : mainQueue)
+            {
+                prePassShader->setUniformMat4("model", cmd.model);
+                api->drawMesh({.mesh = cmd.mesh, .pipeline = prePso});
+            }
+            gBuffer->getFramebuffer()->unBind();
+        }
 
-
+         ssaoResult = ssao->process(
+            resourceManager, gBuffer->getFramebuffer()->getTextureHandle(1),
+            gBuffer->getFramebuffer()->getTextureHandle(0), cam
+        );
+        
+        ////////
 
         glMemoryBarrier(
             GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
@@ -564,12 +577,21 @@ namespace nb::Renderer
             shader->use();
 
             shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
+            shader->setUniformUint64("u_SsaoMap", ssaoResult);
+            shader->setUniformVec2("u_ScreenResolution", {(float)width, (float)height});
+
+            shader->setUniformInt("u_UseSSAO", useSsao);
+
+
+
             shader->setUniformVec3("u_CameraPos", camPos);
             shader->setUniformMat4("model", cmd.model);
             shader->setUniformMat4("view", view);
             shader->setUniformMat4("proj", proj);
             shader->setUniformMat4("lightView", currentLightView);
             shader->setUniformMat4("lightProj", currentLightProj);
+
+
 
 
             shader->setUniformUint64("u_EmissionMap", OpenGl::createPlaceholderForEmission());
@@ -893,7 +915,7 @@ namespace nb::Renderer
 
     void Renderer::renderShadowPreview(
         const SharedWindowContext& out,
-        uint32_t                   shadowTextureId,
+        uint64_t                   shadowTextureId,
         float                      nearPlane,
         float                      farPlane
     )
@@ -925,14 +947,14 @@ namespace nb::Renderer
         shadowVizShader->use();
 
         // Передаем параметры для корректного отображения глубины
-        shadowVizShader->setUniformInt("shadowMap", 0);
+        shadowVizShader->setUniformUint64("shadowMap", shadowTextureId);
         //shadowVizShader->setUniformFloat("near_plane", nearPlane); // например, 0.1f
         //shadowVizShader->setUniformFloat("far_plane", farPlane);   // например, 100.0f
         //shadowVizShader->setUniformInt()
         // Биндим текстуру тени
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, shadowTextureId);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+        //glActiveTexture(GL_TEXTURE0);
+        //glBindTexture(GL_TEXTURE_2D, shadowTextureId);
+        //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
 
 

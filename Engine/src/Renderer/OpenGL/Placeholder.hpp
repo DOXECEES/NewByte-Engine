@@ -6,7 +6,7 @@
 namespace nb::OpenGl
 {
     GLuint64 createPlaceholderForEmission() noexcept;
-
+    GLuint64 createPlaceholderForNoise() noexcept;
 }
 
 

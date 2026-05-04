@@ -153,6 +153,16 @@ void nb::OpenGl::OpenGlShader::setUniformMat4(std::string_view name, const Math:
     uniformCache[std::string(name)] = value;
 }
 
+void nb::OpenGl::OpenGlShader::setUniformVec3Array(
+    const std::string& name,
+    const Math::Vector3<float>* values,
+    uint32                      count
+) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glUniform3fv(loc, count, (const float*)values);
+}
+
 void nb::OpenGl::OpenGlShader::reapplyUniforms() const noexcept
 {
     for (const auto& [name, val] : uniformCache)

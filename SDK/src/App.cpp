@@ -711,9 +711,9 @@ void EditorApp::setupDebugUI() noexcept
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
             .text(L"Show Light Icons")
             .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-                //g_engine->getRenderer()->setIconsVisible(Renderer::IconType::Light, checked);
-                }))
+            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+                            engine->getRenderer()->toggleSsao();
+            }))
 
         .child(LayoutBuilder::widget(new Widgets::CheckBox())
             .text(L"Show Bounding Boxes")

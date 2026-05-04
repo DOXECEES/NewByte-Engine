@@ -16,6 +16,7 @@ layout(bindless_sampler) uniform sampler2D u_EmissionMap;
 uniform float     u_EmissionMapStrength = 1.0;
 
 layout(bindless_sampler) uniform sampler2D shadowMap; 
+layout(bindless_sampler) uniform sampler2D u_SsaoMap; 
 
 uniform samplerCube u_IrradianceMap;
 uniform samplerCube u_PrefilterMap;
@@ -40,6 +41,10 @@ uniform float u_NormalMapStrength = 1.0;
 uniform mat4 lightView;
 uniform mat4 lightProj;
 uniform float u_LightSize = 0.002;
+
+uniform vec2 u_ScreenResolution;
+uniform bool  u_UseSSAO = true;
+
 
 const float PI = 3.14159265359;
 
@@ -213,11 +218,22 @@ vec3 ApplyPostProcessing(vec3 color) {
 void main() {
     vec2 uv = v_TexCoords;
 
+    vec2 screenUV = gl_FragCoord.xy / u_ScreenResolution;
+
+
     vec3 albedo = pow(texture(u_AlbedoMap, uv).rgb, vec3(2.2));
     vec3 nMap = texture(u_NormalMap, uv).rgb * 2.0 - 1.0;
     nMap.xy *= u_NormalMapStrength;
     vec3 orm = texture(u_ORMMap, uv).rgb;
     vec3 emission = pow(texture(u_EmissionMap, uv).rgb, vec3(2.2)) * u_EmissionMapStrength;
+    
+    float ssao = 1.0;
+    if (u_UseSSAO) {
+        // Используем экранные координаты для выборки SSAO
+        vec2 screenUV = gl_FragCoord.xy / u_ScreenResolution;
+        ssao = texture(u_SsaoMap, screenUV).r;
+    }
+
 
     float ao = orm.r;
     float roughness = clamp(orm.g, 0.05, 1.0);
@@ -265,14 +281,32 @@ void main() {
         Lo += (1.0 - shadow) * (kD * albedo / PI + spec) * lightPoint[i].Ld * lightPoint[i].intensity * atten * NdotL;
     }
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    float materialAO = orm.r;
+    float combinedAO = materialAO * ssao; // Объединяем оба вида AO
+
+    vec3 ambient = vec3(0.0);
+    
     if (u_UseIBL) {
         vec3 F_ibl = fresnelSchlickRoughness(NdotV, F0, roughness);
         vec3 irradiance = textureLod(u_IrradianceMap, N, 0.0).rgb;
         vec3 prefiltered = textureLod(u_PrefilterMap, R, roughness * 7.0).rgb;
         vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
-        ambient = ((vec3(1.0) - F_ibl) * (1.0 - metallic) * irradiance * albedo + prefiltered * (F_ibl * brdf.x + brdf.y)) * ao * u_IBLStrength;
+
+        // Диффузная часть IBL
+        vec3 diffuseIBL = irradiance * albedo;
+        // Спекулярная часть IBL
+        vec3 specularIBL = prefiltered * (F_ibl * brdf.x + brdf.y);
+
+        // Применяем AO. SSAO сильнее всего должен влиять на диффузный свет.
+        // Для спекуляра можно использовать "Specular Occlusion" (трюк Себастьяна Лагарда)
+        float specAO = clamp(pow(NdotV + combinedAO, roughness) - 1.0 + combinedAO, 0.0, 1.0);
+        
+        ambient = ((vec3(1.0) - F_ibl) * (1.0 - metallic) * diffuseIBL + specularIBL * specAO) * combinedAO * u_IBLStrength;
+    } else {
+        // Обычный константный эмбиент
+        ambient = vec3(0.03) * albedo * combinedAO;
     }
+
 
     vec3 finalColor = ambient + Lo + emission;
 

@@ -24,11 +24,18 @@
 #include "Cubemap.hpp"
 
 #include "GBuffer.hpp"
+#include "SSAO.hpp"
+
+//
+#include "OpenGL/Placeholder.hpp"
+//
 
 namespace nb
 {
     namespace Renderer
     {
+  
+
         class Renderer 
         {
         public:
@@ -51,6 +58,11 @@ namespace nb
 
             void setWireframeMode(bool flag) noexcept;
             void showVertexColor(bool flag) noexcept;
+
+            inline void toggleSsao() noexcept
+            {
+                useSsao = !useSsao;
+            }
 
             inline void toggleDebugPass() noexcept { isDebugPassEnabled = !isDebugPassEnabled; }
             inline void toggleBoundingBoxVisualization() noexcept
@@ -85,7 +97,7 @@ namespace nb
 
              void renderShadowPreview(
                 const SharedWindowContext& out,
-                uint32_t                   shadowTextureId,
+                uint64_t                   shadowTextureId,
                 float                      nearPlane,
                 float                      farPlane
             );
@@ -161,6 +173,10 @@ namespace nb
 
             tinygizmo::gizmo_context& getGizmoContext() noexcept;
 
+            uint64_t ssaoResult = 0;
+
+            bool useSsao = true;
+
         private:
 
 
@@ -219,6 +235,8 @@ namespace nb
             SharedWindowContext ctx;
             Ref<ContextMeshCache> contextMeshCache = nullptr;
 
+            SSAO* ssao;
+
         private:
 
             std::unique_ptr<Skybox> skybox;
@@ -244,9 +262,6 @@ namespace nb
         };
     };
 };
-
-
-
 
 
 #endif

@@ -168,6 +168,9 @@ set(SRC
     src/Serialize/JsonArchive.cpp
     src/Serialize/JsonArchive.hpp
 
+    src/Renderer/SSAO.cpp
+    src/Renderer/SSAO.hpp
+
     src/Renderer/GBuffer.cpp
     src/Renderer/GBuffer.hpp
     src/Renderer/Renderer2D.hpp
