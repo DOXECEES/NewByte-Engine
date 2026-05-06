@@ -3,8 +3,31 @@
 
 #include <cstdint>
 
+#include "TextureParameters.hpp"
+
 namespace nb::Renderer
 {
+
+    struct CubemapParameters
+    {
+        uint32_t size = 512;
+
+       
+        Format format = Format::Rgba8UNormal;
+
+        
+        Filtering magFilter = Filtering::Linear;
+        Filtering minFilter = Filtering::Linear;
+
+        
+        Wrapping wrapU = Wrapping::ClampToEdge;
+        Wrapping wrapV = Wrapping::ClampToEdge;
+        Wrapping wrapW = Wrapping::ClampToEdge;
+
+        bool generateMipmaps = true;
+    };
+
+
 
     class Cubemap
     {
@@ -12,7 +35,10 @@ namespace nb::Renderer
         virtual ~Cubemap() noexcept = default;
 
         virtual uint32_t getId() const noexcept = 0;
+        virtual uint64_t getHandle() const noexcept = 0; 
+
     private:
+
     };
 
 };

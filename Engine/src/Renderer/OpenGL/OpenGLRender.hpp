@@ -32,6 +32,7 @@
 #include "PostProcessFbo.hpp"
 
 #include "../../Utils/Timer.hpp"
+#include <Vector.hpp>
 
 #include <Color.hpp>
 #include <memory>
@@ -73,7 +74,7 @@ namespace nb
                 void beginFrame() noexcept override;
                 void endFrame() noexcept override;
 
-                void drawMesh(Renderer::RendererCommand& command) noexcept override;
+                void drawMesh(const Renderer::RendererCommand& command) noexcept override;
                 void drawVertexless(Renderer::RendererCommand& command) noexcept override;
 
                 void drawContextMesh(const Renderer::ContextMesh& contextMesh, Renderer::PipelineHandle pipeline) noexcept override;
@@ -86,6 +87,14 @@ namespace nb
                 void bindFrameBuffer(const Ref<Renderer::IFrameBuffer>& frameBuffer) noexcept override;
 
                 void bindTexture(uint8 slot, uint32 textureId) noexcept override;
+                void bindCubemap(
+                    uint8  slot,
+                    uint32 cubemapId
+                ) noexcept override;
+
+               Ref<Renderer::Cubemap> createCubemap(
+                    const Renderer::CubemapParameters& params
+                ) noexcept override;  
                 Ref<Renderer::Texture> createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept override;
                 Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept override;
                 
@@ -96,6 +105,12 @@ namespace nb
                 bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept override;
 
                 Ref<Renderer::Texture> bakeBRDF() noexcept override;
+
+                Ref<nb::Renderer::Cubemap> bakePointLightMap(
+                    const nbstl::Vector<Renderer::RendererCommand>& queue,
+                    Math::Vector3<float>                            lightPos,
+                    float                                           farPlane
+                ) noexcept override;
 
 
                 void setViewport(const Renderer::Viewport& viewport) noexcept override;

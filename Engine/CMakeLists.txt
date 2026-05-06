@@ -168,6 +168,11 @@ set(SRC
     src/Serialize/JsonArchive.cpp
     src/Serialize/JsonArchive.hpp
 
+    src/Renderer/SSAO.cpp
+    src/Renderer/SSAO.hpp
+
+    src/Renderer/GBuffer.cpp
+    src/Renderer/GBuffer.hpp
     src/Renderer/Renderer2D.hpp
     src/Renderer/Renderer2D.cpp
     src/Renderer/Renderer.hpp
@@ -186,12 +191,18 @@ set(SRC
     src/Renderer/Texture.hpp
     src/Renderer/Light.hpp
     src/Renderer/Light.cpp
+    src/Renderer/TextureParameters.hpp
 
     src/Renderer/RendererStructures.hpp
 
     src/Renderer/Objects/Objects.cpp
     src/Renderer/Objects/Objects.hpp
 
+
+    src/Renderer/OpenGL/Placeholder.cpp
+    src/Renderer/OpenGL/Placeholder.hpp
+
+    src/Renderer/OpenGL/OpenGLUtils.hpp
     src/Renderer/OpenGL/OpenGLRender.cpp
     src/Renderer/OpenGL/OpenGLRender.hpp
     src/Renderer/OpenGL/IBuffer.cpp

@@ -31,19 +31,19 @@ namespace nb
                 Skybox();
                 ~Skybox();
 
-                void bindCubemap(Ref<Renderer::Cubemap> cube)
+                void bindCubemap(Ref<nb::Renderer::Cubemap> cube)
                 {
                     cubemapTexture = cube->getId();
                 }
             
-                void render(Ref<Renderer::Shader> shader);
+                void render(Ref<nb::Renderer::Shader> shader);
 
                 GLuint getCubemapTextureId() const noexcept;
 
             private:
                 std::vector<uint8_t>    textureData;
                 GLuint                  cubemapTexture;
-                Renderer::Mesh*         mesh;
+                nb::Renderer::Mesh*         mesh;
 
                 std::vector<Vertex>     skyboxVertices  = {
                     // Координаты для 8 вершин куба

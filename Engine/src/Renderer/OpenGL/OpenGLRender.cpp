@@ -15,6 +15,7 @@
 #include "Renderer/OpenGL/OpenGLTexture.hpp"
 
 
+
 namespace nb::OpenGl
 {
 
@@ -125,18 +126,24 @@ namespace nb::OpenGl
     {
         setClearColor(nb::Colors::WHITE, 1.0f, 0);
         clear(true, true, false);
-        
+        countOfDraws = 0;
     }
 
     void OpenGLRender::endFrame() noexcept
     {
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::WARNING, "Count of draw calls")
+            .with("number", countOfDraws);
         SwapBuffers(hdc);
     }
 
-    void OpenGLRender::drawMesh(Renderer::RendererCommand& command) noexcept
+    void OpenGLRender::drawMesh(const Renderer::RendererCommand& command) noexcept
     {
         bindPipeline(command.pipeline);
         command.mesh->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader, command.material);
+        countOfDraws++;
+        countOfDraws += command.material.size();
+
     }
 
     void nb::OpenGl::OpenGLRender::drawVertexless(Renderer::RendererCommand& command) noexcept
@@ -156,6 +163,7 @@ namespace nb::OpenGl
         );
 
         glBindVertexArray(0);
+        countOfDraws++;
 
     }
 
@@ -163,6 +171,7 @@ namespace nb::OpenGl
     {
         bindPipeline(pipeline);
         contextMesh.source->draw(GL_TRIANGLES, pipelineCache.getDesc(activePipeline).shader, contextMesh.vao);
+        countOfDraws++;
     }
 
     void OpenGLRender::bindPipeline(Renderer::PipelineHandle pipelineHandle) noexcept 
@@ -237,6 +246,38 @@ namespace nb::OpenGl
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
 
+    void OpenGLRender::bindCubemap(
+        uint8  slot,
+        uint32 cubemapId
+    ) noexcept
+    {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapId);
+    }
+
+
+    Ref<Renderer::Cubemap> OpenGLRender::createCubemap(
+        const Renderer::CubemapParameters& params
+    ) noexcept
+    {
+        return createRef<OpenGLCubemap>(params);
+        //cubemap->bind();
+
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        //// Явно отключаем мип-уровни
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+        //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+        //cubemap->finalizeBindless();
+        //return cubemap;
+    }
+
+
     Ref<Renderer::Texture> OpenGLRender::createTexture2d(const Renderer::TextureDescriptor& descriptor) noexcept
     {
         GLint internalFormat = GL_RGB;
@@ -275,6 +316,8 @@ namespace nb::OpenGl
 
     Ref<Renderer::Cubemap> OpenGLRender::bakeTextureIntoCubeMap(Ref<Renderer::Texture> texture2d) noexcept
     {
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
         glDisable(GL_CULL_FACE);
 
         Ref<OpenGLCubemap> cubemap = std::make_shared<OpenGLCubemap>(texture2d->getWidth(),GL_RGB16F);
@@ -328,6 +371,9 @@ namespace nb::OpenGl
 
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+        cubemap->finalizeBindless();
+
         glEnable(GL_CULL_FACE);
 
         return cubemap;
@@ -393,8 +439,9 @@ namespace nb::OpenGl
             unitCube->draw(GL_TRIANGLES, irradianceShader);
         }
 
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        irradianceMap->finalizeBindless(); 
 
         glEnable(GL_CULL_FACE);
 
@@ -407,8 +454,7 @@ namespace nb::OpenGl
         glDisable(GL_CULL_FACE);
 
         Math::Mat4<float> projection = Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, 10.0f);
-
-        Math::Mat4<float> views[] = {
+        Math::Mat4<float> views[]    = {
             Math::lookAt<float>({0, 0, 0}, {1, 0, 0}, {0, -1, 0}),
             Math::lookAt<float>({0, 0, 0}, {-1, 0, 0}, {0, -1, 0}),
             Math::lookAt<float>({0, 0, 0}, {0, 1, 0}, {0, 0, 1}),
@@ -417,41 +463,24 @@ namespace nb::OpenGl
             Math::lookAt<float>({0, 0, 0}, {0, 0, -1}, {0, -1, 0})
         };
 
-        uint32_t baseSize = 512;
+        uint32_t baseSize     = 128;
         uint32_t maxMipLevels = 5;
 
-        auto map = createRef<OpenGl::OpenGLCubemap>();
+        // 1. Создаем объект. Конструктор ВЫЗЫВАЕТ glTexStorage2D.
+        // Память под все 6 граней и все мип-уровни уже выделена!
+        auto map = createRef<OpenGl::OpenGLCubemap>(baseSize, GL_RGB16F);
+
+        // 2. Настраиваем параметры (уже должно быть в конструкторе, но можно продублировать)
         glBindTexture(GL_TEXTURE_CUBE_MAP, map->getId());
-
-        // 🔥 ПОЛНАЯ АЛЛОКАЦИЯ ВСЕХ MIP УРОВНЕЙ
-        for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
-        {
-            uint32_t size = baseSize >> mip;
-
-            for (uint32_t i = 0; i < 6; ++i)
-            {
-                glTexImage2D(
-                    GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mip, GL_RGB16F, size, size, 0, GL_RGB,
-                    GL_FLOAT, nullptr
-                );
-            }
-        }
-
-        // 🔒 Фикс уровней
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, maxMipLevels - 1);
-
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
+        // --- Шейдер и Меш ---
         auto shader = ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>(
             "prefilter.shader"
         );
-
         auto cube =
             ResMan::ResourceManager::getInstance()->getResource<Renderer::Mesh>("unit_cube.obj");
 
@@ -459,57 +488,52 @@ namespace nb::OpenGl
         GLuint fbo, rbo;
         glGenFramebuffers(1, &fbo);
         glGenRenderbuffers(1, &rbo);
-
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
 
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, baseSize, baseSize);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-        // --- входная кубмапа ---
+        // --- Входная текстура ---
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap->getId());
 
-        //shader->bind();
+        shader->use();
         shader->setUniformInt("environmentMap", 0);
         shader->setUniformMat4("projection", projection);
 
+        // --- Цикл рендеринга по мип-уровням ---
         for (uint32_t mip = 0; mip < maxMipLevels; ++mip)
         {
-            uint32_t size = baseSize >> mip;
-
-            glViewport(0, 0, size, size);
+            uint32_t mipSize = baseSize >> mip;
+            glViewport(0, 0, mipSize, mipSize);
 
             float roughness = (float)mip / (float)(maxMipLevels - 1);
             shader->setUniformFloat("roughness", roughness);
 
-            // resize depth под mip
+            // Обновляем размер Depth Buffer под текущий мип-уровень
             glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size, size);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipSize, mipSize);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
             for (uint32_t i = 0; i < 6; ++i)
             {
                 shader->setUniformMat4("view", views[i]);
 
+                // Привязываем конкретную грань и конкретный мип-уровень КУДА рисуем
                 glFramebufferTexture2D(
                     GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                     map->getId(), mip
                 );
 
-                // 🔍 проверка FBO
-                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                {
-                    printf("FBO ERROR\n");
-                }
-
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
                 cube->draw(GL_TRIANGLES, shader);
             }
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        // --- САМЫЙ ВАЖНЫЙ ШАГ ---
+        // Когда всё запечено, генерируем хэндл и фиксируем текстуру
+        map->finalizeBindless();
+
+        // Очистка ресурсов запекания
         glDeleteRenderbuffers(1, &rbo);
         glDeleteFramebuffers(1, &fbo);
         glEnable(GL_CULL_FACE);
@@ -520,43 +544,53 @@ namespace nb::OpenGl
     Ref<Renderer::Texture> OpenGLRender::bakeBRDF() noexcept
     {
         glDisable(GL_CULL_FACE);
-
         uint32_t size = 512;
 
-        uint32_t brdfLUT;
-        glGenTextures(1, &brdfLUT);
-        glBindTexture(GL_TEXTURE_2D, brdfLUT);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, size, size, 0, GL_RG, GL_FLOAT, 0);
+        // 1. Создаем объект OpenGlTexture.
+        // ВАЖНО: Конструктор должен использовать glTexStorage2D (Immutable Storage)
+        // Мы передаем nullptr в качестве данных, так как будем рисовать в неё сами.
+        auto brdfTex = createRef<OpenGl::OpenGlTexture>(
+            size, size,
+            GL_RG16F, // Формат для BRDF (нам нужны только R и G каналы)
+            GL_RG, GL_FLOAT, nullptr
+        );
+
+        glBindTexture(GL_TEXTURE_2D, brdfTex->getId());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // Без мип-мапов!
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Анизотропия здесь тоже НЕ НУЖНА, так как это таблица данных, а не визуальная текстура
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f); 
 
+
+        // --- Настройка FBO ---
         uint32_t captureFBO;
         glGenFramebuffers(1, &captureFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT, 0);
 
-        uint32_t drawBuffers[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, drawBuffers);
+        // Привязываем нашу новую текстуру к FBO
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfTex->getId(), 0
+        );
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            int i = 0;
+            // Ошибка FBO
         }
 
+        // --- Настройка рендера ---
         glViewport(0, 0, size, size);
         glDisable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
         glDisable(GL_BLEND);
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT);
 
         auto brdfShader =
             ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>("brdf.shader");
-        //brdfShader->bind();
         brdfShader->use();
 
+        // --- Рисование Квада ---
         static uint32_t quadVAO = 0;
         if (quadVAO == 0)
         {
@@ -578,17 +612,95 @@ namespace nb::OpenGl
             );
         }
 
-
         glBindVertexArray(quadVAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // Рисуем 4 вершины
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindVertexArray(0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        brdfTex->finalizeBindless();
+
         glDeleteFramebuffers(1, &captureFBO);
         glEnable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
 
-        return createRef<OpenGlTexture>(brdfLUT, size, size);
+        return brdfTex;
     }
+
+    Ref<nb::Renderer::Cubemap> OpenGLRender::bakePointLightMap(
+        const nbstl::Vector<Renderer::RendererCommand>& queue,
+        Math::Vector3<float> lightPos,
+        float             farPlane
+    ) noexcept
+    {
+        const float CUBEMAP_SIZE = 1024.0f;
+        glEnable(GL_DEPTH_TEST);
+
+        auto cubemap = std::make_shared<OpenGl::OpenGLCubemap>(CUBEMAP_SIZE, GL_R32F);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->getId());
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        Math::Mat4<float> shadowProj =
+            Math::projection(Math::toRadians(90.0f), 1.0f, 0.1f, farPlane);
+
+        Math::Mat4<float> shadowTransforms[] = {
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{1, 0, 0}, {0, -1, 0}),  // +X
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{-1, 0, 0}, {0, -1, 0}), // -X
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, 1, 0}, {0, 0, 1}),   // +Y
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, -1, 0}, {0, 0, -1}), // -Y
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, 0, 1}, {0, -1, 0}),  // +Z
+            Math::lookAt<float>(lightPos, lightPos + Math::Vector3<float>{0, 0, -1}, {0, -1, 0})  // -Z
+        };
+
+        auto shadowShader = ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>(
+            "point_shadow_gen.shader"
+        );
+
+        auto frameBuffer =
+            std::dynamic_pointer_cast<FBO>(this->createFrameBuffer(CUBEMAP_SIZE, CUBEMAP_SIZE));
+        frameBuffer->addRenderBufferAttachment(
+            Renderer::IFrameBuffer::RenderBufferAttachment::DEPTH
+        );
+        frameBuffer->finalize();
+
+        frameBuffer->bind();
+        setViewport({0, 0, CUBEMAP_SIZE, CUBEMAP_SIZE});
+
+        shadowShader->use();
+        shadowShader->setUniformVec3("u_LightPos", lightPos);
+        shadowShader->setUniformFloat("u_FarPlane", farPlane);
+        shadowShader->setUniformMat4("u_Projection", shadowProj);
+
+        for (int i = 0; i < 6; ++i)
+        {
+            shadowShader->setUniformMat4("u_View", shadowTransforms[i]);
+
+            frameBuffer->attachTextureId(
+                cubemap->getId(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i
+            );
+
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            for (auto i : queue)
+            {
+                drawMesh(i);
+            }
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Генерируем Bindless Handle
+        cubemap->finalizeBindless();
+
+        return cubemap;
+    }
+
     
 
     void OpenGLRender::setViewport(const Renderer::Viewport& viewport) noexcept
@@ -660,7 +772,7 @@ MessageCallback(GLenum source,
                 const void *userParam)
 {
     //Debug::debug(message);
-    //nb::Error::ErrorManager::instance().report(nb::Error::Type::WARNING, message);
+    nb::Error::ErrorManager::instance().report(nb::Error::Type::WARNING, message);
     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
             type, severity, message);
@@ -790,6 +902,14 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     DestroyWindow(dummyWindow);
     UnregisterClass(L"DummyWGLWindow", GetModuleHandle(nullptr));
     glGenVertexArrays(1, &emptyVao);
+
+    if (!GLAD_GL_ARB_bindless_texture)
+    {
+        nb::Error::ErrorManager::instance().report(
+            nb::Error::Type::FATAL, "Bindless texture extention does not support!"
+        );
+    }
+
 
 
     const GLubyte* renderer = glGetString(GL_RENDERER);

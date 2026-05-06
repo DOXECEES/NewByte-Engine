@@ -33,6 +33,8 @@ namespace nb::Renderer
         virtual bool finalize() noexcept = 0;
 
         virtual uint32 getTexture(uint8 index = 0) const noexcept = 0;
+        virtual uint64_t getTextureHandle(uint8 index = 0) const noexcept = 0;
+
         virtual void addRenderBufferAttachment(RenderBufferAttachment attachment) noexcept = 0;
         virtual void addTextureAttachment(TextureAttachment attachment) noexcept = 0;
 

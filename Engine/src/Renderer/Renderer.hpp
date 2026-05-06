@@ -18,13 +18,24 @@
 
 #include "Camera.hpp"
 #include "Resources/MaterialAsset.hpp"
+#include "ECS/Ecs.hpp"
 
 #include <tiny-gizmo.hpp>
+#include "Cubemap.hpp"
+
+#include "GBuffer.hpp"
+#include "SSAO.hpp"
+
+//
+#include "OpenGL/Placeholder.hpp"
+//
 
 namespace nb
 {
     namespace Renderer
     {
+  
+
         class Renderer 
         {
         public:
@@ -47,6 +58,11 @@ namespace nb
 
             void setWireframeMode(bool flag) noexcept;
             void showVertexColor(bool flag) noexcept;
+
+            inline void toggleSsao() noexcept
+            {
+                useSsao = !useSsao;
+            }
 
             inline void toggleDebugPass() noexcept { isDebugPassEnabled = !isDebugPassEnabled; }
             inline void toggleBoundingBoxVisualization() noexcept
@@ -81,7 +97,7 @@ namespace nb
 
              void renderShadowPreview(
                 const SharedWindowContext& out,
-                uint32_t                   shadowTextureId,
+                uint64_t                   shadowTextureId,
                 float                      nearPlane,
                 float                      farPlane
             );
@@ -157,9 +173,62 @@ namespace nb
 
             tinygizmo::gizmo_context& getGizmoContext() noexcept;
 
+            uint64_t ssaoResult = 0;
+
+            bool useSsao = true;
+
+            const SSAOConfig& getSSAOConfig() const noexcept
+            {
+                return ssao->getConfig();
+            }
+
+            SSAOConfig& getSSAOConfig() noexcept
+            {
+                return ssao->getConfig();
+            }
+
+            struct PostProcessConfig
+            {
+                bool isLutEnabled = true;
+            };
+
+            const PostProcessConfig& getPostProcessConfig() const noexcept
+            {
+                return postProcessConfig;
+            }
+
+            PostProcessConfig& getPostProcessConfig() noexcept
+            {
+                return postProcessConfig;
+            }
 
 
         private:
+
+
+            void renderDebugPasses(
+                const nb::Math::Mat4<float>&          view,
+                const nb::Math::Mat4<float>&          proj,
+                const std::vector<Ecs::EntityID>&     dirLights,
+                const std::vector<Ecs::EntityID>&     pointLights,
+                const nbstl::Vector<RendererCommand>& mainQueue
+            ) noexcept;
+
+            void renderSSR(
+                int                          width,
+                int                          height,
+                const nb::Math::Mat4<float>& view,
+                const nb::Math::Mat4<float>& proj
+            ) noexcept;
+
+            void renderFinalQuad(
+                int width,
+                int height
+            ) noexcept;
+
+
+        private:
+
             tinygizmo::gizmo_context gizmoCtx;
 
             void renderNavigationalGizmo() noexcept;
@@ -179,7 +248,7 @@ namespace nb
             std::shared_ptr<OpenGl::OpenGlTexture> ao;
             std::shared_ptr<OpenGl::OpenGlTexture> normal;
 
-           
+            std::unique_ptr<GBuffer> gBuffer = nullptr;
 
             Ref<Mesh> debugLightMesh = nullptr;
             Ref<Shader> debugLightShader = nullptr;
@@ -192,28 +261,35 @@ namespace nb
             SharedWindowContext ctx;
             Ref<ContextMeshCache> contextMeshCache = nullptr;
 
+            SSAO* ssao;
+            PostProcessConfig postProcessConfig = {};
+            //bool  isSSAOEnabled = true;
+
         private:
 
+            std::unique_ptr<Skybox> skybox;
 
-            bool isResourceLoaded = false;
-
+            bool    isResourceLoaded     = false;
+            bool    isPreviewInitialized = false;
             Camera* cam;
 
             Ref<IFrameBuffer> mainFrameBuffer;         
             Ref<IFrameBuffer> ssrResultBuffer;
             Ref<IFrameBuffer> shadowFrameBuffer;
+            Ref<IFrameBuffer> pointShadowFrameBuffer;
+
             Ref<IFrameBuffer> navigationalGizmoFrameBuffer;
 
             PolygonMode polygonMode;
             IRenderAPI* api;
 
             Ref<Mesh> quadScreenMesh;
+
+            std::unordered_map<Ecs::EntityID, Ref<nb::Renderer::Cubemap>> m_pointShadowMaps;
+
         };
     };
 };
-
-
-
 
 
 #endif

@@ -130,5 +130,35 @@
 			"Assets/shaders/ssr.vs",
 			"Assets/shaders/ssr.fs"
 		]
+	},
+	"point_shadow_gen.shader" : {
+		"sources": [
+			"Assets/shaders/point_shadow_gen.vs",
+			"Assets/shaders/point_shadow_gen.fs"
+		]
+	},
+	"gbuffer.shader" : {
+		"sources": [
+			"Assets/shaders/gbuffer.vs",
+			"Assets/shaders/gbuffer.fs"
+		]
+	},
+	"ssao_prepass.shader" : {
+		"sources": [
+			"Assets/shaders/ssao_prepass.vs",
+			"Assets/shaders/ssao_prepass.fs"
+		]
+	},
+	"ssao_main.shader" : {
+		"sources": [
+			"Assets/shaders/ssao_main.vs",
+			"Assets/shaders/ssao_main.fs"
+		]
+	},
+	"ssao_blur.shader" : {
+		"sources": [
+			"Assets/shaders/ssao_blur.vs",
+			"Assets/shaders/ssao_blur.fs"
+		]
 	}		
 }

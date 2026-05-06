@@ -9,7 +9,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-
+#include <variant>
 #include <Span.hpp>
 
 #include "../../Resources/IResource.hpp"
@@ -56,8 +56,17 @@ namespace nb
             void link(const std::filesystem::path &pathToShader) noexcept;
             void use() noexcept override;
 
+
+            virtual void setUniformBool(std::string_view name, const bool value) const noexcept override final;
+
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept override final;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept override final;
+
+             void setUniformUint64(
+                std::string_view name,
+                const uint64_t   value
+            ) const noexcept override final;
+
 
             virtual void setUniformVec2(
                 std::string_view name,
@@ -78,8 +87,15 @@ namespace nb
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept override final;
             virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept override final;
 
+            void setUniformVec3Array(
+                const std::string&          name,
+                const Math::Vector3<float>* values,
+                uint32                      count
+            ) const noexcept override;
 
         private:
+            void reapplyUniforms() const noexcept;
+
             void createProgram() noexcept;
             void load(const std::filesystem::path &pathToShader) noexcept;
             bool isCompiled() const noexcept;
@@ -89,6 +105,19 @@ namespace nb
             std::string loadFromFile(const std::filesystem::path &path) noexcept;
 
         private:
+
+            using UniformValue = std::variant<
+                float,
+                int,
+                uint64_t,
+                Math::Vector2<float>,
+                Math::Vector3<float>,
+                Math::Vector4<float>,
+                Math::Mat2<float>,
+                Math::Mat3<float>,
+                Math::Mat4<float>>;
+
+            mutable std::unordered_map<std::string, UniformValue> uniformCache;
 
             std::vector<GLuint>                 shaders;
             std::vector<std::filesystem::path>  pathsToShaderSources;

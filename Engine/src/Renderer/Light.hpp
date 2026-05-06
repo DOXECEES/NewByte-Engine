@@ -42,17 +42,18 @@ namespace nb
             float innerCutoff = 0.0f;
             float outerCutoff = 0.0f;
 
-            bool isPointLight()
+            bool castShadows = true;
+            bool isPointLight() const 
             {
                 return type == LightType::POINT;
             }
 
-            bool isDirectionLight()
+            bool isDirectionLight() const 
             {
                 return type == LightType::DIRECTIONAL;
             }
 
-            bool isSpotLight()
+            bool isSpotLight() const
             {
                 return type == LightType::SPOT;
             }
@@ -167,8 +168,11 @@ namespace nb
             static constexpr auto LINEAR_COEFFICIENT_UNIFORM_NAME   = "point_linear_coof";
             static constexpr auto EXP_COEFFICIENT_UNIFORM_NAME      = "point_exp_coof";
 
+            static constexpr auto SHADOW_MAP_HANDLE_UNIFORM_NAME = "shadowMapHandle";
+            static constexpr auto FAR_PLANE_UNIFORM_NAME         = "farPlane";
+            static constexpr auto HAS_SHADOW_UNIFORM_NAME        = "hasShadow";
 
-            PointLight() = default;
+            PointLight() = delete;
             
             ~PointLight() override
             {
@@ -202,17 +206,36 @@ namespace nb
                 const std::string expCoefficientUniformName = makeUniformName(GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME, id, EXP_COEFFICIENT_UNIFORM_NAME);
                 const std::string intensityUniformName = makeUniformName(GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME, id, INTENSITY_UNIFORM_NAME);
                 
+
+
+                std::string shadowHandleName =
+                std::format("u_PointShadowMaps[{}]", id);
+                const std::string farPlaneName = makeUniformName(
+                    GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME, id, FAR_PLANE_UNIFORM_NAME
+                );
+                const std::string hasShadowName = makeUniformName(
+                    GLOBAL_POINT_LIGHTS_STORE_UNIFORM_NAME, id, HAS_SHADOW_UNIFORM_NAME
+                );
+
                 shader->setUniformVec3(positionUniformName, position);
                 shader->setUniformFloat(constCoefficientUniformName, constCoefficient);
                 shader->setUniformFloat(linearCoefficientUniformName, linearCoefficient);
                 shader->setUniformFloat(expCoefficientUniformName, expCoefficient);
                 shader->setUniformFloat(intensityUniformName, intensity);
+
+                shader->setUniformUint64(shadowHandleName, shadowMapHandle);
+                shader->setUniformFloat(farPlaneName, farPlane);
+                shader->setUniformInt(hasShadowName, hasShadow ? 1 : 0);
             }
 
             static int getCountOfPointLights() noexcept
             {
                 return indexator.next() - 1;
             }
+
+            uint64_t shadowMapHandle = 0;
+            float    farPlane        = 0.0f;
+            bool     hasShadow       = false;
 
         private:
             float                   constCoefficient;
@@ -221,6 +244,7 @@ namespace nb
 
             float                   intensity;
 
+            
             static Utils::Indexator indexator;
         };
 

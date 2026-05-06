@@ -16,28 +16,44 @@ namespace nb
 
         int Indexator::next() const noexcept
         {
-            if(freeIndexes.empty())
-                return currentIndex + 1;
+            if (freeIndexes.empty())
+            {
+                return currentIndex;
+            }
 
             return freeIndexes.top();
         }
 
         NB_NODISCARD int Indexator::index() noexcept
         {
-            if(freeIndexes.empty())
-                return currentIndex++;
+            if (!freeIndexes.empty())
+            {
+                int idx = freeIndexes.top();
+                freeIndexes.pop();
+                return idx;
+            }
 
-            int next = freeIndexes.top();
-            freeIndexes.pop();
-            return next;
+            if (currentIndex > max)
+            {
+                return -1; 
+            }
+
+            return currentIndex++;
         }
 
         void Indexator::freeIndex(const int index) noexcept
         {
-            if(currentIndex <= index)
+            if (index < min || index > max)
+            {
                 return;
-        
-            freeIndexes.push(index);   
+            }
+
+            if (index >= currentIndex)
+            {
+                return;
+            }
+
+            freeIndexes.push(index);
         }
 
     };

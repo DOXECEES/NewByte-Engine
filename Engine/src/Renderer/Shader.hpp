@@ -21,8 +21,15 @@ namespace nb
 
             virtual void use() noexcept = 0;
 
+            virtual void setUniformBool(std::string_view name, const bool value) const noexcept = 0;
+
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept = 0;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept = 0;
+
+            virtual void setUniformUint64(
+                std::string_view name,
+                const uint64_t   value
+            ) const noexcept = 0;
 
             virtual void setUniformVec2(std::string_view name, const Math::Vector2<float>& value) const noexcept = 0;
             virtual void setUniformVec3(std::string_view name, const Math::Vector3<float>& value) const noexcept = 0;
@@ -31,6 +38,13 @@ namespace nb
             virtual void setUniformMat2(std::string_view name, const Math::Mat2<float>& value) const noexcept = 0;
             virtual void setUniformMat3(std::string_view name, const Math::Mat3<float>& value) const noexcept = 0;
             virtual void setUniformMat4(std::string_view name, const Math::Mat4<float>& value) const noexcept = 0;
+
+            virtual void setUniformVec3Array(
+                const std::string&          name,
+                const Math::Vector3<float>* values,
+                uint32_t                      count
+            ) const noexcept = 0;
+
 
             inline int getId() const noexcept { return id; };
 

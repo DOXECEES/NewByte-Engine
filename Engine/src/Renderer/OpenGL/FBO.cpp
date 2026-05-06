@@ -18,6 +18,15 @@ namespace nb
         FBO::~FBO() noexcept
         {
             staticUnbind();
+
+            for (uint64_t h : textureHandles)
+            {
+                if (h != 0)
+                {
+                    glMakeTextureHandleNonResidentARB(h);
+                }
+            }
+
             if (!textures.empty())
             {
                 glDeleteTextures(static_cast<GLsizei>(textures.size()), textures.data());
@@ -63,14 +72,17 @@ namespace nb
                     return;
                 }
 
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
                 setupTextureParams();
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorTextureCount, GL_TEXTURE_2D, texture, 0);
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorTextureCount, GL_TEXTURE_2D,
+                    texture, 0
+                );
 
                 colorTextureCount++;
                 break;
             }
-            case TextureType::COLOR_HDR: 
+            case TextureType::COLOR_HDR:
             {
                 if (colorTextureCount >= getMaxCountOfColorAttachments())
                 {
@@ -78,9 +90,7 @@ namespace nb
                     return;
                 }
 
-                glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr
-                );
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB16F, width, height);
 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -100,47 +110,60 @@ namespace nb
                     errorMessage("Depth buffer already attached!");
                 }
 
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT24, width, height);
 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-                float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
                 glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-                bind();
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture, 0
+                );
 
-                if (colorTextureCount == 0) {
+                if (colorTextureCount == 0)
+                {
                     glDrawBuffer(GL_NONE);
                     glReadBuffer(GL_NONE);
                 }
-                unBind();
-                isDepthBufferAttached = true; 
+                isDepthBufferAttached = true;
                 break;
             }
             case TextureType::STENCIL:
             {
-                if (isStencilBufferAttached) { errorMessage("Stencil already attached!"); }
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_STENCIL_INDEX8, width, height, 0, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, nullptr);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
+                if (isStencilBufferAttached)
+                {
+                    errorMessage("Stencil already attached!");
+                }
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_STENCIL_INDEX8, width, height);
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0
+                );
                 isStencilBufferAttached = true;
                 break;
             }
             case TextureType::DEPTH_STENCIL:
             {
-                if (isDepthBufferAttached || isStencilBufferAttached) { errorMessage("Conflict!"); }
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
-                isDepthBufferAttached = true;
+                if (isDepthBufferAttached || isStencilBufferAttached)
+                {
+                    errorMessage("Conflict!");
+                }
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH24_STENCIL8, width, height);
+                glFramebufferTexture2D(
+                    GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0
+                );
+                isDepthBufferAttached   = true;
                 isStencilBufferAttached = true;
                 break;
             }
-            default: break;
+            default:
+                break;
             }
-            glBindTexture(GL_TEXTURE_2D, 0); 
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
+
 
         void FBO::bindRenderBuffer(RenderBufferType renderBufferType) noexcept
         {
@@ -205,9 +228,28 @@ namespace nb
                     .with("Status", (int)status);
                 return false;
             }
+
+            textureHandles.clear();
+            for (GLuint texID : textures)
+            {
+                uint64_t h = glGetTextureHandleARB(texID);
+                glMakeTextureHandleResidentARB(h);
+                textureHandles.push_back(h);
+            }
+
             unBind();
             return true;
         }
+
+        uint64_t FBO::getTextureHandle(uint8 index) const noexcept
+        {
+            if (index < textureHandles.size())
+            {
+                return textureHandles[index];
+            }
+            return 0;
+        }
+
 
         void FBO::setSize(const GLuint width, const GLuint height) noexcept
         {

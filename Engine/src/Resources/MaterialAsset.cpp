@@ -8,7 +8,6 @@ namespace nb::Resource
     {
         m_shader->use();
 
-        int textureSlot = 0;
         for (auto& [name, prop] : m_properties)
         {
             if (std::holds_alternative<float>(prop.value))
@@ -21,14 +20,14 @@ namespace nb::Resource
             }
             else if (std::holds_alternative<Ref<TextureAsset>>(prop.value))
             {
-                auto texAsset = std::get<Ref<TextureAsset>>(prop.value);
-                //renderApi->bindTexture(textureSlot, texAsset->getInternalTexture()->getId());
-                glActiveTexture(GL_TEXTURE0 + textureSlot);
-                glBindTexture(GL_TEXTURE_2D, texAsset->getInternalTexture()->getId());
-                m_shader->setUniformInt(name, textureSlot);
-                textureSlot++;
+                auto texAsset    = std::get<Ref<TextureAsset>>(prop.value);
+                auto internalTex = texAsset->getInternalTexture();
+
+                uint64_t handle = internalTex->getHandle();
+
+                m_shader->setUniformUint64(name, handle);
             }
         }
     }
 
-}; // namespace nb::Resource
+}; 

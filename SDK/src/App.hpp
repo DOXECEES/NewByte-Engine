@@ -371,7 +371,7 @@ private:
                 
                
                 engine->getRenderer()->renderShadowPreview(
-                    sharedContext, engine->getRenderer()->getShadowTextureId(), 0.1f, 100.0f
+                    sharedContext, engine->getRenderer()->ssaoResult, 0.1f, 100.0f
                 );
                 
 

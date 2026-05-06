@@ -52,6 +52,7 @@ void nb::OpenGl::OpenGlShader::recompile() noexcept
     {
         glDeleteShader(i);
     }
+    shaders.clear(); 
     glDeleteProgram(program);
 
     for (const auto &shaderPath : pathsToShaderSources)
@@ -63,7 +64,7 @@ void nb::OpenGl::OpenGlShader::recompile() noexcept
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
 {
-    Debug::debug("Loading shader: " + pathToShader.string());
+    nb::Error::ErrorManager::instance().report(Error::Type::INFO,"Loading shader: " + pathToShader.string());
     if (auto shaderType = getShaderType(pathToShader); shaderType != ShaderType::UNKNOWN)
     {
         shaders.push_back(glCreateShader(static_cast<GLenum>(shaderType)));
@@ -80,16 +81,33 @@ void nb::OpenGl::OpenGlShader::use() noexcept
     return glUseProgram(program);
 }
 
+void nb::OpenGl::OpenGlShader::setUniformBool(std::string_view name, const bool value) const noexcept
+{
+    setUniformInt(name, value);
+}
+
 void nb::OpenGl::OpenGlShader::setUniformFloat(std::string_view name, const float value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform1f(program, loc, value);
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformInt(std::string_view name, const int value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform1i(program, loc, value);
+    uniformCache[std::string(name)] = value;
+}
+
+void nb::OpenGl::OpenGlShader::setUniformUint64(
+    std::string_view name,
+    const uint64_t   value
+) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glProgramUniformHandleui64ARB(program, loc, value);
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformVec2(
@@ -99,6 +117,7 @@ void nb::OpenGl::OpenGlShader::setUniformVec2(
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform2f(program, loc, value.x, value.y);
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformVec3(
@@ -108,31 +127,103 @@ void nb::OpenGl::OpenGlShader::setUniformVec3(
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform3f(program, loc, value.x, value.y, value.z);
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformVec4(std::string_view name, const Math::Vector4<float>& value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniform4f(program, loc, value.x, value.y, value.z, value.w);
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformMat2(std::string_view name, const Math::Mat2<float> &value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniformMatrix2fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformMat3(std::string_view name, const Math::Mat3<float> &value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformMat4(std::string_view name, const Math::Mat4<float> &value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());
     glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    uniformCache[std::string(name)] = value;
 }
+
+void nb::OpenGl::OpenGlShader::setUniformVec3Array(
+    const std::string& name,
+    const Math::Vector3<float>* values,
+    uint32                      count
+) const noexcept
+{
+    GLint loc = glGetUniformLocation(program, name.data());
+    glUniform3fv(loc, count, (const float*)values);
+}
+
+void nb::OpenGl::OpenGlShader::reapplyUniforms() const noexcept
+{
+    for (const auto& [name, val] : uniformCache)
+    {
+        GLint loc = glGetUniformLocation(program, name.c_str());
+        if (loc == -1)
+        {
+            continue;
+        }
+
+        std::visit(
+            [&](auto&& arg)
+            {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, float>)
+                {
+                    glProgramUniform1f(program, loc, arg);
+                }
+                else if constexpr (std::is_same_v<T, int>)
+                {
+                    glProgramUniform1i(program, loc, arg);
+                }
+                else if constexpr (std::is_same_v<T, uint64_t>)
+                {
+                    glProgramUniformHandleui64ARB(program, loc, arg);
+                }
+                else if constexpr (std::is_same_v<T, Math::Vector2<float>>)
+                {
+                    glProgramUniform2f(program, loc, arg.x, arg.y);
+                }
+                else if constexpr (std::is_same_v<T, Math::Vector3<float>>)
+                {
+                    glProgramUniform3f(program, loc, arg.x, arg.y, arg.z);
+                }
+                else if constexpr (std::is_same_v<T, Math::Vector4<float>>)
+                {
+                    glProgramUniform4f(program, loc, arg.x, arg.y, arg.z, arg.w);
+                }
+                else if constexpr (std::is_same_v<T, Math::Mat2<float>>)
+                {
+                    glProgramUniformMatrix2fv(program, loc, 1, GL_FALSE, arg.valuePtr());
+                }
+                else if constexpr (std::is_same_v<T, Math::Mat3<float>>)
+                {
+                    glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, arg.valuePtr());
+                }
+                else if constexpr (std::is_same_v<T, Math::Mat4<float>>)
+                {
+                    glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, arg.valuePtr());
+                }
+            },
+            val
+        );
+    }
+}
+
 
 
 
@@ -176,6 +267,8 @@ void nb::OpenGl::OpenGlShader::createProgram() noexcept
         nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, s);
         assert(L"Cannot link shader");
     }
+    reapplyUniforms();
+
 
     for (const auto &i : shaders)
     {

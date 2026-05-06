@@ -643,133 +643,378 @@ void EditorApp::setupEngineDependentUi() noexcept
     sharedContext = engine->getRenderer()->createSharedContextForWindow(previewWindow->getHandle().as<HWND>());
 }
 
+using namespace nbui;
+
+// Строка со "слайдером": Label [150px] | Slider [Fill] | Value [40px]
+using namespace nbui;
+
+// Строка со "слайдером" (Label | Bar | Value)
+LayoutBuilder makeSliderRow(
+    const std::wstring& name,
+    const std::wstring& value,
+    float               progress
+)
+{
+    return LayoutBuilder::hBox()
+        .relativeWidth(1.0f)
+        .absoluteHeight(26)
+        //.spacing(10) // Промежутки между элементами в строке
+        .child(
+            LayoutBuilder::label(name).absoluteWidth(
+                140
+            ) //.textAlignment(TextFormatAlignment::RIGHT)
+        )
+        .child(
+            LayoutBuilder::hBox() // Фон слайдера
+                .relativeWidth(0.6f)
+                .absoluteHeight(26)
+                .background({45, 45, 45, 255})
+                .border(1, Border::Style::SOLID, {70, 70, 70, 255})
+                .child(
+                    LayoutBuilder::widget(new Widgets::Slider<float>()) // Полоска прогресса
+                        .relativeWidth(progress)
+                        .relativeHeight(1.0f)
+                )
+        );
+}
+
+// Строка с инпутом (Label | Input)
+LayoutBuilder makeInputRow(
+    const std::wstring& name,
+    const std::wstring& value
+)
+{
+    return LayoutBuilder::hBox()
+        .relativeWidth(1.0f)
+        .absoluteHeight(26)
+        //.spacing(10)
+        .child(
+            LayoutBuilder::label(name).absoluteWidth(140)//.textAlignment(TextFormatAlignment::RIGHT)
+        )
+        .child(
+            LayoutBuilder::widget(new Widgets::TextEdit())
+                .absoluteWidth(60)
+                .absoluteHeight(20)
+                .background({25, 25, 25, 255})
+                //.border(1, Border::Style::SOLID, {90, 90, 90, 255})
+                //.textAlignment(TextFormatAlignment::CENTER)
+        );
+}
+
 void EditorApp::setupDebugUI() noexcept
 {
+    //using namespace nbui;
+    //auto debugUI = LayoutBuilder::vBox()
+    //    .style([](NNsLayout::LayoutStyle& s) {
+    //    s.widthSizeType = NNsLayout::SizeType::ABSOLUTE;
+    //    s.width = 250;
+    //    s.heightSizeType = NNsLayout::SizeType::RELATIVE;
+    //    s.height = 1.0f;
+    //    s.color = NbColor{ 35, 35, 35 };
+    //    s.padding = { 10, 10, 10, 10 };
+    //        })
+
+    //    .child(LayoutBuilder::label(L"VISUALIZATION")
+    //        .relativeWidth(1.0f).absoluteHeight(25)
+    //        .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Wireframe Mode")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+    //            engine->getRenderer()->setWireframeMode(checked);
+    //        }))
+
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Show grid")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .apply<Widgets::CheckBox>(
+    //            [](Widgets::CheckBox* checkbox)
+    //            {
+    //                checkbox->setChecked(true);
+    //            }
+    //        )
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+    //            engine->getRenderer()->toggleGridShow();
+    //        }))
+
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Show light sources")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+    //            engine->getRenderer()->toggleDebugPass();
+    //            }))
+    //        .child(
+    //            LayoutBuilder::widget(new Widgets::CheckBox())
+    //                .text(L"Show BVH bounds")
+    //                .relativeWidth(1.0f)
+    //                .absoluteHeight(30)
+    //                .onEvent(
+    //                    &Widgets::CheckBox::onCheckStateChanged,
+    //                    [&](bool checked)
+    //                    {
+    //                        engine->getRenderer()->toggleBvhVisualization();
+    //                    }
+    //                )
+    //        )
+
+    //    // Разделитель
+    //    .child(LayoutBuilder::spacer().absoluteHeight(10))
+
+    //    // --- СЕКЦИЯ: ИСТОЧНИКИ СВЕТА ---
+    //    .child(LayoutBuilder::label(L"LIGHTING & GIZMOS")
+    //        .relativeWidth(1.0f).absoluteHeight(25)
+    //        .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Show Light Icons")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+    //                        engine->getRenderer()->toggleSsao();
+    //        }))
+
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Show Bounding Boxes")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+    //                        engine->getRenderer()->toggleBoundingBoxVisualization();
+    //        }))
+
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Enable Shadows")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+    //            //g_engine->getRenderer()->setShadowsEnabled(checked);
+    //            }))
+
+    //    // Разделитель
+    //    .child(LayoutBuilder::spacer().absoluteHeight(10))
+
+    //    // --- СЕКЦИЯ: СТАТИСТИКА ---
+    //    .child(LayoutBuilder::label(L"STATISTICS")
+    //        .relativeWidth(1.0f).absoluteHeight(25)
+    //        .color(NbColor{ 150, 150, 150 }).fontSize(12))
+
+
+
+    //    .child(LayoutBuilder::widget(new Widgets::ComboBox())
+    //        .apply<Widgets::ComboBox>([&](Widgets::ComboBox* c) {
+
+    //            const nb::Renderer::Renderer* renderer = engine->getRenderer().get();
+
+    //            c->addItem({ L"Albedo",     renderer->getAlbedoId()});
+    //            c->addItem({ L"Ao",         renderer->getAoId() });
+    //            c->addItem({ L"Metal",      renderer->getMetalId() });
+    //            c->addItem({ L"Normal",     renderer->getNormalId()});
+    //            c->addItem({ L"Roughtness", renderer->getRoughtnessId()});
+    //            c->addItem({ L"Shadow",     renderer->getShadowTextureId() });
+    //            c->addItem({ L"Gizmo",      renderer->getGizmoTextureId() });
+
+    //         })
+    //        .text(L"Show Draw Calls")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::ComboBox::onItemChecked, [&](const Widgets::ListItem& item) {
+    //            
+    //            engine->getRenderer()->setCheckedTextureId(item.getValue<uint32_t>());
+    //        }))
+    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
+    //        .text(L"Show FPS Counter")
+    //        .relativeWidth(1.0f).absoluteHeight(30)
+    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
+    //            //g_engine->getUI()->setOverlayVisible(L"FPS", checked);
+    //            }))
+
+    //    .child(LayoutBuilder::spacer()) // Пружина, чтобы все прижалось к верху
+    //    .build();
     using namespace nbui;
-    auto debugUI = LayoutBuilder::vBox()
-        .style([](NNsLayout::LayoutStyle& s) {
-        s.widthSizeType = NNsLayout::SizeType::ABSOLUTE;
-        s.width = 250;
-        s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-        s.height = 1.0f;
-        s.color = NbColor{ 35, 35, 35 };
-        s.padding = { 10, 10, 10, 10 };
-            })
 
-        .child(LayoutBuilder::label(L"VISUALIZATION")
-            .relativeWidth(1.0f).absoluteHeight(25)
-            .color(NbColor{ 150, 150, 150 }).fontSize(12))
+    using namespace nbui;
 
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Wireframe Mode")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                engine->getRenderer()->setWireframeMode(checked);
-            }))
-
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show grid")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .apply<Widgets::CheckBox>(
-                [](Widgets::CheckBox* checkbox)
-                {
-                    checkbox->setChecked(true);
-                }
-            )
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                engine->getRenderer()->toggleGridShow();
-            }))
-
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show light sources")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                engine->getRenderer()->toggleDebugPass();
-                }))
+    auto ui =
+        LayoutBuilder::vBox()
+            .relativeWidth(1.0f)
+            .relativeHeight(1.0f)
+            .background({35, 35, 35, 255})
+            .padding({10, 10, 10, 10})
+            .spacing(4)
             .child(
-                LayoutBuilder::widget(new Widgets::CheckBox())
-                    .text(L"Show BVH bounds")
+                LayoutBuilder::section(L"▼ Ambient Occlusion (SSAO)")
                     .relativeWidth(1.0f)
-                    .absoluteHeight(30)
-                    .onEvent(
-                        &Widgets::CheckBox::onCheckStateChanged,
-                        [&](bool checked)
+                    .autoHeight()
+                    .style(
+                        [this](auto& s)
                         {
-                            engine->getRenderer()->toggleBvhVisualization();
+                            s.color = {52, 52, 52};
                         }
                     )
+                    .padding({10,10,0,10})
+                    .child(
+                        LayoutBuilder::vBox()
+                            .relativeWidth(1.0f)
+                            .autoHeight()
+                            .padding({10, 10, 10, 10}) 
+                            .spacing(6)
+
+                            .child(
+                                LayoutBuilder::vBox()
+                                    .relativeWidth(1.0f)
+                                    .absoluteHeight(25)
+                                    .child(
+                                        LayoutBuilder::widget(new Widgets::CheckBox())
+                                            .text(L"Enabled")
+                                            .relativeWidth(1.0f)
+                                            .relativeHeight(1.0f)
+                                            .apply<Widgets::CheckBox>(
+                                                [&](Widgets::CheckBox* c)
+                                                {
+                                                    c->setChecked(true);
+                                                }
+                                            )
+                                            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+                                                engine->getRenderer()->toggleSsao();
+                                            })
+                                    )
+                            )
+
+                            .child(
+                                LayoutBuilder::hBox()
+                                    .relativeWidth(1.0f)
+                                    .absoluteHeight(26)
+                                    .child(
+                                        LayoutBuilder::label(L"Radius:")
+                                            .absoluteWidth(
+                                            140
+                                        ) 
+                                    )
+                                    .child(
+                                        LayoutBuilder::hBox()
+                                            .relativeWidth(0.6f)
+                                            .absoluteHeight(26)
+                                            .background({45, 45, 45, 255})
+                                            .border(1, Border::Style::SOLID, {70, 70, 70, 255})
+                                            .child(
+                                                LayoutBuilder::widget(
+                                                    new Widgets::Slider<float>()
+                                                ) 
+                                                    .relativeWidth(1.0f)
+                                                    .relativeHeight(1.0f)
+                                                    .apply<Widgets::Slider<float>>([&](Widgets::Slider<float>* slid)
+                                                        {
+                                                            slid->bind(
+                                                                [&]()
+                                                                {
+                                                                    return engine->getRenderer()
+                                                                        ->getSSAOConfig()
+                                                                        .radius;
+                                                                },
+                                                                [&](float val)
+                                                                {
+                                                                    engine->getRenderer()
+                                                                               ->getSSAOConfig()
+                                                                               .radius = val;
+                                                                }
+                                                            );
+                                                        }
+                                                    )
+                                            )
+                                    )
+                            )
+                            .child(
+                                LayoutBuilder::hBox()
+                                    .relativeWidth(1.0f)
+                                    .absoluteHeight(26)
+                                    .child(
+                                        LayoutBuilder::label(L"Bias:")
+                                            .absoluteWidth(
+                                                140
+                                            ) 
+                                    )
+                                    .child(
+                                        LayoutBuilder::hBox() 
+                                            .relativeWidth(0.6f)
+                                            .absoluteHeight(26)
+                                            .background({45, 45, 45, 255})
+                                            .border(1, Border::Style::SOLID, {70, 70, 70, 255})
+                                            .child(
+                                                LayoutBuilder::widget(
+                                                    new Widgets::Slider<float>()
+                                                ) 
+                                                    .relativeWidth(1.0f)
+                                                    .relativeHeight(1.0f)
+                                                    .apply<Widgets::Slider<float>>(
+                                                        [&](Widgets::Slider<float>* slid)
+                                                        {
+                                                            slid->bind(
+                                                                [&]()
+                                                                {
+                                                                    return engine->getRenderer()
+                                                                        ->getSSAOConfig()
+                                                                        .bias;
+                                                                },
+                                                                [&](float val)
+                                                                {
+                                                                    engine->getRenderer()
+                                                                        ->getSSAOConfig()
+                                                                        .bias = val;
+                                                                }
+                                                            );
+                                                        }
+                                                    )
+                                            )
+                                    )
+                            )
+
+                    )
             )
+            .child(
+                LayoutBuilder::section(L"▼ Color Grading")
+                    .relativeWidth(1.0f)
+                    .autoHeight()
+                    .style(
+                        [this](auto& s)
+                        {
+                            s.color = {52, 52, 52};
+                        }
+                    )
+                    .padding({0, 10, 10, 10})
+                    .child(
+                        LayoutBuilder::vBox()
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30.0f)
+                        .child(
+                            LayoutBuilder::widget(new Widgets::CheckBox())
+                            .relativeHeight(1.0f)
+                            .relativeWidth(1.0f)
+                            .text(L"Enable Color Grading")
+                            .apply<Widgets::CheckBox>([](Widgets::CheckBox* c) { c->setChecked(true); })
+                            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+                                engine->getRenderer()->getPostProcessConfig().isLutEnabled = checked;
+                            })
+                            //.textAlignment(TextFormatAlignment::CENTER)
+                        )                           
+                    )
+                    .child(
+                        LayoutBuilder::hBox()
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(100.0f)
+                        .padding({10, 10, 10, 10}) 
 
-        // Разделитель
-        .child(LayoutBuilder::spacer().absoluteHeight(10))
+                        .child(
+                            LayoutBuilder::label(L"LUTexture")
+                            .relativeHeight(1.0f)
+                            .relativeWidth(0.4f)
+                        )
+                        .child(
+                            LayoutBuilder::widget(new Widgets::MaterialWidget())
+                            .relativeHeight(1.0f)
+                            .relativeWidth(0.6f)
+                        )
+                    )
+            )
+            .child(LayoutBuilder::spacer())
+            .build();
 
-        // --- СЕКЦИЯ: ИСТОЧНИКИ СВЕТА ---
-        .child(LayoutBuilder::label(L"LIGHTING & GIZMOS")
-            .relativeWidth(1.0f).absoluteHeight(25)
-            .color(NbColor{ 150, 150, 150 }).fontSize(12))
-
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show Light Icons")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-                //g_engine->getRenderer()->setIconsVisible(Renderer::IconType::Light, checked);
-                }))
-
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show Bounding Boxes")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                            engine->getRenderer()->toggleBoundingBoxVisualization();
-            }))
-
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Enable Shadows")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-                //g_engine->getRenderer()->setShadowsEnabled(checked);
-                }))
-
-        // Разделитель
-        .child(LayoutBuilder::spacer().absoluteHeight(10))
-
-        // --- СЕКЦИЯ: СТАТИСТИКА ---
-        .child(LayoutBuilder::label(L"STATISTICS")
-            .relativeWidth(1.0f).absoluteHeight(25)
-            .color(NbColor{ 150, 150, 150 }).fontSize(12))
-
-
-
-        .child(LayoutBuilder::widget(new Widgets::ComboBox())
-            .apply<Widgets::ComboBox>([&](Widgets::ComboBox* c) {
-
-                const nb::Renderer::Renderer* renderer = engine->getRenderer().get();
-
-                c->addItem({ L"Albedo",     renderer->getAlbedoId()});
-                c->addItem({ L"Ao",         renderer->getAoId() });
-                c->addItem({ L"Metal",      renderer->getMetalId() });
-                c->addItem({ L"Normal",     renderer->getNormalId()});
-                c->addItem({ L"Roughtness", renderer->getRoughtnessId()});
-                c->addItem({ L"Shadow",     renderer->getShadowTextureId() });
-                c->addItem({ L"Gizmo",      renderer->getGizmoTextureId() });
-
-             })
-            .text(L"Show Draw Calls")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::ComboBox::onItemChecked, [&](const Widgets::ListItem& item) {
-                
-                engine->getRenderer()->setCheckedTextureId(item.getValue<uint32_t>());
-            }))
-        .child(LayoutBuilder::widget(new Widgets::CheckBox())
-            .text(L"Show FPS Counter")
-            .relativeWidth(1.0f).absoluteHeight(30)
-            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-                //g_engine->getUI()->setOverlayVisible(L"FPS", checked);
-                }))
-
-        .child(LayoutBuilder::spacer()) // Пружина, чтобы все прижалось к верху
-        .build();
-
-    debugWindow->getLayoutRoot()->addChild(std::move(debugUI));
+    debugWindow->getLayoutRoot()->addChild(std::move(ui));
 }
 
 void EditorApp::setupAssetManager() noexcept
