@@ -177,6 +177,16 @@ namespace nb
 
             bool useSsao = true;
 
+            const SSAOConfig& getSSAOConfig() const noexcept
+            {
+                return ssao->getConfig();
+            }
+
+            SSAOConfig& getSSAOConfig() noexcept
+            {
+                return ssao->getConfig();
+            }
+
         private:
 
 
@@ -236,6 +246,7 @@ namespace nb
             Ref<ContextMeshCache> contextMeshCache = nullptr;
 
             SSAO* ssao;
+            //bool  isSSAOEnabled = true;
 
         private:
 

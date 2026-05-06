@@ -13,8 +13,8 @@ uniform vec3 samples[64];
 uniform mat4 projection;
 uniform vec2 noiseScale;
 
-const float radius = 0.5;
-const float bias = 0.025;
+uniform float radius = 0.5;
+uniform float bias = 0.025;
 
 void main() {
     // Использование абсолютно такое же, как с обычными текстурами

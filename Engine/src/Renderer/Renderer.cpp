@@ -470,12 +470,14 @@ namespace nb::Renderer
             gBuffer->getFramebuffer()->unBind();
         }
 
-         ssaoResult = ssao->process(
-            resourceManager, gBuffer->getFramebuffer()->getTextureHandle(1),
-            gBuffer->getFramebuffer()->getTextureHandle(0), cam
-        );
-        
-        ////////
+        if (useSsao)
+        {
+            ssaoResult = ssao->process(
+                resourceManager, gBuffer->getFramebuffer()->getTextureHandle(1),
+                gBuffer->getFramebuffer()->getTextureHandle(0), cam
+            );
+        }
+
 
         glMemoryBarrier(
             GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |

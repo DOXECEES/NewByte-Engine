@@ -22,6 +22,12 @@
 namespace nb::Renderer
 {
 
+    struct SSAOConfig
+    {
+        float bias = 0.025;
+        float radius = 0.5;
+    };
+
     class SSAO
     {
     public:
@@ -98,6 +104,9 @@ namespace nb::Renderer
                 ssaoShader->setUniformUint64("gNormal", gNormalHandle);
                 ssaoShader->setUniformUint64("texNoise", noiseTexture);
 
+                ssaoShader->setUniformFloat("radius", config.radius);
+                ssaoShader->setUniformFloat("bias", config.bias);
+
                 ssaoShader->setUniformMat4("projection", cam->getProjection());
                 ssaoShader->setUniformVec3Array("samples", kernel.data(), kernelSize);
                 ssaoShader->setUniformVec2("noiseScale", noiseScale);
@@ -117,6 +126,16 @@ namespace nb::Renderer
             blurFbo->unBind();
 
             return blurFbo->getTextureHandle();
+        }
+
+        const SSAOConfig& getConfig() const noexcept
+        {
+            return config;
+        }
+
+        SSAOConfig& getConfig() noexcept
+        {
+            return config;
         }
 
     private:
@@ -215,6 +234,8 @@ namespace nb::Renderer
             glBindVertexArray(0);
         }
 
+        
+
     private:
         uint8       kernelSize = 0;
 
@@ -226,6 +247,9 @@ namespace nb::Renderer
 
         nb::Math::Vector2<float> noiseScale{0.0f, 0.0f};
         IRenderAPI*              api = nullptr;
+
+        SSAOConfig config = {};
+
     };
 } 
 
