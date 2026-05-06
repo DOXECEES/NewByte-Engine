@@ -581,7 +581,12 @@ namespace nb::Renderer
             shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
             shader->setUniformUint64("u_SsaoMap", ssaoResult);
             shader->setUniformVec2("u_ScreenResolution", {(float)width, (float)height});
-
+            shader->setUniformUint64(
+                "u_lut",
+                resourceManager->getResource<Resource::TextureAsset>("Assets/res/Blockbuster14.texture")
+                    ->getInternalTexture()
+                    ->getHandle()
+            );
             shader->setUniformInt("u_UseSSAO", useSsao);
 
 

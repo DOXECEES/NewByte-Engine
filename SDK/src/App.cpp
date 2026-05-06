@@ -847,7 +847,7 @@ void EditorApp::setupDebugUI() noexcept
                             s.color = {52, 52, 52};
                         }
                     )
-                    .padding({10,10,10,10})
+                    .padding({10,10,0,10})
                     .child(
                         LayoutBuilder::vBox()
                             .relativeWidth(1.0f)
@@ -964,6 +964,35 @@ void EditorApp::setupDebugUI() noexcept
                                     )
                             )
 
+                    )
+            )
+            .child(
+                LayoutBuilder::section(L"▼ Color Grading")
+                    .relativeWidth(1.0f)
+                    .autoHeight()
+                    .style(
+                        [this](auto& s)
+                        {
+                            s.color = {52, 52, 52};
+                        }
+                    )
+                    .padding({0, 10, 10, 10})
+                    .child(
+                        LayoutBuilder::hBox()
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(100.0f)
+                        .padding({10, 10, 10, 10}) 
+
+                        .child(
+                            LayoutBuilder::label(L"LUTexture")
+                            .relativeHeight(1.0f)
+                            .relativeWidth(0.4f)
+                        )
+                        .child(
+                            LayoutBuilder::widget(new Widgets::MaterialWidget())
+                            .relativeHeight(1.0f)
+                            .relativeWidth(0.6f)
+                        )
                     )
             )
             .child(LayoutBuilder::spacer())

@@ -10,8 +10,9 @@ namespace nb::Loaders
         std::filesystem::path pngPath = path;
         if (std::filesystem::exists(pngPath))
         {
-            pngPath.replace_extension(".jpeg");
-
+            Json json(path);
+            pngPath = json["source"].get<std::string>();
+            //pngPath.replace_extension(".jpeg");
         }
         else
         {
