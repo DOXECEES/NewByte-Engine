@@ -21,6 +21,8 @@ namespace nb
 
             virtual void use() noexcept = 0;
 
+            virtual void setUniformBool(std::string_view name, const bool value) const noexcept = 0;
+
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept = 0;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept = 0;
 

@@ -187,6 +187,22 @@ namespace nb
                 return ssao->getConfig();
             }
 
+            struct PostProcessConfig
+            {
+                bool isLutEnabled = true;
+            };
+
+            const PostProcessConfig& getPostProcessConfig() const noexcept
+            {
+                return postProcessConfig;
+            }
+
+            PostProcessConfig& getPostProcessConfig() noexcept
+            {
+                return postProcessConfig;
+            }
+
+
         private:
 
 
@@ -246,6 +262,7 @@ namespace nb
             Ref<ContextMeshCache> contextMeshCache = nullptr;
 
             SSAO* ssao;
+            PostProcessConfig postProcessConfig = {};
             //bool  isSSAOEnabled = true;
 
         private:

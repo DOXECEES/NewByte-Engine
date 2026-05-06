@@ -770,12 +770,19 @@ namespace nb::Renderer
             "screenSize", {static_cast<float>(width), static_cast<float>(height)}
         );
 
-        quadShader->setUniformUint64(
-            "lookupTableTexture", ResMan::ResourceManager::getInstance()
-                         ->getResource<Resource::TextureAsset>("Assets/res/Blockbuster14.texture")
-                ->getInternalTexture()
-                ->getHandle()
-        );
+        if(postProcessConfig.isLutEnabled)
+        {
+            quadShader->setUniformUint64(
+                        "lookupTableTexture", ResMan::ResourceManager::getInstance()
+                                    ->getResource<Resource::TextureAsset>("Assets/res/Blockbuster14.texture")
+                            ->getInternalTexture()
+                            ->getHandle()
+            );
+        }
+            
+        quadShader->setUniformBool("u_UseLut", postProcessConfig.isLutEnabled);
+
+        
 
         api->bindTexture(3, ssrResultBuffer->getTexture(0));
 

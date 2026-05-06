@@ -56,6 +56,9 @@ namespace nb
             void link(const std::filesystem::path &pathToShader) noexcept;
             void use() noexcept override;
 
+
+            virtual void setUniformBool(std::string_view name, const bool value) const noexcept override final;
+
             virtual void setUniformFloat(std::string_view name, const float value) const noexcept override final;
             virtual void setUniformInt(std::string_view name, const int value) const noexcept override final;
 

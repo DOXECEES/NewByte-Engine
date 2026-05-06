@@ -978,6 +978,22 @@ void EditorApp::setupDebugUI() noexcept
                     )
                     .padding({0, 10, 10, 10})
                     .child(
+                        LayoutBuilder::vBox()
+                        .relativeWidth(1.0f)
+                        .absoluteHeight(30.0f)
+                        .child(
+                            LayoutBuilder::widget(new Widgets::CheckBox())
+                            .relativeHeight(1.0f)
+                            .relativeWidth(1.0f)
+                            .text(L"Enable Color Grading")
+                            .apply<Widgets::CheckBox>([](Widgets::CheckBox* c) { c->setChecked(true); })
+                            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
+                                engine->getRenderer()->getPostProcessConfig().isLutEnabled = checked;
+                            })
+                            //.textAlignment(TextFormatAlignment::CENTER)
+                        )                           
+                    )
+                    .child(
                         LayoutBuilder::hBox()
                         .relativeWidth(1.0f)
                         .absoluteHeight(100.0f)

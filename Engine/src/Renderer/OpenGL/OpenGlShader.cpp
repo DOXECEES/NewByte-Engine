@@ -81,6 +81,11 @@ void nb::OpenGl::OpenGlShader::use() noexcept
     return glUseProgram(program);
 }
 
+void nb::OpenGl::OpenGlShader::setUniformBool(std::string_view name, const bool value) const noexcept
+{
+    setUniformInt(name, value);
+}
+
 void nb::OpenGl::OpenGlShader::setUniformFloat(std::string_view name, const float value) const noexcept
 {
     GLint loc = glGetUniformLocation(program, name.data());

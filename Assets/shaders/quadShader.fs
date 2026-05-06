@@ -10,6 +10,7 @@ uniform sampler2D depthMap;
 uniform vec2 screenSize;   
 
 layout(bindless_sampler) uniform sampler2D lookupTableTexture;
+uniform bool u_UseLut = true;
 
 #ifdef USE_FXAA
     #define FXAA_REDUCE_MIN   (1.0/128.0)
@@ -94,8 +95,12 @@ void main()
     finalColor = texture(depthMap, TexCoords).rgb;
 #endif
 
+    if(u_UseLut)
+    {
+        finalColor = applyLut(finalColor);
+    }
 
-    finalColor = applyLut(finalColor);
+
     vec2 center = vec2(0.5, 0.5);
     float dist = length(TexCoords - center);
     float vignette = smoothstep(0.45, 0.75, dist);
