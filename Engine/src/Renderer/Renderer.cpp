@@ -370,15 +370,15 @@ namespace nb::Renderer
                     CubemapParameters params;
 
                     params.size = POINT_SHADOW_RES;
-                    params.format = CubemapParameters::Format::R32Float;
+                    params.format = Format::R32Float;
                     params.generateMipmaps = false;
 
-                    params.wrapU = CubemapParameters::Wrapping::ClampToEdge;
-                    params.wrapV = CubemapParameters::Wrapping::ClampToEdge;
-                    params.wrapW = CubemapParameters::Wrapping::ClampToEdge;
+                    params.wrapU = Wrapping::ClampToEdge;
+                    params.wrapV = Wrapping::ClampToEdge;
+                    params.wrapW = Wrapping::ClampToEdge;
 
-                    params.minFilter = CubemapParameters::Filtering::Linear;
-                    params.magFilter = CubemapParameters::Filtering::Linear;
+                    params.minFilter = Filtering::Linear;
+                    params.magFilter = Filtering::Linear;
 
                     auto newCubemap = api->createCubemap(params);
                     
@@ -581,12 +581,7 @@ namespace nb::Renderer
             shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
             shader->setUniformUint64("u_SsaoMap", ssaoResult);
             shader->setUniformVec2("u_ScreenResolution", {(float)width, (float)height});
-            shader->setUniformUint64(
-                "u_lut",
-                resourceManager->getResource<Resource::TextureAsset>("Assets/res/Blockbuster14.texture")
-                    ->getInternalTexture()
-                    ->getHandle()
-            );
+            
             shader->setUniformInt("u_UseSSAO", useSsao);
 
 
@@ -773,6 +768,13 @@ namespace nb::Renderer
         quadShader->setUniformInt("depthMap", 3);
         quadShader->setUniformVec2(
             "screenSize", {static_cast<float>(width), static_cast<float>(height)}
+        );
+
+        quadShader->setUniformUint64(
+            "lookupTableTexture", ResMan::ResourceManager::getInstance()
+                         ->getResource<Resource::TextureAsset>("Assets/res/Blockbuster14.texture")
+                ->getInternalTexture()
+                ->getHandle()
         );
 
         api->bindTexture(3, ssrResultBuffer->getTexture(0));

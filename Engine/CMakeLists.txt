@@ -191,6 +191,7 @@ set(SRC
     src/Renderer/Texture.hpp
     src/Renderer/Light.hpp
     src/Renderer/Light.cpp
+    src/Renderer/TextureParameters.hpp
 
     src/Renderer/RendererStructures.hpp
 

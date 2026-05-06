@@ -5,23 +5,24 @@
 #include <glad/glad.h>
 
 #include "Error/ErrorManager.hpp"
-#include "Renderer/Cubemap.hpp"
+
+#include "Renderer/TextureParameters.hpp"
 
 
 namespace nb::OpenGl::OpenGlUtils
 {
 
-    NB_NODISCARD GLint toFormat(Renderer::CubemapParameters::Format format) noexcept
+    inline NB_NODISCARD GLint toFormat(Renderer::Format format) noexcept
     {
         switch (format)
         {
-        case Renderer::CubemapParameters::Format::Rgba8UNormal:
+        case Renderer::Format::Rgba8UNormal:
             return GL_RGBA8;
-        case Renderer::CubemapParameters::Format::Rgba16Float:
+        case Renderer::Format::Rgba16Float:
             return GL_RGBA16F;
-        case Renderer::CubemapParameters::Format::Rgba32Float:
+        case Renderer::Format::Rgba32Float:
             return GL_RGBA32F;
-        case Renderer::CubemapParameters::Format::R32Float:
+        case Renderer::Format::R32Float:
             return GL_R32F;
         default:
         {
@@ -33,17 +34,17 @@ namespace nb::OpenGl::OpenGlUtils
         }
     }
 
-    NB_NODISCARD GLint toWrap(Renderer::CubemapParameters::Wrapping wrap) noexcept
+    inline NB_NODISCARD GLint toWrap(Renderer::Wrapping wrap) noexcept
     {
         switch (wrap)
         {
-        case Renderer::CubemapParameters::Wrapping::Repeat:
+        case Renderer::Wrapping::Repeat:
             return GL_REPEAT;
-        case Renderer::CubemapParameters::Wrapping::MirroredRepeat:
+        case Renderer::Wrapping::MirroredRepeat:
             return GL_MIRRORED_REPEAT;
-        case Renderer::CubemapParameters::Wrapping::ClampToEdge:
+        case Renderer::Wrapping::ClampToEdge:
             return GL_CLAMP_TO_EDGE;
-        case Renderer::CubemapParameters::Wrapping::ClampToBorder:
+        case Renderer::Wrapping::ClampToBorder:
             return GL_CLAMP_TO_BORDER;
         default:
             nb::Error::ErrorManager::instance().report(
@@ -53,21 +54,21 @@ namespace nb::OpenGl::OpenGlUtils
         }
     }
 
-    NB_NODISCARD GLint toMagFilter(Renderer::CubemapParameters::Filtering filter) noexcept
+    inline NB_NODISCARD GLint toMagFilter(Renderer::Filtering filter) noexcept
     {
         switch (filter)
         {
-        case Renderer::CubemapParameters::Filtering::Nearest:
+        case Renderer::Filtering::Nearest:
             return GL_NEAREST;
-        case Renderer::CubemapParameters::Filtering::Linear:
+        case Renderer::Filtering::Linear:
             return GL_LINEAR;
         default:
             return GL_LINEAR;
         }
     }
 
-    NB_NODISCARD GLint toMinFilter(
-        Renderer::CubemapParameters::Filtering filter,
+    inline NB_NODISCARD GLint toMinFilter(
+        Renderer::Filtering filter,
         bool                                   hasMipmaps
     ) noexcept
     {
@@ -75,9 +76,9 @@ namespace nb::OpenGl::OpenGlUtils
         {
             switch (filter)
             {
-            case Renderer::CubemapParameters::Filtering::Nearest:
+            case Renderer::Filtering::Nearest:
                 return GL_NEAREST_MIPMAP_NEAREST;
-            case Renderer::CubemapParameters::Filtering::Linear:
+            case Renderer::Filtering::Linear:
                 return GL_LINEAR_MIPMAP_LINEAR;
             default:
                 return GL_LINEAR_MIPMAP_LINEAR;
@@ -87,9 +88,9 @@ namespace nb::OpenGl::OpenGlUtils
         {
             switch (filter)
             {
-            case Renderer::CubemapParameters::Filtering::Nearest:
+            case Renderer::Filtering::Nearest:
                 return GL_NEAREST;
-            case Renderer::CubemapParameters::Filtering::Linear:
+            case Renderer::Filtering::Linear:
                 return GL_LINEAR;
             default:
                 return GL_LINEAR;

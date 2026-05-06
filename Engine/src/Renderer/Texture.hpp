@@ -2,12 +2,29 @@
 #define SRC_RENDERER_TEXTURE_HPP
 
 #include "../Resources/IResource.hpp"
-
+#include "TextureParameters.hpp"
 
 namespace nb
 {
     namespace Renderer
     {
+
+        struct TextureParameters
+        {
+            Format format = Format::Rgba8UNormal;
+
+            
+            Filtering magFilter = Filtering::Linear;
+            Filtering minFilter = Filtering::Linear;
+
+            
+            Wrapping wrapU = Wrapping::Repeat;
+            Wrapping wrapV = Wrapping::Repeat;
+
+            bool generateMipmaps = true;
+            bool shouldFlip      = false;
+        };
+
         class Texture : public Resource::IResource
         {
         public:

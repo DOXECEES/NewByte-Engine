@@ -12,6 +12,7 @@
 #include <NonOwningPtr.hpp>
 
 #include "Renderer/OpenGL/OpenGlTexture.hpp"
+#include "Renderer/TextureParameters.hpp"
 #include "IResource.hpp"
 
 namespace nb::Resource
@@ -19,6 +20,8 @@ namespace nb::Resource
 
     struct TextureSettings 
     {
+        Renderer::TextureParameters parameters = {};
+
         float exposure = 1.0f;
         float gamma = 2.2f;
     };
@@ -40,7 +43,7 @@ namespace nb::Resource
         {
             if (!texture)
             {
-                texture = std::make_unique<nb::OpenGl::OpenGlTexture>(path);
+                texture = std::make_unique<nb::OpenGl::OpenGlTexture>(path, settings.parameters);
             }
             return texture.get();
         }

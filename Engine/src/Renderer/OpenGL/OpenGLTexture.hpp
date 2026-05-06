@@ -26,6 +26,12 @@ namespace nb
                     void* data
                 ) noexcept;
 
+                OpenGlTexture(
+                    const std::filesystem::path&       path,
+                    const Renderer::TextureParameters& params
+                ) noexcept;
+
+
                 OpenGlTexture(GLuint id, uint32_t w, uint32_t h) noexcept
                     : texture(id),
                       width(w),

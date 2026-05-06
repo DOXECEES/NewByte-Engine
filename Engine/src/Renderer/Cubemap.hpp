@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "TextureParameters.hpp"
+
 namespace nb::Renderer
 {
 
@@ -10,30 +12,14 @@ namespace nb::Renderer
     {
         uint32_t size = 512;
 
-        enum class Format
-        {
-            Rgba8UNormal,  
-            Rgba16Float, 
-            Rgba32Float,
-            R32Float,
-        };
+       
         Format format = Format::Rgba8UNormal;
 
-        enum class Filtering
-        {
-            Linear,
-            Nearest
-        };
+        
         Filtering magFilter = Filtering::Linear;
         Filtering minFilter = Filtering::Linear;
 
-        enum class Wrapping
-        {
-            Repeat,
-            MirroredRepeat,
-            ClampToEdge,
-            ClampToBorder
-        };
+        
         Wrapping wrapU = Wrapping::ClampToEdge;
         Wrapping wrapV = Wrapping::ClampToEdge;
         Wrapping wrapW = Wrapping::ClampToEdge;

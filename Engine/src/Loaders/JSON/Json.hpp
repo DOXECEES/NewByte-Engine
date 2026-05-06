@@ -98,6 +98,11 @@ namespace nb
                 return root;
             }
 
+            bool contains(const std::string& key) const noexcept
+            {
+                return root.contains(key);
+            }
+
         private:
             Node root;
 

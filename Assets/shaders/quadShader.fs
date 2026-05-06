@@ -1,24 +1,51 @@
-#version 330 core
+#version 450 core
+
+#extension GL_ARB_bindless_texture : enable
+
 out vec4 FragColor;
 
 in vec2 TexCoords;
 
-uniform sampler2D depthMap; // Ваша основная текстура (цвета)
-uniform vec2 screenSize;    // Размер экрана
+uniform sampler2D depthMap; 
+uniform vec2 screenSize;   
 
-// Эти настройки будут активны только если определен USE_FXAA
+layout(bindless_sampler) uniform sampler2D lookupTableTexture;
+
 #ifdef USE_FXAA
     #define FXAA_REDUCE_MIN   (1.0/128.0)
     #define FXAA_REDUCE_MUL   (1.0/8.0)
     #define FXAA_SPAN_MAX     8.0
 #endif
 
+
+
+
+vec3 applyLut(vec3 inColor)
+{
+    vec3 color = clamp(inColor, 0.0, 1.0);
+
+    float size = 16.0;
+    
+    float blueValue = color.b * (size - 1.0);
+    float index1 = floor(blueValue);
+    float index2 = ceil(blueValue);
+
+    float v = (color.g * (size - 1.0) + 0.5) / size;
+
+    float u1 = (index1 * size + color.r * (size - 1.0) + 0.5) / (size * size);
+    float u2 = (index2 * size + color.r * (size - 1.0) + 0.5) / (size * size);
+
+    vec3 col1 = textureLod(lookupTableTexture, vec2(u1, v), 0.0).rgb;
+    vec3 col2 = textureLod(lookupTableTexture, vec2(u2, v), 0.0).rgb;
+
+    return mix(col1, col2, fract(blueValue));
+}
+
 void main()
 {
     vec3 finalColor;
 
 #ifdef USE_FXAA
-    // --- ЛОГИКА FXAA ---
     vec2 inverseScreenSize = vec2(1.0) / screenSize;
 
     vec3 rgbNW = texture(depthMap, TexCoords + (vec2(-1.0, -1.0) * inverseScreenSize)).rgb;
@@ -64,15 +91,18 @@ void main()
         finalColor = rgbB;
     }
 #else
-    // --- БЕЗ СГЛАЖИВАНИЯ ---
     finalColor = texture(depthMap, TexCoords).rgb;
 #endif
 
-    // --- ОБЩИЕ ЭФФЕКТЫ (ВИНИТКА) ---
-    // Выполняются всегда, независимо от выбора сглаживания
+
+    finalColor = applyLut(finalColor);
     vec2 center = vec2(0.5, 0.5);
     float dist = length(TexCoords - center);
     float vignette = smoothstep(0.45, 0.75, dist);
     finalColor *= mix(1.0, 0.7, vignette);
+
+
+
     FragColor = vec4(finalColor, 1.0);
+
 }
