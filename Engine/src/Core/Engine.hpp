@@ -230,6 +230,9 @@ namespace nb
             ShaderSystem& getShaderSystem() noexcept;
 
         private:
+            void outlineSelectedObject() noexcept;
+
+        private:
 			using MessageQueue = std::queue<std::function<void(Engine&)>>;
 
             ShaderSystem					shaderSystem;
@@ -255,6 +258,8 @@ namespace nb
 
 			std::mutex						mtx;
 			MessageQueue					queue;
+
+            mutable Node editorSelectedNode = Node();
 
         };
     };

@@ -213,6 +213,8 @@ namespace nb
                 }
             }
 
+
+            outlineSelectedObject();
         }
 
         bool Engine::run(bool shouldRender) 
@@ -372,7 +374,8 @@ namespace nb
             if (result != 0)
             {
                 Node selectedNode = nb::Scene::getInstance().getNode(result);
-                
+                editorSelectedNode = selectedNode;
+
                 nb::Error::ErrorManager::instance()
                     .report(nb::Error::Type::INFO, "Selected")
                     .with(
@@ -381,10 +384,11 @@ namespace nb
                                     : "No name component"
                     );
                 return selectedNode;
-
             }
 
-            return Node();
+            editorSelectedNode = Node();
+
+            return editorSelectedNode;
         }
 
         Engine::Mode Engine::getMode() const noexcept
@@ -455,7 +459,13 @@ namespace nb
 		NB_NODISCARD ShaderSystem& Engine::getShaderSystem() noexcept
 		{
             return shaderSystem;
-		}
+        }
+
+        void Engine::outlineSelectedObject() noexcept
+        {
+            renderer->outline(editorSelectedNode);
+
+        }
 
 	};
 };

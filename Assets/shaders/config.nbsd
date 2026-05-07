@@ -160,5 +160,23 @@
 			"Assets/shaders/ssao_blur.vs",
 			"Assets/shaders/ssao_blur.fs"
 		]
+	},
+	"outline.shader" : {
+		"sources": [
+			"Assets/shaders/outline.vs",
+			"Assets/shaders/outline.fs"
+		]
+	},
+	"stencilPassShader.shader" : {
+		"sources": [
+			"Assets/shaders/stencilPassShader.vs",
+			"Assets/shaders/stencilPassShader.fs"
+		]
+	},
+	"mask_pass.shader" : {
+		"sources": [
+			"Assets/shaders/mask_pass.vs",
+			"Assets/shaders/mask_pass.fs"
+		]
 	}		
 }

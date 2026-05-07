@@ -1,13 +1,15 @@
 #version 450 core
-
 #extension GL_ARB_bindless_texture : enable
 
 out vec4 FragColor;
-
 in vec2 TexCoords;
 
 uniform sampler2D depthMap; 
 uniform vec2 screenSize;   
+
+layout(bindless_sampler) uniform sampler2D u_OutlineMask;
+uniform vec3 u_OutlineColor;
+uniform int u_OutlineThickness; 
 
 layout(bindless_sampler) uniform sampler2D lookupTableTexture;
 uniform bool u_UseLut = true;
@@ -18,27 +20,46 @@ uniform bool u_UseLut = true;
     #define FXAA_SPAN_MAX     8.0
 #endif
 
+vec3 getSceneWithOutline(vec2 coords) {
+    vec3 baseColor = texture(depthMap, coords).rgb;
+    float mask = texture(u_OutlineMask, coords).r;
+    
+    float outlineAlpha = 0.0;
+    
+    if (mask < 0.5) {
+        vec2 texelSize = 1.0 / screenSize;
+        
+        for (int x = -u_OutlineThickness; x <= u_OutlineThickness; x++) {
+            for (int y = -u_OutlineThickness; y <= u_OutlineThickness; y++) {
+                if (x*x + y*y <= u_OutlineThickness * u_OutlineThickness) {
+                    vec2 sampleCoord = coords + vec2(x, y) * texelSize;
 
-
+                    if (sampleCoord.x >= 0.0 && sampleCoord.x <= 1.0 && 
+                        sampleCoord.y >= 0.0 && sampleCoord.y <= 1.0) 
+                    {
+                        float neighborMask = texture(u_OutlineMask, sampleCoord).r;
+                        outlineAlpha = max(outlineAlpha, neighborMask);
+                    }
+                }
+            }
+        }
+    }
+    
+    return mix(baseColor, u_OutlineColor, outlineAlpha * 0.8);
+}
 
 vec3 applyLut(vec3 inColor)
 {
     vec3 color = clamp(inColor, 0.0, 1.0);
-
     float size = 16.0;
-    
     float blueValue = color.b * (size - 1.0);
     float index1 = floor(blueValue);
     float index2 = ceil(blueValue);
-
     float v = (color.g * (size - 1.0) + 0.5) / size;
-
     float u1 = (index1 * size + color.r * (size - 1.0) + 0.5) / (size * size);
     float u2 = (index2 * size + color.r * (size - 1.0) + 0.5) / (size * size);
-
     vec3 col1 = textureLod(lookupTableTexture, vec2(u1, v), 0.0).rgb;
     vec3 col2 = textureLod(lookupTableTexture, vec2(u2, v), 0.0).rgb;
-
     return mix(col1, col2, fract(blueValue));
 }
 
@@ -49,11 +70,11 @@ void main()
 #ifdef USE_FXAA
     vec2 inverseScreenSize = vec2(1.0) / screenSize;
 
-    vec3 rgbNW = texture(depthMap, TexCoords + (vec2(-1.0, -1.0) * inverseScreenSize)).rgb;
-    vec3 rgbNE = texture(depthMap, TexCoords + (vec2(1.0, -1.0) * inverseScreenSize)).rgb;
-    vec3 rgbSW = texture(depthMap, TexCoords + (vec2(-1.0, 1.0) * inverseScreenSize)).rgb;
-    vec3 rgbSE = texture(depthMap, TexCoords + (vec2(1.0, 1.0) * inverseScreenSize)).rgb;
-    vec3 rgbM  = texture(depthMap, TexCoords).rgb;
+    vec3 rgbNW = getSceneWithOutline(TexCoords + (vec2(-1.0, -1.0) * inverseScreenSize));
+    vec3 rgbNE = getSceneWithOutline(TexCoords + (vec2(1.0, -1.0) * inverseScreenSize));
+    vec3 rgbSW = getSceneWithOutline(TexCoords + (vec2(-1.0, 1.0) * inverseScreenSize));
+    vec3 rgbSE = getSceneWithOutline(TexCoords + (vec2(1.0, 1.0) * inverseScreenSize));
+    vec3 rgbM  = getSceneWithOutline(TexCoords);
 
     vec3 luma = vec3(0.299, 0.587, 0.114);
     float lumaNW = dot(rgbNW, luma);
@@ -77,12 +98,12 @@ void main()
           dir * rcpDirMin)) * inverseScreenSize;
 
     vec3 rgbA = 0.5 * (
-        texture(depthMap, TexCoords + dir * (1.0/3.0 - 0.5)).rgb +
-        texture(depthMap, TexCoords + dir * (2.0/3.0 - 0.5)).rgb);
+        getSceneWithOutline(TexCoords + dir * (1.0/3.0 - 0.5)) +
+        getSceneWithOutline(TexCoords + dir * (2.0/3.0 - 0.5)));
     
     vec3 rgbB = rgbA * 0.5 + 0.25 * (
-        texture(depthMap, TexCoords + dir * (0.0/3.0 - 0.5)).rgb +
-        texture(depthMap, TexCoords + dir * (3.0/3.0 - 0.5)).rgb);
+        getSceneWithOutline(TexCoords + dir * (0.0/3.0 - 0.5)) +
+        getSceneWithOutline(TexCoords + dir * (3.0/3.0 - 0.5)));
 
     float lumaB = dot(rgbB, luma);
 
@@ -92,22 +113,17 @@ void main()
         finalColor = rgbB;
     }
 #else
-    finalColor = texture(depthMap, TexCoords).rgb;
+    finalColor = getSceneWithOutline(TexCoords);
 #endif
 
-    if(u_UseLut)
-    {
+    if(u_UseLut) {
         finalColor = applyLut(finalColor);
     }
-
 
     vec2 center = vec2(0.5, 0.5);
     float dist = length(TexCoords - center);
     float vignette = smoothstep(0.45, 0.75, dist);
     finalColor *= mix(1.0, 0.7, vignette);
 
-
-
     FragColor = vec4(finalColor, 1.0);
-
 }
