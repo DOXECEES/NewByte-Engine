@@ -28,6 +28,7 @@
 
 //
 #include "OpenGL/Placeholder.hpp"
+#include "Scene.hpp"
 //
 
 namespace nb
@@ -127,6 +128,7 @@ namespace nb
             );
             // TEMP
 
+            void outline(Node node) noexcept;
             
 
             uint32 getAlbedoId() const
@@ -229,6 +231,8 @@ namespace nb
 
         private:
 
+            nb::Node activeNode = Node();
+
             tinygizmo::gizmo_context gizmoCtx;
 
             void renderNavigationalGizmo() noexcept;
@@ -279,6 +283,7 @@ namespace nb
             Ref<IFrameBuffer> pointShadowFrameBuffer;
 
             Ref<IFrameBuffer> navigationalGizmoFrameBuffer;
+            Ref<IFrameBuffer> outlineMaskFrameBuffer;
 
             PolygonMode polygonMode;
             IRenderAPI* api;

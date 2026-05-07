@@ -44,8 +44,8 @@ namespace nb
             bool        isDepthTestEnable   = true;
             bool        isBlendEnable       = true;
             bool        isCullingEnable     = false;
-
-
+            
+            bool        cullFront = false;
         };
 
         struct RendererCommand

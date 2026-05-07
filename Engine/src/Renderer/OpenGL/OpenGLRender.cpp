@@ -212,7 +212,14 @@ namespace nb::OpenGl
         if (pipeline.isCullingEnable)
         {
             glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK); 
+            if (pipeline.cullFront)
+            {
+                glCullFace(GL_FRONT); 
+            }
+            else
+            {
+                glCullFace(GL_BACK); 
+            }
         }
         else
         {

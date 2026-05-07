@@ -179,6 +179,14 @@ namespace nb::Renderer
         navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         navigationalGizmoFrameBuffer->finalize();
 
+        outlineMaskFrameBuffer = api->createFrameBuffer(width, heigth);
+        outlineMaskFrameBuffer->addTextureAttachment(
+            IFrameBuffer::TextureAttachment::COLOR
+        ); 
+        outlineMaskFrameBuffer->finalize();
+        mainFrameBuffer->setDrawBuffers(1);
+
+
         gBuffer = std::make_unique<GBuffer>(api, width, heigth);
         ssao->resize(width, heigth);
 
@@ -366,7 +374,6 @@ namespace nb::Renderer
                 auto it = m_pointShadowMaps.find(id);
                 if (it == m_pointShadowMaps.end())
                 {
-                    // Исправленное создание кубмапы (без GL_NEAREST)
                     CubemapParameters params;
 
                     params.size = POINT_SHADOW_RES;
@@ -406,8 +413,6 @@ namespace nb::Renderer
 
                 for (int i = 0; i < 6; ++i)
                 {
-                    // === НОВЫЙ ПОДХОД К ПРИВЯЗКЕ ===
-                    // 1. Биндим FBO (у него только depth renderbuffer)
                     pointShadowFrameBuffer->bind();
 
                     glFramebufferTexture2D(
@@ -415,12 +420,10 @@ namespace nb::Renderer
                         shadowMap->getId(), 0
                     );
 
-                    // ВАЖНО: Очищаем белым (1.0 = максимальная дальность)
                     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
                     api->clear(true, true, false);
 
 
-                    // 5. Шейдер и рендер
                     pointShadowShader->setUniformMat4("u_View", shadowViews[i]);
                     pointShadowShader->setUniformMat4("u_Projection", shadowProj);
 
@@ -431,8 +434,6 @@ namespace nb::Renderer
                     }
                     // ==================================
                 }
-                // После рендера всех 6 граней для этого источника
-                // Убедимся, что FBO не хранит лишнего состояния
                 glFramebufferTexture2D(
                     GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0
                 );
@@ -715,6 +716,49 @@ namespace nb::Renderer
         }
 
         gizmoCtx.draw();
+
+
+        if (activeNode.isValid())
+        {
+            auto maskShader = rm->getResource<Shader>("mask_pass.shader");
+            auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
+
+            api->bindFrameBuffer(outlineMaskFrameBuffer);
+            api->setViewport({
+                    0,
+                    0,
+                    (float)Core::EngineSettings::getWidth(),
+                    (float)Core::EngineSettings::getHeight()
+                }
+            );
+            api->setClearColor(Colors::BLACK, 0.0f, 0);
+            api->clear(true, false, false);
+
+            maskShader->use();
+            maskShader->setUniformMat4("u_View", view);
+            maskShader->setUniformMat4("u_Proj", proj);
+            maskShader->setUniformMat4(
+                "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
+            );
+
+            Pipeline maskPipeline{
+                .shader            = maskShader,
+                .isDepthTestEnable = false, 
+                .isBlendEnable     = false,
+                .isCullingEnable   = true,
+                .cullFront         = false
+            };
+            uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
+            api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
+        }
+        else if (outlineMaskFrameBuffer) 
+        {
+            api->bindFrameBuffer(outlineMaskFrameBuffer);
+            api->setClearColor(Colors::BLACK, 0.0f, 0);
+            api->clear(true, false, false);
+        }
+
+
     }
 
     void Renderer::renderSSR(
@@ -770,6 +814,7 @@ namespace nb::Renderer
             "screenSize", {static_cast<float>(width), static_cast<float>(height)}
         );
 
+
         if(postProcessConfig.isLutEnabled)
         {
             quadShader->setUniformUint64(
@@ -782,9 +827,15 @@ namespace nb::Renderer
             
         quadShader->setUniformBool("u_UseLut", postProcessConfig.isLutEnabled);
 
+
+        quadShader->setUniformUint64("u_OutlineMask", outlineMaskFrameBuffer->getTextureHandle(0));
+        quadShader->setUniformVec3("u_OutlineColor", {1.0f, 0.8f, 0.0f}); 
+        quadShader->setUniformInt("u_OutlineThickness", 2);               
+
         
 
         api->bindTexture(3, ssrResultBuffer->getTexture(0));
+
 
         Pipeline quadP = {
             .shader = quadShader, .polygonMode = PolygonMode::FULL, .isDepthTestEnable = false
@@ -1271,6 +1322,11 @@ namespace nb::Renderer
         stbi_write_png(savePath.c_str(), size, size, 4, data.data(), size * 4);
 
         api->bindDefaultFrameBuffer();
+    }
+
+    void Renderer::outline(Node node) noexcept
+    {
+        activeNode = node;
     }
 
     void Renderer::loadSceneEcs() noexcept
