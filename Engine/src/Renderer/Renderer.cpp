@@ -23,6 +23,7 @@
 #include "Math/RayCast/RayPicker.hpp"
 
 #include "OpenGL/Placeholder.hpp"
+#include "DebugDraw.hpp"
 
 namespace nb::Renderer
 {
@@ -620,6 +621,15 @@ namespace nb::Renderer
             api->drawMesh(cmd);
         }
 
+
+        DebugDraw::setThickness(5.0f);
+        DebugDraw::drawLine({0, 0, 0}, {100, 100, 100});
+        DebugDraw::drawLine({0, 0, 0}, {100, 0, 100});
+
+        DebugDraw::drawBatch(api, cam);
+
+
+
         renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
 
         renderSSR(width, height, view, proj);
@@ -1177,6 +1187,50 @@ namespace nb::Renderer
     tinygizmo::gizmo_context& Renderer::getGizmoContext() noexcept
     {
         return gizmoCtx;
+    }
+
+    Ref<Mesh> Renderer::drawLine(
+        const Math::Vector3<float>&  p1,
+        const Math::Vector3<float>&  p2
+    ) noexcept
+    {
+        std::vector<Vertex>   vertices;
+        std::vector<uint32_t> indices;
+
+        const Math::Vector3<float> color = {1.0f, 0.5f, 0.0f};
+
+        // Для каждой линии создаем 4 вершины.
+        // В position кладем текущую точку.
+        // В normal кладем "другую" точку (чтобы шейдер знал направление линии).
+        // В tangent.w кладем коэффициент сдвига (-1.0 или 1.0).
+
+        // Точка P1 (две вершины)
+        vertices.emplace_back(
+            p1, p2, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, -1.0f}
+        ); // влево
+        vertices.emplace_back(
+            p1, p2, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, 1.0f}
+        ); // вправо
+
+        // Точка P2 (две вершины)
+        vertices.emplace_back(
+            p2, p1, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, -1.0f}
+        ); // влево
+        vertices.emplace_back(
+            p2, p1, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, 1.0f}
+        ); // вправо
+
+        // Индексы для двух треугольников (один прямоугольник)
+        indices.push_back(0);
+        indices.push_back(1);
+        indices.push_back(2);
+        indices.push_back(1);
+        indices.push_back(3);
+        indices.push_back(2);
+
+        return std::make_shared<Mesh>(vertices, indices, "internal/billboard_line");
+
+
     }
 
     void Renderer::renderNavigationalGizmo() noexcept

@@ -171,6 +171,8 @@ set(SRC
     src/Renderer/SSAO.cpp
     src/Renderer/SSAO.hpp
 
+    src/Renderer/DebugDraw.cpp
+    src/Renderer/DebugDraw.hpp
     src/Renderer/GBuffer.cpp
     src/Renderer/GBuffer.hpp
     src/Renderer/Renderer2D.hpp

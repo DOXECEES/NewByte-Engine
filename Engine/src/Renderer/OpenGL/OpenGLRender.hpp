@@ -74,6 +74,13 @@ namespace nb
                 void beginFrame() noexcept override;
                 void endFrame() noexcept override;
 
+                void drawIndexedBuffer(
+                    nbstl::Span<const uint8_t> buffer,
+                    nbstl::Span<uint32_t>      indexBuffer,
+                    Renderer::PrimitiveType    type,
+                    const Renderer::VertexLayout&        layout
+                ) noexcept override;
+
                 void drawMesh(const Renderer::RendererCommand& command) noexcept override;
                 void drawVertexless(Renderer::RendererCommand& command) noexcept override;
 
@@ -169,7 +176,8 @@ namespace nb
 
                 inline static int               countOfDraws    = 0;
 
-                //
+            private:
+                void initDynamicBuffer() noexcept;
 
             private:
 
@@ -200,6 +208,10 @@ namespace nb
               
                 GLuint emptyVao = 0;
 
+
+                GLuint dynamicVAO;
+                GLuint dynamicVBO;
+                GLuint dynamicEBO;
 
         };
     };

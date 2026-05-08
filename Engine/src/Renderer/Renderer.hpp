@@ -204,6 +204,11 @@ namespace nb
                 return postProcessConfig;
             }
 
+            Ref<Mesh> drawLine(
+                const Math::Vector3<float>& p1,
+                const Math::Vector3<float>& p2
+            ) noexcept;
+
 
         private:
 
