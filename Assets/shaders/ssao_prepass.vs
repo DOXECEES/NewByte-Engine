@@ -8,6 +8,7 @@ layout (location = 3) in vec2 aTexCoords;
 
 out vec3 v_Normal;
 out vec3 v_ViewPos;
+out vec2 v_TexCoodrs;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -24,5 +25,7 @@ void main()
     mat3 normalMatrix = mat3(transpose(inverse(view * model)));
     v_Normal = normalize(normalMatrix * aNormal);
 
+    v_TexCoodrs = aTexCoords;
     gl_Position = projection * viewPos;
+
 }

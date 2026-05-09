@@ -37,7 +37,7 @@ namespace nb::Resource
 
         }
 
-        void bind();
+        void bind(Ref<Renderer::Shader> sh);
 
         void setProperty(
             const std::string& name,

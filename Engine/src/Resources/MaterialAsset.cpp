@@ -4,19 +4,19 @@
 
 namespace nb::Resource
 {
-    void MaterialAsset::bind()
+    void MaterialAsset::bind(Ref<Renderer::Shader> sh)
     {
-        m_shader->use();
+        sh->use();
 
         for (auto& [name, prop] : m_properties)
         {
             if (std::holds_alternative<float>(prop.value))
             {
-                m_shader->setUniformFloat(name, std::get<float>(prop.value));
+                sh->setUniformFloat(name, std::get<float>(prop.value));
             }
             else if (std::holds_alternative<Color>(prop.value))
             {
-                m_shader->setUniformVec4(name, std::get<Color>(prop.value).asVec4());
+                sh->setUniformVec4(name, std::get<Color>(prop.value).asVec4());
             }
             else if (std::holds_alternative<Ref<TextureAsset>>(prop.value))
             {
@@ -25,7 +25,7 @@ namespace nb::Resource
 
                 uint64_t handle = internalTex->getHandle();
 
-                m_shader->setUniformUint64(name, handle);
+                sh->setUniformUint64(name, handle);
             }
         }
     }

@@ -431,7 +431,10 @@ namespace nb::Renderer
                     for (const auto& cmd : mainQueue)
                     {
                         pointShadowShader->setUniformMat4("model", cmd.model);
-                        api->drawMesh({.mesh = cmd.mesh, .pipeline = pointShadowPso});
+                        api->drawMesh({
+                            .mesh     = cmd.mesh,
+                            .pipeline = pointShadowPso,
+                        });
                     }
                     // ==================================
                 }
@@ -460,6 +463,7 @@ namespace nb::Renderer
             };
             uint32   prePso = api->getCache().getOrCreate(prePipeline);
 
+
             prePassShader->use();
             prePassShader->setUniformMat4("view", cam->getLookAt());
             prePassShader->setUniformMat4("projection", cam->getProjection());
@@ -467,7 +471,9 @@ namespace nb::Renderer
             for (const auto& cmd : mainQueue)
             {
                 prePassShader->setUniformMat4("model", cmd.model);
-                api->drawMesh({.mesh = cmd.mesh, .pipeline = prePso});
+                //prePassShader->setUniformUint64("u_AlbedoMap", cmd.material)
+                api->drawMesh({.mesh = cmd.mesh, .material = cmd.material,
+                    .pipeline = prePso});
             }
             gBuffer->getFramebuffer()->unBind();
         }
@@ -620,11 +626,6 @@ namespace nb::Renderer
 
             api->drawMesh(cmd);
         }
-
-
-        DebugDraw::setThickness(5.0f);
-        DebugDraw::drawLine({0, 0, 0}, {100, 100, 100});
-        DebugDraw::drawLine({0, 0, 0}, {100, 0, 100});
 
         DebugDraw::drawBatch(api, cam);
 
@@ -785,10 +786,15 @@ namespace nb::Renderer
         api->clear(true, false, false);
 
         ssrShader->use();
-        for (uint32 i = 0; i < 5; ++i)
-        {
-            api->bindTexture(i, mainFrameBuffer->getTexture(i));
-        }
+        //for (uint32 i = 0; i < 5; ++i)
+        //{
+        //    api->bindTexture(i, mainFrameBuffer->getTexture(i));
+        //}
+
+
+        ssrShader->setUniformUint64("u_NormalMap", gBuffer->getFramebuffer()->getTextureHandle(0));
+        ssrShader->setUniformUint64("u_ColorMap", mainFrameBuffer->getTextureHandle(0));
+        ssrShader->setUniformUint64("u_DepthMap", gBuffer->getFramebuffer()->getTextureHandle(3));
 
         ssrShader->setUniformMat4("invView", nb::Math::inverseWithoutTranspose(view));
         ssrShader->setUniformMat4("invProjection", nb::Math::inverseWithoutTranspose(proj));
@@ -1133,7 +1139,7 @@ namespace nb::Renderer
 
 
         auto shader = request.material->getShader();
-        request.material->bind();
+        request.material->bind(shader);
         
 
 
@@ -1342,7 +1348,8 @@ namespace nb::Renderer
         shader->setUniformVec3("u_CameraPos", camPoss); // ОБЯЗАТЕЛЬНО для бликов PBR
 
         // Биндим текстуры материала
-        materialAsset->bind();
+
+        materialAsset->bind(shader);
 
         // Биндим карты IBL (как в вашем основном методе render)
         if (ibl)

@@ -1,79 +1,96 @@
 #version 430 core
+#extension GL_ARB_bindless_texture : enable
+
 out vec4 FragColor;
 in vec2 TexCoords;
 
-layout (binding = 0) uniform sampler2D u_ColorMap;
-layout (binding = 1) uniform sampler2D u_NormalMap;
-layout (binding = 2) uniform sampler2D u_DepthMap;
+layout(bindless_sampler) uniform sampler2D u_ColorMap;
+layout(bindless_sampler) uniform sampler2D u_NormalMap;
+layout(bindless_sampler) uniform sampler2D u_DepthMap;
 
-uniform mat4 u_Projection;
-uniform mat4 u_InvProjection;
-uniform vec2 u_ScreenSize;
+uniform mat4 projection;
+uniform mat4 invProjection;
 
-// Функция восстановления позиции в View Space из глубины
-vec3 getPos(vec2 uv) {
+vec3 getPos(vec2 uv)
+{
     float depth = texture(u_DepthMap, uv).r * 2.0 - 1.0;
     vec4 clip = vec4(uv * 2.0 - 1.0, depth, 1.0);
-    vec4 view = u_InvProjection * clip;
+    vec4 view = invProjection * clip;
     return view.xyz / view.w;
 }
 
-void main() {
-    // Получаем данные из G-буфера
+vec2 projectToUV(vec3 viewPos)
+{
+    vec4 proj = projection * vec4(viewPos, 1.0);
+    vec2 ndc = proj.xy / proj.w;
+    return ndc * 0.5 + 0.5;
+}
+
+void main()
+{
     vec3 color = texture(u_ColorMap, TexCoords).rgb;
-    vec3 normal = texture(u_NormalMap, TexCoords).rgb; // Должны быть в View Space
+    
+    vec3 normal = normalize(texture(u_NormalMap, TexCoords).xyz);
+    
     vec3 pos = getPos(TexCoords);
-
-    // Если нормаль пустая (например, небо), не считаем отражения
-    if (length(normal) < 0.1) {
-        FragColor = vec4(color, 1.0);
-        return;
-    }
-
-    // Направление взгляда и вектор отражения
-    vec3 viewDir = normalize(pos);
+    vec3 viewDir = normalize(pos); 
     vec3 reflectDir = normalize(reflect(viewDir, normal));
 
-    // Настройки Ray Marching
-    float step = 0.2;       // Длина шага луча
-    int maxSteps = 50;      // Макс. количество шагов
-    float thickness = 0.2;  // "Толщина" объектов сцены
-    
-    vec3 ssrColor = vec3(0.0);
-    vec3 currentPos = pos;
+    float stepSize = 0.2;
+    int maxSteps = 80;
+    int binarySearchSteps = 6;
+    float thickness = 0.3; 
+
+    vec3 currentPos = pos + reflectDir * 0.15;
+    vec2 sampleUV = vec2(0.0);
     bool hit = false;
 
-    for(int i = 0; i < maxSteps; i++) {
-        currentPos += reflectDir * step;
+    for (int i = 0; i < maxSteps; i++)
+    {
+        currentPos += reflectDir * stepSize;
+        sampleUV = projectToUV(currentPos);
 
-        // Проецируем текущую точку луча на экран, чтобы получить UV
-        vec4 proj = u_Projection * vec4(currentPos, 1.0);
-        vec2 sampleUV = (proj.xy / proj.w) * 0.5 + 0.5;
+        if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0)
+            break;
 
-        // Проверка границ экрана
-        if(sampleUV.x < 0 || sampleUV.x > 1 || sampleUV.y < 0 || sampleUV.y > 1) break;
+        float sceneZ = getPos(sampleUV).z;
+        float diff = currentPos.z - sceneZ;
 
-        // Получаем глубину сцены в этой точке экрана
-        float sceneDepth = getPos(sampleUV).z;
+        if (diff < 0.0 && diff > -thickness)
+        {
+            vec3 a = currentPos - reflectDir * stepSize;
+            vec3 b = currentPos;
 
-        // Проверяем: луч зашел за поверхность?
-        if(currentPos.z < sceneDepth) {
-            // Проверка на толщину, чтобы не отражать "задники"
-            if(abs(currentPos.z - sceneDepth) < thickness) {
-                // Плавное затухание у краев экрана
-                float edgeFactor = min(1.0, (0.5 - abs(sampleUV.x - 0.5)) * 10.0) * 
-                                   min(1.0, (0.5 - abs(sampleUV.y - 0.5)) * 10.0);
-                
-                ssrColor = texture(u_ColorMap, sampleUV).rgb * edgeFactor;
-                hit = true;
-                break;
+            for (int j = 0; j < binarySearchSteps; j++)
+            {
+                vec3 mid = mix(a, b, 0.5);
+                vec2 midUV = projectToUV(mid);
+                float midZ = getPos(midUV).z;
+                if (mid.z < midZ) b = mid;
+                else a = mid;
             }
+
+            sampleUV = projectToUV(b);
+            hit = true;
+            break;
         }
     }
 
-    // Смешиваем оригинальный цвет и отражение
-    // Можно добавить коэффициент Френеля для реализма
-    float fresnel = pow(1.0 - max(dot(normal, -viewDir), 0.0), 3.0);
-    
-    FragColor = vec4(color + ssrColor * fresnel * 0.5, 1.0);
+    vec3 ssrColor = vec3(0.0);
+    float fade = 0.0;
+
+    if (hit)
+    {
+        vec2 edgeFade = smoothstep(0.0, 0.1, sampleUV) * (1.0 - smoothstep(0.9, 1.0, sampleUV));
+        fade = edgeFade.x * edgeFade.y;
+
+        float distFade = 1.0 - clamp(length(currentPos - pos) / 25.0, 0.0, 1.0);
+        
+        float fresnel = pow(1.0 - max(dot(normal, -viewDir), 0.0), 5.0);
+        fresnel = clamp(fresnel, 0.1, 1.0);
+
+        ssrColor = texture(u_ColorMap, sampleUV).rgb * fade * distFade * fresnel;
+    }
+
+    FragColor = vec4(color + ssrColor, 1.0);
 }
