@@ -33,7 +33,12 @@ public:
 private:
     std::unique_ptr<NNsLayout::LayoutNode> buildInspectorUI();
     
-    void addPropertyWidget(nbui::LayoutBuilder&& container, const std::string& name, nb::Resource::MaterialProperty& prop);
+    void addPropertyWidget(
+        nbui::LayoutBuilder&&           container,
+        nbui::LayoutBuilder&&           valueContainer,
+        const std::string&              name,
+        nb::Resource::MaterialProperty& prop
+    );
 
     void onSave() noexcept;
     void onClose() noexcept;

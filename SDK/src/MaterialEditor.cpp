@@ -105,20 +105,52 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
     std::move(inspectorVBox).child(LayoutBuilder::spacerAbsolute(1, 10)); // Разделитель
 
     // --- ДИНАМИЧЕСКИЕ ПАРАМЕТРЫ ---
-    std::move(inspectorVBox).child(
+    std::move(inspectorVBox)
+        .child(
             LayoutBuilder::label(Translation::fromKeyToWstring("Ui.MaterialEditor.Properties"))
-            .fontSize(12).color({150, 150, 150}).absoluteHeight(20)
-    );
+                .fontSize(12)
+                .color({150, 150, 150})
+                .absoluteHeight(20)
+        );
 
-    // Итерируемся по свойствам материала, которые мы загрузили из .material / .shader
+    
+    auto textureSection =
+        LayoutBuilder::section(Translation::fromKeyToWstring("Ui.MaterialEditor.TextureSection"))
+                              .relativeWidth(1.0f)
+                              .autoHeight()
+                              .style(
+                                  [this](auto& s)
+                                  {
+                                      s.color = {52, 52, 52};
+                                  }
+                              )
+                              .padding({10, 10, 0, 10});
+   
+    auto valueSection =
+        LayoutBuilder::section(Translation::fromKeyToWstring("Ui.MaterialEditor.ParametersSection"))
+                              .relativeWidth(1.0f)
+                              .autoHeight()
+                              .style(
+                                  [this](auto& s)
+                                  {
+                                      s.color = {52, 52, 52};
+                                  }
+                              )
+                              .padding({10, 10, 0, 10});    
+
+
+
     for (auto& [name, prop] : targetMaterial->getProperties()) 
     {
         addPropertyWidget(
-            std::move(inspectorVBox),
+            std::move(textureSection), 
+            std::move(valueSection),
             Translation::fromKey(name),
             prop
         );
     }
+
+    std::move(inspectorVBox).child(std::move(textureSection)).child(std::move(valueSection));
 
     // Кнопка сохранения
     std::move(inspectorVBox).child(LayoutBuilder::spacer().relativeHeight(1.0f));
@@ -160,7 +192,12 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
     return std::move(inspectorVBox).build();
 }
 
-void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const std::string& name, nb::Resource::MaterialProperty& prop)
+void MaterialEditor::addPropertyWidget(
+    nbui::LayoutBuilder&& container,
+    nbui::LayoutBuilder&& valueContainer,
+    const std::string&              name,
+    nb::Resource::MaterialProperty& prop
+)
 {
     using namespace nbui;
     std::wstring wName = Utils::toWstring(name);
@@ -185,6 +222,9 @@ void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const st
                     );
                 })
         );
+
+        std::move(valueContainer).child(std::move(row));
+
     }
     else if (std::holds_alternative<Ref<nb::Resource::TextureAsset>>(prop.value))
     {
@@ -201,9 +241,9 @@ void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const st
                     // активировать режим Drag&Drop
                 })
         );
+        std::move(container).child(std::move(row));
     }
 
-    std::move(container).child(std::move(row));
 }
 
 void MaterialEditor::onSave() noexcept

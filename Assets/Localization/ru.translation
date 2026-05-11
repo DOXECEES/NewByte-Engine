@@ -4,6 +4,9 @@ Ui.MaterialEditor.Properties : Свойства
 Ui.MaterialEditor.SaveMaterial : Сохранить
 Ui.MaterialEditor.Exit : Выйти
 Ui.MaterialEditor.None : Отсутствует
+Ui.MaterialEditor.TextureSection : Текстуры
+Ui.MaterialEditor.ParametersSection : Параметры
+
 
 
 
