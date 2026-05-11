@@ -36,6 +36,7 @@ private:
     void addPropertyWidget(nbui::LayoutBuilder&& container, const std::string& name, nb::Resource::MaterialProperty& prop);
 
     void onSave() noexcept;
+    void onClose() noexcept;
 
 
 private:

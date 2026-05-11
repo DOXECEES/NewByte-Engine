@@ -57,7 +57,6 @@ MaterialEditor::MaterialEditor(
 
     onRender();
 
-   
 }
 
 void MaterialEditor::handleResize(const NbSize<int>& size)
@@ -114,13 +113,39 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
 
     // Кнопка сохранения
     std::move(inspectorVBox).child(LayoutBuilder::spacer().relativeHeight(1.0f));
+   
     std::move(inspectorVBox).child(
-        LayoutBuilder::widget(new Widgets::Button())
-            .text(L"SAVE MATERIAL")
-            .absoluteHeight(40).relativeWidth(1.0f)
-            .onEvent(&Widgets::IWidget::onReleasedSignal, [this]() {
-                onSave();
-            })
+        LayoutBuilder::hBox()
+                .absoluteHeight(40)
+        .relativeWidth(1.0f)
+        .child(
+                LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"SAVE MATERIAL")
+                    .absoluteHeight(40)
+                    .relativeWidth(0.5f)
+                    .onEvent(
+                        &Widgets::IWidget::onReleasedSignal,
+                        [this]()
+                        {
+                            onSave();
+                        }
+                    )
+           )
+        .child(
+                    LayoutBuilder::widget(new Widgets::Button())
+                        .text(L"Exit")
+                        .absoluteHeight(40)
+                        .relativeWidth(0.5f)
+                        .onEvent(
+                            &Widgets::IWidget::onReleasedSignal,
+                            [this]()
+                            {
+                                onClose();
+                            }
+                        )
+        )
+
+        
     );
 
     return std::move(inspectorVBox).build();
@@ -175,10 +200,14 @@ void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const st
 void MaterialEditor::onSave() noexcept
 {
     targetMaterial->updateMetaData();
+    onClose();
+}
+
+void MaterialEditor::onClose() noexcept
+{
     inspectorWindow->close();
     previewWindow->close();
     modalWindow->close();
-
     onWindowClose.emit();
 }
 
