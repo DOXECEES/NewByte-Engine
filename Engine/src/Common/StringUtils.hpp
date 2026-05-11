@@ -6,6 +6,10 @@
 namespace nb::Utils
 {
     std::wstring toWString(const std::string& str) noexcept;
+    void         trimLast(
+        std::string& str,
+        char         trimChar = ' '
+    ) noexcept;
 };
 
 #endif 

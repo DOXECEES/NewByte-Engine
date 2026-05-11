@@ -5,6 +5,9 @@
 #include <Widgets/Label.hpp>
 #include <Widgets/Button.hpp>
 
+#include <Localization/Translation.hpp>
+#include <Common/StringUtils.hpp>
+
 MaterialEditor::MaterialEditor(
     WindowInterface::IWindow* parent,
     nb::Core::Engine* engine,
@@ -79,6 +82,8 @@ void MaterialEditor::handleResize(const NbSize<int>& size)
 
 std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
 {
+    using namespace Localization;
+
     using namespace nbui;
     auto inspectorVBox = LayoutBuilder::vBox()
         .padding({10, 10, 10, 10})
@@ -87,7 +92,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
 
     // Заголовок секции шейдера
     std::move(inspectorVBox).child(
-        LayoutBuilder::label(L"SHADER")
+            LayoutBuilder::label(Translation::fromKeyToWstring("Ui.MaterialEditor.Shader"))
             .fontSize(12).color({150, 150, 150}).absoluteHeight(20)
     );
     
@@ -101,14 +106,18 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
 
     // --- ДИНАМИЧЕСКИЕ ПАРАМЕТРЫ ---
     std::move(inspectorVBox).child(
-        LayoutBuilder::label(L"PROPERTIES")
+            LayoutBuilder::label(Translation::fromKeyToWstring("Ui.MaterialEditor.Properties"))
             .fontSize(12).color({150, 150, 150}).absoluteHeight(20)
     );
 
     // Итерируемся по свойствам материала, которые мы загрузили из .material / .shader
     for (auto& [name, prop] : targetMaterial->getProperties()) 
     {
-        addPropertyWidget(std::move(inspectorVBox), name, prop);
+        addPropertyWidget(
+            std::move(inspectorVBox),
+            Translation::fromKey(name),
+            prop
+        );
     }
 
     // Кнопка сохранения
@@ -120,7 +129,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
         .relativeWidth(1.0f)
         .child(
                 LayoutBuilder::widget(new Widgets::Button())
-                    .text(L"SAVE MATERIAL")
+                        .text(Translation::fromKeyToWstring("Ui.MaterialEditor.SaveMaterial"))
                     .absoluteHeight(40)
                     .relativeWidth(0.5f)
                     .onEvent(
@@ -133,7 +142,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
            )
         .child(
                     LayoutBuilder::widget(new Widgets::Button())
-                        .text(L"Exit")
+                        .text(Translation::fromKeyToWstring("Ui.MaterialEditor.Exit"))
                         .absoluteHeight(40)
                         .relativeWidth(0.5f)
                         .onEvent(
@@ -154,7 +163,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
 void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const std::string& name, nb::Resource::MaterialProperty& prop)
 {
     using namespace nbui;
-    std::wstring wName(name.begin(), name.end());
+    std::wstring wName = Utils::toWstring(name);
 
     auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30).margin({0, 0, 5, 0});
     std::move(row).child(LayoutBuilder::label(wName).relativeWidth(0.4f));
@@ -181,7 +190,7 @@ void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const st
     {
         // Для текстур рисуем кнопку-слот (в идеале тут должен быть Thumbnail)
         auto tex = std::get<Ref<nb::Resource::TextureAsset>>(prop.value);
-        std::wstring texName = L"None";
+        std::wstring texName = Localization::Translation::fromKeyToWstring("Ui.MaterialEditor.None");
 
         std::move(row).child(
             LayoutBuilder::widget(new Widgets::Button())
