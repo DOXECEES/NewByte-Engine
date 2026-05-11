@@ -9,7 +9,9 @@ MaterialEditor::MaterialEditor(
     WindowInterface::IWindow* parent,
     nb::Core::Engine* engine,
     nbstl::NonOwningPtr<nb::Resource::MaterialAsset> material
-) : engine(engine), targetMaterial(material) 
+) 
+    : engine(engine)
+    , targetMaterial(material) 
 {
     modalWindow = std::make_shared<Win32Window::ModalWindow>(NbSize<int>{1200, 800}, parent);
     modalWindow->setTitle(L"Material Editor - ");
@@ -45,6 +47,14 @@ MaterialEditor::MaterialEditor(
         }
     );
     
+    subscribe(
+        modalWindow.get(), &Win32Window::ModalWindow::onSizeChanged,
+        [this](const NbSize<int>& newSize)
+        {
+            handleResize(newSize);
+        }
+    );
+
     onRender();
 
    
@@ -63,6 +73,7 @@ void MaterialEditor::handleResize(const NbSize<int>& size)
 
     inspectorWindow->setSize({size.width - previewWidth + Metrics::padding, contentHeight});
     inspectorWindow->setPosition({previewWidth, topOffset});
+    inspectorWindow->getLayoutRoot()->addChild(std::move(buildInspectorUI()));
 
     onRender();
 }
@@ -73,7 +84,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
     auto inspectorVBox = LayoutBuilder::vBox()
         .padding({10, 10, 10, 10})
         .relativeWidth(1.0f)
-        .autoHeight();
+        .relativeHeight(1.0f);
 
     // Заголовок секции шейдера
     std::move(inspectorVBox).child(
@@ -108,7 +119,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
             .text(L"SAVE MATERIAL")
             .absoluteHeight(40).relativeWidth(1.0f)
             .onEvent(&Widgets::IWidget::onReleasedSignal, [this]() {
-                //targetMaterial->save(); // Сериализация в JSON
+                onSave();
             })
     );
 
@@ -159,6 +170,16 @@ void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const st
     }
 
     std::move(container).child(std::move(row));
+}
+
+void MaterialEditor::onSave() noexcept
+{
+    targetMaterial->updateMetaData();
+    inspectorWindow->close();
+    previewWindow->close();
+    modalWindow->close();
+
+    onWindowClose.emit();
 }
 
 void MaterialEditor::show()

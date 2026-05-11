@@ -792,11 +792,14 @@ namespace nb::Renderer
         //}
 
 
-        ssrShader->setUniformUint64("u_NormalMap", gBuffer->getFramebuffer()->getTextureHandle(0));
-        ssrShader->setUniformUint64("u_ColorMap", mainFrameBuffer->getTextureHandle(0));
-        ssrShader->setUniformUint64("u_DepthMap", gBuffer->getFramebuffer()->getTextureHandle(3));
+        ssrShader->setUniformUint64("gFinalImage", mainFrameBuffer->getTextureHandle(0));
+        ssrShader->setUniformUint64("gNormal", gBuffer->getFramebuffer()->getTextureHandle(0));
+        //ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(1));
+        ssrShader->setUniformUint64("gExtraComponents", gBuffer->getFramebuffer()->getTextureHandle(3));
+        ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(4));
 
-        ssrShader->setUniformMat4("invView", nb::Math::inverseWithoutTranspose(view));
+
+        ssrShader->setUniformMat4("invView", nb::Math::inverse(view));
         ssrShader->setUniformMat4("invProjection", nb::Math::inverseWithoutTranspose(proj));
         ssrShader->setUniformMat4("projection", proj);
         ssrShader->setUniformMat4("view", view);
@@ -1073,7 +1076,7 @@ namespace nb::Renderer
 
 
         auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
-            "Assets/res/glasshouse_interior_4k.hdr"
+            "Assets/res/grasslands_sunset_4k.hdr"
         );
 
 
@@ -1156,21 +1159,11 @@ namespace nb::Renderer
         // Слот 5: BRDF LUT (2D)
         //shader->setUniformInt("u_BrdfLUT", 5);
         api->bindTexture(6, ibl->getBrdfTexture()->getId());
-        
-
-
-
-
-        
-
 
 
         shader->setUniformMat4("proj", projection);
         shader->setUniformMat4("view", view);
         shader->setUniformMat4("model", model);
-
-
-
 
 
         shader->setUniformVec3("u_CameraPos", cam.getPosition());

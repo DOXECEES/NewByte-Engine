@@ -11,6 +11,11 @@ in vec4 FragPosLightSpace;
 uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_NormalMap;
 uniform sampler2D u_ORMMap;
+uniform float u_BaseColorFactor = 1.0f;
+
+uniform float u_RoughnessFactor = 1.0f;
+uniform float u_MetallicFactor = 1.0f;
+uniform float u_OcclusionFactor = 1.0f;
 
 layout(bindless_sampler) uniform sampler2D u_EmissionMap;
 uniform float     u_EmissionMapStrength = 1.0;
@@ -221,7 +226,7 @@ void main() {
     vec2 screenUV = gl_FragCoord.xy / u_ScreenResolution;
 
 
-    vec3 albedo = pow(texture(u_AlbedoMap, uv).rgb, vec3(2.2));
+    vec3 albedo = pow(texture(u_AlbedoMap, uv).rgb, vec3(2.2)) * pow(u_BaseColorFactor, 2.2);
     vec3 nMap = texture(u_NormalMap, uv).rgb * 2.0 - 1.0;
     nMap.xy *= u_NormalMapStrength;
     vec3 orm = texture(u_ORMMap, uv).rgb;
@@ -235,9 +240,9 @@ void main() {
     }
 
 
-    float ao = orm.r;
-    float roughness = clamp(orm.g, 0.05, 1.0);
-    float metallic = orm.b;
+    float ao = orm.r * u_OcclusionFactor;
+    float roughness = clamp(orm.g, 0.05, 1.0) * u_RoughnessFactor;
+    float metallic = mix(orm.b, u_MetallicFactor, 0.5);
 
     vec3 N = normalize(TBN * nMap);
     vec3 V = normalize(u_CameraPos - FragPos);

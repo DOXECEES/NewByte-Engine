@@ -31,8 +31,7 @@ namespace nb::Resource
     {
     public:
         MaterialAsset(const std::filesystem::path& path)
-            : m_path(path)
-            , IResource(path)
+            : IResource(path)
         {
 
         }
@@ -67,12 +66,64 @@ namespace nb::Resource
             m_shader = shader;
         }
 
+        void updateMetaData() noexcept override
+        {
+            Loaders::Json j;
+
+            if (m_shader)
+            {
+                j["shader"] = m_shader->getPath();
+            }
+
+
+            Loaders::Node node;
+
+
+            for (auto& [name, prop] : m_properties)
+            {
+                std::visit(
+                    [&](auto&& val)
+                    {
+                        using T = std::decay_t<decltype(val)>;
+
+                        if constexpr (std::is_same_v<T, float> )
+                        {
+                            node[name] = val;
+                        }
+                        else if constexpr (std::is_same_v<T, nb::Color>)
+                        {
+                            auto rgba = val.toRgba();
+                            node[name] = Loaders::Node::Array{rgba.r, rgba.g, rgba.b, rgba.alpha};
+                        }
+                        else if constexpr (std::is_same_v<T, Ref<TextureAsset>>)
+                        {
+                            if (val)
+                            {
+                                std::filesystem::path path = val->getPath();
+                                path.replace_extension(".texture");
+                                node[name] = path.string();
+                            }
+                            else
+                            {
+                                node[name] = nullptr;
+                            }
+                        }
+                    },
+                    prop.value
+                );
+            }
+
+            j["properties"] = node;
+
+            j.writeToFile(path);
+        }
+
+
 
     private:
         Ref<Renderer::Shader> m_shader;
         std::unordered_map<std::string, MaterialProperty> m_properties;
         
-        std::filesystem::path m_path;
 
         void loadFromPath(const std::filesystem::path& path);
     };

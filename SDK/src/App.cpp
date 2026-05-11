@@ -1542,6 +1542,33 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                             w->setMaterial(fileName, materialRef != nullptr);
                                         }
                                     )
+                                    .onEvent(
+                                        &Widgets::MaterialWidget::onClickSignal,
+                                        [this, materialRef]()
+                                        {
+                                            if (materialEditor)
+                                            {
+                                                materialEditor = nullptr;
+                                            }
+
+                                            materialEditor = std::make_shared<MaterialEditor>(
+                                                debugWindow.get(), engine.get(),
+                                                nbstl::NonOwningPtr(materialRef.get())
+                                            );
+
+                                            //subscribe(
+                                            //    materialEditor.get(),
+                                            //    &MaterialEditor::onWindowClose,
+                                            //    []()
+                                            //    {
+                                            //    
+                                            //    }
+                                            //)
+
+                                            materialEditor->show();
+                                        }
+                                    )
+
                                    
                             )
                     );

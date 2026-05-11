@@ -90,15 +90,20 @@ namespace nb
                     return;
                 }
 
+                int levels = 6;
+
+
                 glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB16F, width, height);
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
                 glFramebufferTexture2D(
                     GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorTextureCount, GL_TEXTURE_2D,
                     texture, 0
                 );
+                glGenerateMipmap(GL_TEXTURE_2D); 
+
                 colorTextureCount++;
                 break;
             }
@@ -110,7 +115,8 @@ namespace nb
                     errorMessage("Depth buffer already attached!");
                 }
 
-                glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT24, width, height);
+                glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, width, height);
+
 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

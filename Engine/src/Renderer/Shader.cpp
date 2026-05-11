@@ -7,9 +7,11 @@ namespace nb
 {
     namespace Renderer
     {
-        Shader::Shader() noexcept
-            : id(globalId++),
-              IResource("")
+        Shader::Shader(
+            const std::filesystem::path& shaderProgramPath
+        ) noexcept
+            : id(globalId++)
+            , IResource(shaderProgramPath)
         {
             
         }

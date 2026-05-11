@@ -28,12 +28,15 @@ public:
 
     Win32Window::ModalWindow* getRawWindow() { return modalWindow.get(); }
 
+    Signal<void()> onWindowClose;
+
 private:
     std::unique_ptr<NNsLayout::LayoutNode> buildInspectorUI();
-    //std::unique_ptr<NNsLayout::LayoutNode> buildEditorUI();
     
-    // Вспомогательная функция для создания виджета под тип параметра
     void addPropertyWidget(nbui::LayoutBuilder&& container, const std::string& name, nb::Resource::MaterialProperty& prop);
+
+    void onSave() noexcept;
+
 
 private:
     struct Metrics

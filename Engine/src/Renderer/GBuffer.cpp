@@ -12,10 +12,11 @@ namespace nb::Renderer
         framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
         framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
         framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
         framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
         framebuffer->finalize();
 
-        framebuffer->setDrawBuffers(3);
+        framebuffer->setDrawBuffers(4);
     }
 
     const Ref<IFrameBuffer>& GBuffer::getFramebuffer() const noexcept
