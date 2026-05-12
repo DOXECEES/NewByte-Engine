@@ -26,6 +26,12 @@ namespace nb
             {
                 return path.filename().string();
             }
+
+            std::string getFilename() noexcept
+            {
+                return path.stem().string();
+            };
+
         protected:
             std::filesystem::path path;
         };

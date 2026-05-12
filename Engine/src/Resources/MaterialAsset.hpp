@@ -46,7 +46,6 @@ namespace nb::Resource
             m_properties[name] = MaterialProperty(value);
         }
 
-
         void setProperty(const std::string& name, float value)
         {
             m_properties[name] = MaterialProperty(value);
@@ -58,7 +57,7 @@ namespace nb::Resource
         }
 
         std::unordered_map<std::string, MaterialProperty>& getProperties() { return m_properties; }
-        std::string getShaderName() const { return toString(m_shader->getId()); }
+        std::string getShaderName() const { return toString(m_shader->getFilename()); }
 
         Ref<Renderer::Shader> getShader() {return m_shader;}
         void setShader(Ref<Renderer::Shader> shader)
