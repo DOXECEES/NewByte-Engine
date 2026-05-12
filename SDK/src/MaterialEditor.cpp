@@ -4,6 +4,7 @@
 #include <Widgets/Slider.hpp>
 #include <Widgets/Label.hpp>
 #include <Widgets/Button.hpp>
+#include <Widgets/TextureWidget.hpp>
 
 #include <Localization/Translation.hpp>
 #include <Common/StringUtils.hpp>
@@ -130,6 +131,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
         LayoutBuilder::section(Translation::fromKeyToWstring("Ui.MaterialEditor.ParametersSection"))
                               .relativeWidth(1.0f)
                               .autoHeight()
+                              
                               .style(
                                   [this](auto& s)
                                   {
@@ -202,8 +204,16 @@ void MaterialEditor::addPropertyWidget(
     using namespace nbui;
     std::wstring wName = Utils::toWstring(name);
 
-    auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30).margin({0, 0, 5, 0});
-    std::move(row).child(LayoutBuilder::label(wName).relativeWidth(0.4f));
+    auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30).margin({5, 5, 5, 5});
+    std::move(row).child(
+        LayoutBuilder::label(wName).relativeWidth(0.4f).textAlignment(
+            TextFormatAlignment{
+                .textAlignment      = TextAlignment::LEFT,
+                .paragraphAlignment = ParagraphAlignment::CENTER,
+            }
+            )
+            
+    );
 
     // Проверяем тип свойства (std::variant)
     if (std::holds_alternative<float>(prop.value)) 
@@ -228,18 +238,28 @@ void MaterialEditor::addPropertyWidget(
     }
     else if (std::holds_alternative<Ref<nb::Resource::TextureAsset>>(prop.value))
     {
+
+        std::move(row).absoluteHeight(100);
         // Для текстур рисуем кнопку-слот (в идеале тут должен быть Thumbnail)
         auto tex = std::get<Ref<nb::Resource::TextureAsset>>(prop.value);
-        std::wstring texName = Localization::Translation::fromKeyToWstring("Ui.MaterialEditor.None");
-
+        //std::wstring texName = Localization::Translation::fromKeyToWstring("Ui.MaterialEditor.None");
+        std::wstring texName = Utils::toWstring(tex->getPath());
         std::move(row).child(
-            LayoutBuilder::widget(new Widgets::Button())
+            LayoutBuilder::widget(new Widgets::TextureWidget())
                 .text(texName)
                 .relativeWidth(0.6f)
-                .onEvent(&Widgets::Button::onReleasedSignal, [this, name]() {
-                    // Здесь можно открыть диалог выбора текстуры или
-                    // активировать режим Drag&Drop
-                })
+                .apply<Widgets::TextureWidget>(
+                    [tex, texName](Widgets::TextureWidget* w)
+                    {
+                        std::wstring resolution = std::to_wstring(tex->getWidth()) + L"x" +
+                                                 std::to_wstring(tex->getHeight());
+                        w->setTexture(texName, resolution);
+                    }
+                )
+                //.onEvent(&Widgets::Button::onReleasedSignal, [this, name]() {
+                //    // Здесь можно открыть диалог выбора текстуры или
+                //    // активировать режим Drag&Drop
+                //})
         );
         std::move(container).child(std::move(row));
     }
