@@ -226,7 +226,13 @@ void main() {
     vec2 screenUV = gl_FragCoord.xy / u_ScreenResolution;
 
 
-    vec3 albedo = pow(texture(u_AlbedoMap, uv).rgb, vec3(2.2)) * pow(u_BaseColorFactor, 2.2);
+    vec4 albedoSample = texture(u_AlbedoMap, uv);
+
+    if (albedoSample.a < 0.01) {
+        discard;
+    }
+    vec3 albedo = pow(albedoSample.rgb, vec3(2.2)) * pow(u_BaseColorFactor, 2.2);
+    
     vec3 nMap = texture(u_NormalMap, uv).rgb * 2.0 - 1.0;
     nMap.xy *= u_NormalMapStrength;
     vec3 orm = texture(u_ORMMap, uv).rgb;

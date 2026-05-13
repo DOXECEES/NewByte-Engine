@@ -106,6 +106,7 @@ namespace nb::Renderer
                 "gizmoShader.shader"
             );
 
+
             Pipeline gridPipeline{.shader = sh, .isDepthTestEnable = false, .isBlendEnable = true};
 
             uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
