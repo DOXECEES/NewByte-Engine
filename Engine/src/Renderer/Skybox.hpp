@@ -8,6 +8,9 @@
 #include <array>
 #include <utility>
 
+#include <NonOwningPtr.hpp>
+
+#include "Renderer/ContextMeshCache.hpp"
 #include "Shader.hpp"
 #include "../Core/EngineSettings.hpp"
 #include "Mesh.hpp"
@@ -28,7 +31,9 @@ namespace nb
 
             public:
             
-                Skybox();
+                Skybox(
+                    const Ref<ContextMeshCache>& cache
+                );
                 ~Skybox();
 
                 void bindCubemap(Ref<nb::Renderer::Cubemap> cube)
@@ -40,10 +45,18 @@ namespace nb
 
                 GLuint getCubemapTextureId() const noexcept;
 
+                nbstl::NonOwningPtr<Mesh> getCubeMesh() const noexcept;
+
+                void updateContextMesh(
+                    const Ref<ContextMeshCache>& cache,
+                    HGLRC hglrc
+                ) noexcept;
+
             private:
                 std::vector<uint8_t>    textureData;
                 GLuint                  cubemapTexture;
-                nb::Renderer::Mesh*         mesh;
+                Ref<Mesh>               mesh;
+                nb::Renderer::ContextMesh*     ctxMesh;
 
                 std::vector<Vertex>     skyboxVertices  = {
                     // Координаты для 8 вершин куба

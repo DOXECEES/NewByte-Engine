@@ -275,6 +275,8 @@ namespace nb
         std::optional<Node> getParent() noexcept;
 
 
+
+
     private:
         Ecs::EntityID entity = 0;
         Scene* scene = nullptr;
