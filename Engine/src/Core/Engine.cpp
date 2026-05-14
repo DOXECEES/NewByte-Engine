@@ -461,6 +461,11 @@ namespace nb
             return shaderSystem;
         }
 
+        void Engine::setEditorSelectedNode(Node node) noexcept
+        {
+            editorSelectedNode = node;
+        }
+
         void Engine::outlineSelectedObject() noexcept
         {
             renderer->outline(editorSelectedNode);

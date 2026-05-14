@@ -275,8 +275,6 @@ namespace nb
         std::optional<Node> getParent() noexcept;
 
 
-
-
     private:
         Ecs::EntityID entity = 0;
         Scene* scene = nullptr;
@@ -294,7 +292,6 @@ namespace nb
         }
 
         void clear() noexcept;
-        
 
         Node createNode(Ecs::EntityID parent = 0) noexcept;
 
@@ -339,6 +336,11 @@ namespace nb
         }
 
         void deleteEntity(Ecs::EntityID id) noexcept;
+        Node clone(
+            Ecs::EntityID parent,
+            Ecs::EntityID source
+        ) noexcept;
+
 
         Node findNodeByName(std::string_view name) noexcept;
         

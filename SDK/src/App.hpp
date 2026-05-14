@@ -90,7 +90,7 @@ private:
 
 
     Widgets::TreeView* savedTreeView = nullptr; 
-
+    nb::Ecs::EntityID  copiedEntityId;
 
     void openColorPickerWindow();
     void openFilePickerWindow();
@@ -170,6 +170,9 @@ private:
     void setupHierarchyEvents(Widgets::TreeView* tv) noexcept;
 
     void deleteEntity(const Widgets::ModelIndex& index) noexcept;
+    void copyEntity(const Widgets::ModelIndex& index) noexcept;
+    void pasteEntity(const Widgets::ModelIndex& index) noexcept;
+
     void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
 
     int mainLoop() {
