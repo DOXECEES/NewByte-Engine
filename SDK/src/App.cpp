@@ -1150,6 +1150,7 @@ void EditorApp::subscribeAll() noexcept
 {
     subscribe(this, &EditorApp::onActiveNodeChanged, [&]() {
             rebuildInspector();
+            engine->setEditorSelectedNode(activeNode);
     });
 }
 
@@ -1542,6 +1543,33 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                             w->setMaterial(fileName, materialRef != nullptr);
                                         }
                                     )
+                                    .onEvent(
+                                        &Widgets::MaterialWidget::onClickSignal,
+                                        [this, materialRef]()
+                                        {
+                                            if (materialEditor)
+                                            {
+                                                materialEditor = nullptr;
+                                            }
+
+                                            materialEditor = std::make_shared<MaterialEditor>(
+                                                debugWindow.get(), engine.get(),
+                                                nbstl::NonOwningPtr(materialRef.get())
+                                            );
+
+                                            //subscribe(
+                                            //    materialEditor.get(),
+                                            //    &MaterialEditor::onWindowClose,
+                                            //    []()
+                                            //    {
+                                            //    
+                                            //    }
+                                            //)
+
+                                            materialEditor->show();
+                                        }
+                                    )
+
                                    
                             )
                     );
@@ -1927,6 +1955,22 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 }
             );
 
+            popup->addItem(
+                L"Копировать",
+                [this, index]()
+                {
+                    copyEntity(index);
+                }
+            );
+
+            popup->addItem(
+                L"Вставить",
+                [this, index]()
+                {
+                    pasteEntity(index);
+                }
+            );
+
             const auto mousePos = this->mainWindow->getMousePosition();
             this->hierarchyWindow->getPopupManager().show(popup, mousePos.x, mousePos.y);
         }
@@ -1955,6 +1999,48 @@ void EditorApp::deleteEntity(const Widgets::ModelIndex& index) noexcept
     onActiveNodeChanged.emit();
     scene.invalidateBvh();
 }
+
+void EditorApp::copyEntity(const Widgets::ModelIndex& index) noexcept
+{
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
+    auto&             scene = nb::Scene::getInstance();
+
+    copiedEntityId = id;
+
+}
+
+
+void EditorApp::pasteEntity(const Widgets::ModelIndex& index) noexcept
+{
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
+    auto&             scene = nb::Scene::getInstance();
+
+    
+    
+    nb::Node copy = scene.clone(id, copiedEntityId);
+    NameComponent& name = copy.getComponent<NameComponent>();
+    name.name                += " (Сopy)";
+    name.name = primitiveNameManager.generateName(name.name);
+
+    sceneModel->addEntity(id, copy.getId());
+
+    activeNode = copy;
+
+    refreshHierarchyTreeViewSignal.emit();
+    onActiveNodeChanged.emit();
+    scene.invalidateBvh();
+}
+
 
 void EditorApp::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
 {

@@ -274,9 +274,8 @@ namespace nb
             template <typename T>
             std::string toString(const T &value) const
             {
-                std::ostringstream oss;
-                oss << value;
-                return oss.str();
+                return std::to_string(value);
+
             }
 
             // Специализация для std::string (чтобы не добавлялись кавычки при записи)

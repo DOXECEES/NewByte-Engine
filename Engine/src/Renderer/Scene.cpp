@@ -111,6 +111,34 @@ namespace nb
         ecs.destroyEntity(Ecs::Entity{id});
     }
 
+    Node Scene::clone(
+        Ecs::EntityID parentId,
+        Ecs::EntityID sourceId
+    ) noexcept
+    {
+        Ecs::Entity cloneEntity = ecs.cloneEntity<HierarchyComponent>(Ecs::Entity{sourceId});
+
+        HierarchyComponent newHierarchy;
+        newHierarchy.parent   = parentId;
+        newHierarchy.children = {}; 
+        ecs.add(cloneEntity, std::move(newHierarchy));
+
+        if (parentId != 0)
+        {
+            auto& parentRef = ecs.get<HierarchyComponent>(Ecs::Entity{parentId});
+            parentRef.children.push_back(cloneEntity.id);
+        }
+
+        if (ecs.has<TransformComponent>(cloneEntity))
+        {
+            auto& transform = ecs.get<TransformComponent>(cloneEntity);
+            transform.dirty = true; 
+        }
+
+
+        return Node(cloneEntity.id, this);
+    }
+
     Node Scene::findNodeByName(std::string_view name) noexcept
     {
         auto entities = getEntitiesWith<NameComponent>();

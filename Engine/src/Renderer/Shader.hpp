@@ -16,7 +16,9 @@ namespace nb
         class Shader : public Resource::IResource
         {
         public:
-            Shader() noexcept;
+            Shader(
+                const std::filesystem::path& shaderProgramPath
+            ) noexcept;
             virtual ~Shader() noexcept = default;
 
             virtual void use() noexcept = 0;

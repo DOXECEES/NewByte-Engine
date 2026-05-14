@@ -10,7 +10,9 @@ namespace nb
 {
     namespace Renderer
     {
-        Skybox::Skybox()
+        Skybox::Skybox(
+            const Ref<ContextMeshCache>& cache
+        )
         {
 
             uint32_t width = 0;
@@ -23,68 +25,69 @@ namespace nb
             std::array<int, 6> ind = {
                 6, 4, 1, 9, 5, 7};
 
-            lodepng::decode(textureData, width, height, "Assets\\res\\skybox.png");
+            //lodepng::decode(textureData, width, height, "Assets\\res\\skybox.png");
 
-            const int segmentWidth = width / cols;
-            const int segmentHeight = height / rows;
-            const int segmentSizeInBytes = segmentWidth * segmentHeight * 4;
+            //const int segmentWidth = width / cols;
+            //const int segmentHeight = height / rows;
+            //const int segmentSizeInBytes = segmentWidth * segmentHeight * 4;
 
-            uint8_t *xp = new uint8_t[segmentSizeInBytes];
-            uint8_t *xn = new uint8_t[segmentSizeInBytes];
-            uint8_t *yp = new uint8_t[segmentSizeInBytes];
-            uint8_t *yn = new uint8_t[segmentSizeInBytes];
-            uint8_t *zp = new uint8_t[segmentSizeInBytes];
-            uint8_t *zn = new uint8_t[segmentSizeInBytes];
+            //uint8_t *xp = new uint8_t[segmentSizeInBytes];
+            //uint8_t *xn = new uint8_t[segmentSizeInBytes];
+            //uint8_t *yp = new uint8_t[segmentSizeInBytes];
+            //uint8_t *yn = new uint8_t[segmentSizeInBytes];
+            //uint8_t *zp = new uint8_t[segmentSizeInBytes];
+            //uint8_t *zn = new uint8_t[segmentSizeInBytes];
 
-            std::array<uint8_t *, 6> pl = {
-                xp, xn, yp, yn, zp, zn};
+            //std::array<uint8_t *, 6> pl = {
+            //    xp, xn, yp, yn, zp, zn};
 
-            glGenTextures(1, &cubemapTexture);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+            //glGenTextures(1, &cubemapTexture);
+            //glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 
-            for (int i = 0; i < 6; i++)
-            {
-                int currentCol = ind[i] % cols;
-                int currentRow = (ind[i] - currentCol) % rows;
+            //for (int i = 0; i < 6; i++)
+            //{
+            //    int currentCol = ind[i] % cols;
+            //    int currentRow = (ind[i] - currentCol) % rows;
 
-                int xStart = currentRow * segmentWidth * 4;
+            //    int xStart = currentRow * segmentWidth * 4;
 
-                for (int j = 0; j < segmentHeight; ++j)
-                {
-                    std::copy(
-                        textureData.begin() + ((currentRow * segmentHeight + j) * width + currentCol * segmentWidth) * 4,
-                        textureData.begin() + ((currentRow * segmentHeight + j) * width + (currentCol + 1) * segmentWidth) * 4,
-                        pl[i] + j * segmentWidth * 4);
-                }
+            //    for (int j = 0; j < segmentHeight; ++j)
+            //    {
+            //        std::copy(
+            //            textureData.begin() + ((currentRow * segmentHeight + j) * width + currentCol * segmentWidth) * 4,
+            //            textureData.begin() + ((currentRow * segmentHeight + j) * width + (currentCol + 1) * segmentWidth) * 4,
+            //            pl[i] + j * segmentWidth * 4);
+            //    }
 
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, segmentWidth, segmentHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pl[i]);
-            }
+            //    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, segmentWidth, segmentHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pl[i]);
+            //}
 
-            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            //glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+            //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-            
-            delete[] xp;
-            delete[] xn;
-            delete[] yp;
-            delete[] yn;
-            delete[] zp;
-            delete[] zn;
+            //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            //glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            //
+            //delete[] xp;
+            //delete[] xn;
+            //delete[] yp;
+            //delete[] yn;
+            //delete[] zp;
+            //delete[] zn;
 
-            textureData.clear();
+            //textureData.clear();
             std::vector<std::unique_ptr<Renderer::SubMesh>> m;
             auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
             m.push_back(std::move(p));
-            mesh = new Mesh(std::move(m), std::move(skyboxVertices), "");
+            mesh = createRef<Mesh>(std::move(m), std::move(skyboxVertices), "");
+            updateContextMesh(cache, wglGetCurrentContext());
         }
 
         Skybox::~Skybox()
         {
-            delete mesh;
+            delete ctxMesh;
         }
 
         void Skybox::render(Ref<Renderer::Shader> shader)
@@ -100,15 +103,36 @@ namespace nb
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 
-            mesh->draw(GL_TRIANGLES, shader);
+            ctxMesh->source->draw(GL_TRIANGLES, shader, ctxMesh->vao);
 
             glDepthMask(GL_TRUE);
             glDepthFunc(GL_LESS);
             glEnable(GL_CULL_FACE);
         }
+
         GLuint Skybox::getCubemapTextureId() const noexcept
         {
             return cubemapTexture;
         }
+
+        nbstl::NonOwningPtr<Mesh> Skybox::getCubeMesh() const noexcept
+        {
+            return mesh.get();
+        }
+
+        void Skybox::updateContextMesh(
+            const Ref<ContextMeshCache>& cache,
+            HGLRC                        hglrc
+        ) noexcept
+        {
+            auto localCtxMesh = cache->get(hglrc, mesh.get());
+            if (!localCtxMesh)
+            {
+                localCtxMesh = cache->insertMesh(hglrc, mesh);
+            }
+
+            ctxMesh = localCtxMesh;
+        }
+
     };
 };

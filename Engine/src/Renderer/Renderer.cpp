@@ -23,6 +23,7 @@
 #include "Math/RayCast/RayPicker.hpp"
 
 #include "OpenGL/Placeholder.hpp"
+#include "DebugDraw.hpp"
 
 namespace nb::Renderer
 {
@@ -105,6 +106,7 @@ namespace nb::Renderer
                 "gizmoShader.shader"
             );
 
+
             Pipeline gridPipeline{.shader = sh, .isDepthTestEnable = false, .isBlendEnable = true};
 
             uint32 gridPSO = api->getCache().getOrCreate(gridPipeline);
@@ -116,7 +118,7 @@ namespace nb::Renderer
             api->drawMesh(gridRenderCommand);
         };
 
-        skybox = std::make_unique<Skybox>();
+        skybox = std::make_unique<Skybox>(contextMeshCache);
         ssao   = new SSAO(api, (uint32_t)400, (uint32_t)300, (uint32_t)64);
     }
 
@@ -430,7 +432,10 @@ namespace nb::Renderer
                     for (const auto& cmd : mainQueue)
                     {
                         pointShadowShader->setUniformMat4("model", cmd.model);
-                        api->drawMesh({.mesh = cmd.mesh, .pipeline = pointShadowPso});
+                        api->drawMesh({
+                            .mesh     = cmd.mesh,
+                            .pipeline = pointShadowPso,
+                        });
                     }
                     // ==================================
                 }
@@ -459,6 +464,7 @@ namespace nb::Renderer
             };
             uint32   prePso = api->getCache().getOrCreate(prePipeline);
 
+
             prePassShader->use();
             prePassShader->setUniformMat4("view", cam->getLookAt());
             prePassShader->setUniformMat4("projection", cam->getProjection());
@@ -466,7 +472,9 @@ namespace nb::Renderer
             for (const auto& cmd : mainQueue)
             {
                 prePassShader->setUniformMat4("model", cmd.model);
-                api->drawMesh({.mesh = cmd.mesh, .pipeline = prePso});
+                //prePassShader->setUniformUint64("u_AlbedoMap", cmd.material)
+                api->drawMesh({.mesh = cmd.mesh, .material = cmd.material,
+                    .pipeline = prePso});
             }
             gBuffer->getFramebuffer()->unBind();
         }
@@ -619,6 +627,10 @@ namespace nb::Renderer
 
             api->drawMesh(cmd);
         }
+
+        DebugDraw::drawBatch(api, cam);
+
+
 
         renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
 
@@ -775,12 +787,20 @@ namespace nb::Renderer
         api->clear(true, false, false);
 
         ssrShader->use();
-        for (uint32 i = 0; i < 5; ++i)
-        {
-            api->bindTexture(i, mainFrameBuffer->getTexture(i));
-        }
+        //for (uint32 i = 0; i < 5; ++i)
+        //{
+        //    api->bindTexture(i, mainFrameBuffer->getTexture(i));
+        //}
 
-        ssrShader->setUniformMat4("invView", nb::Math::inverseWithoutTranspose(view));
+
+        ssrShader->setUniformUint64("gFinalImage", mainFrameBuffer->getTextureHandle(0));
+        ssrShader->setUniformUint64("gNormal", gBuffer->getFramebuffer()->getTextureHandle(0));
+        //ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(1));
+        ssrShader->setUniformUint64("gExtraComponents", gBuffer->getFramebuffer()->getTextureHandle(3));
+        ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(4));
+
+
+        ssrShader->setUniformMat4("invView", nb::Math::inverse(view));
         ssrShader->setUniformMat4("invProjection", nb::Math::inverseWithoutTranspose(proj));
         ssrShader->setUniformMat4("projection", proj);
         ssrShader->setUniformMat4("view", view);
@@ -1044,34 +1064,89 @@ namespace nb::Renderer
 
     void Renderer::renderMaterialPreview(
         const SharedWindowContext& out,
-        MaterialPreviewRequest& request
+        MaterialPreviewRequest&    request
     )
     {
-        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  
-
         if (!api->setContext(out.hdc, out.hglrc))
         {
             return;
         }
-        api->clear(true, true, false);
 
-
-        auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
-            "Assets/res/glasshouse_interior_4k.hdr"
-        );
-
-
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
         RECT rc;
         GetClientRect(out.handle, &rc);
-        int width = rc.right - rc.left;
-        int height = rc.bottom - rc.top;
-        float aspect = (float)width / (float)height;
+        float width  = static_cast<float>(rc.right - rc.left);
+        float height = static_cast<float>(rc.bottom - rc.top);
+        api->setViewport({0.0f, 0.0f, width, height});
 
-        api->setViewport({0.0f, 0.0f, (float)width, (float)height});
+        api->setClearColor(Colors::DARK_GRAY, 1.0f, 0);
         api->clear(true, true, false);
 
+        static Camera previewCam;
+        previewCam.updateOrbit(request.x, request.y);
+        request.x = 0;
+        request.y = 0;
 
+        Math::Mat4 projection = Math::projection(45.0f, width / height, 0.1f, 100.0f);
+        Math::Mat4 view       = previewCam.getLookAt();
+        Math::Mat4 model      = Math::Mat4<float>::identity();
+
+        auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
+            "Assets/res/grasslands_sunset_4k.hdr"
+        );
+
+        // 1. Отрисовка Скайбокса
+        auto skyboxShader =
+            nb::ResMan::ResourceManager::getInstance()->getResource<Shader>("skybox.shader");
+        skyboxShader->use();
+        skyboxShader->setUniformMat4("view", view);
+        skyboxShader->setUniformMat4("projection", projection);
+        skyboxShader->setUniformInt("skybox", 0);
+        static Skybox sky(contextMeshCache);
+        sky.bindCubemap(ibl->getCubemap());
+        sky.render(skyboxShader);
+        sky.updateContextMesh(contextMeshCache, out.hglrc);
+
+        // 2. Настройка шейдера материала
+        auto shader = request.material->getShader();
+        shader->use();
+
+        // Привязываем текстуры самого материала (слоты 0, 1, 2 обычно внутри bind)
+        request.material->bind(shader);
+
+        // ВАЖНО: Используем те же слоты (4, 5, 6), что и в основной сцене Renderer::render()
+        api->bindCubemap(4, ibl->getIrradianceCubemap()->getId());
+        api->bindCubemap(5, ibl->getPrefilterCubemap()->getId());
+        api->bindTexture(6, ibl->getBrdfTexture()->getId());
+
+        // Переустанавливаем индексы слотов, чтобы они совпадали с биндингом выше
+        shader->setUniformInt("u_IrradianceMap", 4);
+        shader->setUniformInt("u_PrefilterMap", 5);
+        shader->setUniformInt("u_BrdfLUT", 6);
+
+        // 3. Bindless текстуры (заглушки)
+        // Используем существующие методы создания плейсхолдеров
+        uint64 dummyTex = OpenGl::createPlaceholderForEmission();
+        shader->setUniformUint64("shadowMap", OpenGl::createPlaceholderForDepth());
+        shader->setUniformUint64("u_SsaoMap", dummyTex);
+        shader->setUniformUint64("u_EmissionMap", dummyTex);
+
+        // 4. Параметры освещения (сбрасываем в 0, чтобы не было черных пятен от теней)
+        shader->setUniformInt("_COUNT_OF_DIRECTIONLIGHT_", 0);
+        shader->setUniformInt("_COUNT_OF_POINTLIGHT_", 0);
+        shader->setUniformInt("u_UseSSAO", 0);
+        shader->setUniformInt("u_UseIBL", 1);
+        shader->setUniformFloat("u_IBLStrength", 0.1f);
+        shader->setUniformFloat("u_Exposure", 1.0f);
+        shader->setUniformVec2("u_ScreenResolution", {width, height});
+
+        shader->setUniformMat4("proj", projection);
+        shader->setUniformMat4("view", view);
+        shader->setUniformMat4("model", model);
+        shader->setUniformVec3("u_CameraPos", previewCam.getPosition());
+
+        // 5. Отрисовка
         Ref<Mesh> primitiveMesh =
             ResMan::ResourceManager::getInstance()->getResource<Mesh>("Untitled.obj");
         auto mesh = contextMeshCache->get(out.hglrc, primitiveMesh.get());
@@ -1080,94 +1155,10 @@ namespace nb::Renderer
             mesh = contextMeshCache->insertMesh(out.hglrc, primitiveMesh);
         }
 
-        Math::Vector3<float> cameraPos = {0.0f, 0.0f, -3.5f};
-        Math::Vector3<float> lightPos = {0.0f, 0.0f, -3.5f};     
-        Math::Vector3<float> lightColor = {15.0f, 15.0f, 15.0f}; 
-        static Camera cam;
-        cam.moveTo(cameraPos);
-        cam.updateOrbit(request.x, request.y);
-
-        request.x = 0.0f;
-        request.y = 0.0f;
-
-        
-        Math::Mat4<float> projection = Math::projection(45.0f, aspect, 0.1f, 100.0f);
-        Math::Mat4<float> view = cam.getLookAt();
-        Math::Mat4<float> model = Math::Mat4<float>::identity();
-
-        static Skybox sky;
-        auto skyboxShader =
-            nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Shader>(
-                "skybox.shader"
-            );
-
-
-
-        sky.bindCubemap(ibl->getCubemap());
-        skyboxShader->setUniformInt("skybox", 0);
-        skyboxShader->setUniformMat4("view", view);
-        skyboxShader->setUniformMat4("projection", projection);
-        sky.render(skyboxShader);
-
-        //for (int i = 0; i < 7; i++)
-        //{
-        //    glActiveTexture(GL_TEXTURE0 + i);
-        //    glBindTexture(GL_TEXTURE_2D, 0); // Привязываем 0 к 2D таргету
-        //}
-
-        //for (int i = 0; i < 7; i++)
-        //{
-        //    glActiveTexture(GL_TEXTURE0 + i);
-        //    glBindTexture(GL_TEXTURE_CUBE_MAP, 0); // Привязываем 0 к 2D таргету
-        //}
-
-
-        auto shader = request.material->getShader();
-        request.material->bind();
-        
-
-
-        // Слот 3: Irradiance (CUBE)
-        //shader->setUniformInt("u_IrradianceMap", 3);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-
-        // Слот 4: Prefilter (CUBE)
-        //shader->setUniformInt("u_PrefilterMap", 4);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
-
-        // Слот 5: BRDF LUT (2D)
-        //shader->setUniformInt("u_BrdfLUT", 5);
-        api->bindTexture(6, ibl->getBrdfTexture()->getId());
-        
-
-
-
-
-        
-
-
-
-        shader->setUniformMat4("proj", projection);
-        shader->setUniformMat4("view", view);
-        shader->setUniformMat4("model", model);
-
-
-
-
-
-        shader->setUniformVec3("u_CameraPos", cam.getPosition());
-        //shader->setUniformVec3("u_LightPos", lightPos);
-        //shader->setUniformVec3("u_LightColor", lightColor);
-        
-        Pipeline matPipeline = {};
-        matPipeline.shader = shader;
+        Pipeline matPipeline          = {};
+        matPipeline.shader            = shader;
         matPipeline.isDepthTestEnable = true;
-        matPipeline.isBlendEnable = true;
-        matPipeline.polygonMode = PolygonMode::FULL;
-
-        uint32 matPso = api->getCache().getOrCreate(matPipeline);
+        uint32 matPso                 = api->getCache().getOrCreate(matPipeline);
         api->drawContextMesh(*mesh, matPso);
 
         SwapBuffers(out.hdc);
@@ -1177,6 +1168,50 @@ namespace nb::Renderer
     tinygizmo::gizmo_context& Renderer::getGizmoContext() noexcept
     {
         return gizmoCtx;
+    }
+
+    Ref<Mesh> Renderer::drawLine(
+        const Math::Vector3<float>&  p1,
+        const Math::Vector3<float>&  p2
+    ) noexcept
+    {
+        std::vector<Vertex>   vertices;
+        std::vector<uint32_t> indices;
+
+        const Math::Vector3<float> color = {1.0f, 0.5f, 0.0f};
+
+        // Для каждой линии создаем 4 вершины.
+        // В position кладем текущую точку.
+        // В normal кладем "другую" точку (чтобы шейдер знал направление линии).
+        // В tangent.w кладем коэффициент сдвига (-1.0 или 1.0).
+
+        // Точка P1 (две вершины)
+        vertices.emplace_back(
+            p1, p2, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, -1.0f}
+        ); // влево
+        vertices.emplace_back(
+            p1, p2, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, 1.0f}
+        ); // вправо
+
+        // Точка P2 (две вершины)
+        vertices.emplace_back(
+            p2, p1, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, -1.0f}
+        ); // влево
+        vertices.emplace_back(
+            p2, p1, color, Math::Vector2<float>{0, 0}, Math::Vector4<float>{0, 0, 0, 1.0f}
+        ); // вправо
+
+        // Индексы для двух треугольников (один прямоугольник)
+        indices.push_back(0);
+        indices.push_back(1);
+        indices.push_back(2);
+        indices.push_back(1);
+        indices.push_back(3);
+        indices.push_back(2);
+
+        return std::make_shared<Mesh>(vertices, indices, "internal/billboard_line");
+
+
     }
 
     void Renderer::renderNavigationalGizmo() noexcept
@@ -1288,7 +1323,8 @@ namespace nb::Renderer
         shader->setUniformVec3("u_CameraPos", camPoss); // ОБЯЗАТЕЛЬНО для бликов PBR
 
         // Биндим текстуры материала
-        materialAsset->bind();
+
+        materialAsset->bind(shader);
 
         // Биндим карты IBL (как в вашем основном методе render)
         if (ibl)

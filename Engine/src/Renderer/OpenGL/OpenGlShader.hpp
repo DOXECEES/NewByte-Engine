@@ -43,10 +43,12 @@ namespace nb
             OpenGlShader() noexcept = default;
             explicit OpenGlShader(
                 const std::filesystem::path& pathToShader,
+                const std::filesystem::path& shaderProgramPath,
                 nbstl::Span<std::string>     params = {}
             ) noexcept;
             explicit OpenGlShader(
                 const std::vector<std::filesystem::path>& vecOfShaders,
+                const std::filesystem::path& shaderProgramPath,
                 nbstl::Span<std::string>                  params = {}
             ) noexcept;
             ~OpenGlShader() noexcept;

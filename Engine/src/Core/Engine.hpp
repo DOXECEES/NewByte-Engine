@@ -229,6 +229,8 @@ namespace nb
 
             ShaderSystem& getShaderSystem() noexcept;
 
+            void setEditorSelectedNode(Node node) noexcept;
+
         private:
             void outlineSelectedObject() noexcept;
 

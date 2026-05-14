@@ -5,8 +5,10 @@
 
 nb::OpenGl::OpenGlShader::OpenGlShader(
     const std::filesystem::path& pathToShader,
+    const std::filesystem::path& shaderProgramPath,
     nbstl::Span<std::string>     params
 ) noexcept
+    : Shader(shaderProgramPath)
 {
     for (const auto& p : params)
     {
@@ -20,9 +22,11 @@ nb::OpenGl::OpenGlShader::OpenGlShader(
 
 nb::OpenGl::OpenGlShader::OpenGlShader(
     const std::vector<std::filesystem::path>& vecOfShaders,
+    const std::filesystem::path&              shaderProgramPath,
     nbstl::Span<std::string>                  params
 ) noexcept
     : pathsToShaderSources(vecOfShaders)
+    , Shader(shaderProgramPath)
 {
     for (const auto& p : params)
     {

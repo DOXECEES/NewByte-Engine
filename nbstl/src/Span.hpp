@@ -43,6 +43,21 @@ namespace nbstl
             : ptr(arr), count(N) {
         }
 
+        template <typename Container>
+        constexpr Span(Container& cont) noexcept
+            : ptr(cont.data())
+            , count(static_cast<size_type>(cont.size()))
+        {
+        }
+
+        template <typename Container>
+        constexpr Span(const Container& cont) noexcept
+            : ptr(const_cast<pointer>(cont.data()))
+            , count(static_cast<size_type>(cont.size()))
+        {
+        }
+
+
         // For mutable Array
         template <size_type N>
         constexpr Span(nbstl::Array<T, N>& arr) noexcept
@@ -96,6 +111,12 @@ namespace nbstl
                 n = count - offset;
             return Span(ptr + offset, n);
         }
+ 
+        constexpr Span<const uint8_t> toBytes() const noexcept
+        {
+            return Span<const uint8_t>(reinterpret_cast<const uint8_t*>(ptr), count * sizeof(T));
+        }
+
     };
 
 };

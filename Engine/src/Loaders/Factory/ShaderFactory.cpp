@@ -40,14 +40,14 @@ namespace nb
 
                     std::vector<std::filesystem::path> s = (*shaders)[str]["sources"].getArray<std::filesystem::path>();
 
-                    return createRef<nb::OpenGl::OpenGlShader>(s, params);
+                    return createRef<nb::OpenGl::OpenGlShader>(s, str, params);
                 }
                 case Core::GraphicsAPI::DIRECTX:
                     assert("Not availiable now");
-                    return createRef<nb::OpenGl::OpenGlShader>(path);
+                    return nullptr;
                 case Core::GraphicsAPI::VULKAN:
                     assert("Not availiable now");
-                    return createRef<nb::OpenGl::OpenGlShader>(path);
+                    return nullptr;
                 default:
                     assert("Invalid API type");
                     return {};

@@ -243,7 +243,7 @@ namespace nb
                 {
                     Ref<Resource::MaterialAsset> mat =
                         (i < materials.size()) ? materials[i] : *materials.begin();
-                    mat->bind();
+                    mat->bind(shader);
                 }
                
 

@@ -4,15 +4,21 @@
 #include <Widgets/Slider.hpp>
 #include <Widgets/Label.hpp>
 #include <Widgets/Button.hpp>
+#include <Widgets/TextureWidget.hpp>
+
+#include <Localization/Translation.hpp>
+#include <Common/StringUtils.hpp>
 
 MaterialEditor::MaterialEditor(
     WindowInterface::IWindow* parent,
     nb::Core::Engine* engine,
     nbstl::NonOwningPtr<nb::Resource::MaterialAsset> material
-) : engine(engine), targetMaterial(material) 
+) 
+    : engine(engine)
+    , targetMaterial(material) 
 {
     modalWindow = std::make_shared<Win32Window::ModalWindow>(NbSize<int>{1200, 800}, parent);
-    modalWindow->setTitle(L"Material Editor - ");
+    modalWindow->setTitle(L"Material Editor - " + Utils::toWstring(material->getFilename()));
 
     previewWindow = std::make_shared<Win32Window::ChildWindow>(modalWindow.get(), true);
     sharedContext = engine->getRenderer()->createSharedContextForWindow(previewWindow->getHandle().as<HWND>());
@@ -45,9 +51,16 @@ MaterialEditor::MaterialEditor(
         }
     );
     
+    subscribe(
+        modalWindow.get(), &Win32Window::ModalWindow::onSizeChanged,
+        [this](const NbSize<int>& newSize)
+        {
+            handleResize(newSize);
+        }
+    );
+
     onRender();
 
-   
 }
 
 void MaterialEditor::handleResize(const NbSize<int>& size)
@@ -63,67 +76,142 @@ void MaterialEditor::handleResize(const NbSize<int>& size)
 
     inspectorWindow->setSize({size.width - previewWidth + Metrics::padding, contentHeight});
     inspectorWindow->setPosition({previewWidth, topOffset});
+    inspectorWindow->getLayoutRoot()->addChild(std::move(buildInspectorUI()));
 
     onRender();
 }
 
 std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
 {
+    using namespace Localization;
+
     using namespace nbui;
     auto inspectorVBox = LayoutBuilder::vBox()
         .padding({10, 10, 10, 10})
         .relativeWidth(1.0f)
-        .autoHeight();
+        .relativeHeight(1.0f);
 
     // Заголовок секции шейдера
     std::move(inspectorVBox).child(
-        LayoutBuilder::label(L"SHADER")
+            LayoutBuilder::label(Translation::fromKeyToWstring("Ui.MaterialEditor.Shader"))
             .fontSize(12).color({150, 150, 150}).absoluteHeight(20)
     );
     
-    // Показываем какой шейдер используется
     std::move(inspectorVBox).child(
         LayoutBuilder::label(Utils::toWstring(targetMaterial->getShaderName()))
             .fontSize(14).absoluteHeight(25)
     );
 
-    std::move(inspectorVBox).child(LayoutBuilder::spacerAbsolute(1, 10)); // Разделитель
+    std::move(inspectorVBox).child(LayoutBuilder::spacerAbsolute(1, 10));
 
-    // --- ДИНАМИЧЕСКИЕ ПАРАМЕТРЫ ---
-    std::move(inspectorVBox).child(
-        LayoutBuilder::label(L"PROPERTIES")
-            .fontSize(12).color({150, 150, 150}).absoluteHeight(20)
-    );
+    std::move(inspectorVBox)
+        .child(
+            LayoutBuilder::label(Translation::fromKeyToWstring("Ui.MaterialEditor.Properties"))
+                .fontSize(12)
+                .color({150, 150, 150})
+                .absoluteHeight(20)
+        );
 
-    // Итерируемся по свойствам материала, которые мы загрузили из .material / .shader
+    
+    auto textureSection =
+        LayoutBuilder::section(Translation::fromKeyToWstring("Ui.MaterialEditor.TextureSection"))
+                              .relativeWidth(1.0f)
+                              .autoHeight()
+                              .style(
+                                  [this](auto& s)
+                                  {
+                                      s.color = {52, 52, 52};
+                                  }
+                              )
+                              .padding({10, 10, 0, 10});
+   
+    auto valueSection =
+        LayoutBuilder::section(Translation::fromKeyToWstring("Ui.MaterialEditor.ParametersSection"))
+                              .relativeWidth(1.0f)
+                              .autoHeight()
+                              
+                              .style(
+                                  [this](auto& s)
+                                  {
+                                      s.color = {52, 52, 52};
+                                  }
+                              )
+                              .padding({10, 10, 0, 10});    
+
+
+
     for (auto& [name, prop] : targetMaterial->getProperties()) 
     {
-        addPropertyWidget(std::move(inspectorVBox), name, prop);
+        addPropertyWidget(
+            std::move(textureSection), 
+            std::move(valueSection),
+            Translation::fromKey(name),
+            prop
+        );
     }
 
-    // Кнопка сохранения
+    std::move(inspectorVBox).child(std::move(textureSection)).child(std::move(valueSection));
+
     std::move(inspectorVBox).child(LayoutBuilder::spacer().relativeHeight(1.0f));
+   
     std::move(inspectorVBox).child(
-        LayoutBuilder::widget(new Widgets::Button())
-            .text(L"SAVE MATERIAL")
-            .absoluteHeight(40).relativeWidth(1.0f)
-            .onEvent(&Widgets::IWidget::onReleasedSignal, [this]() {
-                //targetMaterial->save(); // Сериализация в JSON
-            })
+        LayoutBuilder::hBox()
+                .absoluteHeight(40)
+        .relativeWidth(1.0f)
+        .child(
+                LayoutBuilder::widget(new Widgets::Button())
+                        .text(Translation::fromKeyToWstring("Ui.MaterialEditor.SaveMaterial"))
+                    .absoluteHeight(40)
+                    .relativeWidth(0.5f)
+                    .onEvent(
+                        &Widgets::IWidget::onReleasedSignal,
+                        [this]()
+                        {
+                            onSave();
+                        }
+                    )
+           )
+        .child(
+                    LayoutBuilder::widget(new Widgets::Button())
+                        .text(Translation::fromKeyToWstring("Ui.MaterialEditor.Exit"))
+                        .absoluteHeight(40)
+                        .relativeWidth(0.5f)
+                        .onEvent(
+                            &Widgets::IWidget::onReleasedSignal,
+                            [this]()
+                            {
+                                onClose();
+                            }
+                        )
+        )
+
+        
     );
 
     return std::move(inspectorVBox).build();
 }
 
-void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const std::string& name, nb::Resource::MaterialProperty& prop)
+void MaterialEditor::addPropertyWidget(
+    nbui::LayoutBuilder&& container,
+    nbui::LayoutBuilder&& valueContainer,
+    const std::string&              name,
+    nb::Resource::MaterialProperty& prop
+)
 {
     using namespace nbui;
-    std::wstring wName(name.begin(), name.end());
+    std::wstring wName = Utils::toWstring(name);
 
-    auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30).margin({0, 0, 5, 0});
-    std::move(row).child(LayoutBuilder::label(wName).relativeWidth(0.4f));
+    auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30).margin({5, 5, 5, 5});
+    std::move(row).child(
+        LayoutBuilder::label(wName).relativeWidth(0.4f).textAlignment(
+            TextFormatAlignment{
+                .textAlignment      = TextAlignment::LEFT,
+                .paragraphAlignment = ParagraphAlignment::CENTER,
+            }
+            )
+            
+    );
 
-    // Проверяем тип свойства (std::variant)
     if (std::holds_alternative<float>(prop.value)) 
     {
         std::move(row).child(
@@ -135,30 +223,57 @@ void MaterialEditor::addPropertyWidget(nbui::LayoutBuilder&& container, const st
                         [&]() { return std::get<float>(prop.value); },
                         [this, &prop](float v) { 
                             prop.value = v; 
-                            onRender(); // Перерисовываем превью при изменении
+                            onRender(); 
                         }
                     );
                 })
         );
+
+        std::move(valueContainer).child(std::move(row));
+
     }
     else if (std::holds_alternative<Ref<nb::Resource::TextureAsset>>(prop.value))
     {
-        // Для текстур рисуем кнопку-слот (в идеале тут должен быть Thumbnail)
-        auto tex = std::get<Ref<nb::Resource::TextureAsset>>(prop.value);
-        std::wstring texName = L"None";
 
+        std::move(row).absoluteHeight(100);
+
+        auto tex = std::get<Ref<nb::Resource::TextureAsset>>(prop.value);
+
+        std::wstring texName = Utils::toWstring(tex->getPath());
         std::move(row).child(
-            LayoutBuilder::widget(new Widgets::Button())
+            LayoutBuilder::widget(new Widgets::TextureWidget())
                 .text(texName)
                 .relativeWidth(0.6f)
-                .onEvent(&Widgets::Button::onReleasedSignal, [this, name]() {
-                    // Здесь можно открыть диалог выбора текстуры или
-                    // активировать режим Drag&Drop
-                })
+                .apply<Widgets::TextureWidget>(
+                    [tex, texName](Widgets::TextureWidget* w)
+                    {
+                        std::wstring resolution = std::to_wstring(tex->getWidth()) + L"x" +
+                                                 std::to_wstring(tex->getHeight());
+                        w->setTexture(texName, resolution);
+                    }
+                )
+                //.onEvent(&Widgets::Button::onReleasedSignal, [this, name]() {
+                //    // Здесь можно открыть диалог выбора текстуры или
+                //    // активировать режим Drag&Drop
+                //})
         );
+        std::move(container).child(std::move(row));
     }
 
-    std::move(container).child(std::move(row));
+}
+
+void MaterialEditor::onSave() noexcept
+{
+    targetMaterial->updateMetaData();
+    onClose();
+}
+
+void MaterialEditor::onClose() noexcept
+{
+    inspectorWindow->close();
+    previewWindow->close();
+    modalWindow->close();
+    onWindowClose.emit();
 }
 
 void MaterialEditor::show()

@@ -56,6 +56,24 @@ namespace nb::Resource
             json.writeToFile(path.string() + ".nbmeta");
         }
 
+        uint32_t getWidth() const noexcept
+        {
+            if (texture)
+            {
+                return texture->getWidth();
+            }
+            return 0;
+        }
+
+        uint32_t getHeight() const noexcept
+        {
+            if (texture)
+            {
+                return texture->getHeight();
+            }
+            return 0;
+        }
+
         const TextureSettings& getSettings() const { return settings; }
         void setSettings(const TextureSettings& settings) { this->settings = settings; }
 

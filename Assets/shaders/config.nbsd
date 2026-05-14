@@ -178,5 +178,11 @@
 			"Assets/shaders/mask_pass.vs",
 			"Assets/shaders/mask_pass.fs"
 		]
+	},
+	"line.shader" : {
+		"sources": [
+			"Assets/shaders/line.vs",
+			"Assets/shaders/line.fs"
+		]
 	}		
 }

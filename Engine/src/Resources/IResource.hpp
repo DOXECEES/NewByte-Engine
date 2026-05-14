@@ -22,6 +22,15 @@ namespace nb
             virtual void updateMetaData() noexcept {}; 
 
             std::string getPath() noexcept { return path.string(); };
+            std::string getFilenameWithExtention()
+            {
+                return path.filename().string();
+            }
+
+            std::string getFilename() noexcept
+            {
+                return path.stem().string();
+            };
 
         protected:
             std::filesystem::path path;

@@ -15,6 +15,8 @@
 
 #include <Reflection/Reflection.hpp>
 
+#include "Error/ErrorManager.hpp"
+
 namespace nb::Ecs
 {
     using EntityID = uint32_t;
@@ -58,21 +60,29 @@ namespace nb::Ecs
         add(EntityID entity,
             const T& component)
         {
-            if constexpr (std::is_copy_assignable_v<T>)
+            auto it = indexMap.find(entity);
+            if (it != indexMap.end())
             {
-                if (indexMap.contains(entity))
+                if constexpr (std::is_copy_assignable_v<T>)
                 {
-                    data[indexMap[entity]] = component;
-                    return;
+                    data[it->second] = component;
                 }
+                return;
+            }
 
+            if constexpr (std::is_copy_constructible_v<T>)
+            {
                 indexMap[entity] = data.size();
                 entities.push_back(entity);
                 data.push_back(component);
             }
             else
             {
+                nb::Error::ErrorManager::instance().report(
+                    nb::Error::Type::FATAL, "Cannot add component"
+                );
             }
+
         }
 
 
@@ -167,6 +177,12 @@ namespace nb::Ecs
         virtual void addDefault(EntityID entity) = 0; 
         virtual void clear()                     = 0;
 
+        virtual void copyComponent(
+            EntityID source,
+            EntityID target
+        ) = 0;
+
+
     };
 
     template <typename T> struct StorageWrapper : StorageWrapperBase
@@ -212,6 +228,21 @@ namespace nb::Ecs
         {
             storage.add(entity, T{});
         }
+
+        void copyComponent(
+            EntityID source,
+            EntityID target
+        ) override
+        {
+            if (storage.contains(source))
+            {
+                if constexpr (std::is_copy_constructible_v<T>)
+                {
+                    storage.add(target, storage.get(source));
+                }
+            }
+        }
+
     };
 
     class ECSRegistry
@@ -279,6 +310,45 @@ namespace nb::Ecs
         {
             return storages;
         }
+
+        template <typename... Exclude>
+        Entity cloneEntity(Entity source)
+        {
+            Entity target = createEntity(); 
+
+            std::vector<ComponentTypeID> excludedIDs = {ComponentType<Exclude>::id()...};
+
+            for (ComponentTypeID i = 0; i < storages.size(); ++i)
+            {
+                auto& storage = storages[i];
+                if (!storage)
+                {
+                    continue;
+                }
+
+                bool skip = false;
+                for (auto exId : excludedIDs)
+                {
+                    if (i == exId)
+                    {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip)
+                {
+                    continue;
+                }
+
+                if (storage->contains(source.id))
+                {
+                    storage->copyComponent(source.id, target.id);
+                }
+            }
+
+            return target;
+        }
+
 
     private:
         void registerComponentType(ComponentTypeID id)

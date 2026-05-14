@@ -137,6 +137,60 @@ namespace nb::OpenGl
         SwapBuffers(hdc);
     }
 
+    void OpenGLRender::drawIndexedBuffer(
+        nbstl::Span<const uint8_t>    buffer,
+        nbstl::Span<uint32_t>         indexBuffer,
+        Renderer::PrimitiveType       type,
+        const Renderer::VertexLayout& layout
+    ) noexcept
+    {
+        if (buffer.empty() || indexBuffer.empty())
+        {
+            return;
+        }
+
+        glBindVertexArray(dynamicVAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, dynamicVBO);
+        if (buffer.size() > 1024 * 1024 * 2)
+        {
+            glBufferData(GL_ARRAY_BUFFER, buffer.size(), buffer.data(), GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+            glBufferSubData(GL_ARRAY_BUFFER, 0, buffer.size(), buffer.data());
+        }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dynamicEBO);
+        size_t indexBytes = indexBuffer.size() * sizeof(uint32_t);
+        if (indexBytes > 1024 * 1024 * 2)
+        {
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBytes, indexBuffer.data(), GL_DYNAMIC_DRAW);
+        }
+        else
+        {
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexBytes, indexBuffer.data());
+        }
+
+        for (const auto& attr : layout.attributes)
+        {
+            glEnableVertexAttribArray(attr.location);
+            glVertexAttribPointer(
+                attr.location, attr.count, attr.type, GL_FALSE, layout.stride,
+                (void*)(uintptr_t)attr.offset
+            );
+        }
+
+        GLenum mode = (type == Renderer::PrimitiveType::LINE) ? GL_LINES : GL_TRIANGLES;
+        glDrawElements(mode, (GLsizei)indexBuffer.size(), GL_UNSIGNED_INT, nullptr);
+
+        for (const auto& attr : layout.attributes)
+        {
+            glDisableVertexAttribArray(attr.location);
+        }
+        glBindVertexArray(0);
+    }
+
     void OpenGLRender::drawMesh(const Renderer::RendererCommand& command) noexcept
     {
         bindPipeline(command.pipeline);
@@ -932,6 +986,9 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
         .with("OpenGL Version", version);
            
 
+    //
+
+    initDynamicBuffer();
     
 
     //loadScene();
@@ -948,6 +1005,24 @@ void nb::OpenGl::OpenGLRender::initFail(std::string_view message, HGLRC context)
 
 
 
+void nb::OpenGl::OpenGLRender::initDynamicBuffer() noexcept
+{
+    const size_t MAX_BUFFER_SIZE = 2 * 1024 * 1024;
+
+    glGenVertexArrays(1, &dynamicVAO);
+    glGenBuffers(1, &dynamicVBO);
+    glGenBuffers(1, &dynamicEBO);
+
+    glBindVertexArray(dynamicVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, dynamicVBO);
+    glBufferData(GL_ARRAY_BUFFER, MAX_BUFFER_SIZE, nullptr, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dynamicEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BUFFER_SIZE, nullptr, GL_DYNAMIC_DRAW);
+
+    glBindVertexArray(0);
+}
 
 
 
@@ -1094,6 +1169,8 @@ void nb::OpenGl::OpenGLRender::refreshPolygonMode() const noexcept
 {
     glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 }
+
+
 
 
 

@@ -13,4 +13,17 @@ namespace nb::Utils
 
         return wstrTo;
     }
+
+    void trimLast(
+        std::string& str,
+        char         trimChar
+    ) noexcept
+    {
+        auto pos = str.find_last_not_of(trimChar);
+        str.erase(pos == std::string::npos ? 0 : pos + 1);
+    }
+
+    
+
+
 };

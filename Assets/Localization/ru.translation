@@ -1,0 +1,20 @@
+
+Ui.MaterialEditor.Shader : Шейдер
+Ui.MaterialEditor.Properties : Свойства
+Ui.MaterialEditor.SaveMaterial : Сохранить
+Ui.MaterialEditor.Exit : Выйти
+Ui.MaterialEditor.None : Отсутствует
+Ui.MaterialEditor.TextureSection : Текстуры
+Ui.MaterialEditor.ParametersSection : Параметры
+
+
+
+
+u_AlbedoMap : Альбедо
+u_NormalMap : Карта нормалей
+u_ORMMap : Карта ORM
+u_BaseColorFactor : Множитель базового цвета
+u_RoughnessFactor : Множитель шероховатости
+u_MetallicFactor : Множитель металличности
+u_OcclusionFactor : Множитель окклюзии
+u_Emission : Свечение

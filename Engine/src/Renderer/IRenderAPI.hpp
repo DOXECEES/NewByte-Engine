@@ -18,6 +18,7 @@
 #include "Resources/MaterialAsset.hpp"
 #include "Math/Vector3.hpp"
 #include <Vector.hpp>
+#include <Span.hpp>
 
 namespace nb
 {
@@ -81,6 +82,26 @@ namespace nb
             void* data;
         };
 
+        enum class PrimitiveType
+        {
+            TRIANGLE,
+            LINE,
+        };
+
+        struct VertexAttribute
+        {
+            uint32_t location; 
+            uint32_t count;    
+            uint32_t type;     
+            uint32_t offset;   
+        };
+
+        struct VertexLayout
+        {
+            uint32_t                     stride; 
+            std::vector<VertexAttribute> attributes;
+        };
+
         class IRenderAPI
         {
         public:
@@ -93,6 +114,12 @@ namespace nb
             virtual void beginFrame() noexcept = 0;
             virtual void endFrame() noexcept = 0;
 
+            virtual void drawIndexedBuffer(
+                nbstl::Span<const uint8_t> buffer,
+                nbstl::Span<uint32_t>      indexBuffer,
+                PrimitiveType    type,
+                const VertexLayout&        layout
+            ) noexcept                                                     = 0;
             virtual void drawMesh(const RendererCommand& command) noexcept = 0;
             virtual void drawVertexless(RendererCommand& command) noexcept = 0;
 
