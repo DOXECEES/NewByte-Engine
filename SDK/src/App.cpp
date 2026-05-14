@@ -2030,7 +2030,7 @@ void EditorApp::pasteEntity(const Widgets::ModelIndex& index) noexcept
     nb::Node copy = scene.clone(id, copiedEntityId);
     NameComponent& name = copy.getComponent<NameComponent>();
     name.name                += " (Сopy)";
-
+    name.name = primitiveNameManager.generateName(name.name);
 
     sceneModel->addEntity(id, copy.getId());
 
