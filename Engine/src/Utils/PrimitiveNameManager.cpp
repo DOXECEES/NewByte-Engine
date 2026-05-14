@@ -24,7 +24,8 @@ namespace nb::Utils
             index = pool.globalIndex++;
         }
 
-        return std::format("{} {}", baseName, index);
+        return (index <= 1) ? std::string(baseName) : std::format("{} {}", baseName, index);
+
     }
     void PrimitiveNameManager::releaseName(std::string_view fullName) noexcept
     {
