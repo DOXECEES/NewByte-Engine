@@ -847,7 +847,7 @@ void EditorApp::setupDebugUI() noexcept
                             s.color = {52, 52, 52};
                         }
                     )
-                    .padding({10,10,0,10})
+                    .margin({10,10,0,10})
                     .child(
                         LayoutBuilder::vBox()
                             .relativeWidth(1.0f)
@@ -976,7 +976,7 @@ void EditorApp::setupDebugUI() noexcept
                             s.color = {52, 52, 52};
                         }
                     )
-                    .padding({0, 10, 10, 10})
+                    .margin({0, 10, 10, 10})
                     .child(
                         LayoutBuilder::vBox()
                         .relativeWidth(1.0f)
@@ -1072,7 +1072,7 @@ void EditorApp::rebuildInspector() noexcept
                                            .absoluteHeight(30)
                                            .background({60, 60, 60})
                                            .color({220, 220, 220})
-                                           .textAlignment({.textAlignment = TextAlignment::LEFT})
+                                           .textAlignment({.textAlignment = TextAlignment::CENTER})
                                    );
 
             for (const auto& field : info->fields)
@@ -1185,6 +1185,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
             LayoutBuilder::label(nb::Utils::toWString(field.name))
                 .relativeWidth(0.35f)
                 .color({180, 180, 180})
+                .padding({0,0,0,5})
                 .textAlignment({.textAlignment = TextAlignment::LEFT})
         );
 
@@ -1227,6 +1228,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
             LayoutBuilder::label(nb::Utils::toWString(field.name))
                 .relativeWidth(0.35f)
                 .color({180, 180, 180})
+                .padding({0,0,0,5})
                 .textAlignment({.textAlignment = TextAlignment::LEFT})
 
         );
@@ -1284,6 +1286,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                     LayoutBuilder::label(nb::Utils::toWString(field.name))
                         .relativeWidth(0.35f)
                         .color({180, 180, 180})
+                        .padding({0, 0, 0, 5})
                         .textAlignment({.textAlignment = TextAlignment::LEFT})
 
                 )
@@ -1422,6 +1425,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                             .child(
                                 LayoutBuilder::label(nb::Utils::toWString(field.name))
                                     .relativeWidth(0.35f)
+                                    .padding({0, 0, 0, 5})
                                     .color({180, 180, 180})
                                     .textAlignment({.textAlignment = TextAlignment::LEFT})
 
@@ -1462,6 +1466,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                LayoutBuilder::label(nb::Utils::toWString(field.name))
                                    .relativeWidth(0.35f)
                                    .color({180, 180, 180})
+                                   .padding({0, 0, 0, 5})
                                    .textAlignment({.textAlignment = TextAlignment::LEFT})
                            )
                            .child(
@@ -1491,7 +1496,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
         MaterialVec* vecPtr = static_cast<MaterialVec*>(fieldData);
 
         // Параметры верстки
-        const int slotHeight   = 50; 
+        const int slotHeight   = 100; 
         const int headerHeight = 30; 
 
         auto vectorColumn = LayoutBuilder::vBox().relativeWidth(1.0f).absoluteHeight(
@@ -1504,6 +1509,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                    .relativeWidth(1.0f)
                                    .absoluteHeight(headerHeight)
                                    .color({150, 150, 150})
+                                   .padding({0, 0, 0, 5})
                                    .textAlignment({.textAlignment = TextAlignment::LEFT})
                            );
 
@@ -1520,6 +1526,11 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 fileName = fileName.substr(lastSlash + 1);
             }
 
+            if (!std::filesystem::exists("Assets/cache/" + materialRef->getFilename() + ".png"))
+            {
+                nb::Renderer::Renderer::generatePreviewForMaterial(materialRef->getPath());
+            }
+
             vectorColumn =
                 std::move(vectorColumn)
                     .child(
@@ -1531,6 +1542,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                 LayoutBuilder::label(L" Slot " + std::to_wstring(i))
                                     .relativeWidth(0.35f)
                                     .color({100, 100, 100})
+                                    .padding({0, 0, 0, 5})
                             )
                             .child(
                                 LayoutBuilder::widget(new Widgets::MaterialWidget())
@@ -1598,6 +1610,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                     LayoutBuilder::label(nb::Utils::toWString(field.name))
                         .relativeWidth(0.35f)
                         .color({180, 180, 180})
+                        .padding({0,0,0,5})
                         .textAlignment({.textAlignment = TextAlignment::LEFT})
                 )
                 .child(

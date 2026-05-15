@@ -423,7 +423,7 @@ namespace nb::Renderer
 
         if (!isPreviewInitialized)
         {
-            saveSpherePreview("Assets/res/brick.material", "Assets/materials/material.png");
+            saveSpherePreview("Assets/res/gold.material", "Assets/cache/test.png");
             isPreviewInitialized = true;
         }
 
@@ -773,6 +773,16 @@ namespace nb::Renderer
         renderSSR(width, height, view, proj);
 
         renderFinalQuad(width, height);
+
+        if (!previewQueue.isEmpty())
+        {
+            for (auto& i : previewQueue)
+            {
+                saveSpherePreview(i, "Assets/cache/" + i.stem().string() + ".png");
+            }
+
+            previewQueue.clear();
+        }
 
         api->endFrame();
     }
@@ -1421,72 +1431,74 @@ namespace nb::Renderer
     )
     {
         const int size = 512;
-        auto      rm   = ResMan::ResourceManager::getInstance();
+        auto      rm   = nb::ResMan::ResourceManager::getInstance();
 
         auto tempFB = api->createFrameBuffer(size, size);
         tempFB->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
         tempFB->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         tempFB->finalize();
 
-        // Сфера радиусом 1
-        Ref<Mesh> sphereMesh    = rm->getResource<Mesh>("unit_cube.obj");
+        // 2. Ресурсы
+        Ref<Mesh> sphereMesh    = rm->getResource<Mesh>("Untitled.obj"); 
         auto      materialAsset = rm->getResource<Resource::MaterialAsset>(materialPath.string());
+        auto ibl = rm->getResource<Resource::IhdrResource>("Assets/res/grasslands_sunset_4k.hdr");
 
-        // МАТРИЦЫ: Отодвигаем камеру дальше (Z = 4.0)
-        Math::Mat4<float>    projection = Math::projection(90.0f, 1.0f, 0.1f, 100.0f);
-        Math::Vector3<float> camPoss     = {0.0f, 1.0f, 1.8f}; // Чуть выше и дальше
-        Math::Mat4<float>    view       = Math::lookAt(
-            camPoss, Math::Vector3<float>{0.0f, 0.0f, 0.0f}, Math::Vector3<float>{0.0f, 1.0f, 0.0f}
-        );
-        Math::Mat4<float> model = Math::Mat4<float>::identity();
+        if (!materialAsset || !sphereMesh)
+        {
+            return;
+        }
 
-        model = Math::translate(model, {0.0f, 0.0f, 0.0f});
+        Math::Mat4    projection = Math::projection(45.0f, 1.0f, 0.1f, 10.0f);
+        Math::Vector3<float> camPos     = {0.0f, 0.0f, 2.5f};
+        Math::Mat4    view       = Math::lookAt(camPos, {0, 0, 0}, {0, 1, 0});
+        Math::Mat4    model      = Math::Mat4<float>::identity();
 
         api->bindFrameBuffer(tempFB);
         api->setViewport({0, 0, (float)size, (float)size});
-        api->setClearColor(Colors::GRAY, 1.0f, 0);
+        api->setClearColor(Colors::DARK_GRAY, 1.0f, 0); 
         api->clear(true, true, false);
-
-        // Подключаем HDR карту (IBL)
-        auto ibl = rm->getResource<Resource::IhdrResource>("Assets/res/grasslands_sunset_4k.hdr");
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
         auto shader = materialAsset->getShader();
         shader->use();
 
-        // Передаем Uniform-переменные
-        shader->setUniformMat4("proj", projection);
-        shader->setUniformMat4("view", view);
-        shader->setUniformMat4("model", model);
-        shader->setUniformVec3("u_CameraPos", camPoss); // ОБЯЗАТЕЛЬНО для бликов PBR
-
-        // Биндим текстуры материала
-
         materialAsset->bind(shader);
 
-        // Биндим карты IBL (как в вашем основном методе render)
         if (ibl)
         {
-            glActiveTexture(GL_TEXTURE4);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getIrradianceCubemap()->getId());
-            shader->setUniformInt("u_IrradianceMap", 4); // Проверьте имя в шейдере
-
-            glActiveTexture(GL_TEXTURE5);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, ibl->getPrefilterCubemap()->getId());
-            shader->setUniformInt("u_PrefilterMap", 5);
-
+            api->bindCubemap(4, ibl->getIrradianceCubemap()->getId());
+            api->bindCubemap(5, ibl->getPrefilterCubemap()->getId());
             api->bindTexture(6, ibl->getBrdfTexture()->getId());
+
+            shader->setUniformInt("u_IrradianceMap", 4);
+            shader->setUniformInt("u_PrefilterMap", 5);
             shader->setUniformInt("u_BrdfLUT", 6);
         }
 
-        // Рендерим сферу
-        Pipeline matPipeline = {
-            .shader = shader, .isDepthTestEnable = true
-        };
-        uint32          pso = api->getCache().getOrCreate(matPipeline);
-        RendererCommand cmd = {.mesh = sphereMesh.get(), .pipeline = pso};
+        uint64 dummyTex = OpenGl::createPlaceholderForEmission();
+        shader->setUniformUint64("shadowMap", OpenGl::createPlaceholderForDepth());
+        shader->setUniformUint64("u_SsaoMap", dummyTex);
+        shader->setUniformUint64("u_EmissionMap", dummyTex);
+
+        shader->setUniformInt("_COUNT_OF_DIRECTIONLIGHT_", 0);
+        shader->setUniformInt("_COUNT_OF_POINTLIGHT_", 0);
+        shader->setUniformInt("u_UseSSAO", 0);
+        shader->setUniformInt("u_EnableFog", 0);
+        shader->setUniformInt("u_UseIBL", 1);
+        shader->setUniformFloat("u_IBLStrength", 0.1f); 
+        shader->setUniformFloat("u_Exposure", 1.0f);
+        shader->setUniformVec2("u_ScreenResolution", {(float)size, (float)size});
+
+        shader->setUniformMat4("proj", projection);
+        shader->setUniformMat4("view", view);
+        shader->setUniformMat4("model", model);
+        shader->setUniformVec3("u_CameraPos", camPos);
+
+        Pipeline        matPipeline = {.shader = shader, .isDepthTestEnable = true};
+        uint32          pso         = api->getCache().getOrCreate(matPipeline);
+        RendererCommand cmd         = {.mesh = sphereMesh.get(), .pipeline = pso};
         api->drawMesh(cmd);
 
-        // Читаем пиксели
         std::vector<unsigned char> data(size * size * 4);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, size, size, GL_RGBA, GL_UNSIGNED_BYTE, data.data());

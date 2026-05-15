@@ -210,6 +210,12 @@ namespace nb
             ) noexcept;
 
 
+            static void generatePreviewForMaterial(const std::filesystem::path& path) noexcept
+            {
+                previewQueue.pushBack(path);
+            }
+
+
         private:
 
 
@@ -232,6 +238,7 @@ namespace nb
                 int width,
                 int height
             ) noexcept;
+
 
 
         private:
@@ -277,6 +284,7 @@ namespace nb
         private:
 
             std::unique_ptr<Skybox> skybox;
+            inline static nbstl::Vector<std::filesystem::path> previewQueue;
 
             bool    isResourceLoaded     = false;
             bool    isPreviewInitialized = false;
