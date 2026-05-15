@@ -71,7 +71,7 @@ void main()
 
     float rough = max(roughness, 0.04);
 
-    float resolution = 512.0; // 🔥 Поставь свой размер cubemap
+    float resolution = 4096.0;
 
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
     {
