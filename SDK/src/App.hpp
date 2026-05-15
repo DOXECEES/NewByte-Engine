@@ -245,7 +245,8 @@ private:
                         nb::Math::Vector3<float> pWorldPos(0.0f, 0.0f, 0.0f);
                         bool                     hasParent = false;
 
-                        if (auto parent = activeNode.getParent(); parent.has_value())
+                        if (auto parent = activeNode.getParent();
+                            parent.has_value() && parent->hasComponent<TransformComponent>())
                         {
                             auto& ptc   = parent->getComponent<TransformComponent>();
                             pWorldPos   = nb::Math::getPositionFromModelMatrix(ptc.worldMatrix);
