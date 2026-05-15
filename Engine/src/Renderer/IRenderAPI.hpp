@@ -58,6 +58,21 @@ namespace nb
             uint32 vertexCount = 0;
         };
 
+        //struct BillboardComponent
+        //{
+        //    Math::Vector2<float>        size;
+        //    Ref<Resource::TextureAsset> texture;
+        //};
+
+        struct BillboardCommand
+        {
+            Mesh*                mesh;
+            PipelineHandle pipeline;
+
+            Math::Vector3<float> pos;
+            Ref<Resource::TextureAsset> texture;
+        };
+
         struct Viewport
         {
             float x         = 0.0f;

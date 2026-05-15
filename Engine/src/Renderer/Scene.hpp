@@ -266,6 +266,7 @@ namespace nb
         template <typename T>
         bool hasComponent() noexcept;
 
+
         void setName(std::string_view name);
 
         bool isValid() const noexcept;

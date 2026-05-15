@@ -35,6 +35,16 @@ namespace nb::Renderer
             const Math::Vector3<float>& color     = DEFAULT_COLOR
         ) noexcept;
 
+
+        static void drawCircle(
+            const Math::Vector3<float>& center,
+            float                       radius,
+            int                         segments,
+            const Math::Vector3<float>& normal
+        ) noexcept;
+        
+
+
         static void drawBatch(
             nbstl::NonOwningPtr<IRenderAPI> api,
             nbstl::NonOwningPtr<Camera>     camera

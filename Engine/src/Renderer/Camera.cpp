@@ -101,5 +101,54 @@ namespace nb
                 this, x, y, Core::EngineSettings::getWidth(), Core::EngineSettings::getHeight()
             ); 
         }
+
+        float Camera::getFov() const noexcept
+        {
+            return Core::EngineSettings::getFov(); // TODO: Должно принадлежать камере
+        }
+
+        float Camera::getAspectRatio() const noexcept
+        {
+            return Core::EngineSettings::getAspectRatio(); // TODO: Должно принадлежать камере
+        }
+
+        float Camera::getNearPlane() const noexcept
+        {
+            return nearPlane;
+        }
+
+        void Camera::setNearPlane(float newPlane) noexcept
+        {
+            if (newPlane > 0.001)
+            {
+                nearPlane = newPlane;
+            }
+            else
+            {
+                nearPlane = NEAR_PLANE;
+            }
+        }
+
+        float Camera::getFarPlane() const noexcept
+        {
+            return farPlane;
+        }
+
+        void Camera::setFarPlane(float newPlane) noexcept
+        {
+            if (newPlane > nearPlane)
+            {
+                farPlane = newPlane;
+            }
+            else
+            {
+                farPlane = FAR_PLANE;
+            }
+        }
+
+
+
+
+
     };
 };

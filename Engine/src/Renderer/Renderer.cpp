@@ -228,6 +228,8 @@ namespace nb::Renderer
     }
 
 
+   
+
     void Renderer::render() noexcept
     {
         const int width  = nb::Core::EngineSettings::getWidth();
@@ -251,6 +253,7 @@ namespace nb::Renderer
         nbstl::Vector<RendererCommand> mainQueue;
         std::vector<Ecs::EntityID>     directionalLights;
         std::vector<Ecs::EntityID>     pointLights;
+        nbstl::Vector<BillboardCommand> billboardQueue;
 
         directionalLights.reserve(8);
         pointLights.reserve(32);
@@ -262,16 +265,130 @@ namespace nb::Renderer
             {
                 Ecs::Entity entity{entityId};
 
+                if (registry.has<CameraComponent>(entity) &&
+                    registry.has<TransformComponent>(entity))
+                {
+                    const auto& camera    = registry.get<CameraComponent>(entity);
+                    const auto& transform = registry.get<TransformComponent>(entity);
+
+                    using Vec3 = Math::Vector3<float>;
+
+                    Vec3 forward = camera.controller->getDirection(); 
+                    Vec3 worldUp = Vec3(0.0f, 1.0f, 0.0f);
+
+                    Vec3 right = Math::normalize(Math::cross(forward, worldUp));
+                    Vec3 up    = Math::normalize(Math::cross(right, forward));
+
+                    float fov    = Math::toRadians(camera.controller->getFov());
+                    float aspect = camera.controller->getAspectRatio();
+                    float nearZ  = camera.controller->getNearPlane();
+                    float farZ   = camera.controller->getFarPlane() / 100.0f;
+
+                    float tanHalfFov = tanf(fov * 0.5f);
+
+                    float nearHeight = 2.0f * tanHalfFov * nearZ;
+                    float nearWidth  = nearHeight * aspect;
+
+                    float farHeight = 2.0f * tanHalfFov * farZ;
+                    float farWidth  = farHeight * aspect;
+
+                    Vec3 nearCenter = transform.position + forward * nearZ;
+                    Vec3 farCenter  = transform.position + forward * farZ;
+
+                    Vec3 nearUpOffset    = up * (nearHeight * 0.5f);
+                    Vec3 nearRightOffset = right * (nearWidth * 0.5f);
+                    Vec3 farUpOffset     = up * (farHeight * 0.5f);
+                    Vec3 farRightOffset  = right * (farWidth * 0.5f);
+
+                    Vec3 ntl = nearCenter + nearUpOffset - nearRightOffset;
+                    Vec3 ntr = nearCenter + nearUpOffset + nearRightOffset;
+                    Vec3 nbl = nearCenter - nearUpOffset - nearRightOffset;
+                    Vec3 nbr = nearCenter - nearUpOffset + nearRightOffset;
+
+                    Vec3 ftl = farCenter + farUpOffset - farRightOffset;
+                    Vec3 ftr = farCenter + farUpOffset + farRightOffset;
+                    Vec3 fbl = farCenter - farUpOffset - farRightOffset;
+                    Vec3 fbr = farCenter - farUpOffset + farRightOffset;
+
+
+                    DebugDraw::drawLine(ntl, ntr);
+                    DebugDraw::drawLine(ntr, nbr);
+                    DebugDraw::drawLine(nbr, nbl);
+                    DebugDraw::drawLine(nbl, ntl);
+
+                    DebugDraw::drawLine(ftl, ftr);
+                    DebugDraw::drawLine(ftr, fbr);
+                    DebugDraw::drawLine(fbr, fbl);
+                    DebugDraw::drawLine(fbl, ftl);
+
+                    DebugDraw::drawLine(ntl, ftl);
+                    DebugDraw::drawLine(ntr, ftr);
+                    DebugDraw::drawLine(nbl, fbl);
+                    DebugDraw::drawLine(nbr, fbr);
+                }
+
                 if (registry.has<LightComponent>(entity))
                 {
                     const auto& light = registry.get<LightComponent>(entity);
                     if (light.isPointLight())
                     {
                         pointLights.push_back(entityId);
+
+                        if (true) // editor mode
+                        {
+                            Pipeline pipelineConfig{};
+                            pipelineConfig.shader =
+                                ResMan::ResourceManager::getInstance()->getResource<Shader>(
+                                    "billboard.shader"
+                                );
+                            pipelineConfig.polygonMode = PolygonMode::FULL;
+
+                            TransformComponent& transform =
+                                registry.get<TransformComponent>(entity);
+
+                            billboardQueue.pushBack({
+                                    .mesh     = quadScreenMesh.get(),
+                                    .pipeline = api->getCache().getOrCreate(pipelineConfig),
+                                    .pos      = transform.position,
+                                    .texture  = ResMan::ResourceManager::getInstance()->getResource<Resource::TextureAsset>("Assets/res/PointLightTexture.texture")
+                                }
+                            );
+
+
+                            DebugDraw::drawCircle(transform.position, 10.f, 32, {1.0f, 0.0f, 0.0f});
+                            DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 1.0f, 0.0f});
+                            DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 0.0f, 1.0f});
+
+                            //DebugDraw::drawLine(
+                            //    transform.position, transform.position + light.direction * 5.0f
+                            //);
+                        }
+                    
                     }
                     else
                     {
                         directionalLights.push_back(entityId);
+                        if (true) // editor mode
+                        {
+                            Pipeline pipelineConfig{};
+                            pipelineConfig.shader      = ResMan::ResourceManager::getInstance()->getResource<Shader>("billboard.shader");
+                            pipelineConfig.polygonMode = PolygonMode::FULL;
+
+                            TransformComponent& transform =
+                                registry.get<TransformComponent>(entity);
+
+                            billboardQueue.pushBack({
+                                .mesh     = quadScreenMesh.get(),
+                                .pipeline = api->getCache().getOrCreate(pipelineConfig),
+                                .pos = transform.position,
+                                .texture  = ResMan::ResourceManager::getInstance()->getResource
+                                             <Resource::TextureAsset>("Assets/res/DirLightTexture.texture")
+                            });
+
+                            DebugDraw::drawLine(
+                                transform.position, transform.position + light.direction * 5.0f
+                            );
+                        }
                     }
                 }
 
@@ -628,6 +745,25 @@ namespace nb::Renderer
             api->drawMesh(cmd);
         }
 
+
+        for (auto cmd : billboardQueue)
+        {
+            auto billboardShader =
+                ResMan::ResourceManager::getInstance()->getResource<Shader>("billboard.shader");
+            
+            billboardShader->use();
+            billboardShader->setUniformVec3("uPosition", cmd.pos);
+            billboardShader->setUniformMat4("uView", cam->getLookAt());
+            billboardShader->setUniformMat4("uProjection", cam->getProjection());
+            billboardShader->setUniformUint64(
+                "uTexture", cmd.texture->getInternalTexture()->getHandle()
+            );
+
+            cmd.mesh->draw(GL_TRIANGLES, billboardShader);
+            
+        }
+
+        DebugDraw::setThickness(5.0f);
         DebugDraw::drawBatch(api, cam);
 
 
@@ -730,9 +866,10 @@ namespace nb::Renderer
         gizmoCtx.draw();
 
 
-        if (activeNode.isValid())
+        if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
         {
             auto maskShader = rm->getResource<Shader>("mask_pass.shader");
+            
             auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
 
             api->bindFrameBuffer(outlineMaskFrameBuffer);
