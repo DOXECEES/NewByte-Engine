@@ -427,6 +427,8 @@ namespace nb
         scene->addComponent(entity, component);
     }
 
+
+
     template <typename T>
     T& Node::getComponent()
     {

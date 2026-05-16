@@ -265,6 +265,7 @@ void MaterialEditor::addPropertyWidget(
 void MaterialEditor::onSave() noexcept
 {
     targetMaterial->updateMetaData();
+    nb::Renderer::Renderer::generatePreviewForMaterial(targetMaterial->getPath());
     onClose();
 }
 

@@ -1925,7 +1925,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             auto addPrimitiveAction = [&](const wchar_t* label, const char* paramsType)
             {
                 popup->addItem(
-                    label,
+                    label, nbui::IconType::Plus,
                     [this, index, paramsType]()
                     {
                         auto* dialog = new PrimitiveCreationDialog(
@@ -1948,8 +1948,10 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             addPrimitiveAction(L"➕ Добавить конус", "ConeParams");
             addPrimitiveAction(L"➕ Добавить пирамиду", "PyramidParams");
 
+            popup->addSeparator();
+
             popup->addItem(
-                L"✏️ Переименовать",
+                L"✏️ Переименовать", nbui::IconType::Edit,
                 [tv, index]()
                 {
                     tv->startEditing(index);
@@ -1957,7 +1959,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             );
 
             popup->addItem(
-                L"🗑️ Удалить",
+                L"🗑️ Удалить", nbui::IconType::Delete,
                 [this, index]()
                 {
                     this->deleteEntity(index);
@@ -1967,9 +1969,11 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                     );
                 }
             );
+            popup->addSeparator();
+
 
             popup->addItem(
-                L"Копировать",
+                L"Копировать", nbui::IconType::None,
                 [this, index]()
                 {
                     copyEntity(index);
@@ -1977,7 +1981,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             );
 
             popup->addItem(
-                L"Вставить",
+                L"Вставить", nbui::IconType::None,
                 [this, index]()
                 {
                     pasteEntity(index);

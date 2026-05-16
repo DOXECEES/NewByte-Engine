@@ -1,6 +1,7 @@
 #include "AssetManger.hpp"
 
 #include "MaterialEditor.hpp"
+#include <Widgets/Thumbnail.hpp>
 #include <memory>
 
 AssetManager::AssetManager(
@@ -193,6 +194,79 @@ void AssetManager::refreshAssetGrid()
                             .relativeWidth(1.0f)
                             .absoluteHeight(95)
                             .background({25, 25, 25})
+                            .apply<Widgets::IWidget>(
+                                [this, entry](Widgets::IWidget* w)
+                                {
+                                    w->onPressedSignal.connect(
+                                        [this, entry]()
+                                        {
+                                            this->dragInfo.active = true;
+                                            this->dragInfo.path   = entry.path();
+                                            GetCursorPos(&this->dragInfo.startMousePos);
+                                            SetCapture((HWND)this->window->getHandle().as<HWND>());
+                                        }
+                                    );
+
+                                    w->onReleasedSignal.connect(
+                                        [this, entry]()
+                                        {
+                                            if (!this->dragInfo.active)
+                                            {
+                                                return;
+                                            }
+
+                                            ReleaseCapture();
+                                            this->dragInfo.active = false;
+
+                                            POINT pt;
+                                            GetCursorPos(&pt);
+                                            int   dx = pt.x - this->dragInfo.startMousePos.x;
+                                            int   dy = pt.y - this->dragInfo.startMousePos.y;
+                                            float distance =
+                                                std::sqrt(static_cast<float>(dx * dx + dy * dy));
+
+                                            if (distance > this->dragThreshold)
+                                            {
+                                                HWND target = WindowFromPoint(pt);
+                                                HWND glHWnd = (HWND)engine->getLinkedHwnd();
+                                                if (target == glHWnd)
+                                                {
+                                                    ScreenToClient(glHWnd, &pt);
+                                                    this->engine->getRenderer()
+                                                        ->pickNodeAndApplyMaterial(
+                                                            pt.x, pt.y, this->dragInfo.path
+                                                        );
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (this->textureEditor)
+                                                {
+                                                    this->textureEditor = nullptr;
+                                                }
+
+
+                                                auto textureRes =
+                                                    nb::ResMan::ResourceManager::getInstance()
+                                                        ->getResource<nb::Resource::TextureAsset>(
+                                                            "Assets/res/" + entry.path().stem().string() +
+                                                            ".texture"
+                                                        );
+
+                                                if (textureRes)
+                                                {
+                                                    this->textureEditor =
+                                                        std::make_shared<TextureEditor>(
+                                                            this->window.get(), this->engine.get(),
+                                                            textureRes.get()
+                                                        );
+                                                    this->textureEditor->show();
+                                                }
+                                            }
+                                        }
+                                    );
+                                }
+                            )
                     )
                     .child(
                         LayoutBuilder::vBox()
@@ -223,50 +297,7 @@ void AssetManager::refreshAssetGrid()
                                     .absoluteHeight(20)
                             )
                     )
-                    .apply<Widgets::IWidget>(
-                        [this, entry](Widgets::IWidget* w)
-                        {
-                            w->onPressedSignal.connect(
-                                [this, entry]()
-                                {
-                                    this->dragInfo.active = true;
-                                    this->dragInfo.path   = entry.path();
-                                    GetCursorPos(&this->dragInfo.startMousePos);
-                                    SetCapture((HWND)this->window->getHandle().as<HWND>());
-                                }
-                            );
-
-                            w->onReleasedSignal.connect(
-                                [this, entry]()
-                                {
-                                    if (!this->dragInfo.active)
-                                    {
-                                        return;
-                                    }
-                                    ReleaseCapture();
-                                    this->dragInfo.active = false;
-
-                                    POINT pt;
-                                    GetCursorPos(&pt);
-                                    int dx = pt.x - this->dragInfo.startMousePos.x;
-                                    int dy = pt.y - this->dragInfo.startMousePos.y;
-
-                                    if (std::sqrt(dx * dx + dy * dy) > this->dragThreshold)
-                                    {
-                                        HWND target = WindowFromPoint(pt);
-                                        HWND glHWnd = (HWND)engine->getLinkedHwnd();
-                                        if (target == glHWnd)
-                                        {
-                                            ScreenToClient(glHWnd, &pt);
-                                            this->engine->getRenderer()->pickNodeAndApplyMaterial(
-                                                pt.x, pt.y, this->dragInfo.path
-                                            );
-                                        }
-                                    }
-                                }
-                            );
-                        }
-                    )
+                    
             );
         }
     }

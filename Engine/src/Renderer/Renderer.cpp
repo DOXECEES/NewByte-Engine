@@ -1094,7 +1094,6 @@ namespace nb::Renderer
     {
         if (!api->setContext(out.hdc, out.hglrc)) return;
 
-        // Используем GetClientRect вместо GetWindowRect, чтобы не учитывать рамки окна
         RECT rc;
         GetClientRect(out.handle, &rc); 
         int width = rc.right - rc.left;
@@ -1102,10 +1101,10 @@ namespace nb::Renderer
 
         api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
         api->clear(true, false, false);
-        // 1. Отрисовка сетки (Background)
         auto gridShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("grid.shader");
         gridShader->use();
         
+
         auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
         if (!mesh) mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
 
@@ -1115,30 +1114,25 @@ namespace nb::Renderer
         gridPipeline.polygonMode = PolygonMode::FULL;
         uint32 gridPso = api->getCache().getOrCreate(gridPipeline);
         
+
+
         api->drawContextMesh(*mesh, gridPso);
 
-        // 2. Настройка смешивания для текстуры (Alpha Blending)
-        // ВАЖНО: Убедитесь, что в вашем API методе установки Pipeline 
-        // реализована поддержка BlendMode или включена прозрачность
         
-        // 3. Отрисовка основной текстуры
         auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("quadShader2.shader");
         quadShader->use();
-        quadShader->setUniformInt("sceneTexture", 0);
+        quadShader->setUniformUint64("sceneTexture", request.source);
         quadShader->setUniformVec3("channelMask", request.channelMask);
         quadShader->setUniformFloat("gamma", request.gamma);
         quadShader->setUniformFloat("exposure", request.exposure);
 
          
-        api->bindTexture(0, request.source);
 
         Pipeline texPipeline = {};
         texPipeline.shader = std::move(quadShader);
         texPipeline.isDepthTestEnable = false;
         texPipeline.polygonMode = PolygonMode::FULL;
-        // Включаем прозрачность (в зависимости от реализации вашего API)
-        texPipeline.isBlendEnable = true; // Добавьте это поле в структуру Pipeline, если его нет
-        
+        texPipeline.isBlendEnable = true; 
         uint32 texPso = api->getCache().getOrCreate(texPipeline);
 
         api->drawContextMesh(*mesh, texPso);

@@ -87,7 +87,7 @@ namespace nb
 
             struct TexturePreviewRequest
             {
-                uint32 source;
+                uint64 source;
                 nb::Math::Vector3<float> channelMask = {1.0f, 1.0f, 1.0f};
                 float gamma = 2.2f;
                 float exposure = 1.0f;
