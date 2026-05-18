@@ -24,7 +24,7 @@ namespace nb::Resource
 {
     struct MaterialProperty
     {
-        std::variant<float, int, Color, Ref<TextureAsset>> value;
+        std::variant<bool, float, int, Color, Ref<TextureAsset>> value;
     };
 
     class MaterialAsset : public IResource
@@ -85,7 +85,11 @@ namespace nb::Resource
                     {
                         using T = std::decay_t<decltype(val)>;
 
-                        if constexpr (std::is_same_v<T, float> )
+                        if constexpr (std::is_same_v<T, bool>)
+                        {
+                            node[name] = val;
+                        }
+                        else if constexpr (std::is_same_v<T, float> )
                         {
                             node[name] = val;
                         }

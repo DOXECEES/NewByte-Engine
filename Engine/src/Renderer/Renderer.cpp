@@ -161,8 +161,12 @@ namespace nb::Renderer
         shadowFrameBuffer->finalize();
         
         ssrResultBuffer = api->createFrameBuffer(width, heigth);
-        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
         ssrResultBuffer->finalize();
+
+        ssrBlurBuffer = api->createFrameBuffer(width, heigth);
+        ssrBlurBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        ssrBlurBuffer->finalize();
 
         pointShadowFrameBuffer = api->createFrameBuffer(1024, 1024);
         pointShadowFrameBuffer->addRenderBufferAttachment(
@@ -770,7 +774,11 @@ namespace nb::Renderer
 
         renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
 
-        renderSSR(width, height, view, proj);
+
+        if (postProcessConfig.isSSREnabled)
+        {
+            renderSSR(width, height, view, proj);
+        }
 
         renderFinalQuad(width, height);
 
@@ -929,6 +937,11 @@ namespace nb::Renderer
     {
         auto ssrShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("ssr.shader");
 
+        glBindTexture(GL_TEXTURE_2D, mainFrameBuffer->getTexture(0));
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
         api->bindFrameBuffer(ssrResultBuffer);
         api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
         api->clear(true, false, false);
@@ -940,11 +953,12 @@ namespace nb::Renderer
         //}
 
 
+        
         ssrShader->setUniformUint64("gFinalImage", mainFrameBuffer->getTextureHandle(0));
         ssrShader->setUniformUint64("gNormal", gBuffer->getFramebuffer()->getTextureHandle(0));
         //ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(1));
         ssrShader->setUniformUint64("gExtraComponents", gBuffer->getFramebuffer()->getTextureHandle(3));
-        ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(4));
+        ssrShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(1));
 
 
         ssrShader->setUniformMat4("invView", nb::Math::inverse(view));
@@ -958,6 +972,51 @@ namespace nb::Renderer
         Pipeline ssrP = {.shader = ssrShader, .isDepthTestEnable = false};
         api->drawMesh(
             {.mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(ssrP)}
+        );
+
+
+
+        auto blurShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("ssr_blur.shader");
+
+        Pipeline blurP = {.shader = blurShader, .isDepthTestEnable = false};
+
+
+        // --- ПРОХОД 2: Blur Horizontal ---
+        api->bindFrameBuffer(ssrBlurBuffer);
+        blurShader->use();
+        // Читаем шумный результат SSR
+        blurShader->setUniformUint64("u_SSRTexture", ssrResultBuffer->getTextureHandle(0));
+        // ИСПРАВЛЕНО: используем blurShader вместо ssrShader для всех юниформов!
+        blurShader->setUniformUint64("gNormal", gBuffer->getFramebuffer()->getTextureHandle(0));
+        blurShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(1));
+        blurShader->setUniformUint64(
+            "gExtraComponents", gBuffer->getFramebuffer()->getTextureHandle(3)
+        );
+
+        blurShader->setUniformVec2("u_Direction", {1.0f, 0.0f});
+        blurShader->setUniformVec2("u_ScreenSize", {(float)width, (float)height});
+
+        api->drawMesh(
+            {.mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(blurP)}
+        );
+
+        // --- ПРОХОД 3: Blur Vertical ---
+        api->bindFrameBuffer(ssrResultBuffer);
+        blurShader->use(); // Не забываем use, если стейт мог измениться
+        // Читаем результат горизонтального прохода
+        blurShader->setUniformUint64("u_SSRTexture", ssrBlurBuffer->getTextureHandle(0));
+        // Снова исправляем на blurShader
+        blurShader->setUniformUint64("gNormal", gBuffer->getFramebuffer()->getTextureHandle(0));
+        blurShader->setUniformUint64("gPosition", gBuffer->getFramebuffer()->getTextureHandle(1));
+        blurShader->setUniformUint64(
+            "gExtraComponents", gBuffer->getFramebuffer()->getTextureHandle(3)
+        );
+
+        blurShader->setUniformVec2("u_Direction", {0.0f, 1.0f});
+        blurShader->setUniformVec2("u_ScreenSize", {(float)width, (float)height});
+
+        api->drawMesh(
+            {.mesh = quadScreenMesh.get(), .pipeline = api->getCache().getOrCreate(blurP)}
         );
     }
 
@@ -1001,7 +1060,15 @@ namespace nb::Renderer
 
         
 
-        api->bindTexture(3, ssrResultBuffer->getTexture(0));
+        api->bindTexture(3, mainFrameBuffer->getTexture(0));
+        if (postProcessConfig.isSSREnabled)
+        {
+            quadShader->setUniformUint64("u_SSRTexture", ssrResultBuffer->getTextureHandle(0));
+        }
+        else
+        {
+            quadShader->setUniformUint64("u_SSRTexture", OpenGl::createPlaceholderForEmission());
+        }
 
 
         Pipeline quadP = {
@@ -1175,7 +1242,7 @@ namespace nb::Renderer
         shadowVizShader->use();
 
         // Передаем параметры для корректного отображения глубины
-        shadowVizShader->setUniformUint64("shadowMap", shadowTextureId);
+        shadowVizShader->setUniformUint64("shadowMap", ssrBlurBuffer->getTextureHandle(0)); // 0 3 4
         //shadowVizShader->setUniformFloat("near_plane", nearPlane); // например, 0.1f
         //shadowVizShader->setUniformFloat("far_plane", farPlane);   // например, 100.0f
         //shadowVizShader->setUniformInt()

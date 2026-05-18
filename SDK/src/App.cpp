@@ -835,8 +835,8 @@ void EditorApp::setupDebugUI() noexcept
             .relativeWidth(1.0f)
             .relativeHeight(1.0f)
             .background({35, 35, 35, 255})
-            .padding({10, 10, 10, 10})
-            .spacing(4)
+            //.padding({10, 10, 10, 10})
+            .spacing(2)
             .child(
                 LayoutBuilder::section(L"▼ Ambient Occlusion (SSAO)")
                     .relativeWidth(1.0f)
@@ -852,7 +852,7 @@ void EditorApp::setupDebugUI() noexcept
                         LayoutBuilder::vBox()
                             .relativeWidth(1.0f)
                             .autoHeight()
-                            .padding({10, 10, 10, 10}) 
+                            //.padding({10, 10, 10, 10}) 
                             .spacing(6)
 
                             .child(
@@ -976,7 +976,7 @@ void EditorApp::setupDebugUI() noexcept
                             s.color = {52, 52, 52};
                         }
                     )
-                    .margin({0, 10, 10, 10})
+                    .margin({0, 10, 0, 10})
                     .child(
                         LayoutBuilder::vBox()
                         .relativeWidth(1.0f)
@@ -997,7 +997,7 @@ void EditorApp::setupDebugUI() noexcept
                         LayoutBuilder::hBox()
                         .relativeWidth(1.0f)
                         .absoluteHeight(100.0f)
-                        .padding({10, 10, 10, 10}) 
+                        //.padding({10, 10, 10, 10}) 
 
                         .child(
                             LayoutBuilder::label(L"LUTexture")
@@ -1011,6 +1011,49 @@ void EditorApp::setupDebugUI() noexcept
                         )
                     )
             )
+            .child(
+                LayoutBuilder::
+                    section(L"▼ Screen space refletions")
+                        .relativeWidth(1.0f)
+                        .autoHeight()
+                        .style(
+                            [this](auto& s)
+                            {
+                                s.color = {52, 52, 52};
+                            }
+                        )
+                        .margin({0, 10, 10, 10})
+                        .child(
+                            LayoutBuilder::vBox()
+                                .relativeWidth(1.0f)
+                                .absoluteHeight(30.0f)
+                                .child(
+                                    LayoutBuilder::widget(new Widgets::CheckBox())
+                                        .relativeHeight(1.0f)
+                                        .relativeWidth(1.0f)
+                                        .text(L"Enable SSR")
+                                        .apply<Widgets::CheckBox>(
+                                            [](Widgets::CheckBox* c)
+                                            {
+                                                c->setChecked(false);
+
+                                            }
+                                        )
+                                        .onEvent(
+                                            &Widgets::CheckBox::onCheckStateChanged,
+                                            [&](bool checked)
+                                            {
+                                                engine->getRenderer()
+                                                    ->getPostProcessConfig()
+                                                    .isSSREnabled = checked;
+                                            }
+                                        )
+                                    //.textAlignment(TextFormatAlignment::CENTER)
+                                )
+                        )
+                        
+            )
+
             .child(LayoutBuilder::spacer())
             .build();
 
@@ -1855,6 +1898,49 @@ void EditorApp::spawnPrimitive(
     }
 }
 
+void EditorApp::spawnEmpty(const Widgets::ModelIndex& index) noexcept
+{
+    if (!index.isValid())
+    {
+        nb::Error::ErrorManager::instance().report(
+            nb::Error::Type::WARNING, "Invalid spawn parameters for Empty node"
+        );
+        return;
+    }
+
+    auto* item = sceneModel->findById(index.getUuid());
+    if (!item)
+    {
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::WARNING, "Could not find scene item by UUID for Empty node")
+            .with("uuid", index.getUuid().toString());
+        return;
+    }
+
+    const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+    auto&      scene    = nb::Scene::getInstance();
+    auto       node     = scene.createNode(parentId);
+
+    std::string nodeName = primitiveNameManager.generateName("Empty");
+    node.addComponent<NameComponent>({nodeName});
+
+    node.addComponent<TransformComponent>({});
+
+    sceneModel->addEntity(parentId, node.getId());
+
+    activeNode = scene.getNode(node.getId());
+
+    refreshHierarchyTreeViewSignal.emit();
+    onActiveNodeChanged.emit();
+
+    scene.invalidateBvh();
+
+    nb::Error::ErrorManager::instance()
+        .report(nb::Error::Type::INFO, "Empty node spawned successfully")
+        .with("name", nodeName)
+        .with("entityId", static_cast<uint64_t>(node.getId()));
+}
+
 
 void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 {
@@ -1939,6 +2025,14 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                     }
                 );
             };
+
+            popup->addItem(
+                L"➕ Добавить пустышку", nbui::IconType::Plus,
+                [this, index]()
+                {
+                    this->spawnEmpty(index);
+                }
+            );
 
             addPrimitiveAction(L"➕ Добавить куб", "CubeParams");
             addPrimitiveAction(L"➕ Добавить сферу", "SphereParams");

@@ -46,7 +46,14 @@ namespace nb::Loaders
                             }
                             else
                             {
-                                material->setProperty(name, node.get<float>());
+                                if (node.isBool())
+                                {
+                                    material->setProperty(name, node.get<bool>());
+                                }
+                                else
+                                {
+                                    material->setProperty(name, node.get<float>());
+                                }
                             }
                         }
                         else if (node.isArray())

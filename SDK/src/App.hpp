@@ -154,6 +154,7 @@ private:
         nb::Reflect::TypeInfo*     typeInfo
     ) noexcept;
 
+    void spawnEmpty(const Widgets::ModelIndex& index) noexcept;
 
     void showAllWindows()
     {

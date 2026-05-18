@@ -192,6 +192,7 @@ namespace nb
             struct PostProcessConfig
             {
                 bool isLutEnabled = true;
+                bool isSSREnabled = false;
             };
 
             const PostProcessConfig& getPostProcessConfig() const noexcept
@@ -292,6 +293,8 @@ namespace nb
 
             Ref<IFrameBuffer> mainFrameBuffer;         
             Ref<IFrameBuffer> ssrResultBuffer;
+            Ref<IFrameBuffer> ssrBlurBuffer;
+
             Ref<IFrameBuffer> shadowFrameBuffer;
             Ref<IFrameBuffer> pointShadowFrameBuffer;
 

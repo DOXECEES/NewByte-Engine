@@ -14,6 +14,10 @@ namespace nb::Resource
             {
                 sh->setUniformFloat(name, std::get<float>(prop.value));
             }
+            else if (std::holds_alternative<bool>(prop.value))
+            {
+                sh->setUniformInt(name, std::get<bool>(prop.value));
+            }
             else if (std::holds_alternative<Color>(prop.value))
             {
                 sh->setUniformVec4(name, std::get<Color>(prop.value).asVec4());

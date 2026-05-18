@@ -190,5 +190,11 @@
 			"Assets/shaders/billboard.vs",
 			"Assets/shaders/billboard.fs"
 		]
-	}			
+	},
+	"ssr_blur.shader" : {
+		"sources": [
+			"Assets/shaders/ssr_blur.vs",
+			"Assets/shaders/ssr_blur.fs"
+		]
+	}		
 }
