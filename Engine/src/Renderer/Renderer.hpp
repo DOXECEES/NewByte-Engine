@@ -87,7 +87,7 @@ namespace nb
 
             struct TexturePreviewRequest
             {
-                uint32 source;
+                uint64 source;
                 nb::Math::Vector3<float> channelMask = {1.0f, 1.0f, 1.0f};
                 float gamma = 2.2f;
                 float exposure = 1.0f;
@@ -192,6 +192,7 @@ namespace nb
             struct PostProcessConfig
             {
                 bool isLutEnabled = true;
+                bool isSSREnabled = false;
             };
 
             const PostProcessConfig& getPostProcessConfig() const noexcept
@@ -208,6 +209,12 @@ namespace nb
                 const Math::Vector3<float>& p1,
                 const Math::Vector3<float>& p2
             ) noexcept;
+
+
+            static void generatePreviewForMaterial(const std::filesystem::path& path) noexcept
+            {
+                previewQueue.pushBack(path);
+            }
 
 
         private:
@@ -232,6 +239,7 @@ namespace nb
                 int width,
                 int height
             ) noexcept;
+
 
 
         private:
@@ -277,6 +285,7 @@ namespace nb
         private:
 
             std::unique_ptr<Skybox> skybox;
+            inline static nbstl::Vector<std::filesystem::path> previewQueue;
 
             bool    isResourceLoaded     = false;
             bool    isPreviewInitialized = false;
@@ -284,6 +293,8 @@ namespace nb
 
             Ref<IFrameBuffer> mainFrameBuffer;         
             Ref<IFrameBuffer> ssrResultBuffer;
+            Ref<IFrameBuffer> ssrBlurBuffer;
+
             Ref<IFrameBuffer> shadowFrameBuffer;
             Ref<IFrameBuffer> pointShadowFrameBuffer;
 

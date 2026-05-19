@@ -56,17 +56,19 @@ public:
         return window;
     }
 
+    //Signal<void()>
+
 private:
 
     struct DragInfo
     {
         bool                  active            = false;
-        bool                  isDraggingStarted = false; // Флаг, что это именно перенос, а не клик
-        POINT                 startMousePos;             // Где нажали
-        std::filesystem::path path;                      // Что тащим
+        bool                  isDraggingStarted = false; 
+        POINT                 startMousePos;             
+        std::filesystem::path path;                      
     } dragInfo;
 
-    const int dragThreshold = 5; // Пикселей, после которых клик превращается в драг
+    const int dragThreshold = 5; 
 
 
     enum class AssetType
@@ -94,6 +96,7 @@ private:
 
     std::shared_ptr<Win32Window::ChildWindow> window;
     nbstl::NonOwningPtr<nb::Core::Engine> engine;
+    std::shared_ptr<TextureEditor>            textureEditor;
 
     inline static nb::Loaders::Json assetsJson = nb::Loaders::Json(std::filesystem::path("Assets/Assets.json"));
 };

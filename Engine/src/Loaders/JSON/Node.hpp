@@ -226,6 +226,16 @@ namespace nb
                 return std::holds_alternative<Value>(data);
             }
 
+            inline constexpr bool isBool() const noexcept
+            {
+                if (!isValue())
+                {
+                    return false;
+                }
+
+                return std::holds_alternative<bool>(std::get<Value>(data));
+            }
+
             /**
              * @brief Проверка, является ли узел массивом.
              * @return true, если узел является массивом, иначе false.

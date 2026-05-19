@@ -1,0 +1,13 @@
+{
+	"shader": "ADS.shader",
+	"properties": {
+		"u_RoughnessFactor": 1.000000,
+		"u_OcclusionFactor": 0.000000,
+		"u_ORMMap": "Assets/res/rock_wall_16_arm_1k.texture",
+		"u_NormalMap": "Assets/res/rock_wall_16_nor_gl_1k.texture",
+		"u_MetallicFactor": 0.000000,
+		"u_Emission": 1.000000,
+		"u_BaseColorFactor": 1.000000,
+		"u_AlbedoMap": "Assets/res/rock_wall_16_diff_1k.texture"
+	}
+}

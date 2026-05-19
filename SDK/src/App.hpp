@@ -94,7 +94,11 @@ private:
 
     void openColorPickerWindow();
     void openFilePickerWindow();
-
+    void openFilePicker(
+        const std::wstring&                     title,
+        std::function<void(const std::string&)> onSelected,
+        Win32Window::IWindow*                   parent
+    );
     //
     std::shared_ptr<SceneModelEcs> sceneModel;
     //nb::Renderer::BaseNode* activeNode = nullptr;
@@ -154,6 +158,7 @@ private:
         nb::Reflect::TypeInfo*     typeInfo
     ) noexcept;
 
+    void spawnEmpty(const Widgets::ModelIndex& index) noexcept;
 
     void showAllWindows()
     {
@@ -245,7 +250,8 @@ private:
                         nb::Math::Vector3<float> pWorldPos(0.0f, 0.0f, 0.0f);
                         bool                     hasParent = false;
 
-                        if (auto parent = activeNode.getParent(); parent.has_value())
+                        if (auto parent = activeNode.getParent();
+                            parent.has_value() && parent->hasComponent<TransformComponent>())
                         {
                             auto& ptc   = parent->getComponent<TransformComponent>();
                             pWorldPos   = nb::Math::getPositionFromModelMatrix(ptc.worldMatrix);

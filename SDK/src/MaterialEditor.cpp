@@ -66,8 +66,8 @@ MaterialEditor::MaterialEditor(
 void MaterialEditor::handleResize(const NbSize<int>& size)
 {
     const int previewWidth = static_cast<int>(size.width * Metrics::previewRatio);
-    const int contentHeight = size.height - Metrics::toolbarHeight;
-    const int topOffset = Metrics::titleBarHeight + Metrics::toolbarHeight;
+    const int contentHeight = size.height;
+    const int topOffset = Metrics::titleBarHeight;
 
     const NbRect<int> clientArea = modalWindow->getClientRect();
 
@@ -120,7 +120,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
                               .style(
                                   [this](auto& s)
                                   {
-                                      s.color = {52, 52, 52};
+                                     // s.color = {37, 37, 37};
                                   }
                               )
                               .padding({10, 10, 0, 10});
@@ -133,7 +133,7 @@ std::unique_ptr<NNsLayout::LayoutNode> MaterialEditor::buildInspectorUI()
                               .style(
                                   [this](auto& s)
                                   {
-                                      s.color = {52, 52, 52};
+                                     // s.color = {37, 37, 37};
                                   }
                               )
                               .padding({10, 10, 0, 10});    
@@ -201,15 +201,17 @@ void MaterialEditor::addPropertyWidget(
     using namespace nbui;
     std::wstring wName = Utils::toWstring(name);
 
-    auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30).margin({5, 5, 5, 5});
-    std::move(row).child(
-        LayoutBuilder::label(wName).relativeWidth(0.4f).textAlignment(
-            TextFormatAlignment{
-                .textAlignment      = TextAlignment::LEFT,
-                .paragraphAlignment = ParagraphAlignment::CENTER,
-            }
+    auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
+    std::move(row)
+        .child(LayoutBuilder::label(wName)
+            .relativeWidth(0.4f)
+            .textAlignment(
+                TextFormatAlignment{
+                    .textAlignment      = TextAlignment::LEFT,
+                    .paragraphAlignment = ParagraphAlignment::CENTER,
+                }
             )
-            
+            .padding({0, 0, 0, 10})
     );
 
     if (std::holds_alternative<float>(prop.value)) 
@@ -229,7 +231,9 @@ void MaterialEditor::addPropertyWidget(
                 })
         );
 
-        std::move(valueContainer).child(std::move(row));
+        std::move(valueContainer)
+            .child(LayoutBuilder::spacerAbsolute(1.0f, 1.0f).background({30, 30, 30}))
+            .child(std::move(row));
 
     }
     else if (std::holds_alternative<Ref<nb::Resource::TextureAsset>>(prop.value))
@@ -257,7 +261,11 @@ void MaterialEditor::addPropertyWidget(
                 //    // активировать режим Drag&Drop
                 //})
         );
-        std::move(container).child(std::move(row));
+
+
+        std::move(container)
+            .child(LayoutBuilder::spacerAbsolute(1.0f, 1.0f).background({30, 30, 30}))
+            .child(std::move(row));
     }
 
 }
@@ -265,6 +273,7 @@ void MaterialEditor::addPropertyWidget(
 void MaterialEditor::onSave() noexcept
 {
     targetMaterial->updateMetaData();
+    nb::Renderer::Renderer::generatePreviewForMaterial(targetMaterial->getPath());
     onClose();
 }
 

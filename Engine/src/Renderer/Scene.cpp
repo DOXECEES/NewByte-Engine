@@ -417,6 +417,134 @@ namespace nb
         return &sceneBVH;
     }
 
+    
+    RaycastResult Scene::raycast(
+        const Math::Ray& ray,
+        Ecs::EntityID    ignoreId
+    ) noexcept
+    {
+        updateBvh();
+        RaycastResult result;
+
+        uint32_t stack[64];
+        uint32_t stackPtr       = 0;
+        uint32_t currentNodeIdx = 0;
+
+        while (true)
+        {
+            const auto& node = sceneBVH.nodes[currentNodeIdx];
+            float       tNode;
+            if (!Math::intersectRayAABB(ray, node.bounds, tNode) || tNode > result.distance)
+            {
+                if (stackPtr == 0)
+                {
+                    break;
+                }
+                currentNodeIdx = stack[--stackPtr];
+                continue;
+            }
+
+            if (node.isLeaf())
+            {
+                for (uint32_t i = 0; i < node.count; i++)
+                {
+                    const auto& item = sceneBVH.items[node.leftFirst + i];
+                    if (item.entityId == ignoreId)
+                    {
+                        continue; // Игнорируем шар
+                    }
+
+                    float tAABB;
+                    if (Math::intersectRayAABB(ray, item.worldAABB, tAABB) &&
+                        tAABB < result.distance)
+                    {
+                        auto& transform = getComponent<TransformComponent>(item.entityId);
+                        auto& meshComp  = getComponent<MeshComponent>(item.entityId);
+                        Math::Mat4<float> invModel = Math::inverse(transform.worldMatrix);
+
+                        Math::Ray localRay;
+                        localRay.origin    = Math::transformPoint(invModel, ray.origin);
+                        localRay.direction = Math::transformVector(invModel, ray.direction);
+
+                        const auto& vertices = meshComp.mesh->getVertices();
+                        const auto& indices  = meshComp.mesh->getIndices();
+
+                        for (size_t j = 0; j < indices.size(); j += 3)
+                        {
+                            float tTri;
+                            if (Math::intersectRayTriangle(
+                                    localRay, vertices[indices[j]].position,
+                                    vertices[indices[j + 1]].position,
+                                    vertices[indices[j + 2]].position, tTri
+                                ))
+                            {
+                                if (tTri < result.distance && tTri > 0.0001f)
+                                {
+                                    result.distance = tTri;
+                                    result.entityId = item.entityId;
+                                    result.hasHit   = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (stackPtr == 0)
+                {
+                    break;
+                }
+                currentNodeIdx = stack[--stackPtr];
+            }
+            else
+            {
+                uint32_t leftIdx  = node.leftFirst;
+                uint32_t rightIdx = node.leftFirst + 1;
+                float    tL, tR;
+                bool     hitL = Math::intersectRayAABB(ray, sceneBVH.nodes[leftIdx].bounds, tL);
+                bool     hitR = Math::intersectRayAABB(ray, sceneBVH.nodes[rightIdx].bounds, tR);
+                if (hitL && tL > result.distance)
+                {
+                    hitL = false;
+                }
+                if (hitR && tR > result.distance)
+                {
+                    hitR = false;
+                }
+
+                if (!hitL && !hitR)
+                {
+                    if (stackPtr == 0)
+                    {
+                        break;
+                    }
+                    currentNodeIdx = stack[--stackPtr];
+                }
+                else if (hitL && !hitR)
+                {
+                    currentNodeIdx = leftIdx;
+                }
+                else if (!hitL && hitR)
+                {
+                    currentNodeIdx = rightIdx;
+                }
+                else
+                {
+                    if (tL < tR)
+                    {
+                        currentNodeIdx    = leftIdx;
+                        stack[stackPtr++] = rightIdx;
+                    }
+                    else
+                    {
+                        currentNodeIdx    = rightIdx;
+                        stack[stackPtr++] = leftIdx;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+
     Scene::Scene() noexcept
     {
         auto root = ecs.createEntity();

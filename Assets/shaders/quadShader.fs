@@ -6,13 +6,15 @@ in vec2 TexCoords;
 
 uniform sampler2D depthMap; 
 uniform vec2 screenSize;   
-
+layout(bindless_sampler) uniform sampler2D u_SSRTexture; 
 layout(bindless_sampler) uniform sampler2D u_OutlineMask;
 uniform vec3 u_OutlineColor;
 uniform int u_OutlineThickness; 
-
 layout(bindless_sampler) uniform sampler2D lookupTableTexture;
 uniform bool u_UseLut = true;
+
+// Экспозиция (настрой под свою сцену, если слишком темно - увеличь до 1.2)
+const float u_Exposure = 1.0; 
 
 #ifdef USE_FXAA
     #define FXAA_REDUCE_MIN   (1.0/128.0)
@@ -20,15 +22,28 @@ uniform bool u_UseLut = true;
     #define FXAA_SPAN_MAX     8.0
 #endif
 
+// ACES Filmic Tonemapping - убирает "молоко" и делает картинку сочной
+vec3 tonemap(vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
 vec3 getSceneWithOutline(vec2 coords) {
     vec3 baseColor = texture(depthMap, coords).rgb;
+    vec3 reflection = texture(u_SSRTexture, coords).rgb;
+    
+    // Суммируем HDR данные
+    vec3 colorWithSSR = baseColor + reflection;
+    
+    // Логика обводки (Outline)
     float mask = texture(u_OutlineMask, coords).r;
-    
     float outlineAlpha = 0.0;
-    
     if (mask < 0.5) {
         vec2 texelSize = 1.0 / screenSize;
-        
         for (int x = -u_OutlineThickness; x <= u_OutlineThickness; x++) {
             for (int y = -u_OutlineThickness; y <= u_OutlineThickness; y++) {
                 if (x*x + y*y <= u_OutlineThickness * u_OutlineThickness) {
@@ -44,12 +59,10 @@ vec3 getSceneWithOutline(vec2 coords) {
             }
         }
     }
-    
-    return mix(baseColor, u_OutlineColor, outlineAlpha * 0.8);
+    return mix(colorWithSSR, u_OutlineColor, outlineAlpha * 0.8);
 }
 
-vec3 applyLut(vec3 inColor)
-{
+vec3 applyLut(vec3 inColor) {
     vec3 color = clamp(inColor, 0.0, 1.0);
     float size = 16.0;
     float blueValue = color.b * (size - 1.0);
@@ -63,13 +76,11 @@ vec3 applyLut(vec3 inColor)
     return mix(col1, col2, fract(blueValue));
 }
 
-void main()
-{
+void main() {
     vec3 finalColor;
 
 #ifdef USE_FXAA
     vec2 inverseScreenSize = vec2(1.0) / screenSize;
-
     vec3 rgbNW = getSceneWithOutline(TexCoords + (vec2(-1.0, -1.0) * inverseScreenSize));
     vec3 rgbNE = getSceneWithOutline(TexCoords + (vec2(1.0, -1.0) * inverseScreenSize));
     vec3 rgbSW = getSceneWithOutline(TexCoords + (vec2(-1.0, 1.0) * inverseScreenSize));
@@ -116,14 +127,23 @@ void main()
     finalColor = getSceneWithOutline(TexCoords);
 #endif
 
+    // 1. Применяем экспозицию (умножение HDR данных)
+    finalColor *= u_Exposure;
+
+    // 2. Сжимаем HDR в LDR диапазон (ACES). Теперь пересветы исчезнут.
+    //finalColor = tonemap(finalColor);
+
+    // 3. Гамма-коррекция. Делает переходы плавными и возвращает детали из теней.
+    finalColor = pow(finalColor, vec3(1.0 / 2.2));
+
+    // 4. Применяем LUT уже к исправленному цвету
     if(u_UseLut) {
         finalColor = applyLut(finalColor);
     }
 
-    vec2 center = vec2(0.5, 0.5);
-    float dist = length(TexCoords - center);
-    float vignette = smoothstep(0.45, 0.75, dist);
-    finalColor *= mix(1.0, 0.7, vignette);
+    // 5. Виньетка
+    float dist = length(TexCoords - vec2(0.5, 0.5));
+    finalColor *= mix(1.0, 0.75, smoothstep(0.4, 0.85, dist));
 
     FragColor = vec4(finalColor, 1.0);
 }

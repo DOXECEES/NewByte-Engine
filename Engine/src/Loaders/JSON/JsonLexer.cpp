@@ -139,17 +139,46 @@ namespace nb
 
         JsonLexer::Token JsonLexer::parseString() noexcept
         {
-            size_t startPos = pos;
-            pos++;
+            std::string unescaped;
             while (isInRange() && data[pos] != '"')
             {
                 if (data[pos] == '\\')
                 {
                     pos++;
+                    if (!isInRange())
+                    {
+                        break;
+                    }
+
+                    switch (data[pos])
+                    {
+                    case 'n':
+                        unescaped += '\n';
+                        break;
+                    case 'r':
+                        unescaped += '\r';
+                        break;
+                    case 't':
+                        unescaped += '\t';
+                        break;
+                    case '\\':
+                        unescaped += '\\';
+                        break;
+                    case '"':
+                        unescaped += '"';
+                        break;
+                    default:
+                        unescaped += data[pos];
+                        break;
+                    }
+                }
+                else
+                {
+                    unescaped += data[pos];
                 }
                 pos++;
             }
-            return {TokenType::STRING, data.substr(startPos, pos - startPos)};
+            return {TokenType::STRING, unescaped};
         }
     };
 };

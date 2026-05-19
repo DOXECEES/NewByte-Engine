@@ -12,9 +12,15 @@
 #include "../Math/Matrix/Transformation.hpp"
 
 #include "../Core/EngineSettings.hpp"
-
 namespace nb
 {
+    class Scene;
+
+    namespace Ecs
+    {
+        using EntityID = uint32_t;
+    };
+
     namespace Renderer
     {
         class Camera
@@ -43,6 +49,12 @@ namespace nb
                 const float deltaX,
                 const float deltaY
             ) noexcept;
+            void updateOrbitByAngles(
+                const float   yawRadians,
+                const float   pitchRadians,
+                Scene*    scene,
+                Ecs::EntityID ballId
+            ) noexcept;
 
             void update(const float newYaw, const float newPitch) noexcept;
 
@@ -50,6 +62,19 @@ namespace nb
             inline Math::Vector3<float> getDirection() const noexcept { return direction; };
 
             Math::Ray getRayFromMousePoint(uint32_t x, uint32_t y) noexcept; 
+
+            float getFov() const noexcept;
+            float getAspectRatio() const noexcept;
+
+            float getNearPlane() const noexcept;
+            void  setNearPlane(float newPlane) noexcept;
+
+            float getFarPlane() const noexcept;
+            void  setFarPlane(float newPlane) noexcept;
+
+            void setDistance(float dist) noexcept;
+            void setTarget(const Math::Vector3<float>& localTarget) noexcept;
+
 
         private:
 
@@ -60,11 +85,15 @@ namespace nb
             bool                    alignByY    = false;
             bool                    alignByZ    = false;
 
+
             Math::Vector3<float>    position    = { 0.0f, 0.0f, 0.0f };
             Math::Vector3<float>    direction   = { 0.0f, 0.0f, 1.0f };
             Math::Vector3<float>    up          = { 0.0f, 1.0f, 0.0f };
             float                   yaw         =   0.0f;
             float                   pitch       =   0.0f;
+
+            float nearPlane = NEAR_PLANE;
+            float farPlane  = FAR_PLANE;
 
             Math::Vector3<float> target = {0.0f, 0.0f, 0.0f};
             float distance = 5.0f;

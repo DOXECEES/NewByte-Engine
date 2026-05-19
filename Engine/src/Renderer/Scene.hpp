@@ -196,6 +196,7 @@ struct CameraComponent
     bool isTonemappingEnabled          = false;
     bool isFilmGrainEnabled            = false;
     bool isVignetteEnabled             = false;
+    bool isOrbit                       = false;
 
     CameraComponent() : controller(std::make_unique<nb::Renderer::Camera>())
     {
@@ -233,6 +234,10 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         CameraComponent,
         isVignetteEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isOrbit
     )
 )
 
@@ -266,6 +271,7 @@ namespace nb
         template <typename T>
         bool hasComponent() noexcept;
 
+
         void setName(std::string_view name);
 
         bool isValid() const noexcept;
@@ -274,13 +280,20 @@ namespace nb
 
         std::optional<Node> getParent() noexcept;
 
-
     private:
         Ecs::EntityID entity = 0;
         Scene* scene = nullptr;
 
         friend class Scene;
     };
+
+    struct RaycastResult
+    {
+        Ecs::EntityID entityId = 0;
+        float         distance = std::numeric_limits<float>::max();
+        bool          hasHit   = false;
+    };
+
 
     class Scene : public nb::Serialize::ISerializable
     {
@@ -374,6 +387,12 @@ namespace nb
 
         Math::BVH* getBvh() noexcept;
 
+        RaycastResult raycast(
+            const Math::Ray& ray,
+            Ecs::EntityID    ignoreId = 0
+        ) noexcept;
+
+
 
         void serialize(nb::Serialize::IArchive* archive) noexcept override;
         void deserialize(nb::Serialize::IArchive* archive) noexcept override;
@@ -425,6 +444,8 @@ namespace nb
     {
         scene->addComponent(entity, component);
     }
+
+
 
     template <typename T>
     T& Node::getComponent()

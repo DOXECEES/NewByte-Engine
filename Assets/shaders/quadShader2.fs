@@ -1,10 +1,11 @@
-#version 330 core
+#version 450 core
+#extension GL_ARB_bindless_texture : require
 
 out vec4 FragColor;
 
 in vec2 TexCoords;
 
-uniform sampler2D sceneTexture;
+layout(bindless_sampler) uniform sampler2D sceneTexture;
 uniform vec3 channelMask;
 uniform float gamma;
 uniform float exposure;

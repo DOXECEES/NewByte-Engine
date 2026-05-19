@@ -47,6 +47,33 @@ namespace nb::Renderer
         batchIndices.push_back(startIndex + 3);
     }
 
+    void DebugDraw::drawCircle(
+        const Math::Vector3<float>& center,
+        float                       radius,
+        int                         segments,
+        const Math::Vector3<float>& normal
+    ) noexcept
+    {
+        using Vec3 = Math::Vector3<float>;
+
+        Vec3 up    = (std::abs(normal.y) > 0.999f) ? Vec3(1, 0, 0) : Vec3(0, 1, 0);
+        Vec3 right = Math::normalize(Math::cross(up, normal));
+        up         = Math::normalize(Math::cross(normal, right));
+
+        Vec3 prevPoint = center + right * radius;
+
+        for (int i = 1; i <= segments; ++i)
+        {
+            float angle = (static_cast<float>(i) / segments) * 2.0f * Math::Constants::PI;
+
+            Vec3 currentPoint =
+                center + right * (cosf(angle) * radius) + up * (sinf(angle) * radius);
+
+            DebugDraw::drawLine(prevPoint, currentPoint);
+            prevPoint = currentPoint;
+        }
+    }
+
     void DebugDraw::drawBatch(
         nbstl::NonOwningPtr<IRenderAPI> api,
         nbstl::NonOwningPtr<Camera>     camera

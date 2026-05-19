@@ -593,7 +593,7 @@ namespace nb::OpenGl
         // --- САМЫЙ ВАЖНЫЙ ШАГ ---
         // Когда всё запечено, генерируем хэндл и фиксируем текстуру
         map->finalizeBindless();
-
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
         // Очистка ресурсов запекания
         glDeleteRenderbuffers(1, &rbo);
         glDeleteFramebuffers(1, &fbo);
