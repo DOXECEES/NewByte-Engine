@@ -196,6 +196,7 @@ struct CameraComponent
     bool isTonemappingEnabled          = false;
     bool isFilmGrainEnabled            = false;
     bool isVignetteEnabled             = false;
+    bool isOrbit                       = false;
 
     CameraComponent() : controller(std::make_unique<nb::Renderer::Camera>())
     {
@@ -233,6 +234,10 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         CameraComponent,
         isVignetteEnabled
+    ),
+    NB_FIELD(
+        CameraComponent,
+        isOrbit
     )
 )
 
@@ -281,6 +286,14 @@ namespace nb
 
         friend class Scene;
     };
+
+    struct RaycastResult
+    {
+        Ecs::EntityID entityId = 0;
+        float         distance = std::numeric_limits<float>::max();
+        bool          hasHit   = false;
+    };
+
 
     class Scene : public nb::Serialize::ISerializable
     {
@@ -373,6 +386,12 @@ namespace nb
         void invalidateBvh() noexcept;
 
         Math::BVH* getBvh() noexcept;
+
+        RaycastResult raycast(
+            const Math::Ray& ray,
+            Ecs::EntityID    ignoreId = 0
+        ) noexcept;
+
 
 
         void serialize(nb::Serialize::IArchive* archive) noexcept override;

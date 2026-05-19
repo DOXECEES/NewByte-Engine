@@ -12,9 +12,15 @@
 #include "../Math/Matrix/Transformation.hpp"
 
 #include "../Core/EngineSettings.hpp"
-
 namespace nb
 {
+    class Scene;
+
+    namespace Ecs
+    {
+        using EntityID = uint32_t;
+    };
+
     namespace Renderer
     {
         class Camera
@@ -43,6 +49,12 @@ namespace nb
                 const float deltaX,
                 const float deltaY
             ) noexcept;
+            void updateOrbitByAngles(
+                const float   yawRadians,
+                const float   pitchRadians,
+                Scene*    scene,
+                Ecs::EntityID ballId
+            ) noexcept;
 
             void update(const float newYaw, const float newPitch) noexcept;
 
@@ -59,6 +71,10 @@ namespace nb
 
             float getFarPlane() const noexcept;
             void  setFarPlane(float newPlane) noexcept;
+
+            void setDistance(float dist) noexcept;
+            void setTarget(const Math::Vector3<float>& localTarget) noexcept;
+
 
         private:
 

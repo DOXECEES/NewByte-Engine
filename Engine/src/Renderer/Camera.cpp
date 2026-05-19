@@ -6,7 +6,7 @@
 #include "Math/RayCast/RayPicker.hpp"
 #include "../Debug.hpp"
 
-
+#include "Scene.hpp"
 
 namespace nb
 {
@@ -44,6 +44,52 @@ namespace nb
             projection = Math::projection(
                 Math::toRadians(Core::EngineSettings::getFov()),
                 Core::EngineSettings::getAspectRatio(), NEAR_PLANE, FAR_PLANE
+            );
+        }
+
+        void Camera::updateOrbitByAngles(
+            const float   yawRadians,
+            const float   pitchRadians,
+            Scene*        scene,
+            Ecs::EntityID ballId
+        ) noexcept
+        {
+            auto qYaw =
+                Math::Quaternion<float>::axisAngleToQuaternion(-yawRadians, {0.0f, 1.0f, 0.0f});
+            auto qPitch =
+                Math::Quaternion<float>::axisAngleToQuaternion(-pitchRadians, {1.0f, 0.0f, 0.0f});
+            totalRotation = qYaw.cross(qPitch);
+            totalRotation.normalize();
+
+            Math::Vector3<float> rayDir =
+                Math::rotate(totalRotation, Math::Vector3<float>{0.0f, 0.0f, 1.0f});
+
+            float finalDistance = distance;
+            if (scene)
+            {
+                Math::Ray ray;
+                ray.origin    = target; 
+                ray.direction = rayDir;
+
+                auto hit = scene->raycast(ray, ballId);
+                if (hit.hasHit && hit.distance < distance)
+                {
+                    finalDistance = hit.distance - 0.3f;
+                    if (finalDistance < 0.5f)
+                    {
+                        finalDistance = 0.5f;
+                    }
+                }
+            }
+
+            position  = target + (rayDir * finalDistance);
+            direction = Math::normalize(target - position);
+
+            lookAt = Math::lookAt(position, target, {0.0f, 1.0f, 0.0f});
+
+            projection = Math::projection(
+                Math::toRadians(Core::EngineSettings::getFov()),
+                Core::EngineSettings::getAspectRatio(), nearPlane, farPlane
             );
         }
 
@@ -144,6 +190,16 @@ namespace nb
             {
                 farPlane = FAR_PLANE;
             }
+        }
+        
+        void Camera::setDistance(float dist) noexcept
+        {
+            distance = dist;
+        }
+
+        void Camera::setTarget(const Math::Vector3<float>& localTarget) noexcept
+        {
+            target = localTarget;
         }
 
 

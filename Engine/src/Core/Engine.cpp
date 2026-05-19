@@ -312,24 +312,34 @@ namespace nb
                 }
             );
 
-            for (auto entity : scene.getEntitiesWith<TransformComponent, CameraComponent>())
-            {
-                auto& transform = scene.getComponent<TransformComponent>(entity.id);
-                auto& camComp   = scene.getComponent<CameraComponent>(entity.id);
-                
-                auto* camera    = camComp.controller.get();
+            //for (auto entity : scene.getEntitiesWith<TransformComponent, CameraComponent>())
+            //{
+            //    auto& transform = scene.getComponent<TransformComponent>(entity.id);
+            //    auto& camComp   = scene.getComponent<CameraComponent>(entity.id);
+            //    
+            //    auto* camera    = camComp.controller.get();
 
-                // TODO: отдать скриптам
-                camera->moveTo(Math::getPositionFromModelMatrix(transform.worldMatrix));
-                //if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
-                //{
-                //    camera->moveAt(camera->getDirection() * 5.0f * deltaTime);
-                //}
-                camera->update(
-                    static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY())
-                );
+            //    // TODO: отдать скриптам
+            //    camera->moveTo(Math::getPositionFromModelMatrix(transform.worldMatrix));
+            //    //if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
+            //    //{
+            //    //    camera->moveAt(camera->getDirection() * 5.0f * deltaTime);
+            //    //}
+            //    const float degToRad = 3.14159265f / 180.0f;
 
-            }
+            //    if (camComp.isOrbit)
+            //    {
+            //        camera->updateOrbitByAngles(
+            //            mouse->getYaw() * degToRad, mouse->getPitch() * degToRad
+            //        );
+            //    }
+            //    else
+            //    {
+            //        camera->update(mouse->getYaw(), mouse->getPitch());
+            //    }
+            //   
+
+            //}
 
         }
 

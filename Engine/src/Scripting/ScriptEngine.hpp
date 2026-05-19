@@ -44,7 +44,18 @@ namespace nb::Script
                 [](const Math::Vector3<float>& a, const Math::Vector3<float>& b)
                 {
                     return a + b;
+                },
+                sol::meta_function::subtraction,
+                [](const Math::Vector3<float>& a, const Math::Vector3<float>& b)
+                {
+                    return a - b;
+                },
+                sol::meta_function::multiplication,
+                [](const Math::Vector3<float>& a, float b)
+                {
+                    return a * b;
                 }
+
             );
 
             lua.new_usertype<TransformComponent>(
@@ -116,6 +127,73 @@ namespace nb::Script
                 [](nb::Scene& scene, std::string_view name) -> uint32_t
                 {
                     return scene.findNodeByName(name).getId();
+                }, 
+                "getInstance",
+                [](nb::Scene& scene) -> nb::Scene&
+                {
+                    return scene;
+                }
+            );
+
+            lua["Scene"]["getCameraComponent"] = [](nb::Scene& scene,
+                                                    uint32_t   entityId) -> CameraComponent&
+            {
+                auto& registry = scene.getRegistry();
+                if (!registry.has<CameraComponent>({entityId}))
+                {
+                    throw std::runtime_error("Entity has no CameraComponent");
+                }
+                return registry.get<CameraComponent>({entityId});
+            };
+
+            lua.new_usertype<CameraComponent>(
+                "CameraComponent", "isPrimary", &CameraComponent::isPrimary, "getCamera",
+                [](CameraComponent& cc)
+                {
+                    return cc.controller.get();
+                }
+            );
+
+            lua.new_usertype<nb::Renderer::Camera>(
+                "Camera", "updateOrbit", &nb::Renderer::Camera::updateOrbit, "getDirection",
+                &nb::Renderer::Camera::getDirection, "getPosition",
+                &nb::Renderer::Camera::getPosition, "setDistance",
+                [](nb::Renderer::Camera& c, float d)
+                {
+                    c.setDistance(d);
+                },
+                "setTarget",
+                [](nb::Renderer::Camera& c, const nb::Math::Vector3<float>& t)
+                {
+                    c.setTarget(t);
+                },
+                "updateOrbitByAngles", &nb::Renderer::Camera::updateOrbitByAngles
+            );
+
+
+
+
+
+            lua.new_usertype<nb::Input::Mouse>(
+                "Mouse", "getDeltaX",
+                [](nb::Input::Mouse& m)
+                {
+                    return m.getX();
+                },
+                "getDeltaY",
+                [](nb::Input::Mouse& m)
+                {
+                    return m.getY();
+                },
+                "getYaw",
+                [](nb::Input::Mouse& m)
+                {
+                    return m.getYaw();
+                },
+                "getPitch",
+                [](nb::Input::Mouse& m)
+                {
+                    return m.getPitch();
                 }
             );
 

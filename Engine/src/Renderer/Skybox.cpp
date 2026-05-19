@@ -77,12 +77,14 @@ namespace nb
             //delete[] zp;
             //delete[] zn;
 
+
             //textureData.clear();
             std::vector<std::unique_ptr<Renderer::SubMesh>> m;
             auto p = std::make_unique<Renderer::SubMesh>(skyboxIndices);
             m.push_back(std::move(p));
             mesh = createRef<Mesh>(std::move(m), std::move(skyboxVertices), "");
             updateContextMesh(cache, wglGetCurrentContext());
+
         }
 
         Skybox::~Skybox()

@@ -126,7 +126,8 @@ namespace nb
              
 
                 nb::Script::ScriptEngineSingleton::instance().getLuaState()["Keyboard"] = keyboard;
-                
+                nb::Script::ScriptEngineSingleton::instance().getLuaState()["Mouse"] = mouse;
+
 
                 Utils::Timer::init();
             }
