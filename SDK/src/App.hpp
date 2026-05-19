@@ -94,7 +94,11 @@ private:
 
     void openColorPickerWindow();
     void openFilePickerWindow();
-
+    void openFilePicker(
+        const std::wstring&                     title,
+        std::function<void(const std::string&)> onSelected,
+        Win32Window::IWindow*                   parent
+    );
     //
     std::shared_ptr<SceneModelEcs> sceneModel;
     //nb::Renderer::BaseNode* activeNode = nullptr;

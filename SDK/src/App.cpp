@@ -252,6 +252,7 @@ void EditorApp::initEngine() noexcept
 void EditorApp::setupMainWindow() noexcept
 {
     using namespace nbui;
+
     auto rootUI =
         LayoutBuilder::vBox()
             .style(
@@ -261,41 +262,169 @@ void EditorApp::setupMainWindow() noexcept
                     s.height         = 1.0f;
                     s.widthSizeType  = NNsLayout::SizeType::RELATIVE;
                     s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-                    s.color          = NbColor{30, 30, 30};
+                    s.color          = NbColor{30, 30, 30}; 
                 }
             )
             .child(
-                LayoutBuilder::toolbar()
-                    .buttonGroupOnlyOne()
-                    .relativeHeight(1.0f)
-                    .absoluteWidth(120)
+                LayoutBuilder::hBox()
+                    .absoluteHeight(30.0f) 
+                    .relativeWidth(1.0f)
+                    .style(
+                        [](NNsLayout::LayoutStyle& s)
+                        {
+                            s.color = NbColor{45, 45, 45}; 
+                        }
+                    )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Save")
-                            .absoluteWidth(50)
+                            .text(L"File")
+                            .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
-                            .onEvent(
-                                &Widgets::Button::onPressedSignal,
-                                [this]()
+                            .apply<Widgets::Button>(
+                                [this](Widgets::Button* btn)
                                 {
-                                    engine->saveSnapshot();
+                                    subscribe(
+                                        btn, &Widgets::Button::onReleasedSignal,
+                                        [this, btn]()
+                                        {
+                                            auto popup = new PopupMenu();
+                                            popup->addItem(
+                                                L"New Project", IconType::Plus,
+                                                [this]()
+                                                {
+                                                }
+                                            );
+                                            popup->addItem(
+                                                L"Open...", IconType::None,
+                                                [this]()
+                                                {
+                                                }
+                                            );
+                                            popup->addSeparator();
+                                            popup->addItem(
+                                                L"Save", IconType::None,
+                                                [this]()
+                                                {
+                                                    engine->saveSnapshot();
+                                                }
+                                            );
+                                            popup->addSeparator();
+                                            popup->addItem(
+                                                L"Exit", IconType::Delete,
+                                                [this]()
+                                                {
+                                                    PostQuitMessage(0);
+                                                }
+                                            );
+
+                                            const NbRect<int>& pt = btn->getRect();
+                                            const WindowInterface::FrameSize& frame =
+                                                mainWindow->getFrameSize();
+
+                                            toolbarWindow->getPopupManager().show(
+                                                popup, frame.left + pt.x, frame.top + pt.y + pt.height, PopupStyle::MenuBarItem
+                                            );
+                                        }
+                                    );
                                 }
                             )
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Load")
-                            .absoluteWidth(50)
+                            .text(L"Edit")
+                            .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
-                            .onEvent(
-                                &Widgets::Button::onPressedSignal,
-                                [this]()
+                            .apply<Widgets::Button>(
+                                [this](Widgets::Button* btn)
                                 {
-                                    engine->loadSnapshot();
+                                    subscribe(
+                                        btn, &Widgets::Button::onReleasedSignal,
+                                        [this, btn]()
+                                        {
+                                            auto popup = new PopupMenu();
+                                            popup->addItem(
+                                                L"New Project", IconType::Plus,
+                                                [this]()
+                                                {
+                                                }
+                                            );
+                                            popup->addItem(
+                                                L"Open...", IconType::None,
+                                                [this]()
+                                                {
+
+                                                    openFilePicker(
+                                                        L"Select Resource: ",
+                                                        [this](const std::string& path)
+                                                        {
+                                                            nb::Error::ErrorManager::instance()
+                                                                .report(
+                                                                    nb::Error::Type::INFO, path
+                                                                );
+                                                        },
+                                                        toolbarWindow.get()
+                                                    );
+
+                                                    
+                                                    //engine->loadSnapshot()
+                                                }
+                                            );
+                                            popup->addSeparator();
+                                            popup->addItem(
+                                                L"Save", IconType::None,
+                                                [this]()
+                                                {
+                                                    engine->saveSnapshot();
+                                                }
+                                            );
+                                            popup->addSeparator();
+                                            popup->addItem(
+                                                L"Exit", IconType::Delete,
+                                                [this]()
+                                                {
+                                                    PostQuitMessage(0);
+                                                }
+                                            );
+
+                                            const NbRect<int>&                pt = btn->getRect();
+                                            const WindowInterface::FrameSize& frame = mainWindow->getFrameSize();
+
+                                            toolbarWindow->getPopupManager().show(
+                                                popup, frame.left + pt.x,
+                                                frame.top + pt.y + pt.height,
+                                                PopupStyle::MenuBarItem
+                                            );
+                                        }
+                                    );
                                 }
                             )
                     )
-                    .endGroup()
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"View")
+                            .absoluteWidth(60.0f)
+                            .relativeHeight(1.0f)
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Button())
+                            .text(L"Help")
+                            .absoluteWidth(60.0f)
+                            .relativeHeight(1.0f)
+                    )
+            )
+            .child(
+                LayoutBuilder::vBox()
+                    .relativeWidth(1.0f)
+                    .relativeHeight(1.0f) 
+                    .style(
+                        [](NNsLayout::LayoutStyle& s)
+                        {
+                            s.margin = {5, 5, 5, 5}; 
+                        }
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::Label()).text(L"Main Editor Area")
+                    )
             )
             .build();
 
@@ -305,7 +434,6 @@ void EditorApp::setupMainWindow() noexcept
 void EditorApp::setupHierarchyUI() noexcept
 {
     using namespace nbui;
-    //using namespace EditorTheme; // Предполагаем наличие общей темы
 
     auto ui = LayoutBuilder::vBox()
                   .style(
@@ -1060,6 +1188,73 @@ void EditorApp::setupDebugUI() noexcept
     debugWindow->getLayoutRoot()->addChild(std::move(ui));
 }
 
+void EditorApp::openFilePicker(
+    const std::wstring&                     title,
+    std::function<void(const std::string&)> onSelected,
+    Win32Window::IWindow*                   parent
+)
+{
+    if (filePickerWindow)
+    {
+        filePickerWindow = nullptr;
+    }
+
+    NbSize<int> winSize = {500, 600};
+    auto newWin = std::make_shared<Win32Window::ModalWindow>(
+        winSize, parent ? parent : inspectorWindow.get()
+    );
+
+    filePickerWindow = newWin;
+    newWin->setTitle(title);
+
+    std::weak_ptr<Win32Window::ModalWindow> weakWin = newWin;
+
+    auto ui = LayoutBuilder::vBox()
+                  .style(
+                      [](auto& s)
+                      {
+                          s.color = {40, 40, 40};
+                      }
+                  )
+                  .child(
+                      LayoutBuilder::widget(new Widgets::FilePicker({0, 0, 500, 600}))
+                          .relativeWidth(1.0f)
+                          .relativeHeight(1.0f)
+                          .onEvent(
+                              &Widgets::FilePicker::onFileSelected,
+                              [this, onSelected, weakWin](const std::string& newPath)
+                              {
+                                  if (auto pinnedWin = weakWin.lock())
+                                  {
+                                      if (!newPath.empty() && onSelected)
+                                      {
+                                          onSelected(newPath);
+                                      }
+                                      PostMessage(
+                                          (HWND)pinnedWin->getHandle().as<HWND>(), WM_CLOSE, 0, 0
+                                      );
+                                  }
+                              }
+                          )
+                          .onEvent(
+                              &Widgets::FilePicker::onCancelButtonPressed,
+                              [weakWin]()
+                              {
+                                  if (auto pinnedWin = weakWin.lock())
+                                  {
+                                      PostMessage(
+                                          (HWND)pinnedWin->getHandle().as<HWND>(), WM_CLOSE, 0, 0
+                                      );
+                                  }
+                              }
+                          )
+                  )
+                  .build();
+
+    newWin->getLayoutRoot()->addChild(std::move(ui));
+    newWin->show();
+}
+
 void EditorApp::setupAssetManager() noexcept
 {
     using namespace nbui;
@@ -1687,83 +1882,20 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                     &Widgets::IWidget::onReleasedSignal,
                                     [this, field, fieldData, componentPtr, info]()
                                     {
-                                        if (filePickerWindow)
-                                        {
-                                            filePickerWindow = nullptr;
-                                        }
-                                        NbSize<int> winSize = {500, 600};
-                                        auto newWin = std::make_shared<Win32Window::ModalWindow>(
-                                            winSize, inspectorWindow.get()
+                                        openFilePicker(
+                                            L"Select Resource: " + nb::Utils::toWString(field.name),
+                                            [this, field, fieldData, componentPtr,
+                                             info](const std::string& path)
+                                            {
+                                                if (field.loadResource)
+                                                {
+                                                    field.loadResource(fieldData, path);
+                                                    markComponentDirty(componentPtr, info);
+                                                    shouldRebuildInspector = true;
+                                                }
+                                            },
+                                            inspectorWindow.get()
                                         );
-                                        filePickerWindow = newWin;
-                                        newWin->setTitle(
-                                            L"Select Resource: " + nb::Utils::toWString(field.name)
-                                        );
-
-                                        auto resourceLoader = field.loadResource;
-                                        std::weak_ptr<Win32Window::ModalWindow> weakWin = newWin;
-
-                                        auto ui =
-                                            LayoutBuilder::vBox()
-                                                .style(
-                                                    [](auto& s)
-                                                    {
-                                                        s.color = {40, 40, 40};
-                                                    }
-                                                )
-                                                .child(
-                                                    LayoutBuilder::widget(
-                                                        new Widgets::FilePicker({0, 0, 500, 600})
-                                                    )
-                                                        .relativeWidth(1.0f)
-                                                        .relativeHeight(1.0f)
-                                                        .onEvent(
-                                                            &Widgets::FilePicker::onFileSelected,
-                                                            [this, resourceLoader, fieldData,
-                                                             componentPtr, info,
-                                                             weakWin](const std::string& newPath)
-                                                            {
-                                                                if (auto pinnedWin = weakWin.lock())
-                                                                {
-                                                                    if (!newPath.empty() &&
-                                                                        resourceLoader)
-                                                                    {
-                                                                        resourceLoader(
-                                                                            fieldData, newPath
-                                                                        );
-                                                                        markComponentDirty(
-                                                                            componentPtr, info
-                                                                        );
-                                                                        shouldRebuildInspector =
-                                                                            true;
-                                                                    }
-                                                                    PostMessage(
-                                                                        (HWND)pinnedWin->getHandle()
-                                                                            .as<HWND>(),
-                                                                        WM_CLOSE, 0, 0
-                                                                    );
-                                                                }
-                                                            }
-                                                        )
-                                                        .onEvent(
-                                                            &Widgets::FilePicker::
-                                                                onCancelButtonPressed,
-                                                            [weakWin]()
-                                                            {
-                                                                if (auto pinnedWin = weakWin.lock())
-                                                                {
-                                                                    PostMessage(
-                                                                        (HWND)pinnedWin->getHandle()
-                                                                            .as<HWND>(),
-                                                                        WM_CLOSE, 0, 0
-                                                                    );
-                                                                }
-                                                            }
-                                                        )
-                                                )
-                                                .build();
-                                        newWin->getLayoutRoot()->addChild(std::move(ui));
-                                        newWin->show();
                                     }
                                 )
                         )
