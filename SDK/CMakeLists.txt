@@ -26,6 +26,9 @@ add_executable(${PROJECT_NAME} WIN32
     src/MaterialEditor.cpp
     src/MaterialEditor.hpp
 
+    src/AssetThumbnailWidget.hpp
+    src/AssetThumbnailWidget.cpp
+
     src/FileSystemModel.hpp
 
     src/ComponentBrowser.hpp

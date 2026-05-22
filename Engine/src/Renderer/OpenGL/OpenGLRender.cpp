@@ -131,9 +131,9 @@ namespace nb::OpenGl
 
     void OpenGLRender::endFrame() noexcept
     {
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::WARNING, "Count of draw calls")
-            .with("number", countOfDraws);
+        //nb::Error::ErrorManager::instance()
+        //    .report(nb::Error::Type::WARNING, "Count of draw calls")
+        //    .with("number", countOfDraws);
         SwapBuffers(hdc);
     }
 
@@ -833,7 +833,7 @@ MessageCallback(GLenum source,
                 const void *userParam)
 {
     //Debug::debug(message);
-    nb::Error::ErrorManager::instance().report(nb::Error::Type::WARNING, message);
+    //nb::Error::ErrorManager::instance().report(nb::Error::Type::WARNING, message);
     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
             type, severity, message);

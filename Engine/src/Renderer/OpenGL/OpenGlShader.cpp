@@ -64,6 +64,10 @@ void nb::OpenGl::OpenGlShader::recompile() noexcept
         link(shaderPath);
     }
     createProgram();
+    nb::Error::ErrorManager::instance().report(
+        nb::Error::Type::INFO,
+        "Hot-reload triggered. Shader '" + path.string() + "' recompiled successfully."
+    );
 }
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
@@ -337,6 +341,11 @@ bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
 
         // TODO 2: add message box about error
         Debug::debug(arr);
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::FATAL, "Failed to compile " + path.string() + " shader.")
+            .with("Error massage", arr);
+
         delete[] arr;
 
         glDeleteShader(currentShader);

@@ -41,6 +41,15 @@ namespace nb::Resource
 
         nbstl::NonOwningPtr<nb::Renderer::Texture> getInternalTexture()
         {
+            if (!std::filesystem::exists(path))
+            {
+                path = "Assets/res/missing_texture.png";
+                nb::Error::ErrorManager::instance().report(
+                    nb::Error::Type::WARNING,
+                    "Texture" + path.string() + "not found. Using default error texture. "
+                );
+            }
+
             if (!texture)
             {
                 texture = std::make_unique<nb::OpenGl::OpenGlTexture>(path, settings.parameters);

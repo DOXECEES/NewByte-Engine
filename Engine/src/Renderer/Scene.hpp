@@ -308,6 +308,7 @@ namespace nb
 
         Node createNode(Ecs::EntityID parent = 0) noexcept;
 
+
         template <typename T>
         void addComponent(
             Ecs::EntityID entity,

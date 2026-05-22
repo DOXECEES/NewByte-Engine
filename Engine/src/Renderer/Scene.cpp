@@ -258,6 +258,10 @@ namespace nb
 
         while (true)
         {
+            if (sceneBVH.nodes.empty())
+            {
+                return closestEntity;
+            }
             const auto& node = sceneBVH.nodes[currentNodeIdx];
 
             float tNode;

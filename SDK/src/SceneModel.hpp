@@ -194,6 +194,10 @@ public:
         }
     }
 
+    nb::Ecs::EntityID getRoot() noexcept
+    {
+        return root;
+    }
 
 private:
     nb::Ecs::ECSRegistry& ecs;

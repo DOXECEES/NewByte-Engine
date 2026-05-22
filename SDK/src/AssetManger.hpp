@@ -40,14 +40,21 @@ public:
         nbstl::NonOwningPtr<nb::Core::Engine>     engine
     );
     ~AssetManager() = default;
+    void handleResize(const NbSize<int>& size);
 
     void importAsset(std::filesystem::path path) noexcept;
+    void rebuildTreeAndPreserveState(Widgets::TreeView* tv);
+
+    std::unique_ptr<NNsLayout::LayoutNode> buildTreeUI();
+    std::unique_ptr<NNsLayout::LayoutNode> buildGridUI();
+
 
     std::unique_ptr<NNsLayout::LayoutNode> buildUI();
 
     void onFolderSelected(std::filesystem::path path);
 
     void refreshAssetGrid();
+    void refreshModel() noexcept;
 
     NbColor getAccentColorForExt(const std::wstring& ext);
 
@@ -81,7 +88,8 @@ private:
 
     std::unordered_map<std::string, AssetType> supportedExtensions = {
         {".png", AssetType::TEXTURE},
-        {".material", AssetType::MATERIAL}
+        {".material", AssetType::MATERIAL}, 
+        {".model", AssetType::MODEL}
         //{".jpg", AssetType::TEXTURE},
         //{".texture", AssetType::TEXTURE},
         //{".fbx", AssetType::MODEL},
@@ -95,8 +103,14 @@ private:
 
 
     std::shared_ptr<Win32Window::ChildWindow> window;
+    std::shared_ptr<Win32Window::ChildWindow> treeWindow;
+    std::shared_ptr<Win32Window::ChildWindow> assetGridWindow;
+
+
     nbstl::NonOwningPtr<nb::Core::Engine> engine;
     std::shared_ptr<TextureEditor>            textureEditor;
+    Widgets::TreeView*                    treeView;
+    bool                                  isTreeUpdating = false;
 
     inline static nb::Loaders::Json assetsJson = nb::Loaders::Json(std::filesystem::path("Assets/Assets.json"));
 };

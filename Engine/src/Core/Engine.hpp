@@ -160,6 +160,11 @@ namespace nb
             inline Math::Vector3<float> getCameraDirection() const noexcept { return renderer->getCamera()->getDirection(); }
             inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; }
 
+            Math::Vector3<float> getSpawnPosition(
+                int x,
+                int y
+            ) noexcept;
+
 			template<typename F>
 			void invokeAsync(F&& func)
 			{
@@ -232,6 +237,10 @@ namespace nb
 
             void setEditorSelectedNode(Node node) noexcept;
 
+            void clearScene() noexcept;
+            void setProjectPath(const std::filesystem::path& path) noexcept;
+
+
         private:
             void outlineSelectedObject() noexcept;
 
@@ -263,6 +272,8 @@ namespace nb
 			MessageQueue					queue;
 
             mutable Node editorSelectedNode = Node();
+
+            std::filesystem::path projectPath = "Assets/res/Scene.json";
 
         };
     };

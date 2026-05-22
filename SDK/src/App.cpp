@@ -51,6 +51,11 @@
 #include "PrimitiveCreationDialog.hpp"
 
 
+void EditorApp::requestModelSpawn(const SpawnModelParams& params) noexcept
+{
+    spawnQueue.pushBack(params);
+}
+
 void EditorApp::openColorPickerWindow()
 {
     colorPickerWindow = std::make_shared<Win32Window::ModalWindow>(NbSize<int>{300,300}, inspectorWindow.get());
@@ -170,10 +175,21 @@ void EditorApp::createWindows() noexcept
 
     assetManager = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     assetManager->setTitle(L"Asset");
+    assetManager->setOnFileDropCallback([this](const std::filesystem::path& dropFilePath) {
 
-    importManager = std::make_shared<Win32Window::ChildWindow>(nullptr);
-    importManager->addCaption();
-    importManager->setTitle(L"import");
+        //if (importWindow)
+        //{
+        //    importWindow = nullptr;
+        //}
+
+        importWindow = std::make_shared<ImportWindow>(nullptr, engine.get(), dropFilePath, [this]() {
+            assetManagerWindow->refreshModel();
+            importWindow = nullptr;
+        });
+
+    });
+
+    
     // textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
     // textureInspector->setTitle(
     //     Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
@@ -277,7 +293,7 @@ void EditorApp::setupMainWindow() noexcept
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"File")
+                            .text(Localization::Translation::fromKeyToWstring("Ui.Editor.File"))
                             .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
                             .apply<Widgets::Button>(
@@ -289,20 +305,120 @@ void EditorApp::setupMainWindow() noexcept
                                         {
                                             auto popup = new PopupMenu();
                                             popup->addItem(
-                                                L"New Project", IconType::Plus,
+                                                Localization::Translation::fromKeyToWstring(
+                                                    "Ui.Editor.NewProject"
+                                                ),
+                                                IconType::Plus,
                                                 [this]()
                                                 {
+                                                    openFilePicker(
+                                                        Localization::Translation::fromKeyToWstring(
+                                                            "Ui.Editor.CreateNewProject"
+                                                        ),
+                                                        [this](const std::string& selectedPath)
+                                                        {
+                                                            namespace fs = std::filesystem;
+                                                            fs::path p(selectedPath);
+
+                                                            if (p.extension() != ".json")
+                                                            {
+                                                                p += ".json";
+                                                            }
+
+                                                            try
+                                                            {
+                                                                if (!fs::exists(p.parent_path()))
+                                                                {
+                                                                    fs::create_directories(
+                                                                        p.parent_path()
+                                                                    );
+                                                                }
+
+                                                                engine->saveSnapshot();
+                                                                engine->clearScene();
+                                                                sceneModel->rebuildFromScene();
+                                                                activeNode = nb::Node::createInvalid();
+
+                                                                refreshHierarchyTreeViewSignal
+                                                                    .emit();
+                                                                onActiveNodeChanged.emit();
+                                                                nb::Scene::getInstance()
+                                                                    .invalidateBvh();
+
+                                                                engine->setProjectPath(p.string());
+                                                                engine->saveSnapshot(); 
+
+                                                                nb::Error::ErrorManager::instance()
+                                                                    .report(
+                                                                        nb::Error::Type::INFO,
+                                                                        "New project created at: " +
+                                                                            p.string()
+                                                                    );
+
+                                                                shouldRebuildInspector = true;
+
+                                                                engine->loadSnapshot();
+                                                            }
+                                                            catch (const std::exception& e)
+                                                            {
+                                                                nb::Error::ErrorManager::instance()
+                                                                    .report(
+                                                                        nb::Error::Type::FATAL,
+                                                                        std::string(
+                                                                            "Failed to create "
+                                                                            "project: "
+                                                                        ) + e.what()
+                                                                    );
+                                                            }
+                                                        },
+                                                        toolbarWindow.get(),
+                                                        {".json"}
+                                                    );
                                                 }
                                             );
                                             popup->addItem(
-                                                L"Open...", IconType::None,
+                                                Localization::Translation::fromKeyToWstring(
+                                                    "Ui.Editor.Open"
+                                                ),
+                                                IconType::None,
                                                 [this]()
                                                 {
+                                                    openFilePicker(
+                                                        Localization::Translation::fromKeyToWstring(
+                                                            "Ui.Editor.SelectResource"
+                                                        ),
+                                                        [this](const std::string& path)
+                                                        {
+                                                            nb::Error::ErrorManager::instance()
+                                                                .report(
+                                                                    nb::Error::Type::INFO, path
+                                                                );
+
+                                                            engine->saveSnapshot();
+                                                            engine->clearScene();
+                                                            
+                                                            engine->setProjectPath(path);
+                                                            engine->loadSnapshot();
+                                                            
+                                                            sceneModel->rebuildFromScene();
+                                                            activeNode = nb::Node::createInvalid();
+
+                                                            refreshHierarchyTreeViewSignal.emit();
+                                                            onActiveNodeChanged.emit();
+                                                            nb::Scene::getInstance()
+                                                                .invalidateBvh();
+                                                        },
+                                                        toolbarWindow.get(), {".json"}
+                                                    );
+
                                                 }
                                             );
                                             popup->addSeparator();
                                             popup->addItem(
-                                                L"Save", IconType::None,
+                                                Localization::Translation::fromKeyToWstring(
+                                                    "Ui.Editor.Save"
+                                                ),
+                                                IconType::None,
                                                 [this]()
                                                 {
                                                     engine->saveSnapshot();
@@ -310,7 +426,10 @@ void EditorApp::setupMainWindow() noexcept
                                             );
                                             popup->addSeparator();
                                             popup->addItem(
-                                                L"Exit", IconType::Delete,
+                                                Localization::Translation::fromKeyToWstring(
+                                                    "Ui.Editor.Exit"
+                                                ),
+                                                IconType::Delete,
                                                 [this]()
                                                 {
                                                     PostQuitMessage(0);
@@ -331,7 +450,7 @@ void EditorApp::setupMainWindow() noexcept
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Edit")
+                            .text(Localization::Translation::fromKeyToWstring("Ui.Editor.Edit"))
                             .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
                             .apply<Widgets::Button>(
@@ -401,13 +520,268 @@ void EditorApp::setupMainWindow() noexcept
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"View")
+                            .text(Localization::Translation::fromKeyToWstring("Ui.Editor.View"))
                             .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
+                            .apply<Widgets::Button>(
+                                [this](Widgets::Button* btn)
+                                {
+                                    subscribe(
+                                        btn, &Widgets::Button::onReleasedSignal,
+                                        [this, btn]()
+                                        {
+                                            auto popup = new PopupMenu();
+                                            popup->addItem(
+                                                Localization::Translation::fromKeyToWstring(
+                                                    "Ui.Editor.View.Lang"
+                                                ),
+                                                IconType::Plus,
+                                                [this]()
+                                                {
+                                                    if (languagePicker)
+                                                    {
+                                                        languagePicker = nullptr;
+                                                    }
+
+                                                    languagePicker =
+                                                        std::make_shared<Win32Window::ModalWindow>(
+                                                            NbSize<int>{400,120}, toolbarWindow.get()
+                                                        );
+                                                    languagePicker->setTitle(
+                                                        Localization::Translation::fromKeyToWstring(
+                                                            "Ui.Editor.Language"
+                                                        )
+                                                    );
+
+                                                    struct State
+                                                    {
+                                                        int selectedLang = 0;
+                                                    };
+                                                    auto state = std::make_shared<State>();
+
+                                                    auto ui =
+                                                        LayoutBuilder::vBox()
+                                                            .spacing(
+                                                                0
+                                                            ) 
+                                                            .relativeWidth(1.0f)
+                                                            .relativeHeight(1.0f)
+                                                            .background({35, 35, 35})
+                                                            .child(
+                                                                LayoutBuilder::hBox()
+                                                                    .relativeWidth(1.0f)
+                                                                    .absoluteHeight(
+                                                                        35
+                                                                    ) 
+                                                                    .child(
+                                                                        LayoutBuilder::label(
+                                                                            Localization::
+                                                                                Translation::
+                                                                                    fromKeyToWstring(
+                                                                                        "Ui.Editor."
+                                                                                        "Language"
+                                                                                    )
+                                                                        )
+                                                                            .relativeWidth(0.4f)
+                                                                            .color({200, 200, 200})
+                                                                            .textAlignment(
+                                                                                {.textAlignment =
+                                                                                     TextAlignment::
+                                                                                         LEFT}
+                                                                            )
+                                                                    )
+                                                                    .child(
+                                                                        LayoutBuilder::widget(
+                                                                            new Widgets::ComboBox()
+                                                                        )
+                                                                            .relativeWidth(0.6f)
+                                                                            .absoluteHeight(30)
+                                                                            .apply<
+                                                                                Widgets::ComboBox>(
+                                                                                [state](
+                                                                                    Widgets::
+                                                                                        ComboBox* cb
+                                                                                )
+                                                                                {
+                                                                                    cb->addItem(
+                                                                                        {L"Русский",
+                                                                                         0}
+                                                                                    );
+                                                                                    cb->addItem(
+                                                                                        {L"English",
+                                                                                         1}
+                                                                                    );
+
+                                                                                    
+                                                                                    cb->setSelectedItem(
+                                                                                        0
+                                                                                    );
+                                                                                }
+                                                                            )
+                                                                            .onEvent(
+                                                                                &Widgets::ComboBox::
+                                                                                    onSelectionChanged,
+                                                                                [state](
+                                                                                    const Widgets::
+                                                                                        ListItem&
+                                                                                            item
+                                                                                )
+                                                                                {
+                                                                                    state
+                                                                                        ->selectedLang =
+                                                                                        item.getValue<
+                                                                                            int>();
+                                                                                }
+                                                                            )
+                                                                    )
+                                                            )
+                                                            .child(
+                                                                LayoutBuilder::spacer()
+                                                            ) 
+                                                            .child(
+                                                                LayoutBuilder::hBox()
+                                                                    .relativeWidth(1.0f)
+                                                                    .absoluteHeight(35)
+                                                                    .spacing(10)
+                                                                    .child(
+                                                                        LayoutBuilder::spacer()
+                                                                            .relativeWidth(0.2f)
+                                                                    ) 
+                                                                    .child(
+                                                                        LayoutBuilder::widget(
+                                                                            new Widgets::Button()
+                                                                        )
+                                                                            .text(
+                                                                                Localization::
+                                                                                    Translation::
+                                                                                        fromKeyToWstring(
+                                                                                            "Ui."
+                                                                                            "Editor"
+                                                                                            ".Save"
+                                                                                        )
+                                                                            )
+                                                                            .relativeWidth(0.4f)
+                                                                            .background(
+                                                                                {60, 60, 60}
+                                                                            )
+                                                                            .onEvent(
+                                                                                &Widgets::Button::
+                                                                                    onReleasedSignal,
+                                                                                [this, state]()
+                                                                                {
+                                                                                    if (state
+                                                                                            ->selectedLang ==
+                                                                                        0)
+                                                                                    {
+                                                                                        Localization::
+                                                                                            Translation::load(
+                                                                                                "As"
+                                                                                                "se"
+                                                                                                "ts"
+                                                                                                "/L"
+                                                                                                "oc"
+                                                                                                "al"
+                                                                                                "iz"
+                                                                                                "at"
+                                                                                                "io"
+                                                                                                "n/"
+                                                                                                "ru"
+                                                                                                ".t"
+                                                                                                "ra"
+                                                                                                "ns"
+                                                                                                "la"
+                                                                                                "ti"
+                                                                                                "on"
+                                                                                            );
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        Localization::
+                                                                                            Translation::load(
+                                                                                                "As"
+                                                                                                "se"
+                                                                                                "ts"
+                                                                                                "/L"
+                                                                                                "oc"
+                                                                                                "al"
+                                                                                                "iz"
+                                                                                                "at"
+                                                                                                "io"
+                                                                                                "n/"
+                                                                                                "en"
+                                                                                                ".t"
+                                                                                                "ra"
+                                                                                                "ns"
+                                                                                                "la"
+                                                                                                "ti"
+                                                                                                "on"
+                                                                                            );
+                                                                                    }
+
+                                                                                    this->refreshInterfaceText();
+                                                                                    languagePicker
+                                                                                        ->close();
+                                                                                }
+                                                                            )
+                                                                    )
+                                                                    .child(
+                                                                        LayoutBuilder::widget(
+                                                                            new Widgets::Button()
+                                                                        )
+                                                                            .text(
+                                                                                Localization::
+                                                                                    Translation::
+                                                                                        fromKeyToWstring(
+                                                                                            "Ui."
+                                                                                            "Materi"
+                                                                                            "alEdit"
+                                                                                            "or."
+                                                                                            "Exit"
+                                                                                        )
+                                                                            )
+                                                                            .relativeWidth(0.4f)
+                                                                            .background(
+                                                                                {50, 50, 50}
+                                                                            )
+                                                                            .onEvent(
+                                                                                &Widgets::Button::
+                                                                                    onReleasedSignal,
+                                                                                [this]()
+                                                                                {
+                                                                                    languagePicker
+                                                                                        ->close();
+                                                                                    languagePicker =
+                                                                                        nullptr;
+                                                                                }
+                                                                            )
+                                                                    )
+                                                            );
+
+
+                                                    languagePicker->getLayoutRoot()->addChild(
+                                                        std::move(ui).build()
+                                                    );
+                                                    languagePicker->show();
+                                                }
+                                            );
+
+                                            const NbRect<int>&                pt = btn->getRect();
+                                            const WindowInterface::FrameSize& frame =
+                                                mainWindow->getFrameSize();
+
+                                            toolbarWindow->getPopupManager().show(
+                                                popup, frame.left + pt.x,
+                                                frame.top + pt.y + pt.height,
+                                                PopupStyle::MenuBarItem
+                                            );
+                                        }
+                                    );
+                                }
+                            )
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Help")
+                            .text(Localization::Translation::fromKeyToWstring("Ui.Editor.Help"))
                             .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
                     )
@@ -989,7 +1363,11 @@ void EditorApp::setupDebugUI() noexcept
                                     .absoluteHeight(25)
                                     .child(
                                         LayoutBuilder::widget(new Widgets::CheckBox())
-                                            .text(L"Enabled")
+                                        .text(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSAO.Enabled"
+                                            )
+                                        )
                                             .relativeWidth(1.0f)
                                             .relativeHeight(1.0f)
                                             .apply<Widgets::CheckBox>(
@@ -1009,7 +1387,11 @@ void EditorApp::setupDebugUI() noexcept
                                     .relativeWidth(1.0f)
                                     .absoluteHeight(26)
                                     .child(
-                                        LayoutBuilder::label(L"Radius:")
+                                        LayoutBuilder::label(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSAO.Radius"
+                                            )
+                                        )
                                             .absoluteWidth(
                                             140
                                         ) 
@@ -1052,7 +1434,11 @@ void EditorApp::setupDebugUI() noexcept
                                     .relativeWidth(1.0f)
                                     .absoluteHeight(26)
                                     .child(
-                                        LayoutBuilder::label(L"Bias:")
+                                        LayoutBuilder::label(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSAO.Bias"
+                                            )
+                                        )
                                             .absoluteWidth(
                                                 140
                                             ) 
@@ -1095,7 +1481,9 @@ void EditorApp::setupDebugUI() noexcept
                     )
             )
             .child(
-                LayoutBuilder::section(L"▼ Color Grading")
+                LayoutBuilder::section(
+                    Localization::Translation::fromKeyToWstring("Ui.Editor.ColorGrading")
+                )
                     .relativeWidth(1.0f)
                     .autoHeight()
                     .style(
@@ -1113,7 +1501,11 @@ void EditorApp::setupDebugUI() noexcept
                             LayoutBuilder::widget(new Widgets::CheckBox())
                             .relativeHeight(1.0f)
                             .relativeWidth(1.0f)
-                            .text(L"Enable Color Grading")
+                                        .text(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.ColorGrading.Enabled"
+                                            )
+                                        )
                             .apply<Widgets::CheckBox>([](Widgets::CheckBox* c) { c->setChecked(true); })
                             .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
                                 engine->getRenderer()->getPostProcessConfig().isLutEnabled = checked;
@@ -1128,7 +1520,11 @@ void EditorApp::setupDebugUI() noexcept
                         //.padding({10, 10, 10, 10}) 
 
                         .child(
-                            LayoutBuilder::label(L"LUTexture")
+                                    LayoutBuilder::label(
+                                        Localization::Translation::fromKeyToWstring(
+                                            "Ui.Editor.ColorGrading.LUTexture"
+                                        )
+                                    )
                             .relativeHeight(1.0f)
                             .relativeWidth(0.4f)
                         )
@@ -1140,8 +1536,9 @@ void EditorApp::setupDebugUI() noexcept
                     )
             )
             .child(
-                LayoutBuilder::
-                    section(L"▼ Screen space refletions")
+                LayoutBuilder::section(
+                    Localization::Translation::fromKeyToWstring("Ui.Editor.SSR")
+                )
                         .relativeWidth(1.0f)
                         .autoHeight()
                         .style(
@@ -1159,7 +1556,11 @@ void EditorApp::setupDebugUI() noexcept
                                     LayoutBuilder::widget(new Widgets::CheckBox())
                                         .relativeHeight(1.0f)
                                         .relativeWidth(1.0f)
-                                        .text(L"Enable SSR")
+                                        .text(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSR.Enabled"
+                                            )
+                                        )
                                         .apply<Widgets::CheckBox>(
                                             [](Widgets::CheckBox* c)
                                             {
@@ -1191,7 +1592,8 @@ void EditorApp::setupDebugUI() noexcept
 void EditorApp::openFilePicker(
     const std::wstring&                     title,
     std::function<void(const std::string&)> onSelected,
-    Win32Window::IWindow*                   parent
+    Win32Window::IWindow*                   parent,
+    const std::vector<std::string>&         extentions
 )
 {
     if (filePickerWindow)
@@ -1217,7 +1619,7 @@ void EditorApp::openFilePicker(
                       }
                   )
                   .child(
-                      LayoutBuilder::widget(new Widgets::FilePicker({0, 0, 500, 600}))
+                      LayoutBuilder::widget(new Widgets::FilePicker({0, 0, 500, 600}, extentions))
                           .relativeWidth(1.0f)
                           .relativeHeight(1.0f)
                           .onEvent(
@@ -1305,7 +1707,7 @@ void EditorApp::rebuildInspector() noexcept
 
             inspectorBuilder = std::move(inspectorBuilder)
                                    .child(
-                                       LayoutBuilder::label(nb::Utils::toWString(info->name))
+                                       LayoutBuilder::label(Localization::Translation::fromKeyToWstring(info->name))
                                            .relativeWidth(1.0f)
                                            .absoluteHeight(30)
                                            .background({60, 60, 60})
@@ -1371,7 +1773,7 @@ void EditorApp::rebuildInspector() noexcept
                             browser.show(this->mainWindow->getHandle().as<HWND>(), pos.x, pos.y);
                         }
                     )
-                    .text(L"Добавить компонент")
+                        .text(Localization::Translation::fromKeyToWstring("Ui.Editor.AddComponent"))
             );
     }
 
@@ -1420,7 +1822,9 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 
         // 1. Название поля
         row = std::move(row).child(
-            LayoutBuilder::label(nb::Utils::toWString(field.name))
+            LayoutBuilder::label(
+                Localization::Translation::fromKeyToWstring(field.name)
+            )
                 .relativeWidth(0.35f)
                 .color({180, 180, 180})
                 .padding({0,0,0,5})
@@ -1463,7 +1867,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
         auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
 
         row = std::move(row).child(
-            LayoutBuilder::label(nb::Utils::toWString(field.name))
+            LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                 .relativeWidth(0.35f)
                 .color({180, 180, 180})
                 .padding({0,0,0,5})
@@ -1521,7 +1925,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 .relativeWidth(1.0f)
                 .absoluteHeight(30)
                 .child(
-                    LayoutBuilder::label(nb::Utils::toWString(field.name))
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                         .relativeWidth(0.35f)
                         .color({180, 180, 180})
                         .padding({0, 0, 0, 5})
@@ -1661,7 +2065,9 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                             .relativeWidth(1.0f)
                             .absoluteHeight(30)
                             .child(
-                                LayoutBuilder::label(nb::Utils::toWString(field.name))
+                                LayoutBuilder::label(
+                                    Localization::Translation::fromKeyToWstring(field.name)
+                                )
                                     .relativeWidth(0.35f)
                                     .padding({0, 0, 0, 5})
                                     .color({180, 180, 180})
@@ -1701,7 +2107,9 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                            .relativeWidth(1.0f)
                            .absoluteHeight(30)
                            .child(
-                               LayoutBuilder::label(nb::Utils::toWString(field.name))
+                               LayoutBuilder::label(
+                                   Localization::Translation::fromKeyToWstring(field.name)
+                               )
                                    .relativeWidth(0.35f)
                                    .color({180, 180, 180})
                                    .padding({0, 0, 0, 5})
@@ -1743,7 +2151,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 
         vectorColumn = std::move(vectorColumn)
                            .child(
-                               LayoutBuilder::label(nb::Utils::toWString(field.name))
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                                    .relativeWidth(1.0f)
                                    .absoluteHeight(headerHeight)
                                    .color({150, 150, 150})
@@ -1777,7 +2185,10 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                             .absoluteHeight(slotHeight)
                             .margin({0, 2, 0, 2}) 
                             .child(
-                                LayoutBuilder::label(L" Slot " + std::to_wstring(i))
+                                LayoutBuilder::label(
+                                    Localization::Translation::fromKeyToWstring("Slot") +
+                                    std::to_wstring(i)
+                                )
                                     .relativeWidth(0.35f)
                                     .color({100, 100, 100})
                                     .padding({0, 0, 0, 5})
@@ -1845,7 +2256,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 .absoluteHeight(35)
                 //.alignment(Alignment::CENTER_LEFT)
                 .child(
-                    LayoutBuilder::label(nb::Utils::toWString(field.name))
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                         .relativeWidth(0.35f)
                         .color({180, 180, 180})
                         .padding({0,0,0,5})
@@ -2073,6 +2484,138 @@ void EditorApp::spawnEmpty(const Widgets::ModelIndex& index) noexcept
         .with("entityId", static_cast<uint64_t>(node.getId()));
 }
 
+
+void EditorApp::spawnModel(
+    const Widgets::ModelIndex&   index,
+    const std::filesystem::path& pathToModel,
+    const nb::Math::Vector3<float>&         position 
+) noexcept
+{
+    nb::Ecs::EntityID parentId = sceneModel->getRoot();
+    
+
+    auto& scene = nb::Scene::getInstance();
+    auto  node  = scene.createNode(parentId);
+
+    std::vector<Ref<nb::Resource::MaterialAsset>> materials;
+    std::string                                   meshResourcePath = pathToModel.string();
+
+    if (pathToModel.extension() == ".model")
+    {
+        try
+        {
+            auto modelJson = nb::Loaders::Json(pathToModel);
+
+            if (modelJson.contains("mesh_source"))
+            {
+                meshResourcePath = modelJson["mesh_source"].get<std::string>();
+            }
+
+            if (modelJson.contains("submeshes"))
+            {
+                for (int i = 0; i < modelJson["submeshes"].size(); i++)
+                {
+                    if (modelJson["submeshes"][i].contains("material"))
+                    {
+                        std::string matPath =
+                            modelJson["submeshes"][i]["material"].get<std::string>();
+                        auto res = nb::ResMan::ResourceManager::getInstance()
+                                       ->getResource<nb::Resource::MaterialAsset>(matPath);
+                        if (res)
+                        {
+                            materials.push_back(res);
+                        }
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::WARNING,
+                "Failed to load materials from .model: " + std::string(e.what())
+            );
+        }
+    }
+
+    std::string nodeName = primitiveNameManager.generateName(pathToModel.filename().string());
+    node.addComponent<NameComponent>({nodeName});
+
+    node.addComponent<TransformComponent>(TransformComponent{.position = position});
+
+    node.addComponent<MeshComponent>(
+        {.mesh = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(
+             pathToModel.string()
+         ),
+         .material = materials}
+    );
+
+    sceneModel->addEntity(parentId, node.getId());
+    activeNode = scene.getNode(node.getId());
+
+    refreshHierarchyTreeViewSignal.emit();
+    onActiveNodeChanged.emit();
+
+    scene.invalidateBvh();
+
+    nb::Error::ErrorManager::instance()
+        .report(nb::Error::Type::INFO, "Model spawned successfully")
+        .with("name", nodeName);
+}
+
+void EditorApp::refreshInterfaceText() noexcept
+{
+    using namespace Localization;
+
+    if (mainWindow)
+    {
+        mainWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Title"));
+    }
+
+    if (sceneWindow)
+    {
+        sceneWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Scene.Title"));
+    }
+
+    if (hierarchyWindow)
+    {
+        hierarchyWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Hierarchy.Title"));
+    }
+
+    if (inspectorWindow)
+    {
+        inspectorWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Inspector.Title"));
+    }
+
+    if (debugWindow)
+    {
+        debugWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.DebugWindow.Title"));
+    }
+
+    if (toolbarWindow)
+    {
+        toolbarWindow->getLayoutRoot()->clearChilds();
+        setupMainWindow(); 
+    }
+
+    if (debugWindow)
+    {
+        debugWindow->getLayoutRoot()->clearChilds();
+        setupDebugUI();
+    }
+
+    if (activeNode.isValid())
+    {
+        rebuildInspector();
+    }
+
+    refreshHierarchyTreeViewSignal.emit();
+
+    if (assetManager)
+    {
+        assetManager->setTitle(Translation::fromKeyToWstring("Ui.AssetBrowser.Title"));
+    }
+}
 
 void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 {

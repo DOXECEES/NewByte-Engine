@@ -10,11 +10,16 @@
 ImportWindow::ImportWindow(
     std::shared_ptr<Win32Window::ChildWindow> wnd,
     nbstl::NonOwningPtr<nb::Core::Engine>     engine,
-    std::filesystem::path                     sourcePath
+    std::filesystem::path                     sourcePath,
+    const std::function<void()>& onDestroyCallback
 )
-    : window(wnd)
+    : window()
     , engine(engine)
+    , onDestroyCallback(onDestroyCallback)
 {
+    window = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    window->addCaption();
+
     importer = std::make_unique<nb::SDK::AssetImporter>();
 
     settings.sourcePath = sourcePath;
@@ -22,6 +27,11 @@ ImportWindow::ImportWindow(
 
     window->getLayoutRoot()->addChild(buildUI());
     window->show();
+}
+
+ImportWindow::~ImportWindow() noexcept
+{
+    nb::Error::ErrorManager::instance().report(nb::Error::Type::INFO, "Import window destroyed");
 }
 
 void ImportWindow::updateAssetNameFromPath()
@@ -42,6 +52,11 @@ void ImportWindow::close()
     {
         window->close();
     }
+
+    if (onDestroyCallback)
+    {
+        onDestroyCallback();
+    }
 }
 
 void ImportWindow::importAsset()
@@ -53,19 +68,13 @@ void ImportWindow::importAsset()
 
     nb::SDK::ImportRequest request;
 
-    //request.sourceFile   = settings.sourcePath;
-    //request.targetFolder = settings.targetFolder;
-    //request.assetName    = settings.assetName;
+    request.sourceFile   = settings.sourcePath;
+    request.targetFolder = settings.targetFolder;
+    request.assetName    = settings.assetName;
 
-    request.sourceFile = L"Assets/res/scene.gltf";
-    request.targetFolder = L"Assets/Models";
-    request.assetName    = L"palace";
-
-
-    request.settings.importMeshes    = settings.importMeshes;
-    request.settings.importMaterials = settings.importMaterials;
-    request.settings.importTextures  = settings.importTextures;
-
+    request.settings.importMeshes            = settings.importMeshes;
+    request.settings.importMaterials         = settings.importMaterials;
+    request.settings.importTextures          = settings.importTextures;
     request.settings.generateTangents        = settings.generateTangents;
     request.settings.flipUV                  = settings.flipUV;
     request.settings.copyTexturesIntoProject = settings.copyTexturesIntoProject;
@@ -75,41 +84,20 @@ void ImportWindow::importAsset()
     //        ? nb::SDK::ImportSettings::NormalConvention::OpenGL
     //        : nb::SDK::ImportSettings::NormalConvention::DirectX;
 
-    //request.settings.compression =
-    //    (settings.textureCompression == ImportSettings::TextureCompression::None)
-    //        ? nb::SDK::ImportSettings::TextureCompression::None
-    //    : (settings.textureCompression == ImportSettings::TextureCompression::BC3)
-    //        ? nb::SDK::ImportSettings::TextureCompression::BC3
-    //        : nb::SDK::ImportSettings::TextureCompression::BC7;
-
     auto result = importer->import(request);
 
     if (!result.success)
     {
-        nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, "Import failed: " + std::string(result.error.begin(), result.error.end()));
+        nb::Error::ErrorManager::instance().report(
+            nb::Error::Type::FATAL, "Import failed: "// + wstring_to_string(result.error)
+        );
         return;
     }
 
-    // лог результата (очень полезно для отладки Sponza)
     for (const auto& asset : result.assets)
     {
-        std::string typeStr;
-
-        switch (asset.type)
-        {
-        case nb::SDK::AssetType::MODEL:
-            typeStr = "MODEL";
-            break;
-        case nb::SDK::AssetType::TEXTURE:
-            typeStr = "TEXTURE";
-            break;
-        case nb::SDK::AssetType::MATERIAL:
-            typeStr = "MATERIAL";
-            break;
-        }
-
         nb::Error::ErrorManager::instance().report(
-            nb::Error::Type::FATAL, typeStr + " imported: " + asset.path.string()
+            nb::Error::Type::FATAL, "Imported: " + asset.path.string()
         );
     }
 
@@ -136,7 +124,7 @@ nbui::LayoutBuilder ImportWindow::createOptionToggle(
         )
         .child(
             LayoutBuilder::widget(new Widgets::Button())
-                .text(value ? L"ON" : L"OFF") // Тут лучше использовать Checkbox, если есть
+                .text(value ? L"ON" : L"OFF") 
                 .absoluteWidth(60)
                 .absoluteHeight(22)
                 .margin({0, 4, 10, 0})
@@ -155,369 +143,193 @@ std::unique_ptr<NNsLayout::LayoutNode> ImportWindow::buildUI()
 {
     using namespace nbui;
 
-    Widgets::TextEdit* assetNameEdit    = nullptr;
-    Widgets::TextEdit* targetFolderEdit = nullptr;
-
-    Widgets::CheckBox* cbImportMeshes     = nullptr;
-    Widgets::CheckBox* cbImportMaterials  = nullptr;
-    Widgets::CheckBox* cbImportTextures   = nullptr;
-    Widgets::CheckBox* cbGenerateTangents = nullptr;
-    Widgets::CheckBox* cbFlipUV           = nullptr;
-    Widgets::CheckBox* cbCopyTextures     = nullptr;
-
-    Widgets::ComboBox* compressionCombo = nullptr;
-    Widgets::ComboBox* normalCombo      = nullptr;
+    auto propertyRow = [](const std::wstring& label, LayoutBuilder&& widgetBuilder)
+    {
+        return LayoutBuilder::hBox()
+            .absoluteHeight(28)
+            .margin({4, 2, 4, 2})
+            .child(
+                LayoutBuilder::label(label).relativeWidth(0.45f).fontSize(9).color({160, 160, 160})
+            )
+            .child(std::move(widgetBuilder).relativeWidth(0.55f));
+    };
 
     auto root =
         LayoutBuilder::vBox()
             .relativeHeight(1.0f)
             .relativeWidth(1.0f)
-            .padding({10, 10, 10, 10})
-            .background({28, 28, 28})
+            .background({30, 30, 30})
 
-            // --- Source Path ---
             .child(
-                LayoutBuilder::label(L"Source file")
-                    .absoluteHeight(18.0f)
-                    .relativeWidth(1.0f)
-                    .fontSize(10)
-                    .color({170, 170, 170})
-            )
-            .child(
-                LayoutBuilder::label(settings.sourcePath.wstring())
-                    .absoluteHeight(28.0f)
-                    .relativeWidth(1.0f)
-                    .background({35, 35, 35})
-                    .color({220, 220, 220})
-                    .margin({0, 2, 0, 10})
-                    .fontSize(9)
-            )
-
-            // --- Asset Name ---
-            .child(
-                LayoutBuilder::label(L"Asset name")
-                    .absoluteHeight(18.0f)
-                    .relativeWidth(1.0f)
-                    .fontSize(10)
-                    .color({170, 170, 170})
-            )
-            .child(
-                LayoutBuilder::widget(new Widgets::TextEdit())
-                    .absoluteHeight(32.0f)
-                    .relativeWidth(1.0f)
-                    .margin({0, 2, 0, 10})
-                    .apply<Widgets::TextEdit>(
-                        [&](Widgets::TextEdit* e)
-                        {
-                            assetNameEdit = e;
-                            e->setData(settings.assetName);
-
-                            subscribe(
-                                e, &Widgets::TextEdit::onTextChanged,
-                                [this, e]()
-                                {
-                                    settings.assetName = e->getData();
-                                }
-                            );
-                        }
+                LayoutBuilder::vBox()
+                    .autoHeight()
+                    .padding({12, 8, 12, 8})
+                    .background({22, 22, 22})
+                    .child(
+                        LayoutBuilder::label(L"IMPORTING ASSET").fontSize(8).color({100, 100, 100})
+                    )
+                    .child(
+                        LayoutBuilder::label(settings.sourcePath.filename().wstring())
+                            .fontSize(11)
+                            .color({0, 160, 255})
                     )
             )
 
-            // --- Target Folder ---
             .child(
-                LayoutBuilder::label(L"Target folder")
-                    .absoluteHeight(18.0f)
-                    .relativeWidth(1.0f)
-                    .fontSize(10)
-                    .color({170, 170, 170})
-            )
-            .child(
-                LayoutBuilder::widget(new Widgets::TextEdit())
-                    .absoluteHeight(32.0f)
-                    .relativeWidth(1.0f)
-                    .margin({0, 2, 0, 10})
-                    .apply<Widgets::TextEdit>(
-                        [&](Widgets::TextEdit* e)
-                        {
-                            targetFolderEdit = e;
-                            e->setData(settings.sourcePath.wstring());
-
-                            subscribe(
-                                e, &Widgets::TextEdit::onTextChanged,
-                                [this, e]()
-                                {
-                                    settings.sourcePath = e->getData();
-                                }
-                            );
-                        }
-                    )
-            )
-
-            // --- Import Options ---
-            .child(
-                LayoutBuilder::label(L"Import options")
-                    .absoluteHeight(18.0f)
-                    .relativeWidth(1.0f)
-                    .fontSize(10)
-                    .color({170, 170, 170})
-            )
-            .child(
-                LayoutBuilder::grid(2)
-                    .absoluteHeight(140.0f)
-                    .relativeWidth(1.0f)
-                    .spacing(6.0f)
-                    .margin({0, 5, 0, 10})
+                LayoutBuilder::vBox()
+                    .autoHeight()
+                    .padding({8, 8, 8, 8})
 
                     .child(
-                        LayoutBuilder::widget(new Widgets::CheckBox())
-                            .absoluteHeight(28.0f)
-                            .relativeWidth(0.5f)
-                            .text(L"Import meshes")
-                            .apply<Widgets::CheckBox>(
-                                [&](Widgets::CheckBox* cb)
-                                {
-                                    cbImportMeshes = cb;
-                                    cb->setChecked(settings.importMeshes);
-
-                                    subscribe(
-                                        cb, &Widgets::CheckBox::onCheckStateChanged,
-                                        [this, cb](bool flag)
+                        LayoutBuilder::section(L"COMMON", false)
+                            .child(propertyRow(
+                                L"Asset Name", LayoutBuilder::widget(new Widgets::TextEdit())
+                                                   .apply<Widgets::TextEdit>(
+                                                       [&](auto* e)
+                                                       {
+                                                           e->setData(settings.assetName);
+                                                           subscribe(
+                                                               e, &Widgets::TextEdit::onTextChanged,
+                                                               [this, e]
+                                                               {
+                                                                   settings.assetName =
+                                                                       e->getData();
+                                                               }
+                                                           );
+                                                       }
+                                                   )
+                            ))
+                            .child(propertyRow(
+                                L"Target Folder",
+                                LayoutBuilder::widget(new Widgets::TextEdit())
+                                    .apply<Widgets::TextEdit>(
+                                        [&](auto* e)
                                         {
-                                            settings.importMeshes = flag;
+                                            e->setData(settings.targetFolder.wstring());
+                                            subscribe(
+                                                e, &Widgets::TextEdit::onTextChanged,
+                                                [this, e]
+                                                {
+                                                    settings.targetFolder = e->getData();
+                                                }
+                                            );
                                         }
-                                    );
-                                }
-                            )
+                                    )
+                            ))
                     )
 
                     .child(
-                        LayoutBuilder::widget(new Widgets::CheckBox())
-                            .absoluteHeight(28.0f)
-                            .relativeWidth(0.5f)
-                            .text(L"Import materials")
-                            .apply<Widgets::CheckBox>(
-                                [&](Widgets::CheckBox* cb)
-                                {
-                                    cbImportMaterials = cb;
-                                    cb->setChecked(settings.importMaterials);
-
-                                    subscribe(
-                                        cb, &Widgets::CheckBox::onCheckStateChanged,
-                                        [this, cb](bool flag)
+                        LayoutBuilder::section(L"GEOMETRY", false)
+                            .child(propertyRow(
+                                L"Import Meshes",
+                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                    .checked(settings.importMeshes)
+                                    .apply<Widgets::CheckBox>(
+                                        [&](auto* cb)
                                         {
-                                            settings.importMaterials = flag;
+                                            subscribe(
+                                                cb, &Widgets::CheckBox::onCheckStateChanged,
+                                                [this](bool f)
+                                                {
+                                                    settings.importMeshes = f;
+                                                }
+                                            );
                                         }
-                                    );
-                                }
-                            )
+                                    )
+                            ))
+                            .child(propertyRow(
+                                L"Generate Tangents",
+                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                    .checked(settings.generateTangents)
+                                    .apply<Widgets::CheckBox>(
+                                        [&](auto* cb)
+                                        {
+                                            subscribe(
+                                                cb, &Widgets::CheckBox::onCheckStateChanged,
+                                                [this](bool f)
+                                                {
+                                                    settings.generateTangents = f;
+                                                }
+                                            );
+                                        }
+                                    )
+                            ))
                     )
 
                     .child(
-                        LayoutBuilder::widget(new Widgets::CheckBox())
-                            .absoluteHeight(28.0f)
-                            .relativeWidth(0.5f)
-                            .text(L"Import textures")
-                            .apply<Widgets::CheckBox>(
-                                [&](Widgets::CheckBox* cb)
-                                {
-                                    cbImportTextures = cb;
-                                    cb->setChecked(settings.importTextures);
-
-                                    subscribe(
-                                        cb, &Widgets::CheckBox::onCheckStateChanged,
-                                        [this, cb](bool flag)
+                        LayoutBuilder::section(L"MATERIALS", false)
+                            .child(propertyRow(
+                                L"Import Materials",
+                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                    .checked(settings.importMaterials)
+                                    .apply<Widgets::CheckBox>(
+                                        [&](auto* cb)
                                         {
-                                            settings.importTextures = flag;
+                                            subscribe(
+                                                cb, &Widgets::CheckBox::onCheckStateChanged,
+                                                [this](bool f)
+                                                {
+                                                    settings.importMaterials = f;
+                                                }
+                                            );
                                         }
-                                    );
-                                }
-                            )
+                                    )
+                            ))
+                            .child(propertyRow(
+                                L"Flip UVs",
+                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                    .checked(settings.flipUV)
+                                    .apply<Widgets::CheckBox>(
+                                        [&](auto* cb)
+                                        {
+                                            subscribe(
+                                                cb, &Widgets::CheckBox::onCheckStateChanged,
+                                                [this](bool f)
+                                                {
+                                                    settings.flipUV = f;
+                                                }
+                                            );
+                                        }
+                                    )
+                            ))
                     )
 
                     .child(
-                        LayoutBuilder::widget(new Widgets::CheckBox())
-                            .absoluteHeight(28.0f)
-                            .relativeWidth(0.5f)
-                            .text(L"Generate tangents")
-                            .apply<Widgets::CheckBox>(
-                                [&](Widgets::CheckBox* cb)
-                                {
-                                    cbGenerateTangents = cb;
-                                    cb->setChecked(settings.generateTangents);
-
-                                    subscribe(
-                                        cb, &Widgets::CheckBox::onCheckStateChanged,
-                                        [this, cb](bool flag)
-                                        {
-                                            settings.generateTangents = flag;
-                                        }
-                                    );
-                                }
-                            )
-                    )
-
-                    .child(
-                        LayoutBuilder::widget(new Widgets::CheckBox())
-                            .absoluteHeight(28.0f)
-                            .relativeWidth(0.5f)
-                            .text(L"Flip UV")
-                            .apply<Widgets::CheckBox>(
-                                [&](Widgets::CheckBox* cb)
-                                {
-                                    cbFlipUV = cb;
-                                    cb->setChecked(settings.flipUV);
-
-                                    subscribe(
-                                        cb, &Widgets::CheckBox::onCheckStateChanged,
-                                        [this, cb](bool flag)
-                                        {
-                                            settings.flipUV = flag;
-                                        }
-                                    );
-                                }
-                            )
-                    )
-
-                    .child(
-                        LayoutBuilder::widget(new Widgets::CheckBox())
-                            .absoluteHeight(28.0f)
-                            .relativeWidth(0.5f)
-                            .text(L"Copy textures into project")
-                            .apply<Widgets::CheckBox>(
-                                [&](Widgets::CheckBox* cb)
-                                {
-                                    cbCopyTextures = cb;
-                                    cb->setChecked(settings.copyTexturesIntoProject);
-
-                                    subscribe(
-                                        cb, &Widgets::CheckBox::onCheckStateChanged,
-                                        [this, cb](bool flag)
-                                        {
-                                            settings.copyTexturesIntoProject = flag;
-                                        }
-                                    );
-                                }
-                            )
+                        LayoutBuilder::section(L"ADVANCED TEXTURES", true)
+                            .child(propertyRow(
+                                L"Compression", LayoutBuilder::widget(new Widgets::ComboBox())
+                                                    .apply<Widgets::ComboBox>(
+                                                        [&](auto* c)
+                                                        {
+                                                            c->addItem({L"None", 0});
+                                                            c->addItem({L"BC3", 1});
+                                                            c->addItem({L"BC7", 2});
+                                                            c->setSelectedItem(2);
+                                                        }
+                                                    )
+                            ))
                     )
             )
+            .child(LayoutBuilder::spacer())
 
-            // --- Texture Settings ---
-            .child(
-                LayoutBuilder::label(L"Texture settings")
-                    .absoluteHeight(18.0f)
-                    .relativeWidth(1.0f)
-                    .fontSize(10)
-                    .color({170, 170, 170})
-            )
             .child(
                 LayoutBuilder::hBox()
-                    .absoluteHeight(18.0f)
-                    .relativeWidth(1.0f)
-                    .margin({0, 5, 0, 4})
-                    .child(
-                        LayoutBuilder::label(L"Compression")
-                            .relativeWidth(0.5f)
-                            .absoluteHeight(18.0f)
-                            .fontSize(9)
-                            .color({140, 140, 140})
-                    )
-                    .child(
-                        LayoutBuilder::label(L"Normal Map Convention")
-                            .relativeWidth(0.5f)
-                            .absoluteHeight(18.0f)
-                            .fontSize(9)
-                            .color({140, 140, 140})
-                    )
-            )
-            .child(
-                LayoutBuilder::hBox()
-                    .absoluteHeight(34.0f)
-                    .relativeWidth(1.0f)
-                    .margin({0, 0, 0, 10})
-                    .child(
-                        LayoutBuilder::widget(new Widgets::ComboBox())
-                            .relativeWidth(0.5f)
-                            .absoluteHeight(34.0f)
-                            .apply<Widgets::ComboBox>(
-                                [&](Widgets::ComboBox* c)
-                                {
-                                    compressionCombo = c;
-                                    c->addItem({L"None", 0});
-                                    c->addItem({L"BC3", 1});
-                                    c->addItem({L"BC7", 2});
-                                    c->setSelectedItem(2);
-
-                                    subscribe(
-                                        c, &Widgets::ComboBox::onItemChecked,
-                                        [this, c](const Widgets::ListItem& item)
-                                        {
-                                            switch (item.getValue<int>())
-                                            {
-                                            case 0:
-                                                settings.textureCompression =
-                                                    ImportSettings::TextureCompression::None;
-                                                break;
-                                            case 1:
-                                                settings.textureCompression =
-                                                    ImportSettings::TextureCompression::BC3;
-                                                break;
-                                            case 2:
-                                                settings.textureCompression =
-                                                    ImportSettings::TextureCompression::BC7;
-                                                break;
-                                            default:
-                                                break;
-                                            }
-                                        }
-                                    );
-                                }
-                            )
-                    )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::ComboBox())
-                            .relativeWidth(0.5f)
-                            .absoluteHeight(34.0f)
-                            .apply<Widgets::ComboBox>(
-                                [&](Widgets::ComboBox* c)
-                                {
-                                    normalCombo = c;
-                                    c->addItem({L"OpenGL", 0});
-                                    c->addItem({L"DirectX", 1});
-                                    c->setSelectedItem(0);
-
-                                    subscribe(
-                                        c, &Widgets::ComboBox::onItemChecked,
-                                        [this, c](const Widgets::ListItem& item)
-                                        {
-                                            settings.normalConvention =
-                                                (item.getValue<int>() == 0)
-                                                    ? ImportSettings::NormalConvention::OpenGL
-                                                    : ImportSettings::NormalConvention::DirectX;
-                                        }
-                                    );
-                                }
-                            )
-                    )
-            )
-
-            // --- Bottom buttons ---
-            .child(
-                LayoutBuilder::hBox()
-                    .absoluteHeight(40.0f)
-                    .relativeWidth(1.0f)
-                    .margin({0, 10, 0, 0})
+                    .absoluteHeight(30)
+                    //.padding({12, 10, 12, 10})
+                    .background({22, 22, 22})
+                    //.child(LayoutBuilder::spacer()) // Пружина: прижимает кнопки вправо
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
                             .text(L"Cancel")
-                            .relativeWidth(0.5f)
-                            .absoluteHeight(34.0f)
-                            .background({50, 50, 50})
+                            .absoluteHeight(30)
+                            .absoluteWidth(90)
+                            .background({55, 55, 55})
                             .apply<Widgets::Button>(
-                                [&](Widgets::Button* b)
+                                [this](auto* b)
                                 {
                                     subscribe(
                                         b, &Widgets::Button::onPressedSignal,
-                                        [this]()
+                                        [this]
                                         {
                                             close();
                                         }
@@ -527,23 +339,16 @@ std::unique_ptr<NNsLayout::LayoutNode> ImportWindow::buildUI()
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Import")
-                            .relativeWidth(0.5f)
-                            .absoluteHeight(34.0f)
-                            .margin({8, 0, 0, 0})
-                            .background({70, 120, 70})
-                            .apply<Widgets::Button>(
-                                [&](Widgets::Button* b)
-                                {
-                                    subscribe(
-                                        b, &Widgets::IWidget::onReleasedSignal,
-                                        [this]()
-                                        {
-                                            importAsset();
-                                        }
-                                    );
-                                }
-                            )
+                            .text(L"IMPORT")
+                            .absoluteHeight(30)
+                            .absoluteWidth(110)
+                            .margin({0, 0, 0, 0})
+                            .background({0, 110, 190}) 
+                            .onEvent(&Widgets::Button::onReleasedSignal, [this]
+                             {
+                                 importAsset();
+                             })
+                            
                     )
             );
 

@@ -435,7 +435,7 @@ namespace nb
 
         void Engine::saveSnapshot() noexcept 
         {
-            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive(projectPath);
             nb::Scene::getInstance().serialize(archive);
             delete archive;
         }
@@ -443,13 +443,50 @@ namespace nb
         void Engine::loadSnapshot() noexcept
         {
             nb::Scene::getInstance().clear();
-            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive("Assets/res/Scene.json");
+            nb::Serialize::IArchive* archive = new nb::Serialize::JsonArchive(projectPath);
 
             archive->setMode(nb::Serialize::JsonArchive::Mode::READ);
             archive->load();
 
             nb::Scene::getInstance().deserialize(archive);
             delete archive;
+        }
+
+        Math::Vector3<float> Engine::getSpawnPosition(
+            int                          x,
+            int                          y
+        ) noexcept
+        {
+            Math::RayPicker picker;
+            Math::Ray       ray = picker.cast(
+                &cam, x, y, Core::EngineSettings::getWidth(), Core::EngineSettings::getHeight()
+            );
+
+            auto& scene = Scene::getInstance();
+
+            RaycastResult result = scene.raycast(ray, 0);
+
+            Math::Vector3<float> spawnPos;
+
+            if (result.hasHit)
+            {
+                spawnPos = ray.origin + ray.direction * result.distance;
+            }
+            else
+            {
+                float t = -ray.origin.y / ray.direction.y;
+                if (t > 0 && t < 1000.0f)
+                {
+                    spawnPos = ray.origin + ray.direction * t;
+                }
+                else
+                {
+                    spawnPos = ray.origin + ray.direction * 10.0f;
+                }
+            }
+
+            return spawnPos;
+            
         }
 
         nb::Renderer::Camera* Engine::findPrimaryGameCamera(Scene& scene) noexcept
@@ -474,6 +511,16 @@ namespace nb
         void Engine::setEditorSelectedNode(Node node) noexcept
         {
             editorSelectedNode = node;
+        }
+
+        void Engine::clearScene() noexcept
+        {
+            Scene::getInstance().clear();
+        }
+        
+        void Engine::setProjectPath(const std::filesystem::path& path) noexcept
+        {
+            projectPath = path;
         }
 
         void Engine::outlineSelectedObject() noexcept

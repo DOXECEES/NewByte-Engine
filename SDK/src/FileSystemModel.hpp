@@ -28,7 +28,6 @@ public:
         return (it != uuidMap.end()) ? it->second : nullptr;
     }
 
-    // Возвращает имя файла или папки для отображения в TreeView
     std::string data(const Widgets::ModelItem& item) const noexcept override
     {
         auto it = pathMap.find(item.getUuid());
@@ -52,11 +51,19 @@ public:
         return uuidMap.size();
     }
 
-    // Полезный метод для получения полного пути из айтема
     fs::path getPath(const Widgets::ModelItem& item) const
     {
         auto it = pathMap.find(item.getUuid());
         return (it != pathMap.end()) ? it->second : fs::path();
+    }
+
+    void rebuildModel(const fs::path& rootPath)
+    {
+        pathMap.clear();
+        uuidMap.clear();
+        rootItems.clear();
+
+        buildModel(rootPath);
     }
 
 private:
@@ -67,7 +74,6 @@ private:
             return;
         }
 
-        // 1. Создаем корневой элемент
         auto rootItem = std::make_unique<Widgets::ModelItem>(nullptr, nullptr, 0);
         Widgets::ModelItem* rootPtr = rootItem.get();
         
@@ -75,7 +81,6 @@ private:
         pathMap[rootPtr->getUuid()] = rootPath;
         rootItems.push_back(std::move(rootItem));
 
-        // 2. Рекурсивный обход через стек (чтобы избежать переполнения при глубоких путях)
         struct StackItem
         {
             fs::path path;
@@ -106,13 +111,11 @@ private:
 
                     Widgets::ModelItem* childPtr = childItem.get();
                     
-                    // Регистрируем айтем
                     uuidMap[childPtr->getUuid()] = childPtr;
                     pathMap[childPtr->getUuid()] = entry.path();
                     
                     parentItem->children.push_back(std::move(childItem));
 
-                    // Если это папка — идем глубже
                     if (entry.is_directory())
                     {
                         stk.push({entry.path(), childPtr, depth + 1});
@@ -121,7 +124,6 @@ private:
             }
             catch (const fs::filesystem_error& e)
             {
-                // Логируем ошибку доступа, если нужно
                 continue;
             }
         }
@@ -130,10 +132,7 @@ private:
 private:
     std::vector<std::unique_ptr<Widgets::ModelItem>> rootItems;
     
-    // Карта для быстрого поиска айтема по ID (нужна для ITreeModel)
     std::unordered_map<nbstl::Uuid, Widgets::ModelItem*> uuidMap;
-    
-    // Карта соответствия: UUID айтема -> Путь в файловой системе
     std::unordered_map<nbstl::Uuid, fs::path> pathMap;
 };
 
