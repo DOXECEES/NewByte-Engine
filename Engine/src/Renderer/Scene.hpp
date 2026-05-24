@@ -310,6 +310,7 @@ namespace nb
         }
 
 
+
         void clear() noexcept;
 
         Node createNode(Ecs::EntityID parent = 0) noexcept;

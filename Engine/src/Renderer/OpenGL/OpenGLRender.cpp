@@ -141,7 +141,36 @@ namespace nb::OpenGl
         SwapBuffers(hdc);
     }
 
-    void OpenGLRender::drawIndexedBuffer(
+    void OpenGLRender::reallocateVBO(size_t requiredSize)
+    {
+        if (dynamicVBO)
+        {
+            glUnmapNamedBuffer(dynamicVBO);
+            glDeleteBuffers(1, &dynamicVBO);
+        }
+        vboCapacity = requiredSize + (requiredSize / 2);
+
+        glCreateBuffers(1, &dynamicVBO);
+        glNamedBufferStorage(dynamicVBO, vboCapacity, nullptr, storageFlags);
+        vboMappedPtr = glMapNamedBufferRange(dynamicVBO, 0, vboCapacity, mapFlags);
+    }
+
+    void OpenGLRender::reallocateEBO(size_t requiredSize)
+    {
+        if (dynamicEBO)
+        {
+            glUnmapNamedBuffer(dynamicEBO);
+            glDeleteBuffers(1, &dynamicEBO);
+        }
+        eboCapacity = requiredSize + (requiredSize / 2);
+
+        glCreateBuffers(1, &dynamicEBO);
+        glNamedBufferStorage(dynamicEBO, eboCapacity, nullptr, storageFlags);
+        eboMappedPtr = glMapNamedBufferRange(dynamicEBO, 0, eboCapacity, mapFlags);
+    }
+
+
+   void OpenGLRender::drawIndexedBuffer(
         nbstl::Span<const uint8_t>    buffer,
         nbstl::Span<uint32_t>         indexBuffer,
         Renderer::PrimitiveType       type,
@@ -153,44 +182,39 @@ namespace nb::OpenGl
             return;
         }
 
-        glBindVertexArray(dynamicVAO);
-
-        glBindBuffer(GL_ARRAY_BUFFER, dynamicVBO);
-        if (buffer.size() > 1024 * 1024 * 2)
+        if (buffer.size() > vboCapacity || !vboMappedPtr)
         {
-            glBufferData(GL_ARRAY_BUFFER, buffer.size(), buffer.data(), GL_DYNAMIC_DRAW);
-        }
-        else
-        {
-            glBufferSubData(GL_ARRAY_BUFFER, 0, buffer.size(), buffer.data());
+            reallocateVBO(buffer.size());
         }
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dynamicEBO);
         size_t indexBytes = indexBuffer.size() * sizeof(uint32_t);
-        if (indexBytes > 1024 * 1024 * 2)
+        if (indexBytes > eboCapacity || !eboMappedPtr)
         {
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBytes, indexBuffer.data(), GL_DYNAMIC_DRAW);
+            reallocateEBO(indexBytes);
         }
-        else
-        {
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexBytes, indexBuffer.data());
-        }
+
+        std::memcpy(vboMappedPtr, buffer.data(), buffer.size());
+        std::memcpy(eboMappedPtr, indexBuffer.data(), indexBytes);
+
+        glVertexArrayVertexBuffer(dynamicVAO, 0, dynamicVBO, 0, (GLsizei)layout.stride);
+        glVertexArrayElementBuffer(dynamicVAO, dynamicEBO);
 
         for (const auto& attr : layout.attributes)
         {
-            glEnableVertexAttribArray(attr.location);
-            glVertexAttribPointer(
-                attr.location, attr.count, attr.type, GL_FALSE, layout.stride,
-                (void*)(uintptr_t)attr.offset
+            glEnableVertexArrayAttrib(dynamicVAO, attr.location);
+            glVertexArrayAttribFormat(
+                dynamicVAO, attr.location, attr.count, attr.type, GL_FALSE, (GLuint)attr.offset
             );
+            glVertexArrayAttribBinding(dynamicVAO, attr.location, 0);
         }
 
+        glBindVertexArray(dynamicVAO);
         GLenum mode = (type == Renderer::PrimitiveType::LINE) ? GL_LINES : GL_TRIANGLES;
         glDrawElements(mode, (GLsizei)indexBuffer.size(), GL_UNSIGNED_INT, nullptr);
 
         for (const auto& attr : layout.attributes)
         {
-            glDisableVertexAttribArray(attr.location);
+            glDisableVertexArrayAttrib(dynamicVAO, attr.location);
         }
         glBindVertexArray(0);
     }
@@ -551,8 +575,8 @@ namespace nb::OpenGl
 
         // --- FBO ---
         GLuint fbo, rbo;
-        glGenFramebuffers(1, &fbo);
-        glGenRenderbuffers(1, &rbo);
+        glCreateFramebuffers(1, &fbo);
+        glCreateRenderbuffers(1, &rbo);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
         // --- Входная текстура ---
@@ -572,19 +596,18 @@ namespace nb::OpenGl
             float roughness = (float)mip / (float)(maxMipLevels - 1);
             shader->setUniformFloat("roughness", roughness);
 
-            // Обновляем размер Depth Buffer под текущий мип-уровень
-            glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipSize, mipSize);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+            glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, mipSize, mipSize);
+            glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
 
             for (uint32_t i = 0; i < 6; ++i)
             {
                 shader->setUniformMat4("view", views[i]);
 
-                // Привязываем конкретную грань и конкретный мип-уровень КУДА рисуем
-                glFramebufferTexture2D(
-                    GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                    map->getId(), mip
+                glNamedFramebufferTextureLayer(
+                    fbo, 
+                    GL_COLOR_ATTACHMENT0, map->getId(), mip,
+                    i 
                 );
 
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -594,11 +617,9 @@ namespace nb::OpenGl
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // --- САМЫЙ ВАЖНЫЙ ШАГ ---
-        // Когда всё запечено, генерируем хэндл и фиксируем текстуру
         map->finalizeBindless();
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-        // Очистка ресурсов запекания
+        
         glDeleteRenderbuffers(1, &rbo);
         glDeleteFramebuffers(1, &fbo);
         glEnable(GL_CULL_FACE);
@@ -631,25 +652,28 @@ namespace nb::OpenGl
 
         // --- Настройка FBO ---
         uint32_t captureFBO;
-        glGenFramebuffers(1, &captureFBO);
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+        glCreateFramebuffers(1, &captureFBO); // Исправлено: Framebuffers вместо Renderbuffers
 
         // Привязываем нашу новую текстуру к FBO
-        glFramebufferTexture2D(
-            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfTex->getId(), 0
-        );
+        glNamedFramebufferTexture(captureFBO, GL_COLOR_ATTACHMENT0, brdfTex->getId(), 0);
 
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        if (glCheckNamedFramebufferStatus(captureFBO, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            // Ошибка FBO
+            Error::ErrorManager::instance().report(
+                Error::Type::FATAL, "Failed to create framebuffer!"
+            );
+            return nullptr;
         }
 
         // --- Настройка рендера ---
+        float clearColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+        glClearNamedFramebufferfv(captureFBO, GL_COLOR, 0, clearColor);
+
+
         glViewport(0, 0, size, size);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
 
         auto brdfShader =
             ResMan::ResourceManager::getInstance()->getResource<Renderer::Shader>("brdf.shader");
@@ -664,30 +688,35 @@ namespace nb::OpenGl
                 1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
             };
             uint32_t quadVBO;
-            glGenVertexArrays(1, &quadVAO);
-            glGenBuffers(1, &quadVBO);
-            glBindVertexArray(quadVAO);
-            glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(
-                1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))
-            );
+            glCreateVertexArrays(1, &quadVAO);
+            glCreateBuffers(1, &quadVBO);
+
+            glNamedBufferData(quadVBO, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+            glVertexArrayVertexBuffer(quadVAO, 0, quadVBO, 0, 5 * sizeof(float));
+
+            glEnableVertexArrayAttrib(quadVAO, 0);
+            glVertexArrayAttribFormat(quadVAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
+            glVertexArrayAttribBinding(quadVAO, 0, 0);
+
+            glEnableVertexArrayAttrib(quadVAO, 1);
+            glVertexArrayAttribFormat(quadVAO, 1, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(float));
+            glVertexArrayAttribBinding(quadVAO, 1, 0);
         }
 
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, captureFBO);
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindVertexArray(0);
 
         brdfTex->finalizeBindless();
 
         glDeleteFramebuffers(1, &captureFBO);
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
+
 
         return brdfTex;
     }
@@ -1016,19 +1045,35 @@ void nb::OpenGl::OpenGLRender::initDynamicBuffer() noexcept
 {
     const size_t MAX_BUFFER_SIZE = 2 * 1024 * 1024;
 
-    glGenVertexArrays(1, &dynamicVAO);
-    glGenBuffers(1, &dynamicVBO);
-    glGenBuffers(1, &dynamicEBO);
+    glCreateVertexArrays(1, &dynamicVAO);
+    glCreateBuffers(1, &dynamicVBO);
+    glCreateBuffers(1, &dynamicEBO);
 
     glBindVertexArray(dynamicVAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, dynamicVBO);
-    glBufferData(GL_ARRAY_BUFFER, MAX_BUFFER_SIZE, nullptr, GL_DYNAMIC_DRAW);
+    glNamedBufferData(dynamicVBO, MAX_BUFFER_SIZE, nullptr, GL_DYNAMIC_DRAW);
+    glNamedBufferData(dynamicEBO, MAX_BUFFER_SIZE, nullptr, GL_DYNAMIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dynamicEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BUFFER_SIZE, nullptr, GL_DYNAMIC_DRAW);
+    glVertexArrayElementBuffer(dynamicVAO, dynamicEBO);
+}
 
-    glBindVertexArray(0);
+void nb::OpenGl::OpenGLRender::initPersistentBuffers(
+    size_t initialVboSize,
+    size_t initialEboSize
+) noexcept
+{
+    GLbitfield flags =
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_DYNAMIC_STORAGE_BIT;
+
+    glCreateBuffers(1, &dynamicVBO);
+    glNamedBufferStorage(dynamicVBO, initialVboSize, nullptr, flags);
+    vboMappedPtr = glMapNamedBufferRange(dynamicVBO, 0, initialVboSize, flags);
+    vboCapacity  = initialVboSize;
+
+    glCreateBuffers(1, &dynamicEBO);
+    glNamedBufferStorage(dynamicEBO, initialEboSize, nullptr, flags);
+    eboMappedPtr = glMapNamedBufferRange(dynamicEBO, 0, initialEboSize, flags);
+    eboCapacity  = initialEboSize;
 }
 
 
