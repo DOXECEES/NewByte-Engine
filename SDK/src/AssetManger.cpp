@@ -328,6 +328,19 @@ void AssetManager::refreshAssetGrid()
             std::wstring extension    = entry.path().extension().wstring();
             NbColor      accentColor  = getAccentColorForExt(extension);
 
+            if (supportedExtensions.at(extStr) == Widgets::AssetType::MATERIAL)
+            {
+                std::string replacedPath = entry.path().generic_string();
+                std::replace(replacedPath.begin(), replacedPath.end(), '/', '_');
+                if (!std::filesystem::exists("Assets/cache/" + replacedPath + ".png"))
+                {
+                    nb::Renderer::Renderer::generatePreviewForMaterial(
+                        entry.path().generic_string()
+                    );
+                }
+            }
+            
+
             std::move(grid).child(
                 LayoutBuilder::vBox()
                     .margin({0, 12, 12, 0}) 
@@ -346,7 +359,9 @@ void AssetManager::refreshAssetGrid()
                         }
                     )
                     .child(
-                        LayoutBuilder::thumbnail(fullFileName, L"")
+                        LayoutBuilder::thumbnail(
+                            fullFileName, L"", supportedExtensions.at(extStr), entry.path()
+                        )
                             .relativeWidth(1.0f)
                             .absoluteHeight(95)
                             .background({25, 25, 25})
@@ -501,7 +516,7 @@ NbColor AssetManager::getAccentColorForExt(const std::wstring& ext)
     {
         return {33, 150, 243}; // Синий
     }
-    if (ext == L".hlsl")
+    if (ext == L".hlsl" || ext == L".lua")
     {
         return {156, 39, 176}; // Фиолетовый
     }

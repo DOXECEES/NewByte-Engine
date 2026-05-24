@@ -40,6 +40,7 @@
 #include "Renderer/Scene.hpp"
 
 #include "Scripting/ScriptEngine.hpp"
+#include "Audio/AudioEngine.hpp"
 
 namespace nb
 {
@@ -123,6 +124,7 @@ namespace nb
                 input = createRef<Input::Input>();
                 input->linkKeyboard(keyboard);
                 input->linkMouse(mouse);
+                audioEngine.init();
              
 
                 nb::Script::ScriptEngineSingleton::instance().getLuaState()["Keyboard"] = keyboard;
@@ -130,6 +132,7 @@ namespace nb
 
 
                 Utils::Timer::init();
+
             }
             ~Engine() = default;
 
@@ -255,6 +258,8 @@ namespace nb
             Ref<nb::Renderer::Renderer>		renderer        = nullptr;
             Ref<nb::Input::Keyboard>		keyboard        = nullptr;
             Ref<nb::Input::Mouse>			mouse           = nullptr;
+            AudioEngine                     audioEngine;
+            AudioSystem                                 audioSystem;
             bool							isRunning       = true;
             bool							handleInput     = true;
             bool                            hideCursor = false;

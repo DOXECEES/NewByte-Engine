@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include <functional>
+#include <filesystem>
 
 namespace nb::Reflect
 {
@@ -287,6 +288,13 @@ namespace nb::Reflect
     inline TypeInfo* getType<std::string>()
     {
         static TypeInfo type = {"std::string", sizeof(std::string), {}, false};
+        return &type;
+    }
+
+    template <>
+    inline TypeInfo* getType<std::filesystem::path>()
+    {
+        static TypeInfo type = {"std::filesystem::path", sizeof(std::filesystem::path), {}, false};
         return &type;
     }
 

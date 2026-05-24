@@ -2172,10 +2172,14 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 fileName = fileName.substr(lastSlash + 1);
             }
 
-            if (!std::filesystem::exists("Assets/cache/" + materialRef->getFilename() + ".png"))
+
+            std::string replacedPath = materialRef->getPath();
+            std::replace(replacedPath.begin(), replacedPath.end(), '/', '_');
+            if (!std::filesystem::exists("Assets/cache/" + replacedPath + ".png"))
             {
                 nb::Renderer::Renderer::generatePreviewForMaterial(materialRef->getPath());
             }
+
 
             vectorColumn =
                 std::move(vectorColumn)
@@ -2201,7 +2205,11 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                     .apply<Widgets::MaterialWidget>(
                                         [fileName, materialRef](Widgets::MaterialWidget* w)
                                         {
-                                            w->setMaterial(fileName, materialRef != nullptr);
+                                            w->setMaterial(
+                                                fileName,
+                                                materialRef->getPath(),
+                                                materialRef != nullptr
+                                            );
                                         }
                                     )
                                     .onEvent(
@@ -2304,6 +2312,81 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                                     markComponentDirty(componentPtr, info);
                                                     shouldRebuildInspector = true;
                                                 }
+                                            },
+                                            inspectorWindow.get()
+                                        );
+                                    }
+                                )
+                        )
+                );
+
+        return std::move(parentBuilder).child(std::move(resourceRow));
+    }
+    else if (typeName.find("std::filesystem::path") != std::string::npos)
+    {
+        std::string  path     = (*static_cast<std::filesystem::path*>(fieldData)).string();
+        std::wstring fileName = L"None";
+        if (!path.empty())
+        {
+            size_t lastSlash = path.find_last_of("/\\");
+            fileName         = nb::Utils::toWString(
+                lastSlash == std::string::npos ? path : path.substr(lastSlash + 1)
+            );
+        }
+
+        auto resourceRow =
+            LayoutBuilder::hBox()
+                .relativeWidth(1.0f)
+                .absoluteHeight(35)
+                //.alignment(Alignment::CENTER_LEFT)
+                .child(
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
+                        .relativeWidth(0.35f)
+                        .color({180, 180, 180})
+                        .padding({0, 0, 0, 5})
+                        .textAlignment({.textAlignment = TextAlignment::LEFT})
+                )
+                .child(
+                    LayoutBuilder::hBox()
+                        .relativeWidth(0.65f)
+                        .absoluteHeight(30)
+                        //.alignment(Alignment::CENTER_LEFT)
+                        .child(
+                            LayoutBuilder::vBox()
+                                .absoluteWidth(35)
+                                .absoluteHeight(35)
+                                .background({70, 140, 240})
+                                //.cornerRadius(5.0f)         // Скругление (аккуратное)
+                                .margin({2, 2, 2, 2})
+                        )
+                        .child(
+                            // 2. САМА КНОПКА (Widgets::Button)
+                            LayoutBuilder::widget(new Widgets::Button())
+                                .relativeWidth(1.0f)
+                                .absoluteHeight(31)
+                                .background({50, 50, 50})
+                                .margin({2, 2, 2, 2})
+                                .apply<Widgets::Button>(
+                                    [fileName](Widgets::Button* btn)
+                                    {
+                                        std::wstring buttonText = fileName + L"   🔍";
+                                        btn->setText(buttonText);
+                                    }
+                                )
+                                .onEvent(
+                                    &Widgets::IWidget::onReleasedSignal,
+                                    [this, field, fieldData, componentPtr, info]()
+                                    {
+                                        openFilePicker(
+                                            L"Select Resource: " + nb::Utils::toWString(field.name),
+                                            [this, field, fieldData, componentPtr,
+                                             info](const std::string& path)
+                                            {
+                                               
+                                                *static_cast<std::filesystem::path*>(fieldData) = path;
+                                                markComponentDirty(componentPtr, info);
+                                                shouldRebuildInspector = true;
+                                                
                                             },
                                             inspectorWindow.get()
                                         );

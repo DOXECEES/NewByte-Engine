@@ -40,6 +40,8 @@ namespace nb
                 this->array = newVaoId; 
             }
 
+            GLuint getId() const noexcept;
+
         private:
 
             VBO     vbo;

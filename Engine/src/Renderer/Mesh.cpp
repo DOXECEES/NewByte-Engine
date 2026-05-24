@@ -188,6 +188,11 @@ namespace nb
             return VAO.getEbo().getId();
         }
 
+        GLuint Mesh::getVaoId() const noexcept
+        {
+            return VAO.getId();
+        }
+
         std::vector<uint32_t> Mesh::uniteIndicies() noexcept
         {
             size_t lenght = 0;

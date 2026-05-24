@@ -9,6 +9,8 @@
 
 #include <Reflection/Reflection.hpp>
 
+#include "Renderer/Mesh.hpp"
+
 namespace nb
 {
     class Scene;
@@ -35,7 +37,8 @@ namespace nb::Physics
     {
         BOX,
         SPHERE,
-        CAPSULE
+        CAPSULE,
+        MESH
     };
 
     struct Collider
@@ -47,6 +50,7 @@ namespace nb::Physics
         float                height   = 1.0f; 
 
         Math::Vector3<float> offset = {0.0f, 0.0f, 0.0f};
+        Ref<Renderer::Mesh>          mesh;
 
         bool isBox() const noexcept
         {
@@ -60,6 +64,10 @@ namespace nb::Physics
         {
             return type == ColliderType::CAPSULE;
         }
+        bool isMesh() const noexcept
+        {
+            return type == ColliderType::MESH;
+        } 
     };
 
 
@@ -158,7 +166,8 @@ NB_REFLECT_ENUM(
     nb::Physics::ColliderType,
     NB_ENUM_VALUE(nb::Physics::ColliderType::BOX),
     NB_ENUM_VALUE(nb::Physics::ColliderType::SPHERE),
-    NB_ENUM_VALUE(nb::Physics::ColliderType::CAPSULE)
+    NB_ENUM_VALUE(nb::Physics::ColliderType::CAPSULE),
+    NB_ENUM_VALUE(nb::Physics::ColliderType::MESH)
 )
 
 NB_REFLECT_STRUCT(
@@ -183,6 +192,12 @@ NB_REFLECT_STRUCT(
         nb::Physics::Collider,
         height,
         isCapsule,
+        0.1f
+    ),
+    NB_FIELD_VISIBLE_IF(
+        nb::Physics::Collider,
+        mesh,
+        isMesh,
         0.1f
     ),
     NB_FIELD(

@@ -75,3 +75,8 @@ const nb::OpenGl::EBO& nb::OpenGl::VertexArray::getEbo() const noexcept
 {
     return ebo;
 }
+
+GLuint nb::OpenGl::VertexArray::getId() const noexcept
+{
+    return array;
+}

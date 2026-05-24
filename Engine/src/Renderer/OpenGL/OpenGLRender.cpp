@@ -14,6 +14,7 @@
 #include "Renderer/Cubemap.hpp"
 #include "Renderer/OpenGL/OpenGLTexture.hpp"
 
+#include <tracy/TracyOpenGL.hpp>
 
 
 namespace nb::OpenGl
@@ -85,6 +86,7 @@ namespace nb::OpenGl
 
     bool OpenGLRender::setContext(HDC hdc, HGLRC hglrc) noexcept
     {
+
         if (hdc == nullptr || hglrc == nullptr)
         {
             nb::Error::ErrorManager::instance()
@@ -131,9 +133,11 @@ namespace nb::OpenGl
 
     void OpenGLRender::endFrame() noexcept
     {
-        //nb::Error::ErrorManager::instance()
-        //    .report(nb::Error::Type::WARNING, "Count of draw calls")
-        //    .with("number", countOfDraws);
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::WARNING, "Count of draw calls")
+            .with("number", countOfDraws);
+        TracyGpuCollect; 
+
         SwapBuffers(hdc);
     }
 
@@ -941,6 +945,8 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
         return false;
     }
 
+
+
     if (!gladLoadGL())
     {
         initFail("Failed to initialize GLAD", hglrc);
@@ -990,6 +996,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
 
     initDynamicBuffer();
     
+   TracyGpuContext;
 
     //loadScene();
     return true;

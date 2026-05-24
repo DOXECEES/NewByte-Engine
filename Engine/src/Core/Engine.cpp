@@ -9,6 +9,8 @@
 #include "Physics/Physics.hpp"
 #include "Serialize/JsonArchive.hpp"
 
+#include <tracy/Tracy.hpp>
+
 struct Ray
 {
     nb::Math::Vector3<float> origin;
@@ -219,6 +221,7 @@ namespace nb
 
         bool Engine::run(bool shouldRender) 
         {
+
             using namespace nb::Input;
             processCommands();
 
@@ -283,7 +286,7 @@ namespace nb
 
             renderer->render();
             
-          
+            FrameMark;
             return true;
         }
 
@@ -295,6 +298,8 @@ namespace nb
 
 
             auto& registry = scene.getRegistry();
+
+            std::vector<Ecs::Entity> audio;
 
             scene.traverseAll(
                 [&](Ecs::EntityID entityId)
@@ -309,37 +314,48 @@ namespace nb
                             script.script->onUpdate(entity, deltaTime);
                         }
                     }
+                    if (registry.has<AudioComponent>(entity))
+                    {
+                        audio.push_back(entity);
+                    }
                 }
             );
 
-            //for (auto entity : scene.getEntitiesWith<TransformComponent, CameraComponent>())
-            //{
-            //    auto& transform = scene.getComponent<TransformComponent>(entity.id);
-            //    auto& camComp   = scene.getComponent<CameraComponent>(entity.id);
-            //    
-            //    auto* camera    = camComp.controller.get();
 
-            //    // TODO: отдать скриптам
-            //    camera->moveTo(Math::getPositionFromModelMatrix(transform.worldMatrix));
-            //    //if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
-            //    //{
-            //    //    camera->moveAt(camera->getDirection() * 5.0f * deltaTime);
-            //    //}
-            //    const float degToRad = 3.14159265f / 180.0f;
+            for (auto entity : scene.getEntitiesWith<TransformComponent, CameraComponent>())
+            {
+                auto& transform = scene.getComponent<TransformComponent>(entity.id);
+                auto& camComp   = scene.getComponent<CameraComponent>(entity.id);
+                
+                auto* camera    = camComp.controller.get();
 
-            //    if (camComp.isOrbit)
-            //    {
-            //        camera->updateOrbitByAngles(
-            //            mouse->getYaw() * degToRad, mouse->getPitch() * degToRad
-            //        );
-            //    }
-            //    else
-            //    {
-            //        camera->update(mouse->getYaw(), mouse->getPitch());
-            //    }
-            //   
+                if (camComp.isPrimary)
+                {
+                    audioSystem.update(audio, audioEngine, cam);
+                    break;
+                }
 
-            //}
+                // TODO: отдать скриптам
+                //camera->moveTo(Math::getPositionFromModelMatrix(transform.worldMatrix));
+                ////if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
+                ////{
+                ////    camera->moveAt(camera->getDirection() * 5.0f * deltaTime);
+                ////}
+                //const float degToRad = 3.14159265f / 180.0f;
+
+                //if (camComp.isOrbit)
+                //{
+                //    camera->updateOrbitByAngles(
+                //        mouse->getYaw() * degToRad, mouse->getPitch() * degToRad
+                //    );
+                //}
+                //else
+                //{
+                //    camera->update(mouse->getYaw(), mouse->getPitch());
+                //}
+               
+
+            }
 
         }
 
@@ -426,8 +442,20 @@ namespace nb
             {
                 renderer->setCamera(&cam);
                 subSystems->getPhysicsSystem().clear();
+
+                auto& scene    = Scene::getInstance();
+                auto  ent      = scene.getEntitiesWith<AudioComponent>();
+                auto& registry = scene.getRegistry();
+                for (auto& i : ent)
+                {
+                    audioEngine.stopSound(registry.get<AudioComponent>(i).soundHandle);
+                }
+
                 loadSnapshot(); 
                 hideCursor = false;
+               
+
+                
             }
 
             mode = newMode;

@@ -30,6 +30,7 @@
 #include <Loaders/JSON/Json.hpp>
 
 #include "TextureEditor.hpp"
+#include <Widgets/Thumbnail.hpp>
 
 class AssetManager
 {
@@ -77,19 +78,13 @@ private:
 
     const int dragThreshold = 5; 
 
-
-    enum class AssetType
-    {
-        TEXTURE,
-        MODEL,
-        SHADER,
-        MATERIAL,
-    };
-
-    std::unordered_map<std::string, AssetType> supportedExtensions = {
-        {".png", AssetType::TEXTURE},
-        {".material", AssetType::MATERIAL}, 
-        {".model", AssetType::MODEL}
+    std::unordered_map<std::string, Widgets::AssetType> supportedExtensions = {
+        {".png", Widgets::AssetType::TEXTURE},
+        {".material", Widgets::AssetType::MATERIAL}, 
+        {".model", Widgets::AssetType::MODEL},
+        {".lua", Widgets::AssetType::SCRIPT},
+        {".vs", Widgets::AssetType::SHADER},
+        {".fs", Widgets::AssetType::SHADER}
         //{".jpg", AssetType::TEXTURE},
         //{".texture", AssetType::TEXTURE},
         //{".fbx", AssetType::MODEL},

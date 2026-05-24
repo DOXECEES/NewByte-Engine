@@ -23,6 +23,15 @@ uniform float     u_EmissionMapStrength = 1.0;
 layout(bindless_sampler) uniform sampler2D shadowMap; 
 layout(bindless_sampler) uniform sampler2D u_SsaoMap; 
 
+
+layout(bindless_sampler) uniform sampler2D u_OcclusionMap;
+layout(bindless_sampler) uniform sampler2D u_RoughnessMap;
+layout(bindless_sampler) uniform sampler2D u_MetallicMap;
+uniform bool u_UseSeparateMaps = false;
+
+uniform bool u_NormalMapFlipY = false; // true для DirectX, false для OpenGL
+
+
 uniform samplerCube u_IrradianceMap;
 uniform samplerCube u_PrefilterMap;
 uniform sampler2D   u_BrdfLUT;
@@ -125,20 +134,59 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
     return shadow / 64.0;
 }
 
-float PointShadowCalculation(vec3 fragPos, vec3 lightPos, float farPlane, samplerCube shadowCube, vec3 N) {
+float PointShadowCalculation(
+    vec3 fragPos,
+    vec3 lightPos,
+    float farPlane,
+    samplerCube shadowCube,
+    vec3 N
+) {
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
-    float adaptiveBias = max(0.05 * (1.0 - dot(N, normalize(lightPos - fragPos))), 0.005);
-    vec3 dir = (fragPos + N * 0.015) - lightPos;
-    int samples = 32; float filterRadius = 0.05; float shadow = 0.0;
-    float rotation = InterleavedGradientNoise(gl_FragCoord.xy) * 6.2831;
+
+    vec3 forward = normalize(fragToLight);
+
+    vec3 up = abs(forward.y) < 0.999
+        ? vec3(0.0, 1.0, 0.0)
+        : vec3(1.0, 0.0, 0.0);
+
+    vec3 right = normalize(cross(up, forward));
+    vec3 tangent = cross(forward, right);
+
+    float bias =
+        max(0.002 * (1.0 - dot(N, -forward)), 0.0005);
+
+    float shadow = 0.0;
+    int samples = 32;
+
+    float rotation =
+        InterleavedGradientNoise(gl_FragCoord.xy) * 6.2831;
+
+    float radius =
+        mix(0.002, 0.03, currentDepth / farPlane);
+
     for (int i = 0; i < samples; ++i) {
-        float r = sqrt(float(i) + 0.5) / sqrt(float(samples));
-        float theta = float(i) * 2.39996 + rotation;
-        vec3 offset = vec3(cos(theta) * r, sin(theta) * r, (r - 0.5) * 2.0) * filterRadius;
-        float closestDepth = texture(shadowCube, dir + offset).r * farPlane;
-        if (currentDepth - adaptiveBias > closestDepth) shadow += 1.0;
+
+        vec2 disk =
+            VogelDiskSample(i, samples, rotation) * radius;
+
+        vec3 sampleDir =
+            forward +
+            right * disk.x +
+            tangent * disk.y;
+
+        float closestDepth =
+            texture(
+                shadowCube,
+                normalize(sampleDir)
+            ).r * farPlane;
+
+        shadow +=
+            (currentDepth - bias > closestDepth)
+            ? 1.0
+            : 0.0;
     }
+
     return shadow / float(samples);
 }
 
@@ -234,10 +282,31 @@ void main() {
     vec3 albedo = pow(albedoSample.rgb, vec3(2.2)) * pow(u_BaseColorFactor, 2.2);
     
     vec3 nMap = texture(u_NormalMap, uv).rgb * 2.0 - 1.0;
+
+    if(u_NormalMapFlipY) {
+        nMap.y = -nMap.y;
+    }
+
+
     nMap.xy *= u_NormalMapStrength;
-    vec3 orm = texture(u_ORMMap, uv).rgb;
     vec3 emission = pow(texture(u_EmissionMap, uv).rgb, vec3(2.2)) * u_EmissionMapStrength;
-    
+    float ao, roughness, metallic;
+
+    if (u_UseSeparateMaps)
+    {
+        ao        = texture(u_OcclusionMap, uv).r;
+        roughness = texture(u_RoughnessMap, uv).r;
+        metallic  = texture(u_MetallicMap, uv).r;
+    }
+    else
+    {
+        vec3 orm  = texture(u_ORMMap, uv).rgb;
+        ao        = orm.r;
+        roughness = orm.g;
+        metallic  = orm.b;
+    }
+
+
     float ssao = 1.0;
     if (u_UseSSAO) {
         // Используем экранные координаты для выборки SSAO
@@ -246,9 +315,10 @@ void main() {
     }
 
 
-    float ao = orm.r * u_OcclusionFactor;
-    float roughness = clamp(orm.g, 0.05, 1.0) * u_RoughnessFactor;
-    float metallic = mix(orm.b, u_MetallicFactor, 0.5);
+    ao        *= u_OcclusionFactor;
+    roughness = clamp(roughness * u_RoughnessFactor, 0.05, 1.0);
+    metallic  = clamp(metallic * u_MetallicFactor, 0.0, 1.0);
+
 
     vec3 N = normalize(TBN * nMap);
     vec3 V = normalize(u_CameraPos - FragPos);
@@ -292,7 +362,7 @@ void main() {
         Lo += (1.0 - shadow) * (kD * albedo / PI + spec) * lightPoint[i].Ld * lightPoint[i].intensity * atten * NdotL;
     }
 
-    float materialAO = orm.r;
+    float materialAO = roughness;
     float combinedAO = materialAO * ssao; // Объединяем оба вида AO
 
     vec3 ambient = vec3(0.0);

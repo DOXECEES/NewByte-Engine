@@ -41,6 +41,11 @@ namespace nb::Serialize
             bool& value
         ) noexcept override;
 
+        void value(
+            const char*            name,
+            std::filesystem::path& value
+        ) noexcept override;
+
         void beginArray(const char* name) noexcept override;
         void endArray() noexcept override;
 

@@ -352,9 +352,13 @@ set(SRC
     src/Physics/TerrainCollider.cpp
     src/Physics/TerrainCollider.hpp
 
+    src/Audio/AudioEngine.cpp
+    src/Audio/AudioEngine.hpp
+
     dependencies/lodepng/lodepng.cpp
     dependencies/stb/stb_image.h
     dependencies/stb/stb_image_write.h
+    dependencies/Audio/miniaudio.h
 
     src/MemoryTracker.cpp
     src/MemoryTracker.hpp
@@ -388,6 +392,37 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(assimp)
+
+
+option(ENABLE_TRACY "Enable Tracy Profiler" ON)
+
+if(ENABLE_TRACY)
+    FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG        v0.13.1 # или конкретный тег, например v0.10
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(tracy)
+
+    # Добавляем макрос включения
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
+    
+    # TracyClient.cpp нужно скомпилировать вместе с движком
+    # FetchContent скачивает файлы в переменную tracy_SOURCE_DIR
+    target_sources(${PROJECT_NAME} PRIVATE "${tracy_SOURCE_DIR}/public/TracyClient.cpp")
+    
+    # Пути к заголовкам
+    target_include_directories(${PROJECT_NAME} PUBLIC "${tracy_SOURCE_DIR}/public")
+
+    if(WIN32)
+        target_link_libraries(${PROJECT_NAME} PUBLIC ws2_32 dbghelp)
+    endif()
+    
+    message(STATUS "Tracy Profiler: ENABLED")
+else()
+    message(STATUS "Tracy Profiler: DISABLED")
+endif()
 
 # ============================================================
 # INCLUDE DIRS

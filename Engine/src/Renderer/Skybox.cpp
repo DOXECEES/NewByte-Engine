@@ -92,6 +92,7 @@ namespace nb
             delete ctxMesh;
         }
 
+
         void Skybox::render(Ref<Renderer::Shader> shader)
         {
             shader->use();
