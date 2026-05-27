@@ -6,7 +6,7 @@
 #include <Widgets/Slider.hpp>
 #include <Widgets/ComboBox.hpp>
 
-
+#include <Localization/Translation.hpp>
 #include <memory>
 
 
@@ -20,7 +20,7 @@ TextureEditor::TextureEditor(
 {
     textureEditorWindow =
         std::make_shared<Win32Window::ModalWindow>(NbSize<int>{1100, 700}, parent);
-    textureEditorWindow->setTitle(L"Content Browser");
+    textureEditorWindow->setTitle(Localization::Translation::fromKeyToWstring("Ui.TextureEditor.TextureBrowser"));
 
     previewWindow = std::make_shared<Win32Window::ChildWindow>(textureEditorWindow.get(), true);
     previewWindow->setTitle(L"Preview Texture");
@@ -164,6 +164,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildEditorUI()
 
 std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
 {
+    using namespace Localization;
     using namespace nbui;
        auto inspectorUi =
         LayoutBuilder::vBox()
@@ -176,105 +177,39 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                     .relativeWidth(1.0f)
                     .autoHeight() 
                     .child(
-                        LayoutBuilder::label(L"METADATA")
+                        LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Metadata"))
                             .fontSize(12)
                             .color({150, 150, 150})
                             .absoluteHeight(20)
                             .relativeWidth(1.0f)
                     )
                     .child(
-                        LayoutBuilder::label(L"Format: RGBA8_UNORM")
+                        LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Format") + L": RGBA8_UNORM")
                             .fontSize(14)
                             .absoluteHeight(20)
                             .relativeWidth(1.0f)
                     )
                     .child(
-                        LayoutBuilder::label(L"Size: 2048 x 2048")
+                        LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Size") + L": 2048 x 2048")
                             .fontSize(14)
                             .absoluteHeight(20)
                             .relativeWidth(1.0f)
                     )
                     .child(
-                        LayoutBuilder::label(L"Mips: 11")
+                        LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Mips") + L": 11")
                             .fontSize(14)
                             .absoluteHeight(20)
                             .relativeWidth(1.0f)
                     )
             )
 
-            .child(
-                LayoutBuilder::hBox()
-                    .relativeWidth(1.0f)
-                    .absoluteHeight(2)
-                    .background({60, 60, 60})
-                    .margin({10, 0, 10, 0}) 
-            )
-
-            .child(
-                LayoutBuilder::vBox()
-                    .relativeWidth(1.0f)
-                    .absoluteHeight(60)
-                    .child(
-                        LayoutBuilder::label(L"CHANNELS")
-                            .fontSize(12)
-                            .color({150, 150, 150})
-                            .absoluteHeight(20)
-                            .relativeWidth(1.0f)
-                    )
-                    .child(
-                        LayoutBuilder::hBox()
-                            .relativeWidth(1.0f)
-                            .absoluteHeight(35)
-                            .buttonGroupMultiple()
-                            .relativeWidth(1.0f)
-                            .absoluteHeight(35)
-                            .child(
-                                LayoutBuilder::widget(new Widgets::Button())
-                                    .text(L"R")
-                                    .relativeWidth(0.25f)
-                                    .relativeHeight(1.0f)
-                                    .background({220, 80, 80}, LayoutBuilder::StateStyle::ACTIVE)
-                            )
-                            .child(
-                                LayoutBuilder::widget(new Widgets::Button())
-                                    .text(L"G")
-                                    .relativeWidth(0.25f)
-                                    .relativeHeight(1.0f)
-                                    .background({110, 180, 120}, LayoutBuilder::StateStyle::ACTIVE)
-                            )
-                            .child(
-                                LayoutBuilder::widget(new Widgets::Button())
-                                    .text(L"B")
-                                    .relativeWidth(0.25f)
-                                    .relativeHeight(1.0f)
-                                    .background({80, 140, 220}, LayoutBuilder::StateStyle::ACTIVE)
-                            )
-                            .child(
-                                LayoutBuilder::widget(new Widgets::Button())
-                                    .text(L"A")
-                                    .relativeWidth(0.25f)
-                                    .relativeHeight(1.0f)
-                                    .background({210, 210, 210}, LayoutBuilder::StateStyle::ACTIVE)
-                            )
-                            .endGroup()
-                    )
-            )
-
-            .child(
-                LayoutBuilder::hBox()
-                    .relativeWidth(1.0f)
-                    .absoluteHeight(2)
-                    .background({60, 60, 60})
-                    .margin({10, 0, 10, 0}) 
-
-            )
 
             .child(
                 LayoutBuilder::vBox()
                     .relativeWidth(1.0f)
                     .absoluteHeight(110) 
                     .child(
-                        LayoutBuilder::label(L"VISUALS")
+                        LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Params"))
                             .fontSize(12)
                             .color({150, 150, 150})
                             .absoluteHeight(20)
@@ -285,7 +220,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                             .relativeWidth(1.0f)
                             .absoluteHeight(30)
                             .child(
-                                LayoutBuilder::label(L"Exposure")
+                                LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Exposure"))
                                     .relativeWidth(0.4f)
                                     .relativeHeight(1.0f)
                             )
@@ -311,7 +246,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                             .relativeWidth(1.0f)
                             .absoluteHeight(30)
                             .child(
-                                LayoutBuilder::label(L"Gamma")
+                                LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Gamma"))
                                 .relativeWidth(0.4f)
                                 .relativeHeight(1.0f)
                             )
@@ -344,7 +279,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                             .relativeWidth(1.0f)
                             .absoluteHeight(30)
                             .child(
-                                LayoutBuilder::label(L"Filtering")
+                                LayoutBuilder::label(Translation::fromKeyToWstring("Ui.TextureEditor.Filtering"))
                                     .relativeWidth(0.4f)
                                     .relativeHeight(1.0f)
                             )
@@ -355,9 +290,9 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                                     .apply<Widgets::ComboBox>(
                                         [&](Widgets::ComboBox* c)
                                         {
-                                            c->addItem({L"Point", 0});
-                                            c->addItem({L"Bilinear", 1});
-                                            c->addItem({L"Trilinear", 2});
+                                            c->addItem({Translation::fromKeyToWstring("Ui.TextureEditor.Point"), 0});
+                                            c->addItem({Translation::fromKeyToWstring("Ui.TextureEditor.Bilinear"), 1});
+                                            c->addItem({Translation::fromKeyToWstring("Ui.TextureEditor.Trilinear"), 2});
                                         }
                                     )
                             )
@@ -372,7 +307,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                     .absoluteHeight(40)
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"REIMPORT")
+                            .text(Translation::fromKeyToWstring("Ui.TextureEditor.Import"))
                             .relativeWidth(0.5f)
                             .relativeHeight(1.0f)
                             .onEvent(&Widgets::IWidget::onReleasedSignal, [this](){
@@ -388,7 +323,7 @@ std::unique_ptr<NNsLayout::LayoutNode> TextureEditor::buildInspectorUI()
                     )
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"EXPORT...")
+                            .text(Translation::fromKeyToWstring("Ui.TextureEditor.Exit"))
                             .relativeWidth(0.5f)
                             .relativeHeight(1.0f)
                             .onEvent(&Widgets::Button::onReleasedSignal, [this]() {

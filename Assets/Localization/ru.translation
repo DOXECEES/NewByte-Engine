@@ -108,3 +108,15 @@ Ui.Scene.CreateEmpty : Создать пустой объект
 Ui.AssetBrowser.Title : Обозреватель ассетов
 Ui.AssetBrowser.Import : Импортировать
 
+Ui.TextureEditor.Params : Параметры
+Ui.TextureEditor.Exposure : Экспозиция
+Ui.TextureEditor.Gamma : Гамма
+Ui.TextureEditor.Filtering : Фильтрация
+Ui.TextureEditor.Point : Точечная
+Ui.TextureEditor.Import : Импорт
+Ui.TextureEditor.Exit : Выход
+Ui.TextureEditor.Mips : Мипы
+Ui.TextureEditor.Size : Разрешение
+Ui.TextureEditor.Format : Формат
+Ui.TextureEditor.Metadata : Метаданные
+Ui.TextureEditor.TextureBrowser : Редактор текстур

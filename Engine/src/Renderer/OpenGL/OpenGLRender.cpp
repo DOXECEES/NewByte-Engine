@@ -84,16 +84,29 @@ namespace nb::OpenGl
     }
 
 
-    bool OpenGLRender::setContext(HDC hdc, HGLRC hglrc) noexcept
+    bool OpenGLRender::setContext(
+        HDC   hdc,
+        HGLRC hglrc
+    ) noexcept
     {
+        HDC   targetHdc   = hdc;
+        HGLRC targetHglrc = hglrc;
 
         if (hdc == nullptr || hglrc == nullptr)
         {
-            nb::Error::ErrorManager::instance()
-                .report(nb::Error::Type::INFO, "HDC or HGLRC == nullptr");
-            return wglMakeCurrent(this->hdc, this->hglrc);
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::INFO, "HDC or HGLRC == nullptr"
+            );
+            targetHdc   = this->hdc;
+            targetHglrc = this->hglrc;
         }
-        return wglMakeCurrent(hdc, hglrc);
+
+        if (wglGetCurrentContext() == targetHglrc && wglGetCurrentDC() == targetHdc)
+        {
+            return true;
+        }
+
+        return wglMakeCurrent(targetHdc, targetHglrc);
     }
 
     void OpenGLRender::releaseContext(const Renderer::SharedWindowContext& context) noexcept

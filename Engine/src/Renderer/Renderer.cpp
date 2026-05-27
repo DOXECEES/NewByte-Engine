@@ -28,6 +28,8 @@
 #include <tracy/Tracy.hpp>
 #include <tracy/TracyOpenGL.hpp>
 
+#include <string_view>
+
 namespace nb::Math
 {
 
@@ -351,7 +353,7 @@ namespace nb::Renderer
         pointLights.reserve(32);
 
         nb::Math::Frustum cameraFrustum;
-        cameraFrustum.update(cam->getLookAt() * cam->getProjection());
+        //cameraFrustum.update(cam->getLookAt() * cam->getProjection());
 
         auto mainShader = resourceManager->getResource<Shader>(MAIN_SHADER_NAME.data());
         {
@@ -508,10 +510,10 @@ namespace nb::Renderer
                         );
 
                         // 3. Проверка на видимость
-                        if (!cameraFrustum.isVisible(worldAabb))
-                        {
-                            return; // Объект за пределами экрана, не рисуем!
-                        }
+                        //if (!cameraFrustum.isVisible(worldAabb))
+                        //{
+                        //    return; // Объект за пределами экрана, не рисуем!
+                        //}
 
 
                         if (meshComp.material.empty())
@@ -545,6 +547,9 @@ namespace nb::Renderer
             isPreviewInitialized = true;
         }
 
+        api->bindFrameBuffer(shadowFrameBuffer);
+        api->clear(false, true, false); // Очищаем только глубину
+        api->bindDefaultFrameBuffer();  // Возвращаем
 
         Math::Mat4<float> currentLightView = Math::Mat4<float>::identity();
         Math::Mat4<float> currentLightProj = Math::Mat4<float>::identity();
@@ -821,15 +826,23 @@ namespace nb::Renderer
             // api->bindTexture(3, shadowFrameBuffer->getTexture());
             if (iblResource)
             {
-                api->bindCubemap(4, iblResource->getIrradianceCubemap()->getId());
-                api->bindCubemap(5, iblResource->getPrefilterCubemap()->getId());
-                api->bindTexture(6, iblResource->getBrdfTexture()->getId());
+                mainShader->setUniformUint64(
+                    "u_IrradianceMap", iblResource->getIrradianceCubemap()->getHandle()
+                );
+                mainShader->setUniformUint64(
+                    "u_PrefilterMap", iblResource->getPrefilterCubemap()->getHandle()
+                );
+                mainShader->setUniformUint64(
+                    "u_BrdfLUT", iblResource->getBrdfTexture()->getHandle()
+                );
+                
             }
 
             for (auto& cmd : mainQueue)
             {
                 auto shader = cmd.material[0]->getShader();
                 shader->use();
+
 
                 shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
                 shader->setUniformUint64("u_SsaoMap", ssaoResult);

@@ -44,30 +44,51 @@ namespace nb
                 nbstl::Span<std::string> params = {}
             ) noexcept
             {
-                std::string      path(resourcePath);
-                std::string_view extension = extractExtension(path);
+                std::string_view extension = extractExtension(resourcePath);
 
-                std::string resourceKey = path;
-                for (const auto& param : params)
-                {
-                    resourceKey += "|" + param;
-                }
-
-                auto loaderIt = loaders.find(extension.data());
+                auto loaderIt = loaders.find(std::string(extension));
                 if (loaderIt == loaders.end())
                 {
-                    Error::ErrorManager::instance().report(Error::Type::FATAL, "Unsupported file format: " + std::string(extension));
+                    Error::ErrorManager::instance().report(
+                        Error::Type::FATAL, "Unsupported file format: " + std::string(extension)
+                    );
                     abort();
+                }
+
+                std::string resourceKey;
+                if (params.empty())
+                {
+                    resourceKey = resourcePath;
+                }
+                else
+                {
+                    size_t totalSize = resourcePath.size();
+                    for (const auto& param : params)
+                    {
+                        totalSize += 1 + param.size(); 
+                    }
+                    resourceKey.reserve(totalSize);
+
+                    resourceKey.append(resourcePath);
+                    for (const auto& param : params)
+                    {
+                        resourceKey.push_back('|');
+                        resourceKey.append(param);
+                    }
                 }
 
                 std::type_index type = loaderIt->second->getResourceType();
 
-                if (pool[type].find(resourceKey) == pool[type].end())
+                auto& resourcesGroup = pool[type];
+                auto  resIt          = resourcesGroup.find(resourceKey);
+
+                if (resIt == resourcesGroup.end())
                 {
-                    load(path, resourceKey, params);
+                    load(std::string(resourcePath), resourceKey, params);
+                    resIt = resourcesGroup.find(resourceKey);
                 }
 
-                return std::dynamic_pointer_cast<T>(pool.at(type).at(resourceKey));
+                return std::static_pointer_cast<T>(resIt->second);
             }
 
 
