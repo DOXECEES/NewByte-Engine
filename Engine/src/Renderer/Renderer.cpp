@@ -22,13 +22,14 @@
 
 #include "Math/RayCast/RayPicker.hpp"
 
+//
 #include "OpenGL/Placeholder.hpp"
+#include "OpenGL/UBO.hpp"
+//
 #include "DebugDraw.hpp"
 
-#include <tracy/Tracy.hpp>
-#include <tracy/TracyOpenGL.hpp>
-
 #include <string_view>
+#include <format>
 
 namespace nb::Math
 {
@@ -126,6 +127,8 @@ namespace nb::Renderer
             {
                 std::abort();
             }
+            pointLightUbo = std::make_unique<OpenGl::UniformBuffer<PointLightData>>();
+
             break;
         case nb::Core::GraphicsAPI::DIRECTX:
             NB_FALLTHROUGH;
@@ -207,8 +210,12 @@ namespace nb::Renderer
             api->drawMesh(gridRenderCommand);
         };
 
+
         skybox = std::make_unique<Skybox>(contextMeshCache);
         ssao   = new SSAO(api, (uint32_t)400, (uint32_t)300, (uint32_t)64);
+        
+
+
     }
 
     void Renderer::onResize(uint32 width, uint32 heigth) noexcept
@@ -228,12 +235,6 @@ namespace nb::Renderer
 
         prevWidth = width;
         prevHeigth = heigth;
-
-        if (!t)
-        {
-            t = new OpenGl::OpenGlTexture("Assets\\res\\brick.png");
-            tn = new OpenGl::OpenGlTexture("Assets\\res\\brick_normal.png");
-        }
 
         mainFrameBuffer = api->createFrameBuffer(width, heigth);
         mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
@@ -285,16 +286,6 @@ namespace nb::Renderer
         gBuffer = std::make_unique<GBuffer>(api, width, heigth);
         ssao->resize(width, heigth);
 
-        if (!albedo)
-        {
-            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_diff_1k.png"); 
-            metal       = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\metal (2).png");
-            roughtness  = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\rough (2).png");
-            ao          = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\ao (3).png");
-            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_nor_gl_1k.png");
-        }
-
-
         if (!debugLightMesh)
         {
             debugLightMesh = PrimitiveGenerators::createSphere(0.2f, 16, 16);
@@ -320,12 +311,8 @@ namespace nb::Renderer
         const std::string_view MAIN_SHADER_NAME          = "ADS.shader";
     }
 
-
-   
-
     void Renderer::render() noexcept
     {
-        ZoneScoped;
         const int width  = nb::Core::EngineSettings::getWidth();
         const int height = nb::Core::EngineSettings::getHeight();
 
@@ -357,7 +344,6 @@ namespace nb::Renderer
 
         auto mainShader = resourceManager->getResource<Shader>(MAIN_SHADER_NAME.data());
         {
-            ZoneScopedN("Scene Traversal & Culling");
             scene.traverseAll(
                 [&](Ecs::EntityID entityId)
                 {
@@ -556,9 +542,6 @@ namespace nb::Renderer
         
         if (!directionalLights.empty())
         {
-            ZoneScopedN("Shadow Pass: Directional");
-            TracyGpuZone("Shadow Pass: Directional");
-
             api->setViewport({0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION});
             api->bindFrameBuffer(shadowFrameBuffer);
             api->setClearColor(Colors::BROWN, CLEAR_ALPHA, 0);
@@ -594,9 +577,6 @@ namespace nb::Renderer
 
         if (!pointLights.empty())
         {
-            ZoneScopedN("Shadow Pass: Point Lights");
-            TracyGpuZone("Shadow Pass: Point Lights");
-
             const float POINT_FAR_PLANE = 50.0f;
             auto        pointShadowShader =
                 resourceManager->getResource<Shader>("point_shadow_gen.shader");
@@ -697,8 +677,6 @@ namespace nb::Renderer
         ////////////
 
          {
-            ZoneScopedN("GBuffer & SSAO Pass");
-            TracyGpuZone("GBuffer Pass");
 
             gBuffer->getFramebuffer()->bind();
             
@@ -747,8 +725,6 @@ namespace nb::Renderer
         const auto camPos = cam->getPosition();
 
         {
-            ZoneScopedN("Lighting & Main Pass");
-            TracyGpuZone("Main Forward/Deferred Pass");
             api->bindDefaultFrameBuffer();
             api->bindFrameBuffer(mainFrameBuffer);
             api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
@@ -795,6 +771,8 @@ namespace nb::Renderer
             std::vector<PointLight>       pointLightsData;
             std::vector<DirectionalLight> dirLightsData;
 
+            PointLightData pointLightData{};
+
             for (auto id : directionalLights)
             {
                 const auto& l = registry.get<LightComponent>(Ecs::Entity{id});
@@ -811,17 +789,19 @@ namespace nb::Renderer
                     l.constant, l.linear, l.quadratic, 1.0f
                 );
 
-                if (l.castShadows && m_pointShadowMaps.contains(id))
-                {
-                    data.shadowMapHandle = m_pointShadowMaps[id]->getHandle();
-                    data.farPlane        = 50.0f;
-                    data.hasShadow       = true;
-                }
-                else
-                {
-                    data.hasShadow = false;
-                }
+                pointLightData.pointLight[pointLightData.countOfpointLight++] = PointLightProxy{
+                    .diffuse   = l.diffuse.asVec3(),
+                    .position = t.position,
+                    .intensity = 1.0f,
+                    .constCoefficient = l.constant,
+                    .linearCoefficient = l.linear,
+                    .expCoefficient = l.quadratic,
+                    .farPlane = l.castShadows && m_pointShadowMaps.contains(id) ? 50.0f : 0.0f,
+                    .hasShadow = l.castShadows && m_pointShadowMaps.contains(id) ? true : false,
+                    .shadowMapHandle = l.castShadows && m_pointShadowMaps.contains(id) ? m_pointShadowMaps[id]->getHandle() : 0
+                };
             }
+            pointLightUbo->update(pointLightData);
 
             // api->bindTexture(3, shadowFrameBuffer->getTexture());
             if (iblResource)
@@ -863,19 +843,22 @@ namespace nb::Renderer
                 {
                     l.applyUniforms(shader);
                 }
-                for (auto& l : pointLightsData)
-                {
-                    l.applyUniforms(shader);
-                }
+                // for (int i = 0; i < pointLightData.countOfpointLight; i++)
+                // {
+                //     std::string shadowHandleName = std::format("u_PointShadowMaps[{}]", i);
+                //     shader->setUniformUint64(shadowHandleName, m_pointShadowMaps[i]->getHandle());
+                // }
+
+                pointLightUbo->bindBase(0);
 
                 shader->setUniformInt(
                     ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data(),
                     static_cast<int>(dirLightsData.size())
                 );
-                shader->setUniformInt(
-                    ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
-                    static_cast<int>(pointLightsData.size())
-                );
+                // shader->setUniformInt(
+                //     ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
+                //     static_cast<int>(pointLightsData.size())
+                // );
 
                 api->drawMesh(cmd);
             }

@@ -1,0 +1,8 @@
+CompileFlags:
+  Add: [
+    -I, Engine/src,                           
+    -I, SDK/src,
+    -I, NewByte-UI-Lib/src,
+    -I, nbstl/src,
+    -I, Common    
+  ]

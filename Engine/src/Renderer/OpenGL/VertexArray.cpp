@@ -53,17 +53,7 @@ void nb::OpenGl::VertexArray::linkData(const std::vector<nb::Renderer::Vertex> &
 
 void nb::OpenGl::VertexArray::draw(const size_t count, GLenum mode, const size_t offset) const noexcept
 {
-    for (size_t i = 0; i < 16; i++)
-    {
-        glEnableVertexAttribArray(i);
-    }
-
     glDrawElements(mode, count, GL_UNSIGNED_INT, reinterpret_cast<void*>(sizeof(uint32_t) * offset));
-
-    for (size_t i = 0; i < 16; i++)
-    {
-        glDisableVertexAttribArray(i);
-    }
 }
 
 const nb::OpenGl::VBO& nb::OpenGl::VertexArray::getVbo() const noexcept

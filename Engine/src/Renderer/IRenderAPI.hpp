@@ -14,6 +14,8 @@
 #include "PipelineCache.hpp"
 #include "Renderer/Cubemap.hpp"
 #include "Renderer/Texture.hpp"
+#include "IUniformBuffer.hpp"
+
 
 #include "Resources/MaterialAsset.hpp"
 #include "Math/Vector3.hpp"
@@ -168,6 +170,8 @@ namespace nb
                 Math::Vector3<float>                            lightPos,
                 float                                           farPlane
             ) noexcept = 0;
+
+           
 
             virtual void setViewport(const Viewport& viewport) noexcept = 0;
             virtual void clear(bool color, bool depth, bool stencil) noexcept = 0;

@@ -96,6 +96,9 @@ private:
     std::shared_ptr<Win32Window::ModalWindow> filePickerWindow;
     std::shared_ptr<Win32Window::ModalWindow> languagePicker;
 
+    std::shared_ptr<Win32Window::ChildWindow> shaderNodes;
+
+
 
     std::shared_ptr<AssetManager> assetManagerWindow;
     std::shared_ptr<MaterialEditor> materialEditor;
@@ -202,21 +205,24 @@ private:
 
     void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
 
-    int mainLoop() {
-        MSG msg = { 0 };
+    int mainLoop()
+    {
+        MSG  msg                    = {0};
+        bool leftMouseDownThisFrame = false;
+
         while (running)
         {
-
-            if (engine 
-                && engine->getRenderer()->isResourceReady() 
-                && !isEngineDependentUiInit)
+            if (engine && engine->getRenderer()->isResourceReady() && !isEngineDependentUiInit)
             {
                 setupEngineDependentUi();
                 assetManagerWindow = std::make_shared<AssetManager>(assetManager, engine.get());
-                //importWindow       = std::make_shared<ImportWindow>(importManager, engine.get(), "Assets");
                 isEngineDependentUiInit = true;
             }
 
+            // Очищаем флаг клика перед обработкой сообщений
+            leftMouseDownThisFrame = false;
+
+            // 1. ОЧЕНЬ БЫСТРЫЙ СБОР СООБЩЕНИЙ (БЕЗ МАТЕМАТИКИ)
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
             {
                 if (shouldRebuildInspector)
@@ -225,12 +231,35 @@ private:
                     shouldRebuildInspector = false;
                 }
 
-                if (msg.message == WM_QUIT) {
+                if (msg.message == WM_QUIT)
+                {
                     running = false;
                     break;
                 }
+
+                if (msg.hwnd == sceneWindow->getHandle().as<HWND>())
+                {
+                    if (msg.message == WM_LBUTTONDOWN)
+                    {
+                        leftMouseDownThisFrame = true;
+                    }
+                }
+
+                if (msg.message == WM_INPUT)
+                {
+                    engine->bufferizeInput(msg);
+                }
+
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+
+            // Если очередь пуста, обрабатываем физику, логику и ГИЗМО строго 1 раз за кадр
+            if (engine && running)
+            {
                 bool isGizmoHit = false;
 
+                // Выполняем спавн моделей
                 if (!spawnQueue.isEmpty())
                 {
                     for (auto& i : spawnQueue)
@@ -240,12 +269,11 @@ private:
                     spawnQueue.clear();
                 }
 
-
-                if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
+                // 2. ОБНОВЛЕНИЕ ГИЗМО (ВЫПОЛНЯЕТСЯ СТРОГО 1 РАЗ ЗА КАДР)
+                if (!sceneWindow->getIsRenderable()) // обновляем только если окно активно
                 {
-                    NbPoint<int> mousePos = sceneWindow->mousePosition;
-
-                    nb::Renderer::Camera* camera = engine->getRenderer()->getCamera();
+                    NbPoint<int>          mousePos = sceneWindow->mousePosition;
+                    nb::Renderer::Camera* camera   = engine->getRenderer()->getCamera();
                     nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
 
                     auto& gizmo_ctx = engine->getRenderer()->getGizmoContext();
@@ -273,7 +301,6 @@ private:
                         nb::Math::Mat4<float> pWorldMatrix      = nb::Math::Mat4<float>::identity();
                         nb::Math::Quaternion<float> pWorldRot   = {0, 0, 0, 1};
                         nb::Math::Vector3<float>    pWorldScale = {1, 1, 1};
-                        nb::Math::Vector3<float>    pWorldPos   = {0, 0, 0};
                         bool                        hasParent   = false;
 
                         if (auto parent = activeNode.getParent();
@@ -281,11 +308,9 @@ private:
                         {
                             auto& ptc    = parent->getComponent<TransformComponent>();
                             pWorldMatrix = ptc.worldMatrix;
-                            pWorldPos    = nb::Math::getPositionFromModelMatrix(pWorldMatrix);
                             pWorldRot    = nb::Math::getRotationFromModelMatrix(pWorldMatrix);
-                            // Извлекаем чистый масштаб родителя из базисных векторов матрицы
-                            pWorldScale = nb::Math::getScaleFromModelMatrix(pWorldMatrix);
-                            hasParent   = true;
+                            pWorldScale  = nb::Math::getScaleFromModelMatrix(pWorldMatrix);
+                            hasParent    = true;
                         }
 
                         nb::Math::Vector3<float> currentWorldPos;
@@ -393,51 +418,41 @@ private:
                                 }
 
                                 tc.rotation.normalize();
-                                tc.eulerAngle   = tc.rotation.toEulerXYZ();
+                                tc.eulerAngle =
+                                    tc.rotation.toEulerXYZ(); // Медленная функция, но теперь
+                                                              // работает 1 раз за кадр
                                 tc.dirty        = true;
                                 tc.physicsDirty = true;
                             }
                         }
                     }
 
-                    if (msg.message == WM_LBUTTONDOWN && !isGizmoHit)
+                    // 3. ВЫБОР ОБЪЕКТА (RAY PICKING)
+                    if (leftMouseDownThisFrame && !isGizmoHit)
                     {
-                        NbPoint<int>  point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
                         nb::Math::Ray pickRay;
-                        nb::Node      node = engine->rayPick(point.x, point.y, pickRay);
+                        nb::Node      node = engine->rayPick(mousePos.x, mousePos.y, pickRay);
                         activeNode         = node.isValid() ? node : nb::Node::createInvalid();
                         onActiveNodeChanged.emit();
                     }
-
-                    isGizmoHit = false;
                 }
 
-
-                if (msg.message == WM_INPUT) 
-                {
-                    engine->bufferizeInput(msg);
-                }
-
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-
-            if (engine)
-            {               
+                // 4. СИСТЕМНЫЙ UPDATE ДВИЖКА И РЕНДЕР
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
 
-                
-               
-                engine->getRenderer()->renderShadowPreview(
-                    sharedContext, engine->getRenderer()->ssaoResult, 0.1f, 100.0f
-                );
-                
+                //engine->getRenderer()->renderShadowPreview(
+                //    sharedContext, engine->getRenderer()->ssaoResult, 0.1f, 100.0f
+                //);
 
                 if (engine->shouldHideCursor())
+                {
                     mainWindow->hideCursor();
+                }
                 else
+                {
                     mainWindow->showCursor();
+                }
             }
 
             mainWindow->resetStateDirtyFlags();

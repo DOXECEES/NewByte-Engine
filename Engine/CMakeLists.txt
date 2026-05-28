@@ -5,6 +5,7 @@ include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(DEPENDENCIES_DIR "${PROJECT_SOURCE_DIR}/dependencies")
 set(LUA_DIR "${DEPENDENCIES_DIR}/lua")
@@ -244,6 +245,7 @@ set(SRC
     src/Renderer/Scene.hpp
     src/Renderer/Cubemap.cpp
     src/Renderer/Cubemap.hpp
+    src/Renderer/IUniformBuffer.hpp
 
     src/Math/Constants.hpp
     src/Math/Vector2.cpp
@@ -460,7 +462,7 @@ target_link_directories(${PROJECT_NAME}
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
-    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /arch:AVX2)
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /arch:AVX2 /bigobj)
 
     target_compile_definitions(${PROJECT_NAME} PUBLIC
         JPH_DEBUG_RENDERER

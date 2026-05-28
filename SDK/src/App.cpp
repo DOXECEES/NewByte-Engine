@@ -34,7 +34,7 @@
 #include <Widgets/ToolBar.hpp>
 #include <Widgets/MaterialWidget.hpp>
 #include <Widgets/FilePicker.hpp>
-
+#include <Widgets/ShaderCanvas.hpp>
 #include <Renderer/Shader.hpp>
 #include <Renderer/Material.hpp>
 #include <Renderer/Texture.hpp>
@@ -209,6 +209,23 @@ void EditorApp::createWindows() noexcept
     previewWindow->setTitle(L"prev");
     previewWindow->addCaption();
     previewWindow->setRenderable(false);
+
+
+    shaderNodes = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    shaderNodes->setTitle(L"Shader");
+    shaderNodes->addCaption();
+
+    auto shaderNodesUi = nbui::LayoutBuilder::vBox()
+                             .relativeHeight(1.0f)
+                             .relativeWidth(1.0f)
+                             .child(
+                                 nbui::LayoutBuilder::widget(new Widgets::ShaderCanvas())
+                                     .relativeHeight(1.0f)
+                                     .relativeWidth(1.0f)
+                             )
+                             .build();
+
+    shaderNodes->getLayoutRoot()->addChild(std::move(shaderNodesUi));
 }
 
 void EditorApp::setupDocking() noexcept

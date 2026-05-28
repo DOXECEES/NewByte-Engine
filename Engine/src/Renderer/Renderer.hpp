@@ -29,6 +29,9 @@
 //
 #include "OpenGL/Placeholder.hpp"
 #include "Scene.hpp"
+#include "Light.hpp"
+
+#include "IUniformBuffer.hpp"
 //
 
 namespace nb
@@ -40,6 +43,7 @@ namespace nb
         class Renderer 
         {
         public:
+
 
             Renderer() = delete;
             Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept;
@@ -131,30 +135,7 @@ namespace nb
             void outline(Node node) noexcept;
             
 
-            uint32 getAlbedoId() const
-            {
-                return albedo->getId();
-            }
-
-            uint32 getMetalId() const
-            {
-                return metal->getId();
-            }
-
-            uint32 getRoughtnessId() const
-            {
-                return roughtness->getId();
-            }
-
-            uint32 getAoId() const
-            {
-                return ao->getId();
-            }
-
-            uint32 getNormalId() const
-            {
-                return normal->getId();
-            }
+            
 
             uint32 getGizmoTextureId() const
             {
@@ -240,7 +221,7 @@ namespace nb
                 int height
             ) noexcept;
 
-
+            
 
         private:
 
@@ -254,16 +235,6 @@ namespace nb
             void loadSceneEcs() noexcept;
           
             uint32_t checkedTextureId = 0;
-
-            OpenGl::OpenGlTexture* t = nullptr;
-            OpenGl::OpenGlTexture* tn = nullptr;
-
-
-            std::shared_ptr<OpenGl::OpenGlTexture> albedo;
-            std::shared_ptr<OpenGl::OpenGlTexture> metal;
-            std::shared_ptr<OpenGl::OpenGlTexture> roughtness;
-            std::shared_ptr<OpenGl::OpenGlTexture> ao;
-            std::shared_ptr<OpenGl::OpenGlTexture> normal;
 
             std::unique_ptr<GBuffer> gBuffer = nullptr;
 
@@ -300,6 +271,15 @@ namespace nb
 
             Ref<IFrameBuffer> navigationalGizmoFrameBuffer;
             Ref<IFrameBuffer> outlineMaskFrameBuffer;
+
+            struct PointLightData
+            {
+                PointLightProxy pointLight[32];
+                int countOfpointLight;
+                float padding[3];
+            };
+
+            std::unique_ptr<IUniformBuffer<PointLightData>> pointLightUbo;
 
             PolygonMode polygonMode;
             IRenderAPI* api;

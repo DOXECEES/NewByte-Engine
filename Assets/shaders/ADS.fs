@@ -69,23 +69,30 @@ struct DirectionalLight {
 };
 
 struct PointLight {
-    vec3 position;
     vec3 Ld;
+    vec3 position;
     float intensity;
     float point_const_coof;
     float point_linear_coof;
     float point_exp_coof;
     float farPlane;
     int hasShadow;
+    samplerCube pointShadowMap;
 };
+
+layout (std140, binding = 0) uniform PointLightBlock {
+    PointLight lightPoint[32];
+    int _COUNT_OF_POINTLIGHT_;
+};
+
 
 uniform DirectionalLight light[8];
 uniform int _COUNT_OF_DIRECTIONLIGHT_;
 
-uniform PointLight lightPoint[32];
-uniform int _COUNT_OF_POINTLIGHT_;
+// uniform PointLight lightPoint[32];
+// uniform int _COUNT_OF_POINTLIGHT_;
 
-layout(bindless_sampler) uniform samplerCube u_PointShadowMaps[32];
+//layout(bindless_sampler) uniform samplerCube u_PointShadowMaps[32];
 
 // ----------------- Helpers & Shadows -----------------
 float InterleavedGradientNoise(vec2 px) {
@@ -294,9 +301,13 @@ void main() {
 
     if (u_UseSeparateMaps)
     {
-        ao        = texture(u_OcclusionMap, uv).r;
-        roughness = texture(u_RoughnessMap, uv).r;
-        metallic  = texture(u_MetallicMap, uv).r;
+        vec3 orm  = texture(u_ORMMap, uv).rgb;
+        ao        = orm.r;
+        roughness = orm.g;
+        metallic  = orm.b;
+        // ao        = texture(u_OcclusionMap, uv).r;
+        // roughness = texture(u_RoughnessMap, uv).r;
+        // metallic  = texture(u_MetallicMap, uv).r;
     }
     else
     {
@@ -352,7 +363,7 @@ void main() {
 
         float dist = length(lightPoint[i].position - FragPos);
         float atten = 1.0 / max(lightPoint[i].point_const_coof + lightPoint[i].point_linear_coof * dist + lightPoint[i].point_exp_coof * dist * dist, 0.001);
-        float shadow = (lightPoint[i].hasShadow == 1) ? PointShadowCalculation(FragPos, lightPoint[i].position, lightPoint[i].farPlane, u_PointShadowMaps[i], N) : 0.0;
+        float shadow = (lightPoint[i].hasShadow == 1) ? PointShadowCalculation(FragPos, lightPoint[i].position, lightPoint[i].farPlane, lightPoint[i].pointShadowMap, N) : 0.0;
 
         float D = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);

@@ -25,8 +25,9 @@
 #include "Physics/Physics.hpp"
 
 #include "ECS/ecs.hpp"
+#include "Math/Vector3.hpp"
+#include "Math/Math.hpp"
 
-#include "Renderer/Color.hpp"
 #include <Alghorithm.hpp>
 #include <Color.hpp>
 
@@ -34,6 +35,7 @@
 #include <mutex>
 #include <queue>
 #include <future>
+
 
 #include <Uuid.hpp>
 
