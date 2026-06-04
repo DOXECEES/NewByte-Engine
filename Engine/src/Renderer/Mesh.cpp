@@ -223,7 +223,12 @@ namespace nb
         {
             mesh.shader->applyUniforms();
             mesh.shader->applyUniforms(uniforms);
-            mesh.shader->shader->use();
+            static int prevShader = 0;
+            if(mesh.shader->shader->getId() != prevShader)
+            {
+                mesh.shader->shader->use();
+                prevShader = mesh.shader->shader->getId();
+            }
         }
 
         void Mesh::draw(
@@ -238,11 +243,11 @@ namespace nb
 
             for (size_t i = 0; i < meshes.size(); ++i)
             {
-                shader->use();
+                //shader->use();
                 if (materials.empty())
                 {
-                    meshes[i]->attachShader(shader);
-                    applyMaterial(*meshes[i]);
+                   meshes[i]->attachShader(shader);
+                   applyMaterial(*meshes[i]);
                 }
                 else
                 {

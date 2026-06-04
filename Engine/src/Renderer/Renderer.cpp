@@ -21,6 +21,7 @@
 #include "Physics/Physics.hpp"
 
 #include "Math/RayCast/RayPicker.hpp"
+#include "RendererTracker.hpp"
 
 //
 #include "OpenGL/Placeholder.hpp"
@@ -30,6 +31,7 @@
 
 #include <string_view>
 #include <format>
+#include <thread>
 
 namespace nb::Math
 {
@@ -237,25 +239,28 @@ namespace nb::Renderer
         prevHeigth = heigth;
 
         mainFrameBuffer = api->createFrameBuffer(width, heigth);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Color");
+        // mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        // mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        // mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH, "Depth");
         mainFrameBuffer->finalize();
 
-        mainFrameBuffer->setDrawBuffers(4);
+        //mainFrameBuffer->setDrawBuffers(4);
+        mainFrameBuffer->setDrawBuffers(1);
+
+        RendererTracker::addFrameBuffer("mainFrameBuffer", mainFrameBuffer);
 
         shadowFrameBuffer = api->createFrameBuffer(2048, 2048);
-        shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
+        shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH, "Depth");
         shadowFrameBuffer->finalize();
         
         ssrResultBuffer = api->createFrameBuffer(width, heigth);
-        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Color");
         ssrResultBuffer->finalize();
 
         ssrBlurBuffer = api->createFrameBuffer(width, heigth);
-        ssrBlurBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        ssrBlurBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Color");
         ssrBlurBuffer->finalize();
 
         pointShadowFrameBuffer = api->createFrameBuffer(1024, 1024);
@@ -271,13 +276,15 @@ namespace nb::Renderer
         pointShadowFrameBuffer->finalize();
 
         navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
-        navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR, "Color");
         navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         navigationalGizmoFrameBuffer->finalize();
 
         outlineMaskFrameBuffer = api->createFrameBuffer(width, heigth);
         outlineMaskFrameBuffer->addTextureAttachment(
-            IFrameBuffer::TextureAttachment::COLOR
+            IFrameBuffer::TextureAttachment::COLOR,
+            "Color"
+
         ); 
         outlineMaskFrameBuffer->finalize();
         mainFrameBuffer->setDrawBuffers(1);
@@ -563,7 +570,7 @@ namespace nb::Renderer
             Pipeline shadowPipeline{.shader = shadowShader, .polygonMode = PolygonMode::FULL};
             uint32   shadowPso = api->getCache().getOrCreate(shadowPipeline);
 
-            shadowShader->use();
+            //shadowShader->use();
             shadowShader->setUniformMat4("lightProj", currentLightProj);
             shadowShader->setUniformMat4("lightView", currentLightView);
 
@@ -587,7 +594,7 @@ namespace nb::Renderer
 
             api->setViewport({0, 0, POINT_SHADOW_RES, POINT_SHADOW_RES});
 
-            pointShadowShader->use();
+            //pointShadowShader->use();
 
             for (auto id : pointLights)
             {
@@ -692,7 +699,7 @@ namespace nb::Renderer
             uint32   prePso = api->getCache().getOrCreate(prePipeline);
 
 
-            prePassShader->use();
+            //prePassShader->use();
             prePassShader->setUniformMat4("view", cam->getLookAt());
             prePassShader->setUniformMat4("projection", cam->getProjection());
 
@@ -756,7 +763,7 @@ namespace nb::Renderer
                     .shader = gridShader, .isDepthTestEnable = false, .isBlendEnable = true
                 };
 
-                gridShader->use();
+                //gridShader->use();
                 gridShader->setUniformVec3("uCameraWorldPosition", camPos);
                 gridShader->setUniformMat4("uViewProjection", view * proj);
 
@@ -792,7 +799,7 @@ namespace nb::Renderer
                 pointLightData.pointLight[pointLightData.countOfpointLight++] = PointLightProxy{
                     .diffuse   = l.diffuse.asVec3(),
                     .position = t.position,
-                    .intensity = 1.0f,
+                    .intensity = 50.0f,
                     .constCoefficient = l.constant,
                     .linearCoefficient = l.linear,
                     .expCoefficient = l.quadratic,
@@ -818,11 +825,11 @@ namespace nb::Renderer
                 
             }
 
+
             for (auto& cmd : mainQueue)
             {
                 auto shader = cmd.material[0]->getShader();
-                shader->use();
-
+                //shader->use();
 
                 shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
                 shader->setUniformUint64("u_SsaoMap", ssaoResult);
@@ -863,12 +870,14 @@ namespace nb::Renderer
                 api->drawMesh(cmd);
             }
 
-            for (auto cmd : billboardQueue)
-            {
-                auto billboardShader =
+            auto billboardShader =
                     ResMan::ResourceManager::getInstance()->getResource<Shader>("billboard.shader");
 
-                billboardShader->use();
+            billboardShader->use();
+
+            for (auto cmd : billboardQueue)
+            {
+                
                 billboardShader->setUniformVec3("uPosition", cmd.pos);
                 billboardShader->setUniformMat4("uView", cam->getLookAt());
                 billboardShader->setUniformMat4("uProjection", cam->getProjection());
@@ -894,12 +903,15 @@ namespace nb::Renderer
 
         if (!previewQueue.isEmpty())
         {
-            for (auto& i : previewQueue)
-            {
-                saveSpherePreview(i, "Assets/cache/" + i.stem().string() + ".png");
-            }
+            auto& materialPath = previewQueue.front(); 
+            
+            saveSpherePreview(materialPath, "Assets/cache/" + materialPath.stem().string() + ".png");
 
-            previewQueue.clear();
+            for (size_t idx = 1; idx < previewQueue.size(); ++idx)
+            {
+                previewQueue[idx - 1] = std::move(previewQueue[idx]);
+            }
+            previewQueue.popBack();
         }
 
         api->endFrame();
@@ -924,7 +936,7 @@ namespace nb::Renderer
                 .isDepthTestEnable = true
             };
             uint32 debugPso = api->getCache().getOrCreate(debugP);
-            debugLightShader->use();
+            //debugLightShader->use();
             debugLightShader->setUniformMat4("view", view);
             debugLightShader->setUniformMat4("proj", proj);
 
@@ -958,7 +970,7 @@ namespace nb::Renderer
             };
             uint32 aabbPso = api->getCache().getOrCreate(aabbP);
 
-            aabbShader->use();
+            //aabbShader->use();
             aabbShader->setUniformMat4("view", view);
             aabbShader->setUniformMat4("projection", proj);
 
@@ -994,46 +1006,46 @@ namespace nb::Renderer
         gizmoCtx.draw();
 
 
-        if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
-        {
-            auto maskShader = rm->getResource<Shader>("mask_pass.shader");
+        // if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
+        // {
+        //     auto maskShader = rm->getResource<Shader>("mask_pass.shader");
             
-            auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
+        //     auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
 
-            api->bindFrameBuffer(outlineMaskFrameBuffer);
-            api->setViewport({
-                    0,
-                    0,
-                    (float)Core::EngineSettings::getWidth(),
-                    (float)Core::EngineSettings::getHeight()
-                }
-            );
-            api->setClearColor(Colors::BLACK, 0.0f, 0);
-            api->clear(true, false, false);
+        //     api->bindFrameBuffer(outlineMaskFrameBuffer);
+        //     api->setViewport({
+        //             0,
+        //             0,
+        //             (float)Core::EngineSettings::getWidth(),
+        //             (float)Core::EngineSettings::getHeight()
+        //         }
+        //     );
+        //     api->setClearColor(Colors::BLACK, 0.0f, 0);
+        //     api->clear(true, false, false);
 
-            maskShader->use();
-            maskShader->setUniformMat4("u_View", view);
-            maskShader->setUniformMat4("u_Proj", proj);
-            maskShader->setUniformMat4(
-                "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
-            );
+        //     maskShader->use();
+        //     maskShader->setUniformMat4("u_View", view);
+        //     maskShader->setUniformMat4("u_Proj", proj);
+        //     maskShader->setUniformMat4(
+        //         "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
+        //     );
 
-            Pipeline maskPipeline{
-                .shader            = maskShader,
-                .isDepthTestEnable = false, 
-                .isBlendEnable     = false,
-                .isCullingEnable   = true,
-                .cullFront         = false
-            };
-            uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
-            api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
-        }
-        else if (outlineMaskFrameBuffer) 
-        {
-            api->bindFrameBuffer(outlineMaskFrameBuffer);
-            api->setClearColor(Colors::BLACK, 0.0f, 0);
-            api->clear(true, false, false);
-        }
+        //     Pipeline maskPipeline{
+        //         .shader            = maskShader,
+        //         .isDepthTestEnable = false, 
+        //         .isBlendEnable     = false,
+        //         .isCullingEnable   = true,
+        //         .cullFront         = false
+        //     };
+        //     uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
+        //     api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
+        // }
+        // else if (outlineMaskFrameBuffer) 
+        // {
+        //     api->bindFrameBuffer(outlineMaskFrameBuffer);
+        //     api->setClearColor(Colors::BLACK, 0.0f, 0);
+        //     api->clear(true, false, false);
+        // }
 
 
     }
@@ -1056,7 +1068,7 @@ namespace nb::Renderer
         api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
         api->clear(true, false, false);
 
-        ssrShader->use();
+        //ssrShader->use();
         //for (uint32 i = 0; i < 5; ++i)
         //{
         //    api->bindTexture(i, mainFrameBuffer->getTexture(i));
@@ -1093,7 +1105,7 @@ namespace nb::Renderer
 
         // --- ПРОХОД 2: Blur Horizontal ---
         api->bindFrameBuffer(ssrBlurBuffer);
-        blurShader->use();
+        //blurShader->use();
         // Читаем шумный результат SSR
         blurShader->setUniformUint64("u_SSRTexture", ssrResultBuffer->getTextureHandle(0));
         // ИСПРАВЛЕНО: используем blurShader вместо ssrShader для всех юниформов!
@@ -1112,7 +1124,7 @@ namespace nb::Renderer
 
         // --- ПРОХОД 3: Blur Vertical ---
         api->bindFrameBuffer(ssrResultBuffer);
-        blurShader->use(); // Не забываем use, если стейт мог измениться
+        //blurShader->use(); // Не забываем use, если стейт мог измениться
         // Читаем результат горизонтального прохода
         blurShader->setUniformUint64("u_SSRTexture", ssrBlurBuffer->getTextureHandle(0));
         // Снова исправляем на blurShader
@@ -1144,7 +1156,7 @@ namespace nb::Renderer
         api->setClearColor(Colors::WHITE, CLEAR_ALPHA, 0);
         api->clear(true, false, false);
 
-        quadShader->use();
+        //quadShader->use();
         quadShader->setUniformInt("depthMap", 3);
         quadShader->setUniformVec2(
             "screenSize", {static_cast<float>(width), static_cast<float>(height)}
@@ -1267,7 +1279,81 @@ namespace nb::Renderer
         api->releaseContext(context);
     }
 
-    void Renderer::blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request)
+    // Renderer.cpp
+
+    void Renderer::renderFramebufferToContext(
+        const SharedWindowContext& out,
+        const Ref<IFrameBuffer>&   framebuffer,
+        uint32_t                   attachmentIndex
+    ) noexcept
+    {
+        if (!framebuffer)
+        {
+            return;
+        }
+
+        if (!api->setContext(out.hdc, out.hglrc))
+        {
+            return;
+        }
+
+        RECT rc;
+        GetClientRect(out.handle, &rc);
+        const int width  = rc.right - rc.left;
+        const int height = rc.bottom - rc.top;
+
+        if (width <= 0 || height <= 0)
+        {
+            api->setDefaultContext();
+            return;
+        }
+
+        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
+        if (!mesh)
+        {
+            mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
+        }
+
+        api->setViewport({0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
+        api->setClearColor(Colors::WHITE, 1.0f, 0);
+        api->clear(true, false, false);
+
+        const uint64_t textureHandle = framebuffer->getTextureHandle(attachmentIndex);
+        if (textureHandle != 0) 
+        {
+            if (!glIsTextureHandleResidentARB(textureHandle)) 
+            {
+                glMakeTextureHandleResidentARB(textureHandle);
+            }
+        }
+
+        auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("fbo_visualization.shader");
+        if (quadShader && mesh)
+        {
+            quadShader->setUniformUint64("fboTexture", textureHandle);
+            
+            bool isDepthAttachment = framebuffer->getTextureAttachmentType(attachmentIndex) == IFrameBuffer::TextureAttachment::DEPTH;
+            quadShader->setUniformBool("isDepth", isDepthAttachment);
+        
+            Pipeline texPipeline{};
+            texPipeline.shader            = std::move(quadShader);
+            texPipeline.isDepthTestEnable = false;
+            texPipeline.polygonMode       = PolygonMode::FULL;
+            texPipeline.isBlendEnable     = true;
+
+            uint32 texPso = api->getCache().getOrCreate(texPipeline);
+            api->drawContextMesh(*mesh, texPso);
+        }
+
+        SwapBuffers(out.hdc);
+        
+        api->setDefaultContext();
+    }
+
+    void Renderer::blitToWindow(
+        const SharedWindowContext&   out,
+        const TexturePreviewRequest& request
+    )
     {
         if (!api->setContext(out.hdc, out.hglrc)) return;
 
@@ -1279,7 +1365,7 @@ namespace nb::Renderer
         api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
         api->clear(true, false, false);
         auto gridShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("grid.shader");
-        gridShader->use();
+        //gridShader->use();
         
 
         auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
@@ -1297,7 +1383,7 @@ namespace nb::Renderer
 
         
         auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("quadShader2.shader");
-        quadShader->use();
+        //quadShader->use();
         quadShader->setUniformUint64("sceneTexture", request.source);
         quadShader->setUniformVec3("channelMask", request.channelMask);
         quadShader->setUniformFloat("gamma", request.gamma);
@@ -1349,7 +1435,7 @@ namespace nb::Renderer
         // Рекомендуется использовать специальный шейдер, который умеет делать линеаризацию
         auto shadowVizShader =
             ResMan::ResourceManager::getInstance()->getResource<Shader>("shadow_viz.shader");
-        shadowVizShader->use();
+        //shadowVizShader->use();
 
         // Передаем параметры для корректного отображения глубины
         shadowVizShader->setUniformUint64("shadowMap", ssrBlurBuffer->getTextureHandle(0)); // 0 3 4
@@ -1433,7 +1519,7 @@ namespace nb::Renderer
 
         // 2. Настройка шейдера материала
         auto shader = request.material->getShader();
-        shader->use();
+        //shader->use();
 
         // Привязываем текстуры самого материала (слоты 0, 1, 2 обычно внутри bind)
         request.material->bind(shader);
@@ -1586,7 +1672,7 @@ namespace nb::Renderer
         pipeline.isBlendEnable = false;
 
         uint32 pso = api->getCache().getOrCreate(pipeline);
-        gizmoShader->use();
+        //gizmoShader->use();
         gizmoShader->setUniformMat4("model", gizemoModel);
         gizmoShader->setUniformMat4("view", cameraView);
         gizmoShader->setUniformMat4("projection", gizmoProj);
@@ -1610,11 +1696,10 @@ namespace nb::Renderer
         auto      rm   = nb::ResMan::ResourceManager::getInstance();
 
         auto tempFB = api->createFrameBuffer(size, size);
-        tempFB->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        tempFB->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR, "Color");
         tempFB->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         tempFB->finalize();
 
-        // 2. Ресурсы
         Ref<Mesh> sphereMesh    = rm->getResource<Mesh>("Untitled.obj"); 
         auto      materialAsset = rm->getResource<Resource::MaterialAsset>(materialPath.string());
         auto ibl = rm->getResource<Resource::IhdrResource>("Assets/res/grasslands_sunset_4k.hdr");
@@ -1624,10 +1709,10 @@ namespace nb::Renderer
             return;
         }
 
-        Math::Mat4    projection = Math::projection(45.0f, 1.0f, 0.1f, 10.0f);
+        Math::Mat4           projection = Math::projection(45.0f, 1.0f, 0.1f, 10.0f);
         Math::Vector3<float> camPos     = {0.0f, 0.0f, 2.5f};
-        Math::Mat4    view       = Math::lookAt(camPos, {0, 0, 0}, {0, 1, 0});
-        Math::Mat4    model      = Math::Mat4<float>::identity();
+        Math::Mat4           view       = Math::lookAt(camPos, {0, 0, 0}, {0, 1, 0});
+        Math::Mat4           model      = Math::Mat4<float>::identity();
 
         DirectionalLight directionalLight(
             Colors::WHITE.asVec3(), Colors::WHITE.asVec3(), Colors::WHITE.asVec3(),
@@ -1656,7 +1741,6 @@ namespace nb::Renderer
             shader->setUniformInt("u_BrdfLUT", 6);
         }
 
-
         uint64 dummyTex = OpenGl::createPlaceholderForEmission();
         shader->setUniformUint64("shadowMap", OpenGl::createPlaceholderForDepth());
         shader->setUniformUint64("u_SsaoMap", dummyTex);
@@ -1681,12 +1765,27 @@ namespace nb::Renderer
         RendererCommand cmd         = {.mesh = sphereMesh.get(), .pipeline = pso};
         api->drawMesh(cmd);
 
+        // 1. Быстро вычитываем пиксели из видеопамяти
         std::vector<unsigned char> data(size * size * 4);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, size, size, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 
-        stbi_flip_vertically_on_write(true);
-        stbi_write_png(savePath.c_str(), size, size, 4, data.data(), size * 4);
+        // 2. Быстро переворачиваем изображение по вертикали на CPU
+        std::vector<unsigned char> flippedData(size * size * 4);
+        int rowSize = size * 4;
+        for (int y = 0; y < size; ++y)
+        {
+            std::memcpy(
+                flippedData.data() + (size - 1 - y) * rowSize,
+                data.data() + y * rowSize,
+                rowSize
+            );
+        }
+
+        // 3. Запускаем медленное сохранение PNG на диск в фоновом потоке
+        std::thread([flippedData = std::move(flippedData), savePath, size]() {
+            stbi_write_png(savePath.c_str(), size, size, 4, flippedData.data(), size * 4);
+        }).detach();
 
         api->bindDefaultFrameBuffer();
     }

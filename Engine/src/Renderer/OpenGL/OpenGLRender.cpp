@@ -278,8 +278,13 @@ namespace nb::OpenGl
 
         const auto& pipeline = pipelineCache.getDesc(pipelineHandle);
 
+        static int prevShaderId = 0;
+        if(prevShaderId != pipeline.shader->getId())
+        {
+            pipeline.shader->use();
+            prevShaderId = pipeline.shader->getId();
+        }
 
-        pipeline.shader->use();
 
        
         glPolygonMode(GL_FRONT_AND_BACK, toOpenGlPolygonMode(pipeline.polygonMode));
@@ -778,7 +783,7 @@ namespace nb::OpenGl
         frameBuffer->bind();
         setViewport({0, 0, CUBEMAP_SIZE, CUBEMAP_SIZE});
 
-        shadowShader->use();
+        //shadowShader->use();
         shadowShader->setUniformVec3("u_LightPos", lightPos);
         shadowShader->setUniformFloat("u_FarPlane", farPlane);
         shadowShader->setUniformMat4("u_Projection", shadowProj);

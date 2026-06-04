@@ -108,6 +108,17 @@ namespace nbstl
 			_end++;
 		}
 
+		void pushBack(T&& value) noexcept
+		{
+			if (_end == _capacityEnd)
+			{
+				grow();
+			}
+			constructAt(_end, std::move(value));
+			_end++;
+		}
+
+
 		void popBack() noexcept
 		{
 			_end--;

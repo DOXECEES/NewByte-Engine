@@ -97,6 +97,12 @@ namespace nb
                 float exposure = 1.0f;
             };
 
+            void renderFramebufferToContext(
+                const SharedWindowContext& out,
+                const Ref<IFrameBuffer>&   framebuffer,
+                uint32_t                   attachmentIndex = 0
+            ) noexcept;
+
 
             void blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request);
 
@@ -255,6 +261,7 @@ namespace nb
 
         private:
 
+            
             std::unique_ptr<Skybox> skybox;
             inline static nbstl::Vector<std::filesystem::path> previewQueue;
 

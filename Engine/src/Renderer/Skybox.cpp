@@ -118,6 +118,7 @@ namespace nb
             return cubemapTexture;
         }
 
+
         nbstl::NonOwningPtr<Mesh> Skybox::getCubeMesh() const noexcept
         {
             return mesh.get();

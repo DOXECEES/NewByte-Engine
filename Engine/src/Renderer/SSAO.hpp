@@ -174,8 +174,6 @@ namespace nb::Renderer
                 noiseData.pushBack({dis(gen), dis(gen), 0.0f});
             }
 
-            // В идеале создание текстуры должно идти через IRenderAPI
-            // noiseTexture = api->createTexture(...);
             noiseTexture = OpenGl::createPlaceholderForNoise();
 
             if (noiseTexture == 0)
@@ -199,7 +197,7 @@ namespace nb::Renderer
             ssaoFbo = api->createFrameBuffer(w, h);
             if (ssaoFbo)
             {
-                ssaoFbo->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+                ssaoFbo->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR, "ssao");
                 ssaoFbo->finalize();
                 ssaoFbo->setDrawBuffers(1);
             }
@@ -207,7 +205,7 @@ namespace nb::Renderer
             blurFbo = api->createFrameBuffer(w, h);
             if (blurFbo)
             {
-                blurFbo->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+                blurFbo->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR, "ssao blur");
                 blurFbo->finalize();
                 blurFbo->setDrawBuffers(1);
             }

@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <unordered_set>
 
 #include "Renderer/IRenderAPI.hpp"
 #include "Renderer/Renderer.hpp"
@@ -26,6 +27,7 @@
 #include "ImportWindow.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
+#include "FramebufferVisualization.hpp"
 #include <tiny-gizmo.hpp>
 //
 #include <Utils/PrimitiveNameManager.hpp>
@@ -97,6 +99,7 @@ private:
     std::shared_ptr<Win32Window::ModalWindow> languagePicker;
 
     std::shared_ptr<Win32Window::ChildWindow> shaderNodes;
+    std::shared_ptr<Sdk::FramebufferVisualization> framebufferVisualization;
 
 
 
@@ -116,6 +119,13 @@ private:
         Win32Window::IWindow*                   parent,
         const std::vector<std::string>&         extentions = {}
     );
+
+    nbui::LayoutBuilder createMenuButton(
+        const std::string& labelKey, 
+        std::function<void(nbui::PopupMenu*)> populateMenuFunc
+    ) noexcept;
+   
+
 
     void refreshInterfaceText() noexcept;
 
@@ -204,6 +214,11 @@ private:
     void pasteEntity(const Widgets::ModelIndex& index) noexcept;
 
     void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
+    std::unordered_set<std::string> m_existingPreviews;
+    
+    // Пути к материалам, превью для которых прямо сейчас генерируется
+    std::unordered_set<std::string> m_pendingPreviews;
+
 
     int mainLoop()
     {

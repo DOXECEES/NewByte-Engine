@@ -9,7 +9,7 @@
 
 #include <vector>
 #include <string_view>
-
+#include <string>
 #include <limits>
 
 namespace nb
@@ -63,7 +63,7 @@ namespace nb
             void setSize(const GLuint width, const GLuint height) noexcept;
 
             void addRenderBufferAttachment(RenderBufferAttachment attachment) noexcept override;
-            void addTextureAttachment(TextureAttachment attachment) noexcept override;
+            void addTextureAttachment(TextureAttachment attachment, std::string_view name) noexcept override;
             bool finalize() noexcept override;
             
             NB_NODISCARD bool checkIsSizeValid() const noexcept;
@@ -75,6 +75,9 @@ namespace nb
             NB_NODISCARD inline GLuint getRenderBuffer() const noexcept                  { return renderBuffer; }
             NB_NODISCARD inline const std::vector<GLuint>& getTextures() const noexcept  { return textures; }
             NB_NODISCARD inline uint32 getTexture(uint8 index) const noexcept override   { return static_cast<uint32>(textures[index]); }
+            uint64_t getTextureByName(std::string_view name) const noexcept override;
+            const std::string& getNameByTextureIndex(uint8 index) const noexcept override;
+
             uint64_t getTextureHandle(uint8 index = 0) const noexcept override;
 
             NB_NODISCARD inline uint8_t getColorTextureCount() const noexcept            { return colorTextureCount; }
@@ -82,8 +85,9 @@ namespace nb
             NB_NODISCARD inline GLuint getHeight() const noexcept override                       { return height; }
             
             void setDrawBuffers(uint8 count) noexcept override;
+            size_t getTextureCount() const noexcept override { return textures.size(); }
 
-
+            Renderer::IFrameBuffer::TextureAttachment getTextureAttachmentType(uint8 index = 0) const noexcept override;
 
 
         protected:
@@ -102,6 +106,7 @@ namespace nb
             bool                isStencilBufferAttached = false;
             GLuint              renderBuffer            = 0;
             std::vector<GLuint> textures;
+            std::vector<std::pair<Renderer::IFrameBuffer::TextureAttachment, std::string>> attachments;
             std::vector<uint64_t> textureHandles; 
 
             uint8_t             colorTextureCount       = 0;

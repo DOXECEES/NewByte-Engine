@@ -33,6 +33,9 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/ComponentBrowser.hpp
     src/PrimitiveCreationDialog.hpp
+    
+    src/FramebufferVisualization.cpp
+    src/FramebufferVisualization.hpp
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
