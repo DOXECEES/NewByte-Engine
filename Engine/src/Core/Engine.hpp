@@ -25,8 +25,9 @@
 #include "Physics/Physics.hpp"
 
 #include "ECS/ecs.hpp"
+#include "Math/Vector3.hpp"
+#include "Math/Math.hpp"
 
-#include "Renderer/Color.hpp"
 #include <Alghorithm.hpp>
 #include <Color.hpp>
 
@@ -35,11 +36,13 @@
 #include <queue>
 #include <future>
 
+
 #include <Uuid.hpp>
 
 #include "Renderer/Scene.hpp"
 
 #include "Scripting/ScriptEngine.hpp"
+#include "Audio/AudioEngine.hpp"
 
 namespace nb
 {
@@ -123,6 +126,7 @@ namespace nb
                 input = createRef<Input::Input>();
                 input->linkKeyboard(keyboard);
                 input->linkMouse(mouse);
+                audioEngine.init();
              
 
                 nb::Script::ScriptEngineSingleton::instance().getLuaState()["Keyboard"] = keyboard;
@@ -130,6 +134,7 @@ namespace nb
 
 
                 Utils::Timer::init();
+
             }
             ~Engine() = default;
 
@@ -159,6 +164,11 @@ namespace nb
             inline Math::Vector3<float> getCameraPos() const noexcept { return renderer->getCamera()->getPosition(); }
             inline Math::Vector3<float> getCameraDirection() const noexcept { return renderer->getCamera()->getDirection(); }
             inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; }
+
+            Math::Vector3<float> getSpawnPosition(
+                int x,
+                int y
+            ) noexcept;
 
 			template<typename F>
 			void invokeAsync(F&& func)
@@ -232,6 +242,10 @@ namespace nb
 
             void setEditorSelectedNode(Node node) noexcept;
 
+            void clearScene() noexcept;
+            void setProjectPath(const std::filesystem::path& path) noexcept;
+
+
         private:
             void outlineSelectedObject() noexcept;
 
@@ -246,6 +260,8 @@ namespace nb
             Ref<nb::Renderer::Renderer>		renderer        = nullptr;
             Ref<nb::Input::Keyboard>		keyboard        = nullptr;
             Ref<nb::Input::Mouse>			mouse           = nullptr;
+            AudioEngine                     audioEngine;
+            AudioSystem                                 audioSystem;
             bool							isRunning       = true;
             bool							handleInput     = true;
             bool                            hideCursor = false;
@@ -263,6 +279,8 @@ namespace nb
 			MessageQueue					queue;
 
             mutable Node editorSelectedNode = Node();
+
+            std::filesystem::path projectPath = "Assets/res/Scene.json";
 
         };
     };

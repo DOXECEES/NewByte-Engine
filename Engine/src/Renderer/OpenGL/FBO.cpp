@@ -247,6 +247,37 @@ namespace nb
             return true;
         }
 
+        uint64_t FBO::getTextureByName(std::string_view name) const noexcept
+        {
+            auto it = std::find_if(attachments.begin(), attachments.end(), 
+            [name](const auto& p){
+                return p.second == name;
+            });    
+
+            if (it == attachments.end())
+            {
+                return 0;
+            }
+
+            size_t index = std::distance(attachments.begin(), it);
+
+            if (index < textureHandles.size())
+            {
+                return textureHandles[index];
+            }
+
+            return 0;
+        }
+
+        const std::string& FBO::getNameByTextureIndex(uint8 index) const noexcept
+        {
+            if(index < attachments.size())
+            {
+                return attachments[index].second;
+            }
+            return "";
+        }
+
         uint64_t FBO::getTextureHandle(uint8 index) const noexcept
         {
             if (index < textureHandles.size())
@@ -291,7 +322,7 @@ namespace nb
             }
         }
 
-        void FBO::addTextureAttachment(TextureAttachment attachment) noexcept
+        void FBO::addTextureAttachment(TextureAttachment attachment, std::string_view name) noexcept
         {
             switch (attachment)
             {
@@ -323,6 +354,9 @@ namespace nb
             default:
                 break;
             }
+            
+            attachments.push_back(std::make_pair(attachment, name.data()));
+
         }
 
 
@@ -371,5 +405,14 @@ namespace nb
             glDrawBuffers(static_cast<GLsizei>(attachments.size()), attachments.data());
         }
 
+        Renderer::IFrameBuffer::TextureAttachment FBO::getTextureAttachmentType(uint8 index) const noexcept
+        {
+            if(index < attachments.size())
+            {
+                return attachments[index].first;
+            }
+            Error::ErrorManager::instance().report(Error::Type::WARNING, "Invalid texture attachment index");
+            return TextureAttachment::COLOR;
+        }
     }; 
 };

@@ -9,7 +9,8 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
-
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>   
+#include <Jolt/Physics/Collision/Shape/ScaledShape.h> 
 #include <Jolt/Physics/Collision/ContactListener.h>
 
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -405,6 +406,48 @@ namespace nb::Physics
             shape = settings.Create().Get();
             break;
         }
+        case ColliderType::MESH:
+        {
+            const auto& vertices = c.mesh->getVertices(); 
+            const auto& indices  = c.mesh->getIndices();  
+            
+
+            JPH::VertexList          joltVertices;
+            JPH::IndexedTriangleList joltIndices;
+
+            
+            for (const auto& v : vertices)
+            {
+                joltVertices.push_back(JPH::Float3(v.position.x, v.position.y, v.position.z));
+            }
+
+            for (size_t i = 0; i < indices.size(); i += 3)
+                joltIndices.push_back(JPH::IndexedTriangle(indices[i], indices[i+1], indices[i+2]));
+            
+
+            JPH::MeshShapeSettings meshSettings(joltVertices, joltIndices);
+
+            if (!rb.isStatic)
+            {
+                nb::Error::ErrorManager::instance().report(
+                    nb::Error::Type::WARNING,
+                    "MeshCollider on Dynamic Body is not supported. Use Convex Hull instead."
+                );
+            }
+
+            shape = meshSettings.Create().Get();
+
+            if (std::abs(worldScale.x - 1.0f) > 0.001f || std::abs(worldScale.y - 1.0f) > 0.001f ||
+                std::abs(worldScale.z - 1.0f) > 0.001f)
+            {
+                JPH::ScaledShapeSettings scaledSettings(
+                    shape, JPH::Vec3(worldScale.x, worldScale.y, worldScale.z)
+                );
+                shape = scaledSettings.Create().Get();
+            }
+            break;
+        }
+
         }
 
         if (c.offset.squaredLength() > 0.0001f)

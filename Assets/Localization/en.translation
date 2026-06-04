@@ -1,0 +1,109 @@
+# --- Material Editor ---
+Ui.MaterialEditor.Shader : Shader
+Ui.MaterialEditor.Properties : Properties
+Ui.MaterialEditor.SaveMaterial : Save Material
+Ui.MaterialEditor.Exit : Exit
+Ui.MaterialEditor.None : None
+Ui.MaterialEditor.TextureSection : Textures
+Ui.MaterialEditor.ParametersSection : Parameters
+
+# --- Editor General ---
+Ui.Editor.Title : NewByte SDK
+Ui.Editor.File : File
+Ui.Editor.NewProject : New Project
+Ui.Editor.CreateNewProject : Create New Project
+Ui.Editor.Open : Open
+Ui.Editor.SelectResource : Select Resource
+Ui.Editor.Save : Save
+Ui.Editor.Exit : Exit
+Ui.Editor.Edit : Edit
+Ui.Editor.View : View
+Ui.Editor.Help : Help
+Ui.Editor.AddComponent : Add Component
+Ui.Editor.Delete : Delete
+Ui.Editor.Rename : Rename
+Ui.Editor.Search : Search...
+Ui.Editor.View.Lang : Interface Language
+Ui.Editor.Language : Language
+
+# --- Post-Processing ---
+Ui.Editor.SSAO.Enabled : Enabled
+Ui.Editor.SSAO.Radius : Radius
+Ui.Editor.SSAO.Bias : Bias
+
+Ui.Editor.ColorGrading : ▼ Color Grading
+Ui.Editor.ColorGrading.Enabled : Enabled
+Ui.Editor.ColorGrading.LUTexture : LUT Texture
+
+Ui.Editor.SSR : ▼ Screen Space Reflections
+Ui.Editor.SSR.Enabled : Enabled
+
+# --- Shader Uniforms / Material Properties ---
+u_AlbedoMap : Albedo Map
+u_NormalMap : Normal Map
+u_ORMMap : ORM Map (Occ/Rough/Met)
+u_BaseColorFactor : Base Color Factor
+u_RoughnessFactor : Roughness Factor
+u_MetallicFactor : Metallic Factor
+u_OcclusionFactor : Occlusion Factor
+u_Emission : Emission
+
+# --- Transform ---
+TransformComponent : Transform Component
+position : Position
+eulerAngle : Rotation (Euler)
+scale : Scale
+
+# --- Components Common ---
+MeshComponent : Mesh Component
+mesh : Mesh
+material : Material
+Slot : Slot
+
+# --- Light Component ---
+nb::Renderer::LightComponent : Light Component
+type : Type
+type.Point : Point
+type.Directional : Directional
+type.Spot : Spot
+ambient : Ambient
+diffuse : Diffuse
+specular : Specular
+constant : Constant Attenuation
+linear : Linear Attenuation
+quadratic : Quadratic Attenuation
+
+# --- Scripting ---
+nb::Script::ScriptComponent : Script Component
+script : Script
+
+# --- Physics: Collider ---
+nb::Physics::Collider : Collider
+halfSize : Half Size
+offset : Offset
+radius : Radius
+height : Height
+
+# --- Physics: Rigidbody ---
+nb::Physics::Rigidbody : Rigidbody
+mass : Mass
+friction : Friction
+restitution : Restitution
+useGravity : Use Gravity
+isStatic : Is Static
+isTrigger : Is Trigger
+
+# --- Camera ---
+CameraComponent : Camera Component
+isPrimary : Primary Camera
+isFfxaEnabled : FXAA Anti-aliasing
+fov : Field of View (FOV)
+nearClip : Near Clip Plane
+farClip : Far Clip Plane
+
+# --- UI / Hierarchy ---
+Ui.Scene.Hierarchy : Scene Hierarchy
+Ui.Scene.Entity : Entity
+Ui.Scene.CreateEmpty : Create Empty Object
+Ui.AssetBrowser.Title : Asset Browser
+Ui.AssetBrowser.Import : Import

@@ -30,6 +30,7 @@
 #include <Loaders/JSON/Json.hpp>
 
 #include "TextureEditor.hpp"
+#include <Widgets/Thumbnail.hpp>
 
 class AssetManager
 {
@@ -40,14 +41,21 @@ public:
         nbstl::NonOwningPtr<nb::Core::Engine>     engine
     );
     ~AssetManager() = default;
+    void handleResize(const NbSize<int>& size);
 
     void importAsset(std::filesystem::path path) noexcept;
+    void rebuildTreeAndPreserveState(Widgets::TreeView* tv);
+
+    std::unique_ptr<NNsLayout::LayoutNode> buildTreeUI();
+    std::unique_ptr<NNsLayout::LayoutNode> buildGridUI();
+
 
     std::unique_ptr<NNsLayout::LayoutNode> buildUI();
 
     void onFolderSelected(std::filesystem::path path);
 
     void refreshAssetGrid();
+    void refreshModel() noexcept;
 
     NbColor getAccentColorForExt(const std::wstring& ext);
 
@@ -70,18 +78,13 @@ private:
 
     const int dragThreshold = 5; 
 
-
-    enum class AssetType
-    {
-        TEXTURE,
-        MODEL,
-        SHADER,
-        MATERIAL,
-    };
-
-    std::unordered_map<std::string, AssetType> supportedExtensions = {
-        {".png", AssetType::TEXTURE},
-        {".material", AssetType::MATERIAL}
+    std::unordered_map<std::string, Widgets::AssetType> supportedExtensions = {
+        {".png", Widgets::AssetType::TEXTURE},
+        {".material", Widgets::AssetType::MATERIAL}, 
+        {".model", Widgets::AssetType::MODEL},
+        {".lua", Widgets::AssetType::SCRIPT},
+        {".vs", Widgets::AssetType::SHADER},
+        {".fs", Widgets::AssetType::SHADER}
         //{".jpg", AssetType::TEXTURE},
         //{".texture", AssetType::TEXTURE},
         //{".fbx", AssetType::MODEL},
@@ -95,8 +98,14 @@ private:
 
 
     std::shared_ptr<Win32Window::ChildWindow> window;
+    std::shared_ptr<Win32Window::ChildWindow> treeWindow;
+    std::shared_ptr<Win32Window::ChildWindow> assetGridWindow;
+
+
     nbstl::NonOwningPtr<nb::Core::Engine> engine;
     std::shared_ptr<TextureEditor>            textureEditor;
+    Widgets::TreeView*                    treeView;
+    bool                                  isTreeUpdating = false;
 
     inline static nb::Loaders::Json assetsJson = nb::Loaders::Json(std::filesystem::path("Assets/Assets.json"));
 };

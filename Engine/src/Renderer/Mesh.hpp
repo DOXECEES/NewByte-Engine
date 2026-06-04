@@ -195,6 +195,7 @@ namespace nb
                 
                 GLuint getVboId() const noexcept;
                 GLuint getEboId() const noexcept;
+                GLuint getVaoId() const noexcept;
 
                 const std::vector<Vertex>& getVertices() const noexcept
                 {

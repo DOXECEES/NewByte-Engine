@@ -178,6 +178,11 @@ namespace nb
 
             private:
                 void initDynamicBuffer() noexcept;
+                void initPersistentBuffers(
+                    size_t initialVboSize,
+                    size_t initialEboSize
+                ) noexcept;
+                
 
             private:
 
@@ -212,6 +217,19 @@ namespace nb
                 GLuint dynamicVAO;
                 GLuint dynamicVBO;
                 GLuint dynamicEBO;
+
+                void* vboMappedPtr = nullptr;
+                void* eboMappedPtr = nullptr;
+
+                size_t vboCapacity = 0;
+                size_t eboCapacity = 0;
+
+                void reallocateVBO(size_t requiredSize);
+                void reallocateEBO(size_t requiredSize);
+
+                const uint32_t mapFlags =
+                    GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+                const uint32_t storageFlags = mapFlags | GL_DYNAMIC_STORAGE_BIT;
 
         };
     };

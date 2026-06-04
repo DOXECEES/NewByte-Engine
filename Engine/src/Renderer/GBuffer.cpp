@@ -1,4 +1,5 @@
 #include "GBuffer.hpp"
+#include "RendererTracker.hpp"
 
 namespace nb::Renderer
 {
@@ -9,13 +10,15 @@ namespace nb::Renderer
     ) noexcept
     {
         framebuffer = api->createFrameBuffer(width, height);
-        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
+        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Normals");
+        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "View position");
+        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Albedo");
+        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Orm");
+        framebuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH, "Depth");
         framebuffer->finalize();
 
+        RendererTracker::addFrameBuffer("GBuffer", framebuffer);
+        
         framebuffer->setDrawBuffers(4);
     }
 

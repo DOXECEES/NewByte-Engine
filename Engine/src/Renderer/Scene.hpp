@@ -77,6 +77,7 @@ struct MeshComponent
 {
     std::shared_ptr<nb::Renderer::Mesh> mesh;
     std::vector<Ref<nb::Resource::MaterialAsset>> material;
+    bool                                          isVisible = true;
 };
 
 NB_REFLECT_PTR(
@@ -179,6 +180,10 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         MeshComponent,
         material
+    ), 
+    NB_FIELD(
+        MeshComponent, 
+        isVisible
     )
 )
 
@@ -304,6 +309,8 @@ namespace nb
             return scene;
         }
 
+
+
         void clear() noexcept;
 
         Node createNode(Ecs::EntityID parent = 0) noexcept;
@@ -381,6 +388,8 @@ namespace nb
 
         Ecs::EntityID pickNode(const Math::Ray& ray) noexcept;
         
+
+
         void updateBvh() noexcept;
 
         void invalidateBvh() noexcept;
@@ -391,8 +400,6 @@ namespace nb
             const Math::Ray& ray,
             Ecs::EntityID    ignoreId = 0
         ) noexcept;
-
-
 
         void serialize(nb::Serialize::IArchive* archive) noexcept override;
         void deserialize(nb::Serialize::IArchive* archive) noexcept override;
@@ -406,6 +413,7 @@ namespace nb
             nb::Serialize::IArchive* archive,
             Ecs::Entity entity
         ) noexcept;
+
 
         void deserializeFields(
             const nb::Loaders::Node& node,

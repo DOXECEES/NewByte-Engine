@@ -20,10 +20,9 @@ namespace nb::SDK
         float tx, ty;
     };
 
-    // Вспомогательная функция для получения пути формата "Assets/..."
     static std::string getAssetsRelativePath(const std::filesystem::path& fullPath)
     {
-        std::string pathStr = fullPath.generic_string(); // Использует '/' даже на Windows
+        std::string pathStr = fullPath.generic_string();
         size_t      pos     = pathStr.find("Assets/");
         if (pos != std::string::npos)
         {
@@ -91,7 +90,6 @@ namespace nb::SDK
         return {false, L"Unsupported format"};
     }
 
-    // ---------------- TEXTURE IMPORT ----------------
     ImportResult AssetImporter::importTexture(
         const std::filesystem::path& src,
         const std::filesystem::path& dst
@@ -111,14 +109,13 @@ namespace nb::SDK
         {
             std::ofstream f(texAsset);
             f << "{\n  \"source\": \"" << getAssetsRelativePath(copied)
-              << "\",\n  \"filter\": \"linear\"\n}";
+              << "\",\n  \"should_flip\": true\n}";
         }
         result.success = true;
         result.assets.push_back({AssetType::TEXTURE, texAsset});
         return result;
     }
 
-    // ---------------- MATERIAL IMPORT ----------------
     ImportResult AssetImporter::importMaterial(
         const MaterialDesc&          mat,
         const std::filesystem::path& dst
@@ -133,11 +130,13 @@ namespace nb::SDK
             f << "  \"shader\": \"ADS.shader\",\n";
             f << "  \"properties\": {\n";
 
-            auto writeTexProp =
-                [&](const std::string& propName, const std::filesystem::path& srcPath, bool isLast)
+            auto writeTexProp = [&](const std::string&           propName,
+                                    const std::filesystem::path& srcPath,
+                                    const std::string& fallback, bool isLast)
             {
-                std::string assetPath = "Assets/res/placeholder.texture";
-                if (!srcPath.empty())
+                std::string assetPath = fallback; 
+
+                if (!srcPath.empty() && std::filesystem::exists(srcPath))
                 {
                     auto res = importTexture(srcPath, dst);
                     if (res.success)
@@ -146,13 +145,25 @@ namespace nb::SDK
                         result.assets.push_back(res.assets[0]);
                     }
                 }
+
                 f << "    \"" << propName << "\": \"" << assetPath << "\"" << (isLast ? "" : ",")
                   << "\n";
             };
 
-            writeTexProp("u_AlbedoMap", mat.textures.size() > 0 ? mat.textures[0] : "", false);
-            writeTexProp("u_NormalMap", mat.textures.size() > 1 ? mat.textures[1] : "", false);
-            writeTexProp("u_ORMMap", mat.textures.size() > 2 ? mat.textures[2] : "", false);
+            writeTexProp(
+                "u_AlbedoMap", mat.textures.size() > 0 ? mat.textures[0] : "",
+                "Assets/res/placeholder.texture", false
+            );
+
+            writeTexProp(
+                "u_NormalMap", mat.textures.size() > 1 ? mat.textures[1] : "",
+                "Assets/res/normal_placeholder.texture", false
+            ); 
+
+            writeTexProp(
+                "u_ORMMap", mat.textures.size() > 2 ? mat.textures[2] : "",
+                "Assets/res/placeholder.texture", false
+            );
 
             f << "    \"u_BaseColorFactor\": 1.0,\n";
             f << "    \"u_RoughnessFactor\": 0.5,\n";
@@ -168,7 +179,6 @@ namespace nb::SDK
         return result;
     }
 
-    // ---------------- MODEL IMPORT ----------------
     ImportResult AssetImporter::importModel(const ImportRequest& req) noexcept
     {
         ImportResult result;
@@ -185,7 +195,6 @@ namespace nb::SDK
             return {false, L"Assimp Load Error"};
         }
 
-        // 1. .mesh (Binary)
         std::string           meshFileName = wstring_to_string(req.assetName) + ".mesh";
         std::filesystem::path meshPath     = assetFolder / meshFileName;
         {
@@ -219,25 +228,36 @@ namespace nb::SDK
         }
         result.assets.push_back({AssetType::MESH, meshPath});
 
-        // 2. Материалы
         std::vector<std::string> matRelativePaths;
         for (uint32_t i = 0; i < scene->mNumMaterials; ++i)
         {
             aiMaterial* aiMat = scene->mMaterials[i];
             aiString    name;
             aiMat->Get(AI_MATKEY_NAME, name);
+
             MaterialDesc d;
             d.name = name.length > 0 ? name.C_Str() : "mat_" + std::to_string(i);
+
+            d.textures.resize(3, "");
 
             aiString p;
             if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &p) == AI_SUCCESS)
             {
-                d.textures.push_back(findTextureOnDisk(req.sourceFile, p.C_Str()));
+                d.textures[0] = findTextureOnDisk(req.sourceFile, p.C_Str());
             }
-            if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &p) == AI_SUCCESS)
+
+            if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &p) == AI_SUCCESS ||
+                aiMat->GetTexture(aiTextureType_HEIGHT, 0, &p) == AI_SUCCESS)
             {
-                d.textures.push_back(findTextureOnDisk(req.sourceFile, p.C_Str()));
+                d.textures[1] = findTextureOnDisk(req.sourceFile, p.C_Str());
             }
+
+            if (aiMat->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &p) == AI_SUCCESS ||
+                aiMat->GetTexture(aiTextureType_LIGHTMAP, 0, &p) == AI_SUCCESS)
+            {
+                d.textures[2] = findTextureOnDisk(req.sourceFile, p.C_Str());
+            }
+
 
             auto mRes = importMaterial(d, assetFolder);
             if (mRes.success)
@@ -247,7 +267,6 @@ namespace nb::SDK
             }
         }
 
-        // 3. .model
         std::filesystem::path modelPath = assetFolder / (req.assetName + L".model");
         {
             std::ofstream f(modelPath);

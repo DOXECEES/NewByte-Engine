@@ -23,7 +23,7 @@ public:
     struct ImportSettings
     {
         std::filesystem::path sourcePath;
-        std::filesystem::path targetFolder = "Assets/res";
+        std::filesystem::path targetFolder = "Assets/tmp";
 
         std::wstring assetName;
 
@@ -51,13 +51,17 @@ public:
     };
 
 public:
+
+    ImportWindow() = delete;
+
     ImportWindow(
         std::shared_ptr<Win32Window::ChildWindow> wnd,
         nbstl::NonOwningPtr<nb::Core::Engine>     engine,
-        std::filesystem::path                     sourcePath
+        std::filesystem::path                     sourcePath,
+        const std::function<void()>&              onDestroyCallback = 0
     );
 
-    ~ImportWindow() = default;
+    ~ImportWindow() noexcept;
 
     std::unique_ptr<NNsLayout::LayoutNode> buildUI();
     nbui::LayoutBuilder                    createOptionToggle(
@@ -78,6 +82,8 @@ private:
     std::unique_ptr<nb::SDK::AssetImporter>   importer;
 
     ImportSettings settings;
+
+    std::function<void()> onDestroyCallback;
 };
 
 #endif

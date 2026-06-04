@@ -92,6 +92,7 @@ namespace nb
             delete ctxMesh;
         }
 
+
         void Skybox::render(Ref<Renderer::Shader> shader)
         {
             shader->use();
@@ -116,6 +117,7 @@ namespace nb
         {
             return cubemapTexture;
         }
+
 
         nbstl::NonOwningPtr<Mesh> Skybox::getCubeMesh() const noexcept
         {

@@ -4,6 +4,8 @@
 #include <Widgets/Thumbnail.hpp>
 #include <memory>
 
+#include "App.hpp"
+
 AssetManager::AssetManager(
     std::shared_ptr<Win32Window::ChildWindow> wnd,
     nbstl::NonOwningPtr<nb::Core::Engine> engine
@@ -12,10 +14,41 @@ AssetManager::AssetManager(
     , window(wnd)
 {
     
+    treeWindow      = std::make_shared<Win32Window::ChildWindow>(window.get());
+    assetGridWindow = std::make_shared<Win32Window::ChildWindow>(window.get());
 
-    window->getLayoutRoot()->addChild(buildUI());
+    handleResize(window->getClientSize());
+
+    treeWindow->getLayoutRoot()->addChild(buildTreeUI());      
+    assetGridWindow->getLayoutRoot()->addChild(buildGridUI()); 
+
+    subscribe(
+        window.get(), &Win32Window::ChildWindow::onSizeChanged,
+        [this](const NbSize<int>& newSize)
+        {
+            handleResize(newSize);
+        }
+    );
+
     window->show();
+    treeWindow->show();
+    assetGridWindow->show();
 }
+
+void AssetManager::handleResize(const NbSize<int>& size)
+{
+    const int toolbarHeight = 35;
+    const int treeWidth     = 250;
+    const int totalWidth    = size.width;
+    const int totalHeight   = size.height;
+
+    treeWindow->setPosition({0, toolbarHeight});
+    treeWindow->setSize({treeWidth, totalHeight - toolbarHeight});
+
+    assetGridWindow->setPosition({treeWidth, toolbarHeight});
+    assetGridWindow->setSize({totalWidth - treeWidth, totalHeight - toolbarHeight});
+}
+
 
 void AssetManager::importAsset(std::filesystem::path path) noexcept
 {
@@ -30,6 +63,119 @@ void AssetManager::importAsset(std::filesystem::path path) noexcept
     assetsJson["NEW_ASSET"]["Type"] = "TEXTURE";
 
     assetsJson.writeToFile("Assets/Assets.json");
+}
+
+void AssetManager::rebuildTreeAndPreserveState(Widgets::TreeView* tv)
+{
+    if (!tv || !model || isTreeUpdating)
+    {
+        return;
+    }
+
+    isTreeUpdating = true;
+
+    std::vector<std::filesystem::path> expandedPaths;
+    std::filesystem::path              selectedPath;
+
+    model->forEach(
+        [&](const Widgets::ModelItem& item)
+        {
+            Widgets::ModelIndex index(item.getUuid());
+
+            if (tv->isItemExpanded(index))
+            {
+                expandedPaths.push_back(model->getPath(item));
+            }
+            if (tv->isItemSelected(index))
+            {
+                selectedPath = model->getPath(item);
+            }
+        }
+    );
+
+    model->rebuildModel("Assets");
+    tv->refresh();                 
+
+    model->forEach(
+        [&](const Widgets::ModelItem& item)
+        {
+            auto                currentPath = model->getPath(item);
+            Widgets::ModelIndex index(item.getUuid());
+
+            auto it = std::find(expandedPaths.begin(), expandedPaths.end(), currentPath);
+            if (it != expandedPaths.end())
+            {
+                tv->setItemExpanded(index, true);
+            }
+
+            if (currentPath == selectedPath)
+            {
+                tv->setSelectedItem(index);
+            }
+        }
+    );
+
+    isTreeUpdating = false;
+}
+
+std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildTreeUI()
+{
+    using namespace nbui;
+    return LayoutBuilder::vBox()
+        .relativeWidth(1.0f)
+        .relativeHeight(1.0f)
+        .background({28, 28, 28})
+        //.child(LayoutBuilder::label(L"Folders").relativeWidth(1.0f).absoluteHeight(30.0f))
+        .child(
+            LayoutBuilder::treeView()
+                .relativeWidth(1.0f)
+                .relativeHeight(1.0f)
+                .apply<Widgets::TreeView>(
+                    [&](Widgets::TreeView* tv)
+                    {
+                        subscribe(
+                            tv, &Widgets::TreeView::onItemChangeSignal,
+                            [this, tv](const Widgets::ModelIndex& index)
+                            {
+                                if (isTreeUpdating)
+                                {
+                                    return; 
+                                } 
+
+
+                                auto* item = this->model->findById(index.getUuid());
+                                if (item)
+                                {
+                                    this->onFolderSelected(this->model->getPath(*item));
+                                    rebuildTreeAndPreserveState(tv);
+                                }
+                            }
+                        );
+
+                        treeView = tv;
+
+                        tv->setModel(model);
+                    }
+                )
+        )
+        .build();
+}
+
+std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildGridUI()
+{
+    using namespace nbui;
+    return LayoutBuilder::scrollBox()
+        .relativeWidth(1.0f)
+        .relativeHeight(1.0f)
+        .child(
+            LayoutBuilder::vBox().relativeWidth(1.0f).autoHeight().apply<NNsLayout::LayoutNode>(
+                [this](auto* n)
+                {
+                    this->assetGridNode = n; 
+                }
+            )
+        )
+        .build();
 }
 
 std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
@@ -95,20 +241,21 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
                         .child(
                             LayoutBuilder::treeView()
                                 .apply<Widgets::TreeView>(
-                                    [&](auto* tv)
+                                    [&](Widgets::TreeView* tv)
                                     {
+                                        subscribe(tv, &Widgets::TreeView::onItemChangeSignal,
+                                            [&](const Widgets::ModelIndex& index)
+                                            {
+                                                auto* item = this->model->findById(index.getUuid());
+                                                if (item)
+                                                {
+                                                    this->onFolderSelected(this->model->getPath(*item));
+                                                    model->rebuildModel("Assets");
+                                                    tv->refresh();
+                                                }
+                                            });
+
                                         tv->setModel(model);
-                                    }
-                                )
-                                .onEvent(
-                                    &Widgets::TreeView::onItemChangeSignal,
-                                    [&](const Widgets::ModelIndex& index)
-                                    {
-                                        auto* item = this->model->findById(index.getUuid());
-                                        if (item)
-                                        {
-                                            this->onFolderSelected(this->model->getPath(*item));
-                                        }
                                     }
                                 )
                                 .relativeHeight(1.0f)
@@ -118,21 +265,31 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
                 )
 
                 .child(
-                    LayoutBuilder::vBox()
-                        .relativeHeight(1.0f)
-                        .relativeWidth(1.0f)
-
-                        .apply<NNsLayout::LayoutNode>(
-                            [this](NNsLayout::LayoutNode* node)
-                            {
-                                this->assetGridNode = node;
-                            }
-                        )
-                )
+                        LayoutBuilder::vBox()
+                            .absoluteHeight(500.0f)
+                            .relativeWidth(1.0f) 
+                            .child(
+                                LayoutBuilder::scrollBox()
+                                    .relativeHeight(1.0f)
+                                    .relativeWidth(1.0f) 
+                                    .child(
+                                        LayoutBuilder::vBox()
+                                            .relativeWidth(1.0f) 
+                                            .relativeHeight(1.0f)
+                                            .apply<NNsLayout::LayoutNode>(
+                                                [this](auto* n)
+                                                {
+                                                    this->assetGridNode = n;
+                                                }
+                                            )
+                                    )
+                            )
+                    )
         )
 
         .build();
 }
+
 void AssetManager::onFolderSelected(std::filesystem::path path)
 {
     this->currentPath = path;
@@ -149,7 +306,6 @@ void AssetManager::refreshAssetGrid()
     using namespace nbui;
     assetGridNode->clearChilds();
 
-    // Сетка с хорошим внешним отступом
     auto grid = LayoutBuilder::flow().relativeWidth(1.0f).autoHeight().padding({20, 20, 20, 20});
 
     try
@@ -172,6 +328,19 @@ void AssetManager::refreshAssetGrid()
             std::wstring extension    = entry.path().extension().wstring();
             NbColor      accentColor  = getAccentColorForExt(extension);
 
+            if (supportedExtensions.at(extStr) == Widgets::AssetType::MATERIAL)
+            {
+                std::string replacedPath = entry.path().generic_string();
+                std::replace(replacedPath.begin(), replacedPath.end(), '/', '_');
+                if (!std::filesystem::exists("Assets/cache/" + replacedPath + ".png"))
+                {
+                    nb::Renderer::Renderer::generatePreviewForMaterial(
+                        entry.path().generic_string()
+                    );
+                }
+            }
+            
+
             std::move(grid).child(
                 LayoutBuilder::vBox()
                     .margin({0, 12, 12, 0}) 
@@ -190,7 +359,9 @@ void AssetManager::refreshAssetGrid()
                         }
                     )
                     .child(
-                        LayoutBuilder::thumbnail(fullFileName, L"")
+                        LayoutBuilder::thumbnail(
+                            fullFileName, L"", supportedExtensions.at(extStr), entry.path()
+                        )
                             .relativeWidth(1.0f)
                             .absoluteHeight(95)
                             .background({25, 25, 25})
@@ -232,10 +403,29 @@ void AssetManager::refreshAssetGrid()
                                                 if (target == glHWnd)
                                                 {
                                                     ScreenToClient(glHWnd, &pt);
-                                                    this->engine->getRenderer()
-                                                        ->pickNodeAndApplyMaterial(
-                                                            pt.x, pt.y, this->dragInfo.path
+                                                    if (dragInfo.path.extension() == ".model")
+                                                    {
+                                                        auto spawnPos = this->engine->getSpawnPosition(
+                                                            pt.x, pt.y
                                                         );
+
+                                                        EditorApp::requestModelSpawn(
+                                                            {
+                                                                .position    = spawnPos,
+                                                                .pathToModel = dragInfo.path,
+                                                            }
+                                                        );
+
+                                                        
+                                                    }
+                                                    else
+                                                    {
+                                                        this->engine->getRenderer()
+                                                            ->pickNodeAndApplyMaterial(
+                                                                pt.x, pt.y, this->dragInfo.path
+                                                            );
+                                                    }
+                                                    
                                                 }
                                             }
                                             else
@@ -308,6 +498,14 @@ void AssetManager::refreshAssetGrid()
     assetGridNode->addChild(std::move(grid).build());
 }
 
+void AssetManager::refreshModel() noexcept
+{
+    if (treeView)
+    {
+        rebuildTreeAndPreserveState(treeView);
+    }
+}
+
 NbColor AssetManager::getAccentColorForExt(const std::wstring& ext)
 {
     if (ext == L".png" || ext == L".tga")
@@ -318,7 +516,7 @@ NbColor AssetManager::getAccentColorForExt(const std::wstring& ext)
     {
         return {33, 150, 243}; // Синий
     }
-    if (ext == L".hlsl")
+    if (ext == L".hlsl" || ext == L".lua")
     {
         return {156, 39, 176}; // Фиолетовый
     }

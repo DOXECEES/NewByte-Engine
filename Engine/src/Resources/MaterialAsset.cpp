@@ -6,7 +6,7 @@ namespace nb::Resource
 {
     void MaterialAsset::bind(Ref<Renderer::Shader> sh)
     {
-        sh->use();
+        //sh->use();
 
         for (auto& [name, prop] : m_properties)
         {

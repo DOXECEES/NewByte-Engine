@@ -48,6 +48,11 @@ namespace nb::Serialize
             bool& value
         ) noexcept = 0;
 
+         virtual void value(
+             const char*            name,
+             std::filesystem::path& value
+         ) noexcept = 0;
+
         virtual void beginArray(const char* name) noexcept = 0; 
         virtual void endArray() noexcept = 0;
 

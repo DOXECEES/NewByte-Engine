@@ -11,114 +11,138 @@ in vec4 FragPosLightSpace;
 uniform sampler2D u_AlbedoMap;
 uniform sampler2D u_NormalMap;
 uniform sampler2D u_ORMMap;
-uniform float u_BaseColorFactor = 1.0f;
+uniform float u_BaseColorFactor = 1.0;
 
-uniform float u_RoughnessFactor = 1.0f;
-uniform float u_MetallicFactor = 1.0f;
-uniform float u_OcclusionFactor = 1.0f;
+uniform float u_RoughnessFactor = 1.0;
+uniform float u_MetallicFactor  = 1.0;
+uniform float u_OcclusionFactor = 1.0;
 
 layout(bindless_sampler) uniform sampler2D u_EmissionMap;
-uniform float     u_EmissionMapStrength = 1.0;
+uniform float u_EmissionMapStrength = 1.0;
 
-layout(bindless_sampler) uniform sampler2D shadowMap; 
-layout(bindless_sampler) uniform sampler2D u_SsaoMap; 
+layout(bindless_sampler) uniform sampler2D shadowMap;
+layout(bindless_sampler) uniform sampler2D u_SsaoMap;
+
+layout(bindless_sampler) uniform sampler2D u_OcclusionMap;
+layout(bindless_sampler) uniform sampler2D u_RoughnessMap;
+layout(bindless_sampler) uniform sampler2D u_MetallicMap;
+uniform bool u_UseSeparateMaps = false;
+
+uniform bool u_NormalMapFlipY   = false;
+uniform float u_NormalMapStrength = 1.0;
 
 uniform samplerCube u_IrradianceMap;
 uniform samplerCube u_PrefilterMap;
 uniform sampler2D   u_BrdfLUT;
 
 uniform vec3  u_CameraPos;
-uniform float u_Exposure = 1.0;
-uniform float u_IBLStrength = 0.1;
-uniform bool  u_UseIBL = true;
-uniform bool u_EnableFog = false;
+uniform float u_Exposure    = 1.0;
+uniform float u_IBLStrength = 1.0;
+uniform bool  u_UseIBL      = true;
+uniform bool  u_UseSSAO     = true;
+uniform bool  u_EnableFog   = false;
 
-// ----------------- Fog Uniforms -----------------
-uniform vec3  u_FogColor = vec3(0.5, 0.6, 0.7);     
-uniform float u_FogDensity = 0.015;                 
-uniform float u_FogHeight = 0.0;                    
-uniform float u_FogHeightFalloff = 0.1;             
-uniform float u_FogInscatteringIntensity = 1.0;    
-uniform float u_FogPhaseG = 0.5;                    
-uniform float u_FogAmbientIntensity = 0.1;          
+// Fog
+uniform vec3  u_FogColor                = vec3(0.5, 0.6, 0.7);
+uniform float u_FogDensity              = 0.015;
+uniform float u_FogHeight               = 0.0;
+uniform float u_FogHeightFalloff        = 0.1;
+uniform float u_FogInscatteringIntensity = 1.0;
+uniform float u_FogPhaseG               = 0.2;
+uniform float u_FogAmbientIntensity     = 0.1;
 
-uniform float u_NormalMapStrength = 1.0;
+uniform int   u_VolumetricSteps    = 64;
+uniform float u_VolumetricDensity  = 0.03;
+uniform float u_VolumetricStrength = 1.5;
+uniform bool  u_EnableVolumetric   = true;
+
 uniform mat4 lightView;
 uniform mat4 lightProj;
 uniform float u_LightSize = 0.002;
+uniform vec2  u_ScreenResolution;
 
-uniform vec2 u_ScreenResolution;
-uniform bool  u_UseSSAO = true;
-
-
-const float PI = 3.14159265359;
+// ----------------- Constants -----------------
+const float PI      = 3.14159265359;
+const float INV_PI  = 0.31830988618;
+const float EPSILON = 1e-7;
 
 // ----------------- Light Structures -----------------
 struct DirectionalLight {
-    vec3 direction;
-    vec3 Ld;
+    vec3  direction;
+    vec3  Ld;
 };
 
 struct PointLight {
-    vec3 position;
-    vec3 Ld;
-    float intensity;
-    float point_const_coof;
-    float point_linear_coof;
-    float point_exp_coof;
-    float farPlane;
-    int hasShadow;
+    vec3        Ld;
+    vec3        position;
+    float       intensity;
+    float       point_const_coof;
+    float       point_linear_coof;
+    float       point_exp_coof;
+    float       farPlane;
+    int         hasShadow;
+    samplerCube pointShadowMap;
+};
+
+layout(std140, binding = 0) uniform PointLightBlock {
+    PointLight lightPoint[32];
+    int _COUNT_OF_POINTLIGHT_;
 };
 
 uniform DirectionalLight light[8];
 uniform int _COUNT_OF_DIRECTIONLIGHT_;
 
-uniform PointLight lightPoint[32];
-uniform int _COUNT_OF_POINTLIGHT_;
-
-layout(bindless_sampler) uniform samplerCube u_PointShadowMaps[32];
-
-// ----------------- Helpers & Shadows -----------------
+// ----------------- Helpers -----------------
 float InterleavedGradientNoise(vec2 px) {
     vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
     return fract(magic.z * fract(dot(px, magic.xy)));
 }
 
 vec2 VogelDiskSample(int i, int n, float angle) {
-    float goldenAngle = 2.39996323;
-    float r = sqrt((float(i) + 0.5) / float(n));
+    const float goldenAngle = 2.39996323;
+    float r     = sqrt((float(i) + 0.5) / float(n));
     float theta = float(i) * goldenAngle + angle;
     return vec2(cos(theta), sin(theta)) * r;
 }
 
+// ----------------- Shadow -----------------
 float FindBlockerDepth(vec2 uv, float zReceiver, float searchRadiusUV, float rotation) {
-    float sumDepth = 0.0; int blockers = 0;
+    float sumDepth = 0.0;
+    int   blockers = 0;
     for (int i = 0; i < 24; i++) {
-        vec2 offset = VogelDiskSample(i, 24, rotation) * searchRadiusUV;
-        float depth = texture(shadowMap, uv + offset).r;
+        vec2  offset = VogelDiskSample(i, 24, rotation) * searchRadiusUV;
+        float depth  = texture(shadowMap, uv + offset).r;
         if (depth < zReceiver) { sumDepth += depth; blockers++; }
     }
     return (blockers == 0) ? -1.0 : sumDepth / float(blockers);
 }
 
+// Slope-scale depth bias для directional shadows
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
     if (projCoords.z > 1.0 || projCoords.z < 0.0) return 0.0;
-    vec2 uv = projCoords.xy;
+
+    vec2  uv        = projCoords.xy;
     float zReceiver = projCoords.z;
-    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-    float rotation = InterleavedGradientNoise(gl_FragCoord.xy) * 6.2831853;
-    float ndotl = clamp(dot(normal, lightDir), 0.0, 1.0);
-    float bias = max(0.0025 * (1.0 - ndotl), 0.00035);
-    float searchRadiusUV = clamp(u_LightSize * 250.0, 2.0, 16.0) * texelSize.x;
+    vec2  texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+    float rotation  = InterleavedGradientNoise(gl_FragCoord.xy) * 2.0 * PI;
+
+    float ndotl     = clamp(dot(normal, lightDir), 0.0, 1.0);
+    // Slope-scale bias: увеличивается на пологих поверхностях
+    float slopeBias = 0.0025 * tan(acos(ndotl));
+    float bias      = clamp(slopeBias, 0.0001, 0.005);
+
+    float searchRadiusUV  = clamp(u_LightSize * 250.0, 2.0, 16.0) * texelSize.x;
     float avgBlockerDepth = FindBlockerDepth(uv, zReceiver - bias, searchRadiusUV, rotation);
     if (avgBlockerDepth < 0.0) return 0.0;
-    float penumbra = (zReceiver - avgBlockerDepth);
+
+    float penumbra      = zReceiver - avgBlockerDepth;
     float filterRadiusUV = clamp(penumbra * u_LightSize * 3500.0, 2.0, 25.0) * texelSize.x;
+
     float shadow = 0.0;
     for (int i = 0; i < 64; i++) {
-        vec2 offset = VogelDiskSample(i, 64, rotation) * filterRadiusUV;
+        vec2  offset   = VogelDiskSample(i, 64, rotation) * filterRadiusUV;
         float pcfDepth = texture(shadowMap, uv + offset).r;
         shadow += ((zReceiver - bias) > pcfDepth) ? 1.0 : 0.0;
     }
@@ -126,40 +150,54 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
 }
 
 float PointShadowCalculation(vec3 fragPos, vec3 lightPos, float farPlane, samplerCube shadowCube, vec3 N) {
-    vec3 fragToLight = fragPos - lightPos;
+    vec3 fragToLight  = fragPos - lightPos;
     float currentDepth = length(fragToLight);
-    float adaptiveBias = max(0.05 * (1.0 - dot(N, normalize(lightPos - fragPos))), 0.005);
-    vec3 dir = (fragPos + N * 0.015) - lightPos;
-    int samples = 32; float filterRadius = 0.05; float shadow = 0.0;
-    float rotation = InterleavedGradientNoise(gl_FragCoord.xy) * 6.2831;
-    for (int i = 0; i < samples; ++i) {
-        float r = sqrt(float(i) + 0.5) / sqrt(float(samples));
-        float theta = float(i) * 2.39996 + rotation;
-        vec3 offset = vec3(cos(theta) * r, sin(theta) * r, (r - 0.5) * 2.0) * filterRadius;
-        float closestDepth = texture(shadowCube, dir + offset).r * farPlane;
-        if (currentDepth - adaptiveBias > closestDepth) shadow += 1.0;
+    vec3  forward      = normalize(fragToLight);
+
+    vec3 up      = abs(forward.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    vec3 right   = normalize(cross(up, forward));
+    vec3 tangent = cross(forward, right);
+
+    float ndotL = clamp(dot(N, -forward), 0.0, 1.0);
+    float bias   = max(0.002 * (1.0 - ndotL), 0.0005);
+
+    float rotation = InterleavedGradientNoise(gl_FragCoord.xy) * 2.0 * PI;
+    float radius   = mix(0.002, 0.04, currentDepth / farPlane);
+
+    float shadow = 0.0;
+    for (int i = 0; i < 32; ++i) {
+        vec2 disk       = VogelDiskSample(i, 32, rotation) * radius;
+        vec3 sampleDir  = normalize(forward + right * disk.x + tangent * disk.y);
+        float closestDepth = texture(shadowCube, sampleDir).r * farPlane;
+        shadow += (currentDepth - bias > closestDepth) ? 1.0 : 0.0;
     }
-    return shadow / float(samples);
+    return shadow / 32.0;
 }
 
 // ----------------- PBR Math -----------------
-float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a = roughness * roughness; float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
-    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
-    return a2 / (PI * denom * denom + 1e-7);
+float DistributionGGX(float NdotH, float roughness) {
+    float a  = roughness * roughness;
+    float a2 = a * a;
+    float d  = NdotH * NdotH * (a2 - 1.0) + 1.0;
+    return a2 / (PI * d * d + EPSILON);
 }
 
-float GeometrySchlickGGX(float NdotV, float k) {
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-    float r = (roughness + 1.0);
+// GGX-Smith с точным k для прямого освещения (Heitz 2014)
+float GeometrySmithDirect(float NdotV, float NdotL, float roughness) {
+    float r = roughness + 1.0;
     float k = (r * r) / 8.0;
-    float nv = max(dot(N, V), 0.0);
-    float nl = max(dot(N, L), 0.0);
-    return GeometrySchlickGGX(nv, k) * GeometrySchlickGGX(nl, k);
+    float gv = NdotV / (NdotV * (1.0 - k) + k);
+    float gl = NdotL / (NdotL * (1.0 - k) + k);
+    return gv * gl;
+}
+
+// Для IBL используется отдельный k (remapping без +1)
+float GeometrySmithIBL(float NdotV, float NdotL, float roughness) {
+    float a = roughness * roughness;
+    float k = a / 2.0;
+    float gv = NdotV / (NdotV * (1.0 - k) + k);
+    float gl = NdotL / (NdotL * (1.0 - k) + k);
+    return gv * gl;
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
@@ -170,23 +208,33 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-// ----------------- FOG LOGIC -----------------
+// Физически корректное затухание точечного источника (1/r²)
+// Поддержка кастомных коэффициентов для художественного контроля
+float PointLightAttenuation(float dist, float constC, float linC, float expC) {
+    // Физическая база: 1/r², художественная override через коэффициенты
+    // Если все кастомные коэффициенты = 0, используем чистый 1/r²
+    if (constC < EPSILON && linC < EPSILON && expC < EPSILON)
+        return 1.0 / max(dist * dist, EPSILON);
+    return 1.0 / max(constC + linC * dist + expC * dist * dist, EPSILON);
+}
 
+// ----------------- FOG -----------------
 float HenyeyGreenstein(float cosTheta, float g) {
-    float g2 = g * g;
-    return (1.0 / (4.0 * PI)) * ((1.0 - g2) / pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
+    float g2    = g * g;
+    float denom = 1.0 + g2 - 2.0 * g * cosTheta;
+    return (1.0 - g2) / (4.0 * PI * pow(max(denom, EPSILON), 1.5));
 }
 
 float CalculateHeightFog(vec3 camPos, vec3 worldPos) {
-    vec3 viewDir = worldPos - camPos;
-    float dist = length(viewDir);
-    vec3 dir = viewDir / dist;
+    vec3  viewDir = worldPos - camPos;
+    float dist    = length(viewDir);
+    vec3  dir     = viewDir / max(dist, EPSILON);
 
     float fogAtCamera = u_FogDensity * exp(-u_FogHeightFalloff * (camPos.y - u_FogHeight));
     float slope = dir.y;
-    if (abs(slope) < 0.0001) slope = 0.0001;
-    float fogAmount = (fogAtCamera / (u_FogHeightFalloff * slope)) * (1.0 - exp(-u_FogHeightFalloff * slope * dist));
-    
+    if (abs(slope) < 0.0001) slope = 0.0001 * sign(slope + EPSILON);
+    float fogAmount = (fogAtCamera / (u_FogHeightFalloff * slope))
+                    * (1.0 - exp(-u_FogHeightFalloff * slope * dist));
     return clamp(fogAmount, 0.0, 1.0);
 }
 
@@ -197,135 +245,257 @@ vec3 ApplyLightAwareFog(vec3 surfaceColor, vec3 worldPos, vec3 camPos, vec3 V) {
     vec3 fogLighting = u_FogColor * u_FogAmbientIntensity;
 
     for (int i = 0; i < _COUNT_OF_DIRECTIONLIGHT_; ++i) {
-        vec3 L = normalize(-light[i].direction);
-        float cosTheta = dot(V, -L);
-        float phase = HenyeyGreenstein(cosTheta, u_FogPhaseG);
-        float shadow = (i == 0) ? ShadowCalculation(FragPosLightSpace, vec3(0,1,0), L) : 0.0;
-        fogLighting += light[i].Ld * phase * u_FogInscatteringIntensity * (1.0 - shadow);
+        vec3  L        = normalize(-light[i].direction);
+        // cosTheta: угол между направлением взгляда и направлением К источнику
+        float cosTheta = dot(-V, L); // -V = направление взгляда от камеры
+        float phase    = HenyeyGreenstein(cosTheta, u_FogPhaseG);
+        float shadow   = (i == 0) ? ShadowCalculation(FragPosLightSpace, vec3(0.0, 1.0, 0.0), L) : 0.0;
+        fogLighting   += light[i].Ld * phase * u_FogInscatteringIntensity * (1.0 - shadow);
     }
 
     for (int i = 0; i < _COUNT_OF_POINTLIGHT_; ++i) {
-        float d = length(lightPoint[i].position - worldPos);
-        float atten = 1.0 / max(lightPoint[i].point_const_coof + lightPoint[i].point_linear_coof * d + lightPoint[i].point_exp_coof * d * d, 0.001);
-        fogLighting += lightPoint[i].Ld * lightPoint[i].intensity * atten * 0.5;
+        float dist  = length(lightPoint[i].position - worldPos);
+        float atten = PointLightAttenuation(dist,
+            lightPoint[i].point_const_coof,
+            lightPoint[i].point_linear_coof,
+            lightPoint[i].point_exp_coof);
+        fogLighting += lightPoint[i].Ld * lightPoint[i].intensity * atten * 0.3;
     }
 
     return mix(surfaceColor, fogLighting, fogFactor);
 }
 
-// ----------------- Post Process -----------------
-vec3 ApplyPostProcessing(vec3 color) {
-    float a = 2.51; float b = 0.03; float c = 2.43; float d = 0.59; float e = 0.14;
-    color = clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
-    return pow(color, vec3(1.0 / 2.2));
+// ----------------- Tonemapping -----------------
+// ACES (Hill / Narkowicz approximation) с предварительным масштабированием
+vec3 ACESFilmic(vec3 x) {
+    // Входной масштаб по стандарту ACES
+    x *= 0.6;
+    float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
+vec3 ApplyPostProcessing(vec3 color) {
+    vec3 tonemapped = ACESFilmic(color);
+    // sRGB gamma (точная кусочно-линейная аппроксимация)
+    return pow(tonemapped, vec3(1.0 / 2.2));
+}
+
+// ----------------- Specular Occlusion (Lagarde & de Rousiers, 2014) -----------------
+float SpecularOcclusion(float NdotV, float ao, float roughness) {
+    return clamp(pow(NdotV + ao, exp2(-16.0 * roughness - 1.0)) - 1.0 + ao, 0.0, 1.0);
+}
+
+// ----------------- добавь функцию после блока FOG -----------------
+vec3 VolumetricLight(vec3 worldPos, vec3 camPos) {
+    vec3  rayVec  = worldPos - camPos;
+    float rayLen = min(length(rayVec), 50.0); // не дальше 50 юнитов
+
+    vec3  rayDir  = rayVec / rayLen;
+    float stepLen = rayLen / float(u_VolumetricSteps);
+    vec3  rayStep = rayDir * stepLen;
+
+    float noise = InterleavedGradientNoise(gl_FragCoord.xy);
+    vec3  pos   = camPos + rayStep * noise;
+
+    vec3  scatter    = vec3(0.0);
+    float extinction = u_VolumetricDensity * stepLen;
+
+    vec3  L        = normalize(-light[0].direction);
+    float cosTheta = dot(rayDir, L);
+    float phase    = HenyeyGreenstein(cosTheta, u_FogPhaseG);
+
+    // Размер текселя shadow map для softer volumetric
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+
+    for (int i = 0; i < u_VolumetricSteps; i++) {
+        pos += rayStep;
+
+        vec4  lsPos = lightProj * lightView * vec4(pos, 1.0);
+        vec3  proj  = lsPos.xyz / lsPos.w * 0.5 + 0.5;
+
+        float lit = 1.0;
+
+        // Строгая проверка всех трёх компонент
+        if (proj.x > 0.01 && proj.x < 0.99 &&
+            proj.y > 0.01 && proj.y < 0.99 &&
+            proj.z > 0.0  && proj.z < 0.99)
+        {
+            float shadowDepth = texture(shadowMap, proj.xy).r;
+            float bias = 0.0015;
+            lit = (proj.z - bias > shadowDepth) ? 0.0 : 1.0;
+        }
+
+        // Внутри цикла, перед scatter +=
+        float distFromCam = float(i) / float(u_VolumetricSteps);
+        float transmittance = exp(-u_VolumetricDensity * float(i) * stepLen);
+
+        scatter += light[0].Ld * lit * phase * extinction * transmittance;
+
+    }
+
+    return scatter * u_VolumetricStrength;
+}
+
+// ======================== MAIN ========================
 void main() {
     vec2 uv = v_TexCoords;
-
     vec2 screenUV = gl_FragCoord.xy / u_ScreenResolution;
 
-
+    // ---------- Albedo ----------
     vec4 albedoSample = texture(u_AlbedoMap, uv);
+    if (albedoSample.a < 0.01) discard;
+    vec3 albedo = pow(albedoSample.rgb, vec3(2.2)) * u_BaseColorFactor;
+    // BaseColorFactor тоже в линейном пространстве
+    albedo = pow(albedo, vec3(1.0)); // нет двойного pow, просто scalar mult
 
-    if (albedoSample.a < 0.01) {
-        discard;
+    // ---------- ORM ----------
+    float ao, roughness, metallic;
+    if (u_UseSeparateMaps) {
+        ao        = texture(u_OcclusionMap, uv).r;
+        roughness = texture(u_RoughnessMap, uv).r;
+        metallic  = texture(u_MetallicMap,  uv).r;
+    } else {
+        vec3 orm  = texture(u_ORMMap, uv).rgb;
+        ao        = orm.r;
+        roughness = orm.g;
+        metallic  = orm.b;
     }
-    vec3 albedo = pow(albedoSample.rgb, vec3(2.2)) * pow(u_BaseColorFactor, 2.2);
-    
-    vec3 nMap = texture(u_NormalMap, uv).rgb * 2.0 - 1.0;
-    nMap.xy *= u_NormalMapStrength;
-    vec3 orm = texture(u_ORMMap, uv).rgb;
-    vec3 emission = pow(texture(u_EmissionMap, uv).rgb, vec3(2.2)) * u_EmissionMapStrength;
-    
+    ao        = mix(1.0, ao, u_OcclusionFactor);          // AO = 1 при OcclusionFactor=0
+    roughness = clamp(roughness * u_RoughnessFactor, 0.04, 1.0);
+    metallic  = clamp(metallic  * u_MetallicFactor,  0.0,  1.0);
+
+
+    // ---------- SSAO ----------
     float ssao = 1.0;
     if (u_UseSSAO) {
-        // Используем экранные координаты для выборки SSAO
-        vec2 screenUV = gl_FragCoord.xy / u_ScreenResolution;
         ssao = texture(u_SsaoMap, screenUV).r;
     }
+    // Финальный AO: материальный + экранный. ssao уже [0,1], ao тоже.
+    float combinedAO = ao * ssao;
 
-
-    float ao = orm.r * u_OcclusionFactor;
-    float roughness = clamp(orm.g, 0.05, 1.0) * u_RoughnessFactor;
-    float metallic = mix(orm.b, u_MetallicFactor, 0.5);
+    // ---------- Normal Map ----------
+    vec3 nMap = texture(u_NormalMap, uv).rgb * 2.0 - 1.0;
+    if (u_NormalMapFlipY) nMap.y = -nMap.y;
+    nMap.xy  *= u_NormalMapStrength;
+    nMap       = normalize(nMap); // обязательная нормализация после масштабирования xy
 
     vec3 N = normalize(TBN * nMap);
     vec3 V = normalize(u_CameraPos - FragPos);
     vec3 R = reflect(-V, N);
-    float NdotV = max(dot(N, V), 0.0);
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
+    float NdotV = max(dot(N, V), 0.0);
+    vec3  F0    = mix(vec3(0.04), albedo, metallic);
+
+    // ---------- Emission ----------
+    vec3 emission = pow(texture(u_EmissionMap, uv).rgb, vec3(2.2)) * u_EmissionMapStrength;
+
+    // ---------- Direct Lighting ----------
     vec3 Lo = vec3(0.0);
 
+    // Directional lights
     for (int i = 0; i < _COUNT_OF_DIRECTIONLIGHT_; ++i) {
-        vec3 L = normalize(-light[i].direction);
-        vec3 H = normalize(V + L);
+        vec3  L     = normalize(-light[i].direction);
+        vec3  H     = normalize(V + L);
         float NdotL = max(dot(N, L), 0.0);
         if (NdotL <= 0.0) continue;
+
+        float NdotH = max(dot(N, H), 0.0);
+        float HdotV = max(dot(H, V), 0.0);
 
         float shadow = (i == 0) ? ShadowCalculation(FragPosLightSpace, N, L) : 0.0;
-        float D = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        vec3  F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-        vec3 spec = (D * G * F) / (4.0 * NdotV * NdotL + 0.0001);
+        float D  = DistributionGGX(NdotH, roughness);
+        float G  = GeometrySmithDirect(NdotV, NdotL, roughness);
+        vec3  F  = fresnelSchlick(HdotV, F0);
+
+        // Cook-Torrance BRDF
+        vec3 numerator    = D * G * F;
+        float denominator = 4.0 * NdotV * NdotL + EPSILON;
+        vec3  specular    = numerator / denominator;
+
+        // kD с energy conservation: металлы не имеют диффузной составляющей
         vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
-        Lo += (1.0 - shadow) * (kD * albedo / PI + spec) * light[i].Ld * NdotL;
+
+        Lo += (1.0 - shadow) * (kD * albedo * INV_PI + specular) * light[i].Ld * NdotL;
     }
 
+    // Point lights
     for (int i = 0; i < _COUNT_OF_POINTLIGHT_; ++i) {
-        vec3 L = normalize(lightPoint[i].position - FragPos);
-        vec3 H = normalize(V + L);
+        vec3  L     = normalize(lightPoint[i].position - FragPos);
+        vec3  H     = normalize(V + L);
         float NdotL = max(dot(N, L), 0.0);
         if (NdotL <= 0.0) continue;
 
-        float dist = length(lightPoint[i].position - FragPos);
-        float atten = 1.0 / max(lightPoint[i].point_const_coof + lightPoint[i].point_linear_coof * dist + lightPoint[i].point_exp_coof * dist * dist, 0.001);
-        float shadow = (lightPoint[i].hasShadow == 1) ? PointShadowCalculation(FragPos, lightPoint[i].position, lightPoint[i].farPlane, u_PointShadowMaps[i], N) : 0.0;
+        float NdotH = max(dot(N, H), 0.0);
+        float HdotV = max(dot(H, V), 0.0);
 
-        float D = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        vec3  F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-        vec3 spec = (D * G * F) / (4.0 * NdotV * NdotL + 0.0001);
-        vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
-        Lo += (1.0 - shadow) * (kD * albedo / PI + spec) * lightPoint[i].Ld * lightPoint[i].intensity * atten * NdotL;
+        float dist  = length(lightPoint[i].position - FragPos);
+        float atten = PointLightAttenuation(dist,
+            lightPoint[i].point_const_coof,
+            lightPoint[i].point_linear_coof,
+            lightPoint[i].point_exp_coof);
+
+        float shadow = (lightPoint[i].hasShadow == 1)
+            ? PointShadowCalculation(FragPos, lightPoint[i].position,
+                                     lightPoint[i].farPlane, lightPoint[i].pointShadowMap, N)
+            : 0.0;
+
+        float D  = DistributionGGX(NdotH, roughness);
+        float G  = GeometrySmithDirect(NdotV, NdotL, roughness);
+        vec3  F  = fresnelSchlick(HdotV, F0);
+
+        vec3  specular = (D * G * F) / (4.0 * NdotV * NdotL + EPSILON);
+        vec3  kD       = (vec3(1.0) - F) * (1.0 - metallic);
+
+        Lo += (1.0 - shadow) * (kD * albedo * INV_PI + specular)
+            * lightPoint[i].Ld * lightPoint[i].intensity * atten * NdotL;
     }
 
-    float materialAO = orm.r;
-    float combinedAO = materialAO * ssao; // Объединяем оба вида AO
-
+    // ---------- IBL / Ambient ----------
     vec3 ambient = vec3(0.0);
-    
+
     if (u_UseIBL) {
         vec3 F_ibl = fresnelSchlickRoughness(NdotV, F0, roughness);
-        vec3 irradiance = textureLod(u_IrradianceMap, N, 0.0).rgb;
-        vec3 prefiltered = textureLod(u_PrefilterMap, R, roughness * 7.0).rgb;
-        vec2 brdf = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
+        vec3 kD_ibl = (vec3(1.0) - F_ibl) * (1.0 - metallic);
 
-        // Диффузная часть IBL
-        vec3 diffuseIBL = irradiance * albedo;
-        // Спекулярная часть IBL
-        vec3 specularIBL = prefiltered * (F_ibl * brdf.x + brdf.y);
+        // Диффузный IBL
+        vec3 irradiance  = textureLod(u_IrradianceMap, N, 0.0).rgb;
+        vec3 diffuseIBL  = irradiance * albedo;
 
-        // Применяем AO. SSAO сильнее всего должен влиять на диффузный свет.
-        // Для спекуляра можно использовать "Specular Occlusion" (трюк Себастьяна Лагарда)
-        float specAO = clamp(pow(NdotV + combinedAO, roughness) - 1.0 + combinedAO, 0.0, 1.0);
-        
-        ambient = ((vec3(1.0) - F_ibl) * (1.0 - metallic) * diffuseIBL + specularIBL * specAO) * combinedAO * u_IBLStrength;
+        // Спекулярный IBL
+        const float MAX_REFLECTION_LOD = 7.0;
+        vec3  prefiltered = textureLod(u_PrefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        vec2  brdf        = texture(u_BrdfLUT, vec2(NdotV, roughness)).rg;
+        vec3  specularIBL = prefiltered * (F_ibl * brdf.x + brdf.y);
+
+        // Specular Occlusion (Lagarde 2014) — отдельно для спекуляра
+        float specOcc = SpecularOcclusion(NdotV, combinedAO, roughness);
+
+        // Диффуз модулируется AO, спекуляр — specOcc
+        ambient = (kD_ibl * diffuseIBL * combinedAO + specularIBL * specOcc) * u_IBLStrength;
     } else {
-        // Обычный константный эмбиент
+        // Простой ambient без IBL — минимальный свет
         ambient = vec3(0.03) * albedo * combinedAO;
     }
 
-
+    // ---------- Compose ----------
     vec3 finalColor = ambient + Lo + emission;
 
-    // Apply Fog (Light-Aware)
+    // ---------- Fog ----------
     if (u_EnableFog) {
         finalColor = ApplyLightAwareFog(finalColor, FragPos, u_CameraPos, V);
     }
 
+    // ---------- Tonemap + Gamma ----------
+    vec3 tonemapped = ApplyPostProcessing(finalColor * u_Exposure);
 
-    FragColor = vec4(ApplyPostProcessing(finalColor * u_Exposure), 1.0);
+    // ---------- Volumetric (после тонмаппинга — не давится ACES) ----------
+    if (u_EnableVolumetric && _COUNT_OF_DIRECTIONLIGHT_ > 0) {
+        vec3 vol = VolumetricLight(FragPos, u_CameraPos);
+        // Тонмапим лучи отдельно с меньшим exposure чтобы не пересветить
+        vol = pow(ACESFilmic(vol * u_Exposure * 0.5), vec3(1.0 / 2.2));
+        tonemapped += vol;
+    }
+
+    FragColor = vec4(clamp(tonemapped, 0.0, 1.0), 1.0);
 }

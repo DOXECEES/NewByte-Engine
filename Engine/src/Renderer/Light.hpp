@@ -158,6 +158,21 @@ namespace nb
         
         };
 
+
+        struct PointLightProxy
+        {
+            alignas(16) Math::Vector3<float> diffuse;   //16
+            alignas(16) Math::Vector3<float> position;  //32
+            float intensity;                            //36
+            float constCoefficient;                     //40
+            float linearCoefficient;                    //44
+            float expCoefficient;                       //48
+            float farPlane;                             //52
+            int hasShadow;                              //56
+            float padding;
+            uint64_t shadowMapHandle;
+        };
+
         class PointLight : public Light
         {
         public:

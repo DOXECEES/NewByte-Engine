@@ -34,7 +34,7 @@
 #include <Widgets/ToolBar.hpp>
 #include <Widgets/MaterialWidget.hpp>
 #include <Widgets/FilePicker.hpp>
-
+#include <Widgets/ShaderCanvas.hpp>
 #include <Renderer/Shader.hpp>
 #include <Renderer/Material.hpp>
 #include <Renderer/Texture.hpp>
@@ -50,6 +50,69 @@
 #include "ComponentBrowser.hpp"
 #include "PrimitiveCreationDialog.hpp"
 
+
+static Ref<nb::Renderer::Mesh> createPrimitiveMesh(std::string_view typeName, const void* data) noexcept
+{
+    if (typeName == "CubeParams") {
+        return nb::Renderer::PrimitiveGenerators::createCube(static_cast<const CubeParams*>(data)->size);
+    }
+    if (typeName == "SphereParams") {
+        const auto* p = static_cast<const SphereParams*>(data);
+        return nb::Renderer::PrimitiveGenerators::createSphere(p->radius, p->xSegments, p->ySegments);
+    }
+    if (typeName == "TorusParams") {
+        const auto* p = static_cast<const TorusParams*>(data);
+        return nb::Renderer::PrimitiveGenerators::createTorus(
+            {static_cast<uint32>(p->xSegments), static_cast<uint32>(p->ySegments)}, 
+            p->majorRadius, p->minorRadius
+        );
+    }
+    if (typeName == "CylinderParams") {
+        const auto* p = static_cast<const CylinderParams*>(data);
+        return nb::Renderer::PrimitiveGenerators::createCylinder(p->radius, p->height, p->xSegments, p->ySegments);
+    }
+    if (typeName == "PlaneParams") {
+        const auto* p = static_cast<const PlaneParams*>(data);
+        return nb::Renderer::PrimitiveGenerators::createPlane(p->width, p->height, p->xSegments, p->ySegments);
+    }
+    if (typeName == "ConeParams") {
+        const auto* p = static_cast<const ConeParams*>(data);
+        return nb::Renderer::PrimitiveGenerators::createCone(p->radius, p->height, p->radialSegments, p->heightSegments);
+    }
+    if (typeName == "PyramidParams") {
+        const auto* p = static_cast<const PyramidParams*>(data);
+        return nb::Renderer::PrimitiveGenerators::createPyramid(p->radius, p->height, p->sides);
+    }
+    return nullptr;
+}
+
+
+static std::shared_ptr<Win32Window::ModalWindow> recreateModalWindow(
+    std::shared_ptr<Win32Window::ModalWindow>& windowTracker,
+    WindowInterface::IWindow* parent,
+    NbSize<int> size,
+    const std::wstring& title = L""
+) {
+    if (windowTracker)
+    {
+        windowTracker = nullptr;
+    }
+
+    auto newWin = std::make_shared<Win32Window::ModalWindow>(size, parent);
+    windowTracker = newWin;
+
+    if (!title.empty())
+    {
+        newWin->setTitle(title);
+    }
+
+    return newWin;
+}
+
+void EditorApp::requestModelSpawn(const SpawnModelParams& params) noexcept
+{
+    spawnQueue.pushBack(params);
+}
 
 void EditorApp::openColorPickerWindow()
 {
@@ -170,10 +233,21 @@ void EditorApp::createWindows() noexcept
 
     assetManager = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     assetManager->setTitle(L"Asset");
+    assetManager->setOnFileDropCallback([this](const std::filesystem::path& dropFilePath) {
 
-    importManager = std::make_shared<Win32Window::ChildWindow>(nullptr);
-    importManager->addCaption();
-    importManager->setTitle(L"import");
+        //if (importWindow)
+        //{
+        //    importWindow = nullptr;
+        //}
+
+        importWindow = std::make_shared<ImportWindow>(nullptr, engine.get(), dropFilePath, [this]() {
+            assetManagerWindow->refreshModel();
+            importWindow = nullptr;
+        });
+
+    });
+
+    
     // textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
     // textureInspector->setTitle(
     //     Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
@@ -193,6 +267,23 @@ void EditorApp::createWindows() noexcept
     previewWindow->setTitle(L"prev");
     previewWindow->addCaption();
     previewWindow->setRenderable(false);
+
+
+    shaderNodes = std::make_shared<Win32Window::ChildWindow>(nullptr);
+    shaderNodes->setTitle(L"Shader");
+    shaderNodes->addCaption();
+
+    auto shaderNodesUi = nbui::LayoutBuilder::vBox()
+                             .relativeHeight(1.0f)
+                             .relativeWidth(1.0f)
+                             .child(
+                                 nbui::LayoutBuilder::widget(new Widgets::ShaderCanvas())
+                                     .relativeHeight(1.0f)
+                                     .relativeWidth(1.0f)
+                             )
+                             .build();
+
+    shaderNodes->getLayoutRoot()->addChild(std::move(shaderNodesUi));
 }
 
 void EditorApp::setupDocking() noexcept
@@ -262,152 +353,396 @@ void EditorApp::setupMainWindow() noexcept
                     s.height         = 1.0f;
                     s.widthSizeType  = NNsLayout::SizeType::RELATIVE;
                     s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-                    s.color          = NbColor{30, 30, 30}; 
+                    s.color          = NbColor{30, 30, 30};
                 }
             )
             .child(
                 LayoutBuilder::hBox()
-                    .absoluteHeight(30.0f) 
+                    .absoluteHeight(30.0f)
                     .relativeWidth(1.0f)
                     .style(
                         [](NNsLayout::LayoutStyle& s)
                         {
-                            s.color = NbColor{45, 45, 45}; 
+                            s.color = NbColor{45, 45, 45};
                         }
                     )
+
                     .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"File")
-                            .absoluteWidth(60.0f)
-                            .relativeHeight(1.0f)
-                            .apply<Widgets::Button>(
-                                [this](Widgets::Button* btn)
-                                {
-                                    subscribe(
-                                        btn, &Widgets::Button::onReleasedSignal,
-                                        [this, btn]()
-                                        {
-                                            auto popup = new PopupMenu();
-                                            popup->addItem(
-                                                L"New Project", IconType::Plus,
-                                                [this]()
+                        createMenuButton(
+                            "Ui.Editor.File",
+                            [this](PopupMenu* popup)
+                            {
+                                popup->addItem(
+                                    Localization::Translation::fromKeyToWstring(
+                                        "Ui.Editor.NewProject"
+                                    ),
+                                    IconType::Plus,
+                                    [this]()
+                                    {
+                                        openFilePicker(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.CreateNewProject"
+                                            ),
+                                            [this](const std::string& selectedPath)
+                                            {
+                                                namespace fs = std::filesystem;
+                                                fs::path p(selectedPath);
+
+                                                if (p.extension() != ".json")
                                                 {
+                                                    p += ".json";
                                                 }
-                                            );
-                                            popup->addItem(
-                                                L"Open...", IconType::None,
-                                                [this]()
+
+                                                try
                                                 {
-                                                }
-                                            );
-                                            popup->addSeparator();
-                                            popup->addItem(
-                                                L"Save", IconType::None,
-                                                [this]()
-                                                {
+                                                    if (!fs::exists(p.parent_path()))
+                                                    {
+                                                        fs::create_directories(p.parent_path());
+                                                    }
+
                                                     engine->saveSnapshot();
-                                                }
-                                            );
-                                            popup->addSeparator();
-                                            popup->addItem(
-                                                L"Exit", IconType::Delete,
-                                                [this]()
-                                                {
-                                                    PostQuitMessage(0);
-                                                }
-                                            );
+                                                    engine->clearScene();
+                                                    sceneModel->rebuildFromScene();
+                                                    activeNode = nb::Node::createInvalid();
 
-                                            const NbRect<int>& pt = btn->getRect();
-                                            const WindowInterface::FrameSize& frame =
-                                                mainWindow->getFrameSize();
+                                                    refreshHierarchyTreeViewSignal.emit();
+                                                    onActiveNodeChanged.emit();
+                                                    nb::Scene::getInstance().invalidateBvh();
 
-                                            toolbarWindow->getPopupManager().show(
-                                                popup, frame.left + pt.x, frame.top + pt.y + pt.height, PopupStyle::MenuBarItem
-                                            );
-                                        }
-                                    );
-                                }
-                            )
-                    )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Edit")
-                            .absoluteWidth(60.0f)
-                            .relativeHeight(1.0f)
-                            .apply<Widgets::Button>(
-                                [this](Widgets::Button* btn)
-                                {
-                                    subscribe(
-                                        btn, &Widgets::Button::onReleasedSignal,
-                                        [this, btn]()
-                                        {
-                                            auto popup = new PopupMenu();
-                                            popup->addItem(
-                                                L"New Project", IconType::Plus,
-                                                [this]()
-                                                {
-                                                }
-                                            );
-                                            popup->addItem(
-                                                L"Open...", IconType::None,
-                                                [this]()
-                                                {
+                                                    engine->setProjectPath(p.string());
+                                                    engine->saveSnapshot();
 
-                                                    openFilePicker(
-                                                        L"Select Resource: ",
-                                                        [this](const std::string& path)
-                                                        {
-                                                            nb::Error::ErrorManager::instance()
-                                                                .report(
-                                                                    nb::Error::Type::INFO, path
-                                                                );
-                                                        },
-                                                        toolbarWindow.get()
+                                                    nb::Error::ErrorManager::instance().report(
+                                                        nb::Error::Type::INFO,
+                                                        "New project created at: " + p.string()
                                                     );
 
-                                                    
-                                                    //engine->loadSnapshot()
-                                                }
-                                            );
-                                            popup->addSeparator();
-                                            popup->addItem(
-                                                L"Save", IconType::None,
-                                                [this]()
-                                                {
-                                                    engine->saveSnapshot();
-                                                }
-                                            );
-                                            popup->addSeparator();
-                                            popup->addItem(
-                                                L"Exit", IconType::Delete,
-                                                [this]()
-                                                {
-                                                    PostQuitMessage(0);
-                                                }
-                                            );
+                                                    shouldRebuildInspector = true;
 
-                                            const NbRect<int>&                pt = btn->getRect();
-                                            const WindowInterface::FrameSize& frame = mainWindow->getFrameSize();
+                                                    engine->loadSnapshot();
+                                                }
+                                                catch (const std::exception& e)
+                                                {
+                                                    nb::Error::ErrorManager::instance().report(
+                                                        nb::Error::Type::FATAL,
+                                                        std::string(
+                                                            "Failed to create "
+                                                            "project: "
+                                                        ) + e.what()
+                                                    );
+                                                }
+                                            },
+                                            toolbarWindow.get(), {".json"}
+                                        );
+                                    }
+                                );
+                                popup->addItem(
+                                    Localization::Translation::fromKeyToWstring("Ui.Editor.Open"),
+                                    IconType::None,
+                                    [this]()
+                                    {
+                                        openFilePicker(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SelectResource"
+                                            ),
+                                            [this](const std::string& path)
+                                            {
+                                                nb::Error::ErrorManager::instance().report(
+                                                    nb::Error::Type::INFO, path
+                                                );
 
-                                            toolbarWindow->getPopupManager().show(
-                                                popup, frame.left + pt.x,
-                                                frame.top + pt.y + pt.height,
-                                                PopupStyle::MenuBarItem
-                                            );
-                                        }
-                                    );
+                                                engine->saveSnapshot();
+                                                engine->clearScene();
+
+                                                engine->setProjectPath(path);
+                                                engine->loadSnapshot();
+
+                                                sceneModel->rebuildFromScene();
+                                                activeNode = nb::Node::createInvalid();
+
+                                                refreshHierarchyTreeViewSignal.emit();
+                                                onActiveNodeChanged.emit();
+                                                nb::Scene::getInstance().invalidateBvh();
+                                            },
+                                            toolbarWindow.get(), {".json"}
+                                        );
+                                    }
+                                );
+                                popup->addSeparator();
+                                popup->addItem(
+                                    Localization::Translation::fromKeyToWstring("Ui.Editor.Save"),
+                                    IconType::None,
+                                    [this]()
+                                    {
+                                        engine->saveSnapshot();
+                                    }
+                                );
+                                popup->addSeparator();
+                                popup->addItem(
+                                    Localization::Translation::fromKeyToWstring("Ui.Editor.Exit"),
+                                    IconType::Delete,
+                                    [this]()
+                                    {
+                                        PostQuitMessage(0);
+                                    }
+                                );
+                            }
+                        )
+
+                    )
+                    .child(createMenuButton(
+                        "Ui.Editor.Edit",
+                        [this](PopupMenu* popup)
+                        {
+                            popup->addItem(
+                                L"New Project", IconType::Plus,
+                                [this]()
+                                {
                                 }
-                            )
-                    )
+                            );
+                            popup->addItem(
+                                L"Open...", IconType::None,
+                                [this]()
+                                {
+                                    openFilePicker(
+                                        L"Select Resource: ",
+                                        [this](const std::string& path)
+                                        {
+                                            nb::Error::ErrorManager::instance().report(
+                                                nb::Error::Type::INFO, path
+                                            );
+                                        },
+                                        toolbarWindow.get()
+                                    );
+
+                                    // engine->loadSnapshot()
+                                }
+                            );
+                            popup->addSeparator();
+                            popup->addItem(
+                                L"Save", IconType::None,
+                                [this]()
+                                {
+                                    engine->saveSnapshot();
+                                }
+                            );
+                            popup->addSeparator();
+                            popup->addItem(
+                                L"Exit", IconType::Delete,
+                                [this]()
+                                {
+                                    PostQuitMessage(0);
+                                }
+                            );
+                        }
+                    ))
+
+                    .child(createMenuButton(
+                        "Ui.Editor.Edit",
+                        [this](PopupMenu* popup)
+                        {
+                            popup->addItem(
+                                Localization::Translation::fromKeyToWstring("Ui.Editor.View.Lang"),
+                                IconType::Plus,
+                                [this]()
+                                {
+                                    if (languagePicker)
+                                    {
+                                        languagePicker = nullptr;
+                                    }
+
+                                    languagePicker = std::make_shared<Win32Window::ModalWindow>(
+                                        NbSize<int>{400, 120}, toolbarWindow.get()
+                                    );
+                                    languagePicker->setTitle(
+                                        Localization::Translation::fromKeyToWstring(
+                                            "Ui.Editor.Language"
+                                        )
+                                    );
+
+                                    struct State
+                                    {
+                                        int selectedLang = 0;
+                                    };
+                                    auto state = std::make_shared<State>();
+
+                                    auto ui =
+                                        LayoutBuilder::vBox()
+                                            .spacing(0)
+                                            .relativeWidth(1.0f)
+                                            .relativeHeight(1.0f)
+                                            .background({35, 35, 35})
+                                            .child(
+                                                LayoutBuilder::hBox()
+                                                    .relativeWidth(1.0f)
+                                                    .absoluteHeight(35)
+                                                    .child(
+                                                        LayoutBuilder::label(
+                                                            Localization::Translation::
+                                                                fromKeyToWstring(
+                                                                    "Ui.Editor."
+                                                                    "Language"
+                                                                )
+                                                        )
+                                                            .relativeWidth(0.4f)
+                                                            .color({200, 200, 200})
+                                                            .textAlignment(
+                                                                {.textAlignment =
+                                                                     TextAlignment::LEFT}
+                                                            )
+                                                    )
+                                                    .child(
+                                                        LayoutBuilder::widget(
+                                                            new Widgets::ComboBox()
+                                                        )
+                                                            .relativeWidth(0.6f)
+                                                            .absoluteHeight(30)
+                                                            .apply<Widgets::ComboBox>(
+                                                                [state](Widgets::ComboBox* cb)
+                                                                {
+                                                                    cb->addItem({L"Русский", 0});
+                                                                    cb->addItem({L"English", 1});
+
+                                                                    cb->setSelectedItem(0);
+                                                                }
+                                                            )
+                                                            .onEvent(
+                                                                &Widgets::ComboBox::
+                                                                    onSelectionChanged,
+                                                                [state](
+                                                                    const Widgets::ListItem& item
+                                                                )
+                                                                {
+                                                                    state->selectedLang =
+                                                                        item.getValue<int>();
+                                                                }
+                                                            )
+                                                    )
+                                            )
+                                            .child(LayoutBuilder::spacer())
+                                            .child(
+                                                LayoutBuilder::hBox()
+                                                    .relativeWidth(1.0f)
+                                                    .absoluteHeight(35)
+                                                    .spacing(10)
+                                                    .child(
+                                                        LayoutBuilder::spacer().relativeWidth(0.2f)
+                                                    )
+                                                    .child(
+                                                        LayoutBuilder::widget(new Widgets::Button())
+                                                            .text(
+                                                                Localization::Translation::
+                                                                    fromKeyToWstring(
+                                                                        "Ui."
+                                                                        "Editor"
+                                                                        ".Save"
+                                                                    )
+                                                            )
+                                                            .relativeWidth(0.4f)
+                                                            .background({60, 60, 60})
+                                                            .onEvent(
+                                                                &Widgets::Button::onReleasedSignal,
+                                                                [this, state]()
+                                                                {
+                                                                    if (state->selectedLang == 0)
+                                                                    {
+                                                                        Localization::Translation::
+                                                                            load(
+                                                                                "Assets/"
+                                                                                "Localization/"
+                                                                                "ru.translation"
+                                                                            );
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        Localization::Translation::
+                                                                            load(
+                                                                                "Assets/"
+                                                                                "Localization/"
+                                                                                "en.translation"
+                                                                            );
+                                                                    }
+
+                                                                    this->refreshInterfaceText();
+                                                                    languagePicker->close();
+                                                                }
+                                                            )
+                                                    )
+                                                    .child(
+                                                        LayoutBuilder::widget(new Widgets::Button())
+                                                            .text(
+                                                                Localization::Translation::
+                                                                    fromKeyToWstring(
+                                                                        "Ui."
+                                                                        "Materi"
+                                                                        "alEdit"
+                                                                        "or."
+                                                                        "Exit"
+                                                                    )
+                                                            )
+                                                            .relativeWidth(0.4f)
+                                                            .background({50, 50, 50})
+                                                            .onEvent(
+                                                                &Widgets::Button::onReleasedSignal,
+                                                                [this]()
+                                                                {
+                                                                    languagePicker->close();
+                                                                    languagePicker = nullptr;
+                                                                }
+                                                            )
+                                                    )
+                                            );
+
+                                    languagePicker->getLayoutRoot()->addChild(
+                                        std::move(ui).build()
+                                    );
+                                    languagePicker->show();
+                                }
+                            );
+
+                            popup->addItem(
+                                Localization::Translation::fromKeyToWstring(
+                                    "Ui.Editor.FrameBufferVisualization"
+                                ),
+                                IconType::Edit,
+                                [this]()
+                                {
+                                    // recreateModalWindow(
+                                    //     framebufferVisualizationWindow, mainWindow.get(),
+                                    //     NbSize<int>(800, 600),
+                                    //     Localization::Translation::fromKeyToWstring(
+                                    //         "Ui.Editor.FrameBufferVisualization"
+                                    //     )
+                                    // );
+
+                                    if (framebufferVisualization)
+                                    {
+                                        framebufferVisualization = nullptr;
+                                    }
+
+                                    framebufferVisualization = std::make_shared<Sdk::FramebufferVisualization>(
+                                        nullptr,
+                                        engine.get()
+                                        //nbstl::NonOwningPtr(materialRef.get())
+                                    );
+
+                                    //framebufferVisualization->show();
+
+                                    // previewWindow =
+                                    // std::make_shared<Win32Window::ChildWindow>(modalWindow.get(),
+                                    // true);
+                                    // auto sharedContext =
+                                    // engine->getRenderer()->createSharedContextForWindow(framebufferVisualizationWindow->getHandle().as<HWND>());
+
+                                    //
+                                }
+                            );
+                        }
+                    ))
+
                     .child(
                         LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"View")
-                            .absoluteWidth(60.0f)
-                            .relativeHeight(1.0f)
-                    )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Button())
-                            .text(L"Help")
+                            .text(Localization::Translation::fromKeyToWstring("Ui.Editor.Help"))
                             .absoluteWidth(60.0f)
                             .relativeHeight(1.0f)
                     )
@@ -415,16 +750,14 @@ void EditorApp::setupMainWindow() noexcept
             .child(
                 LayoutBuilder::vBox()
                     .relativeWidth(1.0f)
-                    .relativeHeight(1.0f) 
+                    .relativeHeight(1.0f)
                     .style(
                         [](NNsLayout::LayoutStyle& s)
                         {
-                            s.margin = {5, 5, 5, 5}; 
+                            s.margin = {5, 5, 5, 5};
                         }
                     )
-                    .child(
-                        LayoutBuilder::widget(new Widgets::Label()).text(L"Main Editor Area")
-                    )
+                    .child(LayoutBuilder::widget(new Widgets::Label()).text(L"Main Editor Area"))
             )
             .build();
 
@@ -831,131 +1164,6 @@ LayoutBuilder makeInputRow(
 
 void EditorApp::setupDebugUI() noexcept
 {
-    //using namespace nbui;
-    //auto debugUI = LayoutBuilder::vBox()
-    //    .style([](NNsLayout::LayoutStyle& s) {
-    //    s.widthSizeType = NNsLayout::SizeType::ABSOLUTE;
-    //    s.width = 250;
-    //    s.heightSizeType = NNsLayout::SizeType::RELATIVE;
-    //    s.height = 1.0f;
-    //    s.color = NbColor{ 35, 35, 35 };
-    //    s.padding = { 10, 10, 10, 10 };
-    //        })
-
-    //    .child(LayoutBuilder::label(L"VISUALIZATION")
-    //        .relativeWidth(1.0f).absoluteHeight(25)
-    //        .color(NbColor{ 150, 150, 150 }).fontSize(12))
-
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Wireframe Mode")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-    //            engine->getRenderer()->setWireframeMode(checked);
-    //        }))
-
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Show grid")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .apply<Widgets::CheckBox>(
-    //            [](Widgets::CheckBox* checkbox)
-    //            {
-    //                checkbox->setChecked(true);
-    //            }
-    //        )
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-    //            engine->getRenderer()->toggleGridShow();
-    //        }))
-
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Show light sources")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-    //            engine->getRenderer()->toggleDebugPass();
-    //            }))
-    //        .child(
-    //            LayoutBuilder::widget(new Widgets::CheckBox())
-    //                .text(L"Show BVH bounds")
-    //                .relativeWidth(1.0f)
-    //                .absoluteHeight(30)
-    //                .onEvent(
-    //                    &Widgets::CheckBox::onCheckStateChanged,
-    //                    [&](bool checked)
-    //                    {
-    //                        engine->getRenderer()->toggleBvhVisualization();
-    //                    }
-    //                )
-    //        )
-
-    //    // Разделитель
-    //    .child(LayoutBuilder::spacer().absoluteHeight(10))
-
-    //    // --- СЕКЦИЯ: ИСТОЧНИКИ СВЕТА ---
-    //    .child(LayoutBuilder::label(L"LIGHTING & GIZMOS")
-    //        .relativeWidth(1.0f).absoluteHeight(25)
-    //        .color(NbColor{ 150, 150, 150 }).fontSize(12))
-
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Show Light Icons")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-    //                        engine->getRenderer()->toggleSsao();
-    //        }))
-
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Show Bounding Boxes")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-    //                        engine->getRenderer()->toggleBoundingBoxVisualization();
-    //        }))
-
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Enable Shadows")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-    //            //g_engine->getRenderer()->setShadowsEnabled(checked);
-    //            }))
-
-    //    // Разделитель
-    //    .child(LayoutBuilder::spacer().absoluteHeight(10))
-
-    //    // --- СЕКЦИЯ: СТАТИСТИКА ---
-    //    .child(LayoutBuilder::label(L"STATISTICS")
-    //        .relativeWidth(1.0f).absoluteHeight(25)
-    //        .color(NbColor{ 150, 150, 150 }).fontSize(12))
-
-
-
-    //    .child(LayoutBuilder::widget(new Widgets::ComboBox())
-    //        .apply<Widgets::ComboBox>([&](Widgets::ComboBox* c) {
-
-    //            const nb::Renderer::Renderer* renderer = engine->getRenderer().get();
-
-    //            c->addItem({ L"Albedo",     renderer->getAlbedoId()});
-    //            c->addItem({ L"Ao",         renderer->getAoId() });
-    //            c->addItem({ L"Metal",      renderer->getMetalId() });
-    //            c->addItem({ L"Normal",     renderer->getNormalId()});
-    //            c->addItem({ L"Roughtness", renderer->getRoughtnessId()});
-    //            c->addItem({ L"Shadow",     renderer->getShadowTextureId() });
-    //            c->addItem({ L"Gizmo",      renderer->getGizmoTextureId() });
-
-    //         })
-    //        .text(L"Show Draw Calls")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::ComboBox::onItemChecked, [&](const Widgets::ListItem& item) {
-    //            
-    //            engine->getRenderer()->setCheckedTextureId(item.getValue<uint32_t>());
-    //        }))
-    //    .child(LayoutBuilder::widget(new Widgets::CheckBox())
-    //        .text(L"Show FPS Counter")
-    //        .relativeWidth(1.0f).absoluteHeight(30)
-    //        .onEvent(&Widgets::CheckBox::onCheckStateChanged, [](bool checked) {
-    //            //g_engine->getUI()->setOverlayVisible(L"FPS", checked);
-    //            }))
-
-    //    .child(LayoutBuilder::spacer()) // Пружина, чтобы все прижалось к верху
-    //    .build();
-    using namespace nbui;
-
     using namespace nbui;
 
     auto ui =
@@ -989,7 +1197,11 @@ void EditorApp::setupDebugUI() noexcept
                                     .absoluteHeight(25)
                                     .child(
                                         LayoutBuilder::widget(new Widgets::CheckBox())
-                                            .text(L"Enabled")
+                                        .text(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSAO.Enabled"
+                                            )
+                                        )
                                             .relativeWidth(1.0f)
                                             .relativeHeight(1.0f)
                                             .apply<Widgets::CheckBox>(
@@ -1009,7 +1221,11 @@ void EditorApp::setupDebugUI() noexcept
                                     .relativeWidth(1.0f)
                                     .absoluteHeight(26)
                                     .child(
-                                        LayoutBuilder::label(L"Radius:")
+                                        LayoutBuilder::label(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSAO.Radius"
+                                            )
+                                        )
                                             .absoluteWidth(
                                             140
                                         ) 
@@ -1052,7 +1268,11 @@ void EditorApp::setupDebugUI() noexcept
                                     .relativeWidth(1.0f)
                                     .absoluteHeight(26)
                                     .child(
-                                        LayoutBuilder::label(L"Bias:")
+                                        LayoutBuilder::label(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSAO.Bias"
+                                            )
+                                        )
                                             .absoluteWidth(
                                                 140
                                             ) 
@@ -1095,7 +1315,9 @@ void EditorApp::setupDebugUI() noexcept
                     )
             )
             .child(
-                LayoutBuilder::section(L"▼ Color Grading")
+                LayoutBuilder::section(
+                    Localization::Translation::fromKeyToWstring("Ui.Editor.ColorGrading")
+                )
                     .relativeWidth(1.0f)
                     .autoHeight()
                     .style(
@@ -1113,7 +1335,11 @@ void EditorApp::setupDebugUI() noexcept
                             LayoutBuilder::widget(new Widgets::CheckBox())
                             .relativeHeight(1.0f)
                             .relativeWidth(1.0f)
-                            .text(L"Enable Color Grading")
+                                        .text(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.ColorGrading.Enabled"
+                                            )
+                                        )
                             .apply<Widgets::CheckBox>([](Widgets::CheckBox* c) { c->setChecked(true); })
                             .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
                                 engine->getRenderer()->getPostProcessConfig().isLutEnabled = checked;
@@ -1128,7 +1354,11 @@ void EditorApp::setupDebugUI() noexcept
                         //.padding({10, 10, 10, 10}) 
 
                         .child(
-                            LayoutBuilder::label(L"LUTexture")
+                                    LayoutBuilder::label(
+                                        Localization::Translation::fromKeyToWstring(
+                                            "Ui.Editor.ColorGrading.LUTexture"
+                                        )
+                                    )
                             .relativeHeight(1.0f)
                             .relativeWidth(0.4f)
                         )
@@ -1140,8 +1370,9 @@ void EditorApp::setupDebugUI() noexcept
                     )
             )
             .child(
-                LayoutBuilder::
-                    section(L"▼ Screen space refletions")
+                LayoutBuilder::section(
+                    Localization::Translation::fromKeyToWstring("Ui.Editor.SSR")
+                )
                         .relativeWidth(1.0f)
                         .autoHeight()
                         .style(
@@ -1159,7 +1390,11 @@ void EditorApp::setupDebugUI() noexcept
                                     LayoutBuilder::widget(new Widgets::CheckBox())
                                         .relativeHeight(1.0f)
                                         .relativeWidth(1.0f)
-                                        .text(L"Enable SSR")
+                                        .text(
+                                            Localization::Translation::fromKeyToWstring(
+                                                "Ui.Editor.SSR.Enabled"
+                                            )
+                                        )
                                         .apply<Widgets::CheckBox>(
                                             [](Widgets::CheckBox* c)
                                             {
@@ -1191,7 +1426,8 @@ void EditorApp::setupDebugUI() noexcept
 void EditorApp::openFilePicker(
     const std::wstring&                     title,
     std::function<void(const std::string&)> onSelected,
-    Win32Window::IWindow*                   parent
+    Win32Window::IWindow*                   parent,
+    const std::vector<std::string>&         extentions
 )
 {
     if (filePickerWindow)
@@ -1217,7 +1453,7 @@ void EditorApp::openFilePicker(
                       }
                   )
                   .child(
-                      LayoutBuilder::widget(new Widgets::FilePicker({0, 0, 500, 600}))
+                      LayoutBuilder::widget(new Widgets::FilePicker({0, 0, 500, 600}, extentions))
                           .relativeWidth(1.0f)
                           .relativeHeight(1.0f)
                           .onEvent(
@@ -1253,6 +1489,39 @@ void EditorApp::openFilePicker(
 
     newWin->getLayoutRoot()->addChild(std::move(ui));
     newWin->show();
+}
+
+nbui::LayoutBuilder EditorApp::createMenuButton(
+    const std::string&                    labelKey,
+    std::function<void(nbui::PopupMenu*)> populateMenuFunc
+) noexcept
+{
+    using namespace nbui;
+    return LayoutBuilder::widget(new Widgets::Button())
+        .text(Localization::Translation::fromKeyToWstring(labelKey))
+        .absoluteWidth(60.0f)
+        .relativeHeight(1.0f)
+        .apply<Widgets::Button>(
+            [this, populateMenuFunc](Widgets::Button* btn)
+            {
+                subscribe(
+                    btn, &Widgets::Button::onReleasedSignal,
+                    [this, btn, populateMenuFunc]()
+                    {
+                        auto popup = new PopupMenu();
+                        populateMenuFunc(popup);
+
+                        const NbRect<int>&                pt    = btn->getRect();
+                        const WindowInterface::FrameSize& frame = mainWindow->getFrameSize();
+
+                        toolbarWindow->getPopupManager().show(
+                            popup, frame.left + pt.x, frame.top + pt.y + pt.height,
+                            PopupStyle::MenuBarItem
+                        );
+                    }
+                );
+            }
+        );
 }
 
 void EditorApp::setupAssetManager() noexcept
@@ -1305,7 +1574,7 @@ void EditorApp::rebuildInspector() noexcept
 
             inspectorBuilder = std::move(inspectorBuilder)
                                    .child(
-                                       LayoutBuilder::label(nb::Utils::toWString(info->name))
+                                       LayoutBuilder::label(Localization::Translation::fromKeyToWstring(info->name))
                                            .relativeWidth(1.0f)
                                            .absoluteHeight(30)
                                            .background({60, 60, 60})
@@ -1371,7 +1640,7 @@ void EditorApp::rebuildInspector() noexcept
                             browser.show(this->mainWindow->getHandle().as<HWND>(), pos.x, pos.y);
                         }
                     )
-                    .text(L"Добавить компонент")
+                        .text(Localization::Translation::fromKeyToWstring("Ui.Editor.AddComponent"))
             );
     }
 
@@ -1387,7 +1656,7 @@ void EditorApp::rebuildInspector() noexcept
 void EditorApp::subscribeAll() noexcept
 {
     subscribe(this, &EditorApp::onActiveNodeChanged, [&]() {
-            rebuildInspector();
+            shouldRebuildInspector = true;
             engine->setEditorSelectedNode(activeNode);
     });
 }
@@ -1420,7 +1689,9 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 
         // 1. Название поля
         row = std::move(row).child(
-            LayoutBuilder::label(nb::Utils::toWString(field.name))
+            LayoutBuilder::label(
+                Localization::Translation::fromKeyToWstring(field.name)
+            )
                 .relativeWidth(0.35f)
                 .color({180, 180, 180})
                 .padding({0,0,0,5})
@@ -1463,7 +1734,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
         auto row = LayoutBuilder::hBox().relativeWidth(1.0f).absoluteHeight(30);
 
         row = std::move(row).child(
-            LayoutBuilder::label(nb::Utils::toWString(field.name))
+            LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                 .relativeWidth(0.35f)
                 .color({180, 180, 180})
                 .padding({0,0,0,5})
@@ -1521,7 +1792,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 .relativeWidth(1.0f)
                 .absoluteHeight(30)
                 .child(
-                    LayoutBuilder::label(nb::Utils::toWString(field.name))
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                         .relativeWidth(0.35f)
                         .color({180, 180, 180})
                         .padding({0, 0, 0, 5})
@@ -1543,24 +1814,19 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                                     btn, &Widgets::Button::onReleasedSignal,
                                     [this, colorPtr, btn, componentPtr, info]()
                                     {
-                                        // 1. ГАРАНТИРОВАННОЕ ПЕРЕСОЗДАНИЕ:
-                                        // Если старое окно было, сбрасываем его.
-                                        // Но внимание: если мы в модальном цикле, старое окно
-                                        // должно быть уже закрыто.
+
                                         if (colorPickerWindow)
                                         {
                                             colorPickerWindow = nullptr;
                                         }
 
-                                        // 2. Создаем новое окно и сохраняем его в локальную
-                                        // переменную
-                                        NbSize<int> size = {300, 600}; // 400?
+                                        NbSize<int> size = {300, 600};
 
                                         auto newWin = std::make_shared<Win32Window::ModalWindow>(
                                             size,
                                             inspectorWindow.get()
                                         );
-                                        colorPickerWindow = newWin; // Сохраняем в член класса
+                                        colorPickerWindow = newWin; 
 
                                         newWin->setTitle(L"Color Picker");
 
@@ -1661,7 +1927,9 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                             .relativeWidth(1.0f)
                             .absoluteHeight(30)
                             .child(
-                                LayoutBuilder::label(nb::Utils::toWString(field.name))
+                                LayoutBuilder::label(
+                                    Localization::Translation::fromKeyToWstring(field.name)
+                                )
                                     .relativeWidth(0.35f)
                                     .padding({0, 0, 0, 5})
                                     .color({180, 180, 180})
@@ -1701,7 +1969,9 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                            .relativeWidth(1.0f)
                            .absoluteHeight(30)
                            .child(
-                               LayoutBuilder::label(nb::Utils::toWString(field.name))
+                               LayoutBuilder::label(
+                                   Localization::Translation::fromKeyToWstring(field.name)
+                               )
                                    .relativeWidth(0.35f)
                                    .color({180, 180, 180})
                                    .padding({0, 0, 0, 5})
@@ -1733,7 +2003,6 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
         using MaterialVec   = std::vector<Ref<nb::Resource::MaterialAsset>>;
         MaterialVec* vecPtr = static_cast<MaterialVec*>(fieldData);
 
-        // Параметры верстки
         const int slotHeight   = 100; 
         const int headerHeight = 30; 
 
@@ -1741,88 +2010,129 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
             (int)vecPtr->size() * slotHeight + headerHeight
         );
 
-        vectorColumn = std::move(vectorColumn)
-                           .child(
-                               LayoutBuilder::label(nb::Utils::toWString(field.name))
-                                   .relativeWidth(1.0f)
-                                   .absoluteHeight(headerHeight)
-                                   .color({150, 150, 150})
-                                   .padding({0, 0, 0, 5})
-                                   .textAlignment({.textAlignment = TextAlignment::LEFT})
-                           );
+        vectorColumn = std::move(vectorColumn).child(
+            LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
+                .relativeWidth(1.0f)
+                .absoluteHeight(headerHeight)
+                .color({150, 150, 150})
+                .padding({0, 0, 0, 5})
+                .textAlignment({.textAlignment = TextAlignment::LEFT})
+        );
 
         for (size_t i = 0; i < vecPtr->size(); ++i)
         {
             auto& materialRef = (*vecPtr)[i];
+            if (!materialRef) 
+            {
+                // Пропускаем или рисуем пустой слот, если указатель пуст
+                continue; 
+            }
 
-            std::wstring fullPath =
-                materialRef ? nb::Utils::toWString(materialRef->getPath()) : L"None";
-            std::wstring fileName  = fullPath;
-            size_t       lastSlash = fileName.find_last_of(L"/\\");
+            std::string  materialPath = materialRef->getPath();
+            std::wstring fullPath     = nb::Utils::toWString(materialPath);
+            std::wstring fileName     = fullPath;
+            size_t       lastSlash    = fileName.find_last_of(L"/\\");
             if (lastSlash != std::wstring::npos)
             {
                 fileName = fileName.substr(lastSlash + 1);
             }
 
-            if (!std::filesystem::exists("Assets/cache/" + materialRef->getFilename() + ".png"))
+            // Формируем имя файла кэша
+            std::string replacedPath = materialPath;
+            std::replace(replacedPath.begin(), replacedPath.end(), '/', '_');
+            std::string cachePngPath = "Assets/cache/" + replacedPath + ".png";
+
+            // Проверяем наличие превью без постоянного обращения к диску
+            bool hasPreview = false;
+            if (m_existingPreviews.contains(cachePngPath))
             {
-                nb::Renderer::Renderer::generatePreviewForMaterial(materialRef->getPath());
+                hasPreview = true;
+            }
+            else if (std::filesystem::exists(cachePngPath))
+            {
+                m_existingPreviews.insert(cachePngPath);
+                hasPreview = true;
             }
 
-            vectorColumn =
-                std::move(vectorColumn)
+            // Если превью нет на диске и оно еще не генерируется
+            if (!hasPreview && !m_pendingPreviews.contains(materialPath))
+            {
+                m_pendingPreviews.insert(materialPath);
+
+                // Запускаем генерацию в фоновом потоке
+                std::thread([this, materialPath, cachePngPath]() {
+                try 
+                {
+                    // Выполняем тяжелую генерацию в фоне
+                    nb::Renderer::Renderer::generatePreviewForMaterial(materialPath);
+
+                    // После завершения возвращаем задачу в UI-поток через Engine
+                    this->engine->invokeAsync([this, materialPath, cachePngPath](auto&) {
+                        m_pendingPreviews.erase(materialPath);
+                        m_existingPreviews.insert(cachePngPath);
+                        
+                        // Сигнализируем о необходимости мягко перерисовать инспектор
+                        this->shouldRebuildInspector = true;
+                    });
+                }
+                catch (...)
+                {
+                    // В случае ошибки обязательно очищаем состояние в UI-потоке
+                    this->engine->invokeAsync([this, materialPath](auto&) {
+                        m_pendingPreviews.erase(materialPath);
+                    });
+                }
+            }).detach(); // .detach() освобождает поток, и он больше не блокирует UI
+            }
+
+            // Отрисовка виджета
+            vectorColumn = std::move(vectorColumn).child(
+                LayoutBuilder::hBox()
+                    .relativeWidth(1.0f)
+                    .absoluteHeight(slotHeight)
+                    .margin({0, 2, 0, 2}) 
                     .child(
-                        LayoutBuilder::hBox()
-                            .relativeWidth(1.0f)
+                        LayoutBuilder::label(
+                            Localization::Translation::fromKeyToWstring("Slot") + std::to_wstring(i)
+                        )
+                            .relativeWidth(0.35f)
+                            .color({100, 100, 100})
+                            .padding({0, 0, 0, 5})
+                    )
+                    .child(
+                        LayoutBuilder::widget(new Widgets::MaterialWidget())
+                            .relativeWidth(0.65f)
                             .absoluteHeight(slotHeight)
-                            .margin({0, 2, 0, 2}) 
-                            .child(
-                                LayoutBuilder::label(L" Slot " + std::to_wstring(i))
-                                    .relativeWidth(0.35f)
-                                    .color({100, 100, 100})
-                                    .padding({0, 0, 0, 5})
+                            .background({45, 45, 45})
+                            .apply<Widgets::MaterialWidget>(
+                                [fileName, materialPath](Widgets::MaterialWidget* w)
+                                {
+                                    w->setMaterial(
+                                        fileName,
+                                        materialPath,
+                                        true
+                                    );
+                                }
                             )
-                            .child(
-                                LayoutBuilder::widget(new Widgets::MaterialWidget())
-                                    .relativeWidth(0.65f)
-                                    .absoluteHeight(slotHeight)
-                                    .background({45, 45, 45})
-                                    .apply<Widgets::MaterialWidget>(
-                                        [fileName, materialRef](Widgets::MaterialWidget* w)
-                                        {
-                                            w->setMaterial(fileName, materialRef != nullptr);
-                                        }
-                                    )
-                                    .onEvent(
-                                        &Widgets::MaterialWidget::onClickSignal,
-                                        [this, materialRef]()
-                                        {
-                                            if (materialEditor)
-                                            {
-                                                materialEditor = nullptr;
-                                            }
+                            .onEvent(
+                                &Widgets::MaterialWidget::onClickSignal,
+                                [this, materialRef]()
+                                {
+                                    if (materialEditor)
+                                    {
+                                        materialEditor = nullptr;
+                                    }
 
-                                            materialEditor = std::make_shared<MaterialEditor>(
-                                                debugWindow.get(), engine.get(),
-                                                nbstl::NonOwningPtr(materialRef.get())
-                                            );
+                                    materialEditor = std::make_shared<MaterialEditor>(
+                                        debugWindow.get(), engine.get(),
+                                        nbstl::NonOwningPtr(materialRef.get())
+                                    );
 
-                                            //subscribe(
-                                            //    materialEditor.get(),
-                                            //    &MaterialEditor::onWindowClose,
-                                            //    []()
-                                            //    {
-                                            //    
-                                            //    }
-                                            //)
-
-                                            materialEditor->show();
-                                        }
-                                    )
-
-                                   
+                                    materialEditor->show();
+                                }
                             )
-                    );
+                    )
+            );
         }
 
         return std::move(parentBuilder).child(std::move(vectorColumn));
@@ -1845,7 +2155,7 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 .absoluteHeight(35)
                 //.alignment(Alignment::CENTER_LEFT)
                 .child(
-                    LayoutBuilder::label(nb::Utils::toWString(field.name))
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
                         .relativeWidth(0.35f)
                         .color({180, 180, 180})
                         .padding({0,0,0,5})
@@ -1903,6 +2213,81 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
 
         return std::move(parentBuilder).child(std::move(resourceRow));
     }
+    else if (typeName.find("std::filesystem::path") != std::string::npos)
+    {
+        std::string  path     = (*static_cast<std::filesystem::path*>(fieldData)).string();
+        std::wstring fileName = L"None";
+        if (!path.empty())
+        {
+            size_t lastSlash = path.find_last_of("/\\");
+            fileName         = nb::Utils::toWString(
+                lastSlash == std::string::npos ? path : path.substr(lastSlash + 1)
+            );
+        }
+
+        auto resourceRow =
+            LayoutBuilder::hBox()
+                .relativeWidth(1.0f)
+                .absoluteHeight(35)
+                //.alignment(Alignment::CENTER_LEFT)
+                .child(
+                    LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name))
+                        .relativeWidth(0.35f)
+                        .color({180, 180, 180})
+                        .padding({0, 0, 0, 5})
+                        .textAlignment({.textAlignment = TextAlignment::LEFT})
+                )
+                .child(
+                    LayoutBuilder::hBox()
+                        .relativeWidth(0.65f)
+                        .absoluteHeight(30)
+                        //.alignment(Alignment::CENTER_LEFT)
+                        .child(
+                            LayoutBuilder::vBox()
+                                .absoluteWidth(35)
+                                .absoluteHeight(35)
+                                .background({70, 140, 240})
+                                //.cornerRadius(5.0f)         // Скругление (аккуратное)
+                                .margin({2, 2, 2, 2})
+                        )
+                        .child(
+                            // 2. САМА КНОПКА (Widgets::Button)
+                            LayoutBuilder::widget(new Widgets::Button())
+                                .relativeWidth(1.0f)
+                                .absoluteHeight(31)
+                                .background({50, 50, 50})
+                                .margin({2, 2, 2, 2})
+                                .apply<Widgets::Button>(
+                                    [fileName](Widgets::Button* btn)
+                                    {
+                                        std::wstring buttonText = fileName + L"   🔍";
+                                        btn->setText(buttonText);
+                                    }
+                                )
+                                .onEvent(
+                                    &Widgets::IWidget::onReleasedSignal,
+                                    [this, field, fieldData, componentPtr, info]()
+                                    {
+                                        openFilePicker(
+                                            L"Select Resource: " + nb::Utils::toWString(field.name),
+                                            [this, field, fieldData, componentPtr,
+                                             info](const std::string& path)
+                                            {
+                                               
+                                                *static_cast<std::filesystem::path*>(fieldData) = path;
+                                                markComponentDirty(componentPtr, info);
+                                                shouldRebuildInspector = true;
+                                                
+                                            },
+                                            inspectorWindow.get()
+                                        );
+                                    }
+                                )
+                        )
+                );
+
+        return std::move(parentBuilder).child(std::move(resourceRow));
+    }
 
     return parentBuilder;
 }
@@ -1933,76 +2318,14 @@ void EditorApp::spawnPrimitive(
 
     const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
     auto&      scene    = nb::Scene::getInstance();
-    auto       node     = scene.createNode(parentId);
 
-    Ref<nb::Renderer::Mesh> mesh     = nullptr;
     const std::string_view  typeName = typeInfo->name;
-
-    nb::Renderer::Mesh::PrimitiveDescriptor desc;
-    desc.type = typeInfo->name;
-
-    for (const auto& field : typeInfo->fields)
-    {
-        const void*            fieldPtr      = static_cast<const uint8_t*>(data) + field.offset;
-        const std::string_view fieldTypeName = field.type->name;
-
-        if (fieldTypeName == "float")
-        {
-            desc.parameters[field.name] = *static_cast<const float*>(fieldPtr);
-        }
-        else if (fieldTypeName == "int" || fieldTypeName == "uint32_t")
-        {
-            desc.parameters[field.name] = static_cast<float>(*static_cast<const int*>(fieldPtr));
-        }
-    }
-
-    if (typeName == "CubeParams")
-    {
-        const auto* p = static_cast<CubeParams*>(data);
-        mesh = nb::Renderer::PrimitiveGenerators::createCube(p->size);
-    }
-    else if(typeName == "SphereParams")
-    {
-        const auto* p = static_cast<SphereParams*>(data);
-        mesh = nb::Renderer::PrimitiveGenerators::createSphere(p->radius, p->xSegments, p->ySegments);
-    }
-    else if (typeName == "TorusParams")
-    {
-        const auto* p = static_cast<TorusParams*>(data);
-        mesh          = nb::Renderer::PrimitiveGenerators::createTorus(
-            {static_cast<uint32>(p->xSegments), static_cast<uint32>(p->ySegments)}, p->majorRadius,
-            p->minorRadius
-        );
-    }
-    else if (typeName == "CylinderParams")
-    {
-        const auto* p = static_cast<CylinderParams*>(data);
-        mesh          = nb::Renderer::PrimitiveGenerators::createCylinder(
-            p->radius, p->height, p->xSegments, p->ySegments
-        );
-    }
-    else if (typeName == "PlaneParams")
-    {
-        const auto* p = static_cast<PlaneParams*>(data);
-        mesh          = nb::Renderer::PrimitiveGenerators::createPlane(
-            p->width, p->height, p->xSegments, p->ySegments
-        );
-    }
-    else if (typeName == "ConeParams")
-    {
-        const auto* p = static_cast<ConeParams*>(data);
-        mesh          = nb::Renderer::PrimitiveGenerators::createCone(
-            p->radius, p->height, p->radialSegments, p->heightSegments
-        );
-    }
-    else if (typeName == "PyramidParams")
-    {
-        const auto* p = static_cast<PyramidParams*>(data);
-        mesh = nb::Renderer::PrimitiveGenerators::createPyramid(p->radius, p->height, p->sides);
-    }
+    Ref<nb::Renderer::Mesh> mesh = createPrimitiveMesh(typeInfo->name, data);
 
     if (mesh)
     {
+        auto node = scene.createNode(parentId);
+
         node.addComponent<MeshComponent>({.mesh = mesh, .material = {}});
         std::string primitiveName = primitiveNameManager.generateName(typeName);
         node.addComponent<NameComponent>({primitiveName});
@@ -2073,6 +2396,138 @@ void EditorApp::spawnEmpty(const Widgets::ModelIndex& index) noexcept
         .with("entityId", static_cast<uint64_t>(node.getId()));
 }
 
+
+void EditorApp::spawnModel(
+    const Widgets::ModelIndex&   index,
+    const std::filesystem::path& pathToModel,
+    const nb::Math::Vector3<float>&         position 
+) noexcept
+{
+    nb::Ecs::EntityID parentId = sceneModel->getRoot();
+    
+
+    auto& scene = nb::Scene::getInstance();
+    auto  node  = scene.createNode(parentId);
+
+    std::vector<Ref<nb::Resource::MaterialAsset>> materials;
+    std::string                                   meshResourcePath = pathToModel.string();
+
+    if (pathToModel.extension() == ".model")
+    {
+        try
+        {
+            auto modelJson = nb::Loaders::Json(pathToModel);
+
+            if (modelJson.contains("mesh_source"))
+            {
+                meshResourcePath = modelJson["mesh_source"].get<std::string>();
+            }
+
+            if (modelJson.contains("submeshes"))
+            {
+                for (int i = 0; i < modelJson["submeshes"].size(); i++)
+                {
+                    if (modelJson["submeshes"][i].contains("material"))
+                    {
+                        std::string matPath =
+                            modelJson["submeshes"][i]["material"].get<std::string>();
+                        auto res = nb::ResMan::ResourceManager::getInstance()
+                                       ->getResource<nb::Resource::MaterialAsset>(matPath);
+                        if (res)
+                        {
+                            materials.push_back(res);
+                        }
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            nb::Error::ErrorManager::instance().report(
+                nb::Error::Type::WARNING,
+                "Failed to load materials from .model: " + std::string(e.what())
+            );
+        }
+    }
+
+    std::string nodeName = primitiveNameManager.generateName(pathToModel.filename().string());
+    node.addComponent<NameComponent>({nodeName});
+
+    node.addComponent<TransformComponent>(TransformComponent{.position = position});
+
+    node.addComponent<MeshComponent>(
+        {.mesh = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(
+             pathToModel.string()
+         ),
+         .material = materials}
+    );
+
+    sceneModel->addEntity(parentId, node.getId());
+    activeNode = scene.getNode(node.getId());
+
+    refreshHierarchyTreeViewSignal.emit();
+    onActiveNodeChanged.emit();
+
+    scene.invalidateBvh();
+
+    nb::Error::ErrorManager::instance()
+        .report(nb::Error::Type::INFO, "Model spawned successfully")
+        .with("name", nodeName);
+}
+
+void EditorApp::refreshInterfaceText() noexcept
+{
+    using namespace Localization;
+
+    if (mainWindow)
+    {
+        mainWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Title"));
+    }
+
+    if (sceneWindow)
+    {
+        sceneWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Scene.Title"));
+    }
+
+    if (hierarchyWindow)
+    {
+        hierarchyWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Hierarchy.Title"));
+    }
+
+    if (inspectorWindow)
+    {
+        inspectorWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Inspector.Title"));
+    }
+
+    if (debugWindow)
+    {
+        debugWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.DebugWindow.Title"));
+    }
+
+    if (toolbarWindow)
+    {
+        toolbarWindow->getLayoutRoot()->clearChilds();
+        setupMainWindow(); 
+    }
+
+    if (debugWindow)
+    {
+        debugWindow->getLayoutRoot()->clearChilds();
+        setupDebugUI();
+    }
+
+    if (activeNode.isValid())
+    {
+        rebuildInspector();
+    }
+
+    refreshHierarchyTreeViewSignal.emit();
+
+    if (assetManager)
+    {
+        assetManager->setTitle(Translation::fromKeyToWstring("Ui.AssetBrowser.Title"));
+    }
+}
 
 void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
 {

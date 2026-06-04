@@ -1,4 +1,4 @@
-
+# --- Material Editor ---
 Ui.MaterialEditor.Shader : Шейдер
 Ui.MaterialEditor.Properties : Свойства
 Ui.MaterialEditor.SaveMaterial : Сохранить
@@ -7,14 +7,116 @@ Ui.MaterialEditor.None : Отсутствует
 Ui.MaterialEditor.TextureSection : Текстуры
 Ui.MaterialEditor.ParametersSection : Параметры
 
+# --- Editor General ---
+Ui.Editor.Title : NewByte SDK
+Ui.Editor.File : Файл
+Ui.Editor.NewProject : Новый проект
+Ui.Editor.CreateNewProject : Создать новый проект
+Ui.Editor.Open : Открыть
+Ui.Editor.SelectResource : Выберите ресурс
+Ui.Editor.Save : Сохранить
+Ui.Editor.Exit : Выйти
+Ui.Editor.Edit : Редакт.
+Ui.Editor.View : Вид
+Ui.Editor.Help : Помощь
+Ui.Editor.AddComponent : Добавить компонент
+Ui.Editor.Delete : Удалить
+Ui.Editor.Rename : Переименовать
+Ui.Editor.Search : Поиск...
+Ui.Editor.View.Lang : Язык интерфейса
 
 
+# --- Post-Processing ---
+Ui.Editor.SSAO.Enabled : Включено
+Ui.Editor.SSAO.Radius : Радиус
+Ui.Editor.SSAO.Bias : Смещение
 
+Ui.Editor.ColorGrading : ▼ Цветокоррекция
+Ui.Editor.ColorGrading.Enabled : Включено
+Ui.Editor.ColorGrading.LUTexture : LUT-текстура
+
+Ui.Editor.SSR : ▼ Screen Space Reflections
+Ui.Editor.SSR.Enabled : Включено
+
+# --- Shader Uniforms / Material Properties ---
 u_AlbedoMap : Альбедо
 u_NormalMap : Карта нормалей
-u_ORMMap : Карта ORM
+u_ORMMap : Карта ORM (Occ/Rough/Met)
 u_BaseColorFactor : Множитель базового цвета
 u_RoughnessFactor : Множитель шероховатости
 u_MetallicFactor : Множитель металличности
 u_OcclusionFactor : Множитель окклюзии
 u_Emission : Свечение
+
+# --- Transform ---
+TransformComponent : Компонент трансформации
+position : Позиция
+eulerAngle : Угол поворота
+scale : Масштаб
+
+# --- Components Common ---
+MeshComponent : Меш компонент
+mesh : Меш
+material : Материал
+Slot : Слот
+
+# --- Light Component ---
+nb::Renderer::LightComponent : Компонент освещения
+type : Тип
+type.Point : Точечный
+type.Directional : Направленный
+type.Spot : Прожектор
+ambient : Фоновое освещение
+diffuse : Диффузное освещение
+specular : Отражение (Блик)
+constant : Постоянное затухание
+linear : Линейное затухание
+quadratic : Квадратичное затухание
+
+# --- Scripting ---
+nb::Script::ScriptComponent : Компонент скриптинга
+script : Скрипт
+
+# --- Physics: Collider ---
+nb::Physics::Collider : Коллайдер
+halfSize : Полуразмер
+offset : Смещение
+radius : Радиус
+height : Высота
+
+# --- Physics: Rigidbody ---
+nb::Physics::Rigidbody : Твердое тело (Rigidbody)
+mass : Масса
+friction : Трение
+restitution : Упругость
+useGravity : Использовать гравитацию
+isStatic : Статичный
+isTrigger : Триггер
+
+# --- Camera ---
+CameraComponent : Компонент камеры
+isPrimary : Основная камера
+isFfxaEnabled : Сглаживание FXAA
+fov : Угол обзора (FOV)
+nearClip : Ближняя плоскость
+farClip : Дальняя плоскость
+
+# --- UI / Hierarchy ---
+Ui.Scene.Hierarchy : Иерархия сцены
+Ui.Scene.Entity : Сущность
+Ui.Scene.CreateEmpty : Создать пустой объект
+Ui.AssetBrowser.Title : Обозреватель ассетов
+Ui.AssetBrowser.Import : Импортировать
+
+Ui.TextureEditor.Params : Параметры
+Ui.TextureEditor.Exposure : Экспозиция
+Ui.TextureEditor.Gamma : Гамма
+Ui.TextureEditor.Filtering : Фильтрация
+Ui.TextureEditor.Point : Точечная
+Ui.TextureEditor.Import : Импорт
+Ui.TextureEditor.Exit : Выход
+Ui.TextureEditor.Mips : Мипы
+Ui.TextureEditor.Size : Разрешение
+Ui.TextureEditor.Format : Формат
+Ui.TextureEditor.Metadata : Метаданные
+Ui.TextureEditor.TextureBrowser : Редактор текстур

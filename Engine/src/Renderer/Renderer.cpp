@@ -21,9 +21,101 @@
 #include "Physics/Physics.hpp"
 
 #include "Math/RayCast/RayPicker.hpp"
+#include "RendererTracker.hpp"
 
+//
 #include "OpenGL/Placeholder.hpp"
+#include "OpenGL/UBO.hpp"
+//
 #include "DebugDraw.hpp"
+
+#include <string_view>
+#include <format>
+#include <thread>
+
+namespace nb::Math
+{
+
+    struct PlaneS
+    {
+        Vector3<float> normal   = {0.f, 1.f, 0.f};
+        float          distance = 0.f; // Расстояние от начала координат
+
+        PlaneS() = default;
+        PlaneS(const Vector4<float>& coeff)
+        {
+            float mag = (Vector3<float>{coeff.x, coeff.y, coeff.z}).length();
+            normal    = Vector3<float>{coeff.x, coeff.y, coeff.z} / mag;
+            distance  = coeff.w / mag;
+        }
+
+        float getSignedDistance(const Vector3<float>& point) const
+        {
+            return normal.dot(point) + distance;
+        }
+    };
+
+    struct Frustum
+    {
+        PlaneS planes[6];
+
+        // Извлечение плоскостей из матрицы View-Projection
+        void update(const Mat4<float>& vp)
+        {
+            // В OpenGL матрицы обычно Column-Major.
+            // Индексы: [колонна][строка]
+
+            // Левая плоскость
+            planes[0] = PlaneS(
+                {vp[0][3] + vp[0][0], vp[1][3] + vp[1][0], vp[2][3] + vp[2][0], vp[3][3] + vp[3][0]}
+            );
+            // Правая
+            planes[1] = PlaneS(
+                {vp[0][3] - vp[0][0], vp[1][3] - vp[1][0], vp[2][3] - vp[2][0], vp[3][3] - vp[3][0]}
+            );
+            // Нижняя
+            planes[2] = PlaneS(
+                {vp[0][3] + vp[0][1], vp[1][3] + vp[1][1], vp[2][3] + vp[2][1], vp[3][3] + vp[3][1]}
+            );
+            // Верхняя
+            planes[3] = PlaneS(
+                {vp[0][3] - vp[0][1], vp[1][3] - vp[1][1], vp[2][3] - vp[2][1], vp[3][3] - vp[3][1]}
+            );
+            // Ближняя
+            planes[4] = PlaneS(
+                {vp[0][3] + vp[0][2], vp[1][3] + vp[1][2], vp[2][3] + vp[2][2], vp[3][3] + vp[3][2]}
+            );
+            // Дальняя
+            planes[5] = PlaneS(
+                {vp[0][3] - vp[0][2], vp[1][3] - vp[1][2], vp[2][3] - vp[2][2], vp[3][3] - vp[3][2]}
+            );
+        }
+
+        bool isVisible(const AABB3D& aabb) const
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                // Находим "положительную" вершину AABB (наиболее удаленную по нормали плоскости)
+                Vector3<float> center  = aabb.center();
+                Vector3<float> extents = aabb.size() * 0.5f;
+
+                float r = extents.x * std::abs(planes[i].normal.x) +
+                          extents.y * std::abs(planes[i].normal.y) +
+                          extents.z * std::abs(planes[i].normal.z);
+
+                float s = planes[i].getSignedDistance(center);
+
+                // Если центр AABB находится дальше чем -r от плоскости, он снаружи
+                if (s < -r)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+}
+
 
 namespace nb::Renderer
 {
@@ -37,6 +129,8 @@ namespace nb::Renderer
             {
                 std::abort();
             }
+            pointLightUbo = std::make_unique<OpenGl::UniformBuffer<PointLightData>>();
+
             break;
         case nb::Core::GraphicsAPI::DIRECTX:
             NB_FALLTHROUGH;
@@ -118,8 +212,12 @@ namespace nb::Renderer
             api->drawMesh(gridRenderCommand);
         };
 
+
         skybox = std::make_unique<Skybox>(contextMeshCache);
         ssao   = new SSAO(api, (uint32_t)400, (uint32_t)300, (uint32_t)64);
+        
+
+
     }
 
     void Renderer::onResize(uint32 width, uint32 heigth) noexcept
@@ -140,32 +238,29 @@ namespace nb::Renderer
         prevWidth = width;
         prevHeigth = heigth;
 
-        if (!t)
-        {
-            t = new OpenGl::OpenGlTexture("Assets\\res\\brick.png");
-            tn = new OpenGl::OpenGlTexture("Assets\\res\\brick_normal.png");
-        }
-
         mainFrameBuffer = api->createFrameBuffer(width, heigth);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
-        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Color");
+        // mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        // mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        // mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        mainFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH, "Depth");
         mainFrameBuffer->finalize();
 
-        mainFrameBuffer->setDrawBuffers(4);
+        //mainFrameBuffer->setDrawBuffers(4);
+        mainFrameBuffer->setDrawBuffers(1);
+
+        RendererTracker::addFrameBuffer("mainFrameBuffer", mainFrameBuffer);
 
         shadowFrameBuffer = api->createFrameBuffer(2048, 2048);
-        shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH);
+        shadowFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::DEPTH, "Depth");
         shadowFrameBuffer->finalize();
         
         ssrResultBuffer = api->createFrameBuffer(width, heigth);
-        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        ssrResultBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Color");
         ssrResultBuffer->finalize();
 
         ssrBlurBuffer = api->createFrameBuffer(width, heigth);
-        ssrBlurBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR);
+        ssrBlurBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR_HDR, "Color");
         ssrBlurBuffer->finalize();
 
         pointShadowFrameBuffer = api->createFrameBuffer(1024, 1024);
@@ -181,13 +276,15 @@ namespace nb::Renderer
         pointShadowFrameBuffer->finalize();
 
         navigationalGizmoFrameBuffer = api->createFrameBuffer(400, 400);
-        navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        navigationalGizmoFrameBuffer->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR, "Color");
         navigationalGizmoFrameBuffer->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         navigationalGizmoFrameBuffer->finalize();
 
         outlineMaskFrameBuffer = api->createFrameBuffer(width, heigth);
         outlineMaskFrameBuffer->addTextureAttachment(
-            IFrameBuffer::TextureAttachment::COLOR
+            IFrameBuffer::TextureAttachment::COLOR,
+            "Color"
+
         ); 
         outlineMaskFrameBuffer->finalize();
         mainFrameBuffer->setDrawBuffers(1);
@@ -195,16 +292,6 @@ namespace nb::Renderer
 
         gBuffer = std::make_unique<GBuffer>(api, width, heigth);
         ssao->resize(width, heigth);
-
-        if (!albedo)
-        {
-            albedo      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_diff_1k.png"); 
-            metal       = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\metal (2).png");
-            roughtness  = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\rough (2).png");
-            ao          = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\ao (3).png");
-            normal      = std::make_shared<OpenGl::OpenGlTexture>("Assets\\res\\beige_wall_001_nor_gl_1k.png");
-        }
-
 
         if (!debugLightMesh)
         {
@@ -218,7 +305,7 @@ namespace nb::Renderer
     namespace
     {
         constexpr float SHADOW_MAP_RESOLUTION = 2048.0f;
-        constexpr float ORTHO_SIZE            = 45.0f;
+        constexpr float ORTHO_SIZE            = 145.0f;
         constexpr float LIGHT_DISTANCE        = 30.0f;
         constexpr float Z_NEAR                = 0.1f;
         constexpr float Z_FAR                 = 75.0f;
@@ -230,9 +317,6 @@ namespace nb::Renderer
         const std::string_view SHADOW_SHADER_NAME        = "lightPass.shader";
         const std::string_view MAIN_SHADER_NAME          = "ADS.shader";
     }
-
-
-   
 
     void Renderer::render() noexcept
     {
@@ -254,174 +338,199 @@ namespace nb::Renderer
 
         onResize(width, height);
 
-        nbstl::Vector<RendererCommand> mainQueue;
-        std::vector<Ecs::EntityID>     directionalLights;
-        std::vector<Ecs::EntityID>     pointLights;
+        nbstl::Vector<RendererCommand>  mainQueue;
+        std::vector<Ecs::EntityID>      directionalLights;
+        std::vector<Ecs::EntityID>      pointLights;
         nbstl::Vector<BillboardCommand> billboardQueue;
 
         directionalLights.reserve(8);
         pointLights.reserve(32);
 
+        nb::Math::Frustum cameraFrustum;
+        //cameraFrustum.update(cam->getLookAt() * cam->getProjection());
+
         auto mainShader = resourceManager->getResource<Shader>(MAIN_SHADER_NAME.data());
-
-        scene.traverseAll(
-            [&](Ecs::EntityID entityId)
-            {
-                Ecs::Entity entity{entityId};
-
-                if (registry.has<CameraComponent>(entity) &&
-                    registry.has<TransformComponent>(entity))
+        {
+            scene.traverseAll(
+                [&](Ecs::EntityID entityId)
                 {
-                    const auto& camera    = registry.get<CameraComponent>(entity);
-                    const auto& transform = registry.get<TransformComponent>(entity);
+                    Ecs::Entity entity{entityId};
 
-                    using Vec3 = Math::Vector3<float>;
-
-                    Vec3 forward = camera.controller->getDirection(); 
-                    Vec3 worldUp = Vec3(0.0f, 1.0f, 0.0f);
-
-                    Vec3 right = Math::normalize(Math::cross(forward, worldUp));
-                    Vec3 up    = Math::normalize(Math::cross(right, forward));
-
-                    float fov    = Math::toRadians(camera.controller->getFov());
-                    float aspect = camera.controller->getAspectRatio();
-                    float nearZ  = camera.controller->getNearPlane();
-                    float farZ   = camera.controller->getFarPlane() / 100.0f;
-
-                    float tanHalfFov = tanf(fov * 0.5f);
-
-                    float nearHeight = 2.0f * tanHalfFov * nearZ;
-                    float nearWidth  = nearHeight * aspect;
-
-                    float farHeight = 2.0f * tanHalfFov * farZ;
-                    float farWidth  = farHeight * aspect;
-
-                    Vec3 nearCenter = transform.position + forward * nearZ;
-                    Vec3 farCenter  = transform.position + forward * farZ;
-
-                    Vec3 nearUpOffset    = up * (nearHeight * 0.5f);
-                    Vec3 nearRightOffset = right * (nearWidth * 0.5f);
-                    Vec3 farUpOffset     = up * (farHeight * 0.5f);
-                    Vec3 farRightOffset  = right * (farWidth * 0.5f);
-
-                    Vec3 ntl = nearCenter + nearUpOffset - nearRightOffset;
-                    Vec3 ntr = nearCenter + nearUpOffset + nearRightOffset;
-                    Vec3 nbl = nearCenter - nearUpOffset - nearRightOffset;
-                    Vec3 nbr = nearCenter - nearUpOffset + nearRightOffset;
-
-                    Vec3 ftl = farCenter + farUpOffset - farRightOffset;
-                    Vec3 ftr = farCenter + farUpOffset + farRightOffset;
-                    Vec3 fbl = farCenter - farUpOffset - farRightOffset;
-                    Vec3 fbr = farCenter - farUpOffset + farRightOffset;
-
-
-                    DebugDraw::drawLine(ntl, ntr);
-                    DebugDraw::drawLine(ntr, nbr);
-                    DebugDraw::drawLine(nbr, nbl);
-                    DebugDraw::drawLine(nbl, ntl);
-
-                    DebugDraw::drawLine(ftl, ftr);
-                    DebugDraw::drawLine(ftr, fbr);
-                    DebugDraw::drawLine(fbr, fbl);
-                    DebugDraw::drawLine(fbl, ftl);
-
-                    DebugDraw::drawLine(ntl, ftl);
-                    DebugDraw::drawLine(ntr, ftr);
-                    DebugDraw::drawLine(nbl, fbl);
-                    DebugDraw::drawLine(nbr, fbr);
-                }
-
-                if (registry.has<LightComponent>(entity))
-                {
-                    const auto& light = registry.get<LightComponent>(entity);
-                    if (light.isPointLight())
+                    if (registry.has<CameraComponent>(entity) &&
+                        registry.has<TransformComponent>(entity))
                     {
-                        pointLights.push_back(entityId);
+                        const auto& camera    = registry.get<CameraComponent>(entity);
+                        const auto& transform = registry.get<TransformComponent>(entity);
 
-                        if (true) // editor mode
+                        using Vec3 = Math::Vector3<float>;
+
+                        Vec3 forward = camera.controller->getDirection();
+                        Vec3 worldUp = Vec3(0.0f, 1.0f, 0.0f);
+
+                        Vec3 right = Math::normalize(Math::cross(forward, worldUp));
+                        Vec3 up    = Math::normalize(Math::cross(right, forward));
+
+                        float fov    = Math::toRadians(camera.controller->getFov());
+                        float aspect = camera.controller->getAspectRatio();
+                        float nearZ  = camera.controller->getNearPlane();
+                        float farZ   = camera.controller->getFarPlane() / 100.0f;
+
+                        float tanHalfFov = tanf(fov * 0.5f);
+
+                        float nearHeight = 2.0f * tanHalfFov * nearZ;
+                        float nearWidth  = nearHeight * aspect;
+
+                        float farHeight = 2.0f * tanHalfFov * farZ;
+                        float farWidth  = farHeight * aspect;
+
+                        Vec3 nearCenter = transform.position + forward * nearZ;
+                        Vec3 farCenter  = transform.position + forward * farZ;
+
+                        Vec3 nearUpOffset    = up * (nearHeight * 0.5f);
+                        Vec3 nearRightOffset = right * (nearWidth * 0.5f);
+                        Vec3 farUpOffset     = up * (farHeight * 0.5f);
+                        Vec3 farRightOffset  = right * (farWidth * 0.5f);
+
+                        Vec3 ntl = nearCenter + nearUpOffset - nearRightOffset;
+                        Vec3 ntr = nearCenter + nearUpOffset + nearRightOffset;
+                        Vec3 nbl = nearCenter - nearUpOffset - nearRightOffset;
+                        Vec3 nbr = nearCenter - nearUpOffset + nearRightOffset;
+
+                        Vec3 ftl = farCenter + farUpOffset - farRightOffset;
+                        Vec3 ftr = farCenter + farUpOffset + farRightOffset;
+                        Vec3 fbl = farCenter - farUpOffset - farRightOffset;
+                        Vec3 fbr = farCenter - farUpOffset + farRightOffset;
+
+                        DebugDraw::drawLine(ntl, ntr);
+                        DebugDraw::drawLine(ntr, nbr);
+                        DebugDraw::drawLine(nbr, nbl);
+                        DebugDraw::drawLine(nbl, ntl);
+
+                        DebugDraw::drawLine(ftl, ftr);
+                        DebugDraw::drawLine(ftr, fbr);
+                        DebugDraw::drawLine(fbr, fbl);
+                        DebugDraw::drawLine(fbl, ftl);
+
+                        DebugDraw::drawLine(ntl, ftl);
+                        DebugDraw::drawLine(ntr, ftr);
+                        DebugDraw::drawLine(nbl, fbl);
+                        DebugDraw::drawLine(nbr, fbr);
+                    }
+
+                    if (registry.has<LightComponent>(entity))
+                    {
+                        const auto& light = registry.get<LightComponent>(entity);
+                        if (light.isPointLight())
                         {
-                            Pipeline pipelineConfig{};
-                            pipelineConfig.shader =
-                                ResMan::ResourceManager::getInstance()->getResource<Shader>(
-                                    "billboard.shader"
+                            pointLights.push_back(entityId);
+
+                            if (true) // editor mode
+                            {
+                                Pipeline pipelineConfig{};
+                                pipelineConfig.shader =
+                                    ResMan::ResourceManager::getInstance()->getResource<Shader>(
+                                        "billboard.shader"
+                                    );
+                                pipelineConfig.polygonMode = PolygonMode::FULL;
+
+                                TransformComponent& transform =
+                                    registry.get<TransformComponent>(entity);
+
+                                billboardQueue.pushBack(
+                                    {.mesh     = quadScreenMesh.get(),
+                                     .pipeline = api->getCache().getOrCreate(pipelineConfig),
+                                     .pos      = transform.position,
+                                     .texture  = ResMan::ResourceManager::getInstance()
+                                                     ->getResource<Resource::TextureAsset>(
+                                                         "Assets/res/PointLightTexture.texture"
+                                                     )}
                                 );
-                            pipelineConfig.polygonMode = PolygonMode::FULL;
 
-                            TransformComponent& transform =
-                                registry.get<TransformComponent>(entity);
+                                DebugDraw::drawCircle(transform.position, 10.f, 32, {1.0f, 0.0f, 0.0f});
+                                DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 1.0f, 0.0f});
+                                DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 0.0f, 1.0f});
 
-                            billboardQueue.pushBack({
-                                    .mesh     = quadScreenMesh.get(),
-                                    .pipeline = api->getCache().getOrCreate(pipelineConfig),
-                                    .pos      = transform.position,
-                                    .texture  = ResMan::ResourceManager::getInstance()->getResource<Resource::TextureAsset>("Assets/res/PointLightTexture.texture")
-                                }
-                            );
-
-
-                            DebugDraw::drawCircle(transform.position, 10.f, 32, {1.0f, 0.0f, 0.0f});
-                            DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 1.0f, 0.0f});
-                            DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 0.0f, 1.0f});
-
-                            //DebugDraw::drawLine(
-                            //    transform.position, transform.position + light.direction * 5.0f
-                            //);
+                                // DebugDraw::drawLine(
+                                //     transform.position, transform.position + light.direction * 5.0f
+                                //);
+                            }
                         }
-                    
-                    }
-                    else
-                    {
-                        directionalLights.push_back(entityId);
-                        if (true) // editor mode
+                        else
                         {
-                            Pipeline pipelineConfig{};
-                            pipelineConfig.shader      = ResMan::ResourceManager::getInstance()->getResource<Shader>("billboard.shader");
-                            pipelineConfig.polygonMode = PolygonMode::FULL;
+                            directionalLights.push_back(entityId);
+                            if (true) // editor mode
+                            {
+                                Pipeline pipelineConfig{};
+                                pipelineConfig.shader =
+                                    ResMan::ResourceManager::getInstance()->getResource<Shader>(
+                                        "billboard.shader"
+                                    );
+                                pipelineConfig.polygonMode = PolygonMode::FULL;
 
-                            TransformComponent& transform =
-                                registry.get<TransformComponent>(entity);
+                                TransformComponent& transform =
+                                    registry.get<TransformComponent>(entity);
 
-                            billboardQueue.pushBack({
-                                .mesh     = quadScreenMesh.get(),
-                                .pipeline = api->getCache().getOrCreate(pipelineConfig),
-                                .pos = transform.position,
-                                .texture  = ResMan::ResourceManager::getInstance()->getResource
-                                             <Resource::TextureAsset>("Assets/res/DirLightTexture.texture")
-                            });
+                                billboardQueue.pushBack(
+                                    {.mesh     = quadScreenMesh.get(),
+                                     .pipeline = api->getCache().getOrCreate(pipelineConfig),
+                                     .pos      = transform.position,
+                                     .texture  = ResMan::ResourceManager::getInstance()
+                                                     ->getResource<Resource::TextureAsset>(
+                                                         "Assets/res/DirLightTexture.texture"
+                                                     )}
+                                );
 
-                            DebugDraw::drawLine(
-                                transform.position, transform.position + light.direction * 5.0f
-                            );
+                                DebugDraw::drawLine(
+                                    transform.position, transform.position + light.direction * 5.0f
+                                );
+                            }
                         }
                     }
-                }
 
-                if (registry.has<MeshComponent>(entity) && registry.has<TransformComponent>(entity))
-                {
-                    auto& meshComp  = registry.get<MeshComponent>(entity);
-                    auto& transform = registry.get<TransformComponent>(entity);
-
-                    if (meshComp.material.empty())
+                    if (registry.has<MeshComponent>(entity) && registry.has<TransformComponent>(entity))
                     {
-                        auto placeholder = resourceManager->getResource<Resource::MaterialAsset>(
-                            PLACEHOLDER_MATERIAL_PATH.data()
+                        auto& meshComp  = registry.get<MeshComponent>(entity);
+                        auto& transform = registry.get<TransformComponent>(entity);
+
+                        if (!meshComp.isVisible)
+                        {
+                            return;
+                        }
+
+
+                        Math::AABB3D worldAabb = Math::AABB3D::recalculateAabb3dByModelMatrix(
+                            meshComp.mesh->getAabb3d(), transform.worldMatrix
                         );
-                        meshComp.material.push_back(placeholder);
+
+                        // 3. Проверка на видимость
+                        //if (!cameraFrustum.isVisible(worldAabb))
+                        //{
+                        //    return; // Объект за пределами экрана, не рисуем!
+                        //}
+
+
+                        if (meshComp.material.empty())
+                        {
+                            auto placeholder = resourceManager->getResource<Resource::MaterialAsset>(
+                                PLACEHOLDER_MATERIAL_PATH.data()
+                            );
+                            meshComp.material.push_back(placeholder);
+                        }
+
+                        Pipeline pipelineConfig{};
+                        pipelineConfig.shader      = mainShader;
+                        pipelineConfig.polygonMode = polygonMode;
+
+                        mainQueue.pushBack(
+                            {.mesh     = meshComp.mesh.get(),
+                             .material = meshComp.material,
+                             .pipeline = api->getCache().getOrCreate(pipelineConfig),
+                             .model    = transform.worldMatrix}
+                        );
                     }
-
-                    Pipeline pipelineConfig{};
-                    pipelineConfig.shader      = mainShader;
-                    pipelineConfig.polygonMode = polygonMode;
-
-                    mainQueue.pushBack(
-                        {.mesh     = meshComp.mesh.get(),
-                         .material = meshComp.material,
-                         .pipeline = api->getCache().getOrCreate(pipelineConfig),
-                         .model    = transform.worldMatrix}
-                    );
                 }
-            }
-        );
+            );
+        }
 
         api->beginFrame();
 
@@ -431,6 +540,9 @@ namespace nb::Renderer
             isPreviewInitialized = true;
         }
 
+        api->bindFrameBuffer(shadowFrameBuffer);
+        api->clear(false, true, false); // Очищаем только глубину
+        api->bindDefaultFrameBuffer();  // Возвращаем
 
         Math::Mat4<float> currentLightView = Math::Mat4<float>::identity();
         Math::Mat4<float> currentLightProj = Math::Mat4<float>::identity();
@@ -458,7 +570,7 @@ namespace nb::Renderer
             Pipeline shadowPipeline{.shader = shadowShader, .polygonMode = PolygonMode::FULL};
             uint32   shadowPso = api->getCache().getOrCreate(shadowPipeline);
 
-            shadowShader->use();
+            //shadowShader->use();
             shadowShader->setUniformMat4("lightProj", currentLightProj);
             shadowShader->setUniformMat4("lightView", currentLightView);
 
@@ -482,7 +594,7 @@ namespace nb::Renderer
 
             api->setViewport({0, 0, POINT_SHADOW_RES, POINT_SHADOW_RES});
 
-            pointShadowShader->use();
+            //pointShadowShader->use();
 
             for (auto id : pointLights)
             {
@@ -572,6 +684,7 @@ namespace nb::Renderer
         ////////////
 
          {
+
             gBuffer->getFramebuffer()->bind();
             
             api->setViewport({0, 0, (float)width, (float)height});
@@ -586,7 +699,7 @@ namespace nb::Renderer
             uint32   prePso = api->getCache().getOrCreate(prePipeline);
 
 
-            prePassShader->use();
+            //prePassShader->use();
             prePassShader->setUniformMat4("view", cam->getLookAt());
             prePassShader->setUniformMat4("projection", cam->getProjection());
 
@@ -614,166 +727,172 @@ namespace nb::Renderer
             GL_FRAMEBUFFER_BARRIER_BIT
         );
 
-
-        api->bindDefaultFrameBuffer();
-        api->bindFrameBuffer(mainFrameBuffer);
-        api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
-        api->setClearColor(Colors::BLACK, CLEAR_ALPHA, 0);
-        api->clear(true, true, false);
-
         const auto view   = cam->getLookAt();
         const auto proj   = cam->getProjection();
         const auto camPos = cam->getPosition();
 
-        auto iblResource =
-            resourceManager->getResource<Resource::IhdrResource>(DEFAULT_IBL_PATH.data());
-        if (iblResource)
         {
-            auto skyboxShader = resourceManager->getResource<nb::Renderer::Shader>("skybox.shader");
-            skyboxShader->use();
-            skyboxShader->setUniformInt("skybox", 0);
-            skyboxShader->setUniformMat4("view", view);
-            skyboxShader->setUniformMat4("projection", proj);
+            api->bindDefaultFrameBuffer();
+            api->bindFrameBuffer(mainFrameBuffer);
+            api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
+            api->setClearColor(Colors::BLACK, CLEAR_ALPHA, 0);
+            api->clear(true, true, false);
 
-            skybox->bindCubemap(iblResource->getCubemap());
-            skybox->render(skyboxShader);
-        }
-
-        if (isShowGridEnabled)
-        {
-            auto gridShader =
-                resourceManager->getResource<nb::Renderer::Shader>("infinite_grid.shader");
-            Pipeline gridPipeline{
-                .shader = gridShader, .isDepthTestEnable = false, .isBlendEnable = true
-            };
-
-            gridShader->use();
-            gridShader->setUniformVec3("uCameraWorldPosition", camPos);
-            gridShader->setUniformMat4("uViewProjection", view * proj);
-
-            RendererCommand gridCmd{
-                .mesh        = nullptr,
-                .pipeline    = api->getCache().getOrCreate(gridPipeline),
-                .vertexCount = 6
-            };
-            api->drawVertexless(gridCmd);
-        }
-
-        std::vector<PointLight>       pointLightsData;
-        std::vector<DirectionalLight> dirLightsData;
-
-        for (auto id : directionalLights)
-        {
-            const auto& l = registry.get<LightComponent>(Ecs::Entity{id});
-            dirLightsData.emplace_back(
-                l.ambient.asVec3(), l.diffuse.asVec3(), l.specular.asVec3(), l.direction
-            );
-        }
-        for (auto id : pointLights)
-        {
-            const auto& l = registry.get<LightComponent>(Ecs::Entity{id});
-            const auto& t = registry.get<TransformComponent>(Ecs::Entity{id});
-            auto&       data = pointLightsData.emplace_back(
-                l.ambient.asVec3(), l.diffuse.asVec3(), l.specular.asVec3(), t.position, l.constant,
-                l.linear, l.quadratic, 1.0f
-            );
-
-            if (l.castShadows && m_pointShadowMaps.contains(id))
-            {
-                data.shadowMapHandle = m_pointShadowMaps[id]->getHandle();
-                data.farPlane        = 50.0f;
-                data.hasShadow       = true;
-            }
-            else
-            {
-                data.hasShadow = false;
-            }
-
-        }
-
-        //api->bindTexture(3, shadowFrameBuffer->getTexture());
-        if (iblResource)
-        {
-            api->bindCubemap(4, iblResource->getIrradianceCubemap()->getId());
-            api->bindCubemap(5, iblResource->getPrefilterCubemap()->getId());
-            api->bindTexture(6, iblResource->getBrdfTexture()->getId());
-        }
-        
-
-        
-
-
-        for (auto& cmd : mainQueue)
-        {
-            auto shader = cmd.material[0]->getShader();
-            shader->use();
-
-            shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
-            shader->setUniformUint64("u_SsaoMap", ssaoResult);
-            shader->setUniformVec2("u_ScreenResolution", {(float)width, (float)height});
             
-            shader->setUniformInt("u_UseSSAO", useSsao);
 
-
-
-            shader->setUniformVec3("u_CameraPos", camPos);
-            shader->setUniformMat4("model", cmd.model);
-            shader->setUniformMat4("view", view);
-            shader->setUniformMat4("proj", proj);
-            shader->setUniformMat4("lightView", currentLightView);
-            shader->setUniformMat4("lightProj", currentLightProj);
-
-
-
-
-            shader->setUniformUint64("u_EmissionMap", OpenGl::createPlaceholderForEmission());
-
-            for (auto& l : dirLightsData)
+            auto iblResource =
+                resourceManager->getResource<Resource::IhdrResource>(DEFAULT_IBL_PATH.data());
+            if (iblResource)
             {
-                l.applyUniforms(shader);
-            }
-            for (auto& l : pointLightsData)
-            {
-                l.applyUniforms(shader);
+                auto skyboxShader =
+                    resourceManager->getResource<nb::Renderer::Shader>("skybox.shader");
+                skyboxShader->use();
+                skyboxShader->setUniformInt("skybox", 0);
+                skyboxShader->setUniformMat4("view", view);
+                skyboxShader->setUniformMat4("projection", proj);
+
+                skybox->bindCubemap(iblResource->getCubemap());
+                skybox->render(skyboxShader);
             }
 
-            shader->setUniformInt(
-                ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data(),
-                static_cast<int>(dirLightsData.size())
-            );
-            shader->setUniformInt(
-                ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
-                static_cast<int>(pointLightsData.size())
-            );
+            if (isShowGridEnabled)
+            {
+                auto gridShader =
+                    resourceManager->getResource<nb::Renderer::Shader>("infinite_grid.shader");
+                Pipeline gridPipeline{
+                    .shader = gridShader, .isDepthTestEnable = false, .isBlendEnable = true
+                };
 
-            api->drawMesh(cmd);
-        }
+                //gridShader->use();
+                gridShader->setUniformVec3("uCameraWorldPosition", camPos);
+                gridShader->setUniformMat4("uViewProjection", view * proj);
+
+                RendererCommand gridCmd{
+                    .mesh        = nullptr,
+                    .pipeline    = api->getCache().getOrCreate(gridPipeline),
+                    .vertexCount = 6
+                };
+                api->drawVertexless(gridCmd);
+            }
+
+            std::vector<PointLight>       pointLightsData;
+            std::vector<DirectionalLight> dirLightsData;
+
+            PointLightData pointLightData{};
+
+            for (auto id : directionalLights)
+            {
+                const auto& l = registry.get<LightComponent>(Ecs::Entity{id});
+                dirLightsData.emplace_back(
+                    l.ambient.asVec3(), l.diffuse.asVec3(), l.specular.asVec3(), l.direction
+                );
+            }
+            for (auto id : pointLights)
+            {
+                const auto& l    = registry.get<LightComponent>(Ecs::Entity{id});
+                const auto& t    = registry.get<TransformComponent>(Ecs::Entity{id});
+                auto&       data = pointLightsData.emplace_back(
+                    l.ambient.asVec3(), l.diffuse.asVec3(), l.specular.asVec3(), t.position,
+                    l.constant, l.linear, l.quadratic, 1.0f
+                );
+
+                pointLightData.pointLight[pointLightData.countOfpointLight++] = PointLightProxy{
+                    .diffuse   = l.diffuse.asVec3(),
+                    .position = t.position,
+                    .intensity = 50.0f,
+                    .constCoefficient = l.constant,
+                    .linearCoefficient = l.linear,
+                    .expCoefficient = l.quadratic,
+                    .farPlane = l.castShadows && m_pointShadowMaps.contains(id) ? 50.0f : 0.0f,
+                    .hasShadow = l.castShadows && m_pointShadowMaps.contains(id) ? true : false,
+                    .shadowMapHandle = l.castShadows && m_pointShadowMaps.contains(id) ? m_pointShadowMaps[id]->getHandle() : 0
+                };
+            }
+            pointLightUbo->update(pointLightData);
+
+            // api->bindTexture(3, shadowFrameBuffer->getTexture());
+            if (iblResource)
+            {
+                mainShader->setUniformUint64(
+                    "u_IrradianceMap", iblResource->getIrradianceCubemap()->getHandle()
+                );
+                mainShader->setUniformUint64(
+                    "u_PrefilterMap", iblResource->getPrefilterCubemap()->getHandle()
+                );
+                mainShader->setUniformUint64(
+                    "u_BrdfLUT", iblResource->getBrdfTexture()->getHandle()
+                );
+                
+            }
 
 
-        for (auto cmd : billboardQueue)
-        {
+            for (auto& cmd : mainQueue)
+            {
+                auto shader = cmd.material[0]->getShader();
+                //shader->use();
+
+                shader->setUniformUint64("shadowMap", shadowFrameBuffer->getTextureHandle(0));
+                shader->setUniformUint64("u_SsaoMap", ssaoResult);
+                shader->setUniformVec2("u_ScreenResolution", {(float)width, (float)height});
+
+                shader->setUniformInt("u_UseSSAO", useSsao);
+
+                shader->setUniformVec3("u_CameraPos", camPos);
+                shader->setUniformMat4("model", cmd.model);
+                shader->setUniformMat4("view", view);
+                shader->setUniformMat4("proj", proj);
+                shader->setUniformMat4("lightView", currentLightView);
+                shader->setUniformMat4("lightProj", currentLightProj);
+
+                shader->setUniformUint64("u_EmissionMap", OpenGl::createPlaceholderForEmission());
+
+                for (auto& l : dirLightsData)
+                {
+                    l.applyUniforms(shader);
+                }
+                // for (int i = 0; i < pointLightData.countOfpointLight; i++)
+                // {
+                //     std::string shadowHandleName = std::format("u_PointShadowMaps[{}]", i);
+                //     shader->setUniformUint64(shadowHandleName, m_pointShadowMaps[i]->getHandle());
+                // }
+
+                pointLightUbo->bindBase(0);
+
+                shader->setUniformInt(
+                    ShaderConstants::COUNT_OF_DIRECTIONLIGHT_UNIFORM_NAME.data(),
+                    static_cast<int>(dirLightsData.size())
+                );
+                // shader->setUniformInt(
+                //     ShaderConstants::COUNT_OF_POINTLIGHT_UNIFORM_NAME.data(),
+                //     static_cast<int>(pointLightsData.size())
+                // );
+
+                api->drawMesh(cmd);
+            }
+
             auto billboardShader =
-                ResMan::ResourceManager::getInstance()->getResource<Shader>("billboard.shader");
-            
+                    ResMan::ResourceManager::getInstance()->getResource<Shader>("billboard.shader");
+
             billboardShader->use();
-            billboardShader->setUniformVec3("uPosition", cmd.pos);
-            billboardShader->setUniformMat4("uView", cam->getLookAt());
-            billboardShader->setUniformMat4("uProjection", cam->getProjection());
-            billboardShader->setUniformUint64(
-                "uTexture", cmd.texture->getInternalTexture()->getHandle()
-            );
 
-            cmd.mesh->draw(GL_TRIANGLES, billboardShader);
-            
+            for (auto cmd : billboardQueue)
+            {
+                
+                billboardShader->setUniformVec3("uPosition", cmd.pos);
+                billboardShader->setUniformMat4("uView", cam->getLookAt());
+                billboardShader->setUniformMat4("uProjection", cam->getProjection());
+                billboardShader->setUniformUint64(
+                    "uTexture", cmd.texture->getInternalTexture()->getHandle()
+                );
+
+                cmd.mesh->draw(GL_TRIANGLES, billboardShader);
+            }
+
+            DebugDraw::setThickness(5.0f);
+            DebugDraw::drawBatch(api, cam);
+
+            renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
         }
-
-        DebugDraw::setThickness(5.0f);
-        DebugDraw::drawBatch(api, cam);
-
-
-
-        renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
-
 
         if (postProcessConfig.isSSREnabled)
         {
@@ -784,12 +903,15 @@ namespace nb::Renderer
 
         if (!previewQueue.isEmpty())
         {
-            for (auto& i : previewQueue)
-            {
-                saveSpherePreview(i, "Assets/cache/" + i.stem().string() + ".png");
-            }
+            auto& materialPath = previewQueue.front(); 
+            
+            saveSpherePreview(materialPath, "Assets/cache/" + materialPath.stem().string() + ".png");
 
-            previewQueue.clear();
+            for (size_t idx = 1; idx < previewQueue.size(); ++idx)
+            {
+                previewQueue[idx - 1] = std::move(previewQueue[idx]);
+            }
+            previewQueue.popBack();
         }
 
         api->endFrame();
@@ -814,7 +936,7 @@ namespace nb::Renderer
                 .isDepthTestEnable = true
             };
             uint32 debugPso = api->getCache().getOrCreate(debugP);
-            debugLightShader->use();
+            //debugLightShader->use();
             debugLightShader->setUniformMat4("view", view);
             debugLightShader->setUniformMat4("proj", proj);
 
@@ -848,7 +970,7 @@ namespace nb::Renderer
             };
             uint32 aabbPso = api->getCache().getOrCreate(aabbP);
 
-            aabbShader->use();
+            //aabbShader->use();
             aabbShader->setUniformMat4("view", view);
             aabbShader->setUniformMat4("projection", proj);
 
@@ -884,46 +1006,46 @@ namespace nb::Renderer
         gizmoCtx.draw();
 
 
-        if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
-        {
-            auto maskShader = rm->getResource<Shader>("mask_pass.shader");
+        // if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
+        // {
+        //     auto maskShader = rm->getResource<Shader>("mask_pass.shader");
             
-            auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
+        //     auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
 
-            api->bindFrameBuffer(outlineMaskFrameBuffer);
-            api->setViewport({
-                    0,
-                    0,
-                    (float)Core::EngineSettings::getWidth(),
-                    (float)Core::EngineSettings::getHeight()
-                }
-            );
-            api->setClearColor(Colors::BLACK, 0.0f, 0);
-            api->clear(true, false, false);
+        //     api->bindFrameBuffer(outlineMaskFrameBuffer);
+        //     api->setViewport({
+        //             0,
+        //             0,
+        //             (float)Core::EngineSettings::getWidth(),
+        //             (float)Core::EngineSettings::getHeight()
+        //         }
+        //     );
+        //     api->setClearColor(Colors::BLACK, 0.0f, 0);
+        //     api->clear(true, false, false);
 
-            maskShader->use();
-            maskShader->setUniformMat4("u_View", view);
-            maskShader->setUniformMat4("u_Proj", proj);
-            maskShader->setUniformMat4(
-                "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
-            );
+        //     maskShader->use();
+        //     maskShader->setUniformMat4("u_View", view);
+        //     maskShader->setUniformMat4("u_Proj", proj);
+        //     maskShader->setUniformMat4(
+        //         "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
+        //     );
 
-            Pipeline maskPipeline{
-                .shader            = maskShader,
-                .isDepthTestEnable = false, 
-                .isBlendEnable     = false,
-                .isCullingEnable   = true,
-                .cullFront         = false
-            };
-            uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
-            api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
-        }
-        else if (outlineMaskFrameBuffer) 
-        {
-            api->bindFrameBuffer(outlineMaskFrameBuffer);
-            api->setClearColor(Colors::BLACK, 0.0f, 0);
-            api->clear(true, false, false);
-        }
+        //     Pipeline maskPipeline{
+        //         .shader            = maskShader,
+        //         .isDepthTestEnable = false, 
+        //         .isBlendEnable     = false,
+        //         .isCullingEnable   = true,
+        //         .cullFront         = false
+        //     };
+        //     uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
+        //     api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
+        // }
+        // else if (outlineMaskFrameBuffer) 
+        // {
+        //     api->bindFrameBuffer(outlineMaskFrameBuffer);
+        //     api->setClearColor(Colors::BLACK, 0.0f, 0);
+        //     api->clear(true, false, false);
+        // }
 
 
     }
@@ -946,7 +1068,7 @@ namespace nb::Renderer
         api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
         api->clear(true, false, false);
 
-        ssrShader->use();
+        //ssrShader->use();
         //for (uint32 i = 0; i < 5; ++i)
         //{
         //    api->bindTexture(i, mainFrameBuffer->getTexture(i));
@@ -983,7 +1105,7 @@ namespace nb::Renderer
 
         // --- ПРОХОД 2: Blur Horizontal ---
         api->bindFrameBuffer(ssrBlurBuffer);
-        blurShader->use();
+        //blurShader->use();
         // Читаем шумный результат SSR
         blurShader->setUniformUint64("u_SSRTexture", ssrResultBuffer->getTextureHandle(0));
         // ИСПРАВЛЕНО: используем blurShader вместо ssrShader для всех юниформов!
@@ -1002,7 +1124,7 @@ namespace nb::Renderer
 
         // --- ПРОХОД 3: Blur Vertical ---
         api->bindFrameBuffer(ssrResultBuffer);
-        blurShader->use(); // Не забываем use, если стейт мог измениться
+        //blurShader->use(); // Не забываем use, если стейт мог измениться
         // Читаем результат горизонтального прохода
         blurShader->setUniformUint64("u_SSRTexture", ssrBlurBuffer->getTextureHandle(0));
         // Снова исправляем на blurShader
@@ -1034,7 +1156,7 @@ namespace nb::Renderer
         api->setClearColor(Colors::WHITE, CLEAR_ALPHA, 0);
         api->clear(true, false, false);
 
-        quadShader->use();
+        //quadShader->use();
         quadShader->setUniformInt("depthMap", 3);
         quadShader->setUniformVec2(
             "screenSize", {static_cast<float>(width), static_cast<float>(height)}
@@ -1157,7 +1279,81 @@ namespace nb::Renderer
         api->releaseContext(context);
     }
 
-    void Renderer::blitToWindow(const SharedWindowContext& out, const TexturePreviewRequest& request)
+    // Renderer.cpp
+
+    void Renderer::renderFramebufferToContext(
+        const SharedWindowContext& out,
+        const Ref<IFrameBuffer>&   framebuffer,
+        uint32_t                   attachmentIndex
+    ) noexcept
+    {
+        if (!framebuffer)
+        {
+            return;
+        }
+
+        if (!api->setContext(out.hdc, out.hglrc))
+        {
+            return;
+        }
+
+        RECT rc;
+        GetClientRect(out.handle, &rc);
+        const int width  = rc.right - rc.left;
+        const int height = rc.bottom - rc.top;
+
+        if (width <= 0 || height <= 0)
+        {
+            api->setDefaultContext();
+            return;
+        }
+
+        auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
+        if (!mesh)
+        {
+            mesh = contextMeshCache->insertMesh(out.hglrc, quadScreenMesh);
+        }
+
+        api->setViewport({0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)});
+        api->setClearColor(Colors::WHITE, 1.0f, 0);
+        api->clear(true, false, false);
+
+        const uint64_t textureHandle = framebuffer->getTextureHandle(attachmentIndex);
+        if (textureHandle != 0) 
+        {
+            if (!glIsTextureHandleResidentARB(textureHandle)) 
+            {
+                glMakeTextureHandleResidentARB(textureHandle);
+            }
+        }
+
+        auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("fbo_visualization.shader");
+        if (quadShader && mesh)
+        {
+            quadShader->setUniformUint64("fboTexture", textureHandle);
+            
+            bool isDepthAttachment = framebuffer->getTextureAttachmentType(attachmentIndex) == IFrameBuffer::TextureAttachment::DEPTH;
+            quadShader->setUniformBool("isDepth", isDepthAttachment);
+        
+            Pipeline texPipeline{};
+            texPipeline.shader            = std::move(quadShader);
+            texPipeline.isDepthTestEnable = false;
+            texPipeline.polygonMode       = PolygonMode::FULL;
+            texPipeline.isBlendEnable     = true;
+
+            uint32 texPso = api->getCache().getOrCreate(texPipeline);
+            api->drawContextMesh(*mesh, texPso);
+        }
+
+        SwapBuffers(out.hdc);
+        
+        api->setDefaultContext();
+    }
+
+    void Renderer::blitToWindow(
+        const SharedWindowContext&   out,
+        const TexturePreviewRequest& request
+    )
     {
         if (!api->setContext(out.hdc, out.hglrc)) return;
 
@@ -1169,7 +1365,7 @@ namespace nb::Renderer
         api->setViewport({ 0.0f, 0.0f, (float)width, (float)height });
         api->clear(true, false, false);
         auto gridShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("grid.shader");
-        gridShader->use();
+        //gridShader->use();
         
 
         auto mesh = contextMeshCache->get(out.hglrc, quadScreenMesh.get());
@@ -1187,7 +1383,7 @@ namespace nb::Renderer
 
         
         auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("quadShader2.shader");
-        quadShader->use();
+        //quadShader->use();
         quadShader->setUniformUint64("sceneTexture", request.source);
         quadShader->setUniformVec3("channelMask", request.channelMask);
         quadShader->setUniformFloat("gamma", request.gamma);
@@ -1239,7 +1435,7 @@ namespace nb::Renderer
         // Рекомендуется использовать специальный шейдер, который умеет делать линеаризацию
         auto shadowVizShader =
             ResMan::ResourceManager::getInstance()->getResource<Shader>("shadow_viz.shader");
-        shadowVizShader->use();
+        //shadowVizShader->use();
 
         // Передаем параметры для корректного отображения глубины
         shadowVizShader->setUniformUint64("shadowMap", ssrBlurBuffer->getTextureHandle(0)); // 0 3 4
@@ -1300,6 +1496,11 @@ namespace nb::Renderer
         Math::Mat4 view       = previewCam.getLookAt();
         Math::Mat4 model      = Math::Mat4<float>::identity();
 
+        DirectionalLight directionalLight(
+            Colors::WHITE.asVec3(), Colors::WHITE.asVec3(), Colors::WHITE.asVec3(),
+            {-0.6f, -0.4f, -1.0f}
+        );
+
         auto ibl = nb::ResMan::ResourceManager::getInstance()->getResource<Resource::IhdrResource>(
             "Assets/res/grasslands_sunset_4k.hdr"
         );
@@ -1318,7 +1519,7 @@ namespace nb::Renderer
 
         // 2. Настройка шейдера материала
         auto shader = request.material->getShader();
-        shader->use();
+        //shader->use();
 
         // Привязываем текстуры самого материала (слоты 0, 1, 2 обычно внутри bind)
         request.material->bind(shader);
@@ -1339,9 +1540,9 @@ namespace nb::Renderer
         shader->setUniformUint64("shadowMap", OpenGl::createPlaceholderForDepth());
         shader->setUniformUint64("u_SsaoMap", dummyTex);
         shader->setUniformUint64("u_EmissionMap", dummyTex);
-
+        directionalLight.applyUniforms(shader);
         // 4. Параметры освещения (сбрасываем в 0, чтобы не было черных пятен от теней)
-        shader->setUniformInt("_COUNT_OF_DIRECTIONLIGHT_", 0);
+        shader->setUniformInt("_COUNT_OF_DIRECTIONLIGHT_", 1);
         shader->setUniformInt("_COUNT_OF_POINTLIGHT_", 0);
         shader->setUniformInt("u_UseSSAO", 0);
         shader->setUniformInt("u_UseIBL", 1);
@@ -1471,7 +1672,7 @@ namespace nb::Renderer
         pipeline.isBlendEnable = false;
 
         uint32 pso = api->getCache().getOrCreate(pipeline);
-        gizmoShader->use();
+        //gizmoShader->use();
         gizmoShader->setUniformMat4("model", gizemoModel);
         gizmoShader->setUniformMat4("view", cameraView);
         gizmoShader->setUniformMat4("projection", gizmoProj);
@@ -1495,11 +1696,10 @@ namespace nb::Renderer
         auto      rm   = nb::ResMan::ResourceManager::getInstance();
 
         auto tempFB = api->createFrameBuffer(size, size);
-        tempFB->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR);
+        tempFB->addTextureAttachment(IFrameBuffer::TextureAttachment::COLOR, "Color");
         tempFB->addRenderBufferAttachment(IFrameBuffer::RenderBufferAttachment::DEPTH_STENCIL);
         tempFB->finalize();
 
-        // 2. Ресурсы
         Ref<Mesh> sphereMesh    = rm->getResource<Mesh>("Untitled.obj"); 
         auto      materialAsset = rm->getResource<Resource::MaterialAsset>(materialPath.string());
         auto ibl = rm->getResource<Resource::IhdrResource>("Assets/res/grasslands_sunset_4k.hdr");
@@ -1509,10 +1709,15 @@ namespace nb::Renderer
             return;
         }
 
-        Math::Mat4    projection = Math::projection(45.0f, 1.0f, 0.1f, 10.0f);
+        Math::Mat4           projection = Math::projection(45.0f, 1.0f, 0.1f, 10.0f);
         Math::Vector3<float> camPos     = {0.0f, 0.0f, 2.5f};
-        Math::Mat4    view       = Math::lookAt(camPos, {0, 0, 0}, {0, 1, 0});
-        Math::Mat4    model      = Math::Mat4<float>::identity();
+        Math::Mat4           view       = Math::lookAt(camPos, {0, 0, 0}, {0, 1, 0});
+        Math::Mat4           model      = Math::Mat4<float>::identity();
+
+        DirectionalLight directionalLight(
+            Colors::WHITE.asVec3(), Colors::WHITE.asVec3(), Colors::WHITE.asVec3(),
+            {-0.6f, -0.4f, -1.0f}
+        );
 
         api->bindFrameBuffer(tempFB);
         api->setViewport({0, 0, (float)size, (float)size});
@@ -1540,8 +1745,8 @@ namespace nb::Renderer
         shader->setUniformUint64("shadowMap", OpenGl::createPlaceholderForDepth());
         shader->setUniformUint64("u_SsaoMap", dummyTex);
         shader->setUniformUint64("u_EmissionMap", dummyTex);
-
-        shader->setUniformInt("_COUNT_OF_DIRECTIONLIGHT_", 0);
+        directionalLight.applyUniforms(shader);
+        shader->setUniformInt("_COUNT_OF_DIRECTIONLIGHT_", 1);
         shader->setUniformInt("_COUNT_OF_POINTLIGHT_", 0);
         shader->setUniformInt("u_UseSSAO", 0);
         shader->setUniformInt("u_EnableFog", 0);
@@ -1560,12 +1765,27 @@ namespace nb::Renderer
         RendererCommand cmd         = {.mesh = sphereMesh.get(), .pipeline = pso};
         api->drawMesh(cmd);
 
+        // 1. Быстро вычитываем пиксели из видеопамяти
         std::vector<unsigned char> data(size * size * 4);
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, size, size, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 
-        stbi_flip_vertically_on_write(true);
-        stbi_write_png(savePath.c_str(), size, size, 4, data.data(), size * 4);
+        // 2. Быстро переворачиваем изображение по вертикали на CPU
+        std::vector<unsigned char> flippedData(size * size * 4);
+        int rowSize = size * 4;
+        for (int y = 0; y < size; ++y)
+        {
+            std::memcpy(
+                flippedData.data() + (size - 1 - y) * rowSize,
+                data.data() + y * rowSize,
+                rowSize
+            );
+        }
+
+        // 3. Запускаем медленное сохранение PNG на диск в фоновом потоке
+        std::thread([flippedData = std::move(flippedData), savePath, size]() {
+            stbi_write_png(savePath.c_str(), size, size, 4, flippedData.data(), size * 4);
+        }).detach();
 
         api->bindDefaultFrameBuffer();
     }

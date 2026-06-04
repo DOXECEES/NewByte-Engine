@@ -9,6 +9,7 @@
 
 #include "Scripting/ScriptComponent.hpp"
 #include "Physics/Physics.hpp"
+#include "Audio/AudioEngine.hpp"
 
 namespace nb
 {
@@ -258,6 +259,10 @@ namespace nb
 
         while (true)
         {
+            if (sceneBVH.nodes.empty())
+            {
+                return closestEntity;
+            }
             const auto& node = sceneBVH.nodes[currentNodeIdx];
 
             float tNode;
@@ -460,6 +465,10 @@ namespace nb
                     {
                         auto& transform = getComponent<TransformComponent>(item.entityId);
                         auto& meshComp  = getComponent<MeshComponent>(item.entityId);
+                        if (!meshComp.isVisible)
+                        {
+                            continue;
+                        }
                         Math::Mat4<float> invModel = Math::inverse(transform.worldMatrix);
 
                         Math::Ray localRay;
@@ -560,6 +569,7 @@ namespace nb
         ecs.getStorage<NameComponent>();
         ecs.getStorage<MeshComponent>();
         ecs.getStorage<nb::Script::ScriptComponent>();
+        ecs.getStorage<AudioComponent>();
 
 
         ecs.getStorage<nb::Renderer::LightComponent>();
@@ -596,6 +606,7 @@ namespace nb
         ecs.getStorage<NameComponent>();
         ecs.getStorage<MeshComponent>();
         ecs.getStorage<nb::Script::ScriptComponent>();
+        ecs.getStorage<AudioComponent>();
 
         ecs.getStorage<nb::Renderer::LightComponent>();
         ecs.getStorage<nb::Physics::Collider>();
@@ -818,6 +829,10 @@ namespace nb
             else if (std::strcmp(field.type->name, "uint8_t") == 0)
             {
                 archive->value(field.name, *reinterpret_cast<uint8_t*>(fieldPtr));
+            }
+            else if (std::strcmp(field.type->name, "std::filesystem::path") == 0)
+            {
+                archive->value(field.name, (*reinterpret_cast<std::filesystem::path*>(fieldPtr)));
             }
             //if (nb::Reflect::ResourceLoaderBase::instance().hasLoader(field.type))
             //{
@@ -1056,6 +1071,10 @@ namespace nb
             else if (std::strcmp(typeName, "std::string") == 0 && fieldJson.isValue())
             {
                 *reinterpret_cast<std::string*>(fieldPtr) = fieldJson.get<std::string>();
+            }
+            else if (std::strcmp(typeName, "std::filesystem::path") == 0 && fieldJson.isValue())
+            {
+                *reinterpret_cast<std::filesystem::path*>(fieldPtr) = fieldJson.get<std::string>();
             }
             else if (std::strcmp(typeName, "uint8_t") == 0 && fieldJson.isValue())
             {

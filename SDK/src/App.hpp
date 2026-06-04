@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <unordered_set>
 
 #include "Renderer/IRenderAPI.hpp"
 #include "Renderer/Renderer.hpp"
@@ -26,6 +27,7 @@
 #include "ImportWindow.hpp"
 //
 #include <Win32Window/Win32ModalWindow.hpp>
+#include "FramebufferVisualization.hpp"
 #include <tiny-gizmo.hpp>
 //
 #include <Utils/PrimitiveNameManager.hpp>
@@ -62,7 +64,19 @@ public:
         return mainLoop();
     }
 
+    struct SpawnModelParams
+    {
+        nb::Math::Vector3<float> position;
+        std::filesystem::path    pathToModel;
+    };
+
+    static void requestModelSpawn(
+        const SpawnModelParams&      params
+    ) noexcept;
+
 private:
+
+    inline static nbstl::Vector<SpawnModelParams> spawnQueue;
 
     bool isEngineDependentUiInit = false;
 
@@ -82,11 +96,16 @@ private:
     //
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
     std::shared_ptr<Win32Window::ModalWindow> filePickerWindow;
+    std::shared_ptr<Win32Window::ModalWindow> languagePicker;
+
+    std::shared_ptr<Win32Window::ChildWindow> shaderNodes;
+    std::shared_ptr<Sdk::FramebufferVisualization> framebufferVisualization;
+
+
 
     std::shared_ptr<AssetManager> assetManagerWindow;
     std::shared_ptr<MaterialEditor> materialEditor;
-    std::shared_ptr<ImportWindow> importWindow;
-    std::shared_ptr<Win32Window::ChildWindow> importManager;
+    std::shared_ptr<ImportWindow> importWindow = nullptr;
 
 
     Widgets::TreeView* savedTreeView = nullptr; 
@@ -97,8 +116,19 @@ private:
     void openFilePicker(
         const std::wstring&                     title,
         std::function<void(const std::string&)> onSelected,
-        Win32Window::IWindow*                   parent
+        Win32Window::IWindow*                   parent,
+        const std::vector<std::string>&         extentions = {}
     );
+
+    nbui::LayoutBuilder createMenuButton(
+        const std::string& labelKey, 
+        std::function<void(nbui::PopupMenu*)> populateMenuFunc
+    ) noexcept;
+   
+
+
+    void refreshInterfaceText() noexcept;
+
     //
     std::shared_ptr<SceneModelEcs> sceneModel;
     //nb::Renderer::BaseNode* activeNode = nullptr;
@@ -159,6 +189,11 @@ private:
     ) noexcept;
 
     void spawnEmpty(const Widgets::ModelIndex& index) noexcept;
+    void spawnModel(
+        const Widgets::ModelIndex&      index,
+        const std::filesystem::path&    pathToModel,
+        const nb::Math::Vector3<float>& position
+    ) noexcept;
 
     void showAllWindows()
     {
@@ -179,22 +214,30 @@ private:
     void pasteEntity(const Widgets::ModelIndex& index) noexcept;
 
     void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
+    std::unordered_set<std::string> m_existingPreviews;
+    
+    // Пути к материалам, превью для которых прямо сейчас генерируется
+    std::unordered_set<std::string> m_pendingPreviews;
 
-    int mainLoop() {
-        MSG msg = { 0 };
+
+    int mainLoop()
+    {
+        MSG  msg                    = {0};
+        bool leftMouseDownThisFrame = false;
+
         while (running)
         {
-
-            if (engine 
-                && engine->getRenderer()->isResourceReady() 
-                && !isEngineDependentUiInit)
+            if (engine && engine->getRenderer()->isResourceReady() && !isEngineDependentUiInit)
             {
                 setupEngineDependentUi();
                 assetManagerWindow = std::make_shared<AssetManager>(assetManager, engine.get());
-                importWindow       = std::make_shared<ImportWindow>(importManager, engine.get(), "Assets");
                 isEngineDependentUiInit = true;
             }
 
+            // Очищаем флаг клика перед обработкой сообщений
+            leftMouseDownThisFrame = false;
+
+            // 1. ОЧЕНЬ БЫСТРЫЙ СБОР СООБЩЕНИЙ (БЕЗ МАТЕМАТИКИ)
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
             {
                 if (shouldRebuildInspector)
@@ -203,19 +246,49 @@ private:
                     shouldRebuildInspector = false;
                 }
 
-                if (msg.message == WM_QUIT) {
+                if (msg.message == WM_QUIT)
+                {
                     running = false;
                     break;
                 }
+
+                if (msg.hwnd == sceneWindow->getHandle().as<HWND>())
+                {
+                    if (msg.message == WM_LBUTTONDOWN)
+                    {
+                        leftMouseDownThisFrame = true;
+                    }
+                }
+
+                if (msg.message == WM_INPUT)
+                {
+                    engine->bufferizeInput(msg);
+                }
+
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+
+            // Если очередь пуста, обрабатываем физику, логику и ГИЗМО строго 1 раз за кадр
+            if (engine && running)
+            {
                 bool isGizmoHit = false;
 
-
-
-                if (msg.hwnd == sceneWindow->getHandle().as<HWND>() && engine)
+                // Выполняем спавн моделей
+                if (!spawnQueue.isEmpty())
                 {
-                    NbPoint<int> mousePos = sceneWindow->mousePosition;
+                    for (auto& i : spawnQueue)
+                    {
+                        spawnModel(Widgets::ModelIndex(), i.pathToModel, i.position);
+                    }
+                    spawnQueue.clear();
+                }
 
-                    nb::Renderer::Camera* camera = engine->getRenderer()->getCamera();
+                // 2. ОБНОВЛЕНИЕ ГИЗМО (ВЫПОЛНЯЕТСЯ СТРОГО 1 РАЗ ЗА КАДР)
+                if (!sceneWindow->getIsRenderable()) // обновляем только если окно активно
+                {
+                    NbPoint<int>          mousePos = sceneWindow->mousePosition;
+                    nb::Renderer::Camera* camera   = engine->getRenderer()->getCamera();
                     nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
 
                     auto& gizmo_ctx = engine->getRenderer()->getGizmoContext();
@@ -240,154 +313,161 @@ private:
                     {
                         auto& tc = activeNode.getComponent<TransformComponent>();
 
-                        nb::Math::Quaternion<float> pWorldRot;
-                        pWorldRot.x = 0.0f;
-                        pWorldRot.y = 0.0f;
-                        pWorldRot.z = 0.0f;
-                        pWorldRot.w = 1.0f;
-
-                        nb::Math::Vector3<float> pWorldScale(1.0f, 1.0f, 1.0f);
-                        nb::Math::Vector3<float> pWorldPos(0.0f, 0.0f, 0.0f);
-                        bool                     hasParent = false;
+                        nb::Math::Mat4<float> pWorldMatrix      = nb::Math::Mat4<float>::identity();
+                        nb::Math::Quaternion<float> pWorldRot   = {0, 0, 0, 1};
+                        nb::Math::Vector3<float>    pWorldScale = {1, 1, 1};
+                        bool                        hasParent   = false;
 
                         if (auto parent = activeNode.getParent();
                             parent.has_value() && parent->hasComponent<TransformComponent>())
                         {
-                            auto& ptc   = parent->getComponent<TransformComponent>();
-                            pWorldPos   = nb::Math::getPositionFromModelMatrix(ptc.worldMatrix);
-                            pWorldRot   = nb::Math::getRotationFromModelMatrix(ptc.worldMatrix);
-                            pWorldScale = nb::Math::getScaleFromModelMatrix(ptc.worldMatrix);
-                            hasParent   = true;
+                            auto& ptc    = parent->getComponent<TransformComponent>();
+                            pWorldMatrix = ptc.worldMatrix;
+                            pWorldRot    = nb::Math::getRotationFromModelMatrix(pWorldMatrix);
+                            pWorldScale  = nb::Math::getScaleFromModelMatrix(pWorldMatrix);
+                            hasParent    = true;
                         }
 
-                        nb::Math::Vector3<float> worldPos;
+                        nb::Math::Vector3<float> currentWorldPos;
                         if (hasParent)
                         {
-                            nb::Math::Vector3<float> scaledLocalPos(
-                                tc.position.x * pWorldScale.x, tc.position.y * pWorldScale.y,
-                                tc.position.z * pWorldScale.z
-                            );
-                            worldPos = (pWorldRot * scaledLocalPos) + pWorldPos;
+                            currentWorldPos.x = tc.position.x * pWorldMatrix[0][0] +
+                                                tc.position.y * pWorldMatrix[1][0] +
+                                                tc.position.z * pWorldMatrix[2][0] +
+                                                pWorldMatrix[3][0];
+                            currentWorldPos.y = tc.position.x * pWorldMatrix[0][1] +
+                                                tc.position.y * pWorldMatrix[1][1] +
+                                                tc.position.z * pWorldMatrix[2][1] +
+                                                pWorldMatrix[3][1];
+                            currentWorldPos.z = tc.position.x * pWorldMatrix[0][2] +
+                                                tc.position.y * pWorldMatrix[1][2] +
+                                                tc.position.z * pWorldMatrix[2][2] +
+                                                pWorldMatrix[3][2];
                         }
                         else
                         {
-                            worldPos = tc.position;
+                            currentWorldPos = tc.position;
                         }
 
                         nb::Math::Quaternion<float> worldQuat =
                             hasParent ? (tc.rotation * pWorldRot) : tc.rotation;
-                        nb::Math::Vector3<float> worldScale = tc.scale;
-                        if (hasParent)
-                        {
-                            worldScale.x *= pWorldScale.x;
-                            worldScale.y *= pWorldScale.y;
-                            worldScale.z *= pWorldScale.z;
-                        }
+
+                        nb::Math::Vector3<float> worldScale = {
+                            tc.scale.x * pWorldScale.x, tc.scale.y * pWorldScale.y,
+                            tc.scale.z * pWorldScale.z
+                        };
 
                         tinygizmo::rigid_transform t;
-                        t.position    = {worldPos.x, worldPos.y, worldPos.z};
-                        t.scale       = {worldScale.x, worldScale.y, worldScale.z};
-                        t.orientation = {0.0f, 0.0f, 0.0f, 1.0f}; 
+                        t.position = {currentWorldPos.x, currentWorldPos.y, currentWorldPos.z};
+                        t.scale    = {worldScale.x, worldScale.y, worldScale.z};
+
+                        nb::Math::Quaternion<float> inputQuat = worldQuat.conjugate();
+                        t.orientation = {inputQuat.x, inputQuat.y, inputQuat.z, inputQuat.w};
 
                         bool gizmoInteracted =
                             tinygizmo::transform_gizmo("object_gizmo", gizmo_ctx, t);
+
                         if (gizmoInteracted)
                         {
                             isGizmoHit = true;
-                        }
-
-                        if (gizmoInteracted && state.mouse_left)
-                        {
-                            nb::Math::Vector3<float> G_worldPos(
-                                t.position.x, t.position.y, t.position.z
-                            );
-                            nb::Math::Vector3<float> G_worldScale(t.scale.x, t.scale.y, t.scale.z);
-
-                            nb::Math::Quaternion<float> G_deltaQuat;
-                            G_deltaQuat.x = -t.orientation.x;
-                            G_deltaQuat.y = -t.orientation.y;
-                            G_deltaQuat.z = -t.orientation.z;
-                            G_deltaQuat.w = t.orientation.w;
-
-                            if (hasParent)
+                            if (state.mouse_left)
                             {
-                                nb::Math::Vector3<float> deltaPos = G_worldPos - pWorldPos;
-                                nb::Math::Vector3<float> unrotatedDelta =
-                                    pWorldRot.conjugate() * deltaPos;
+                                nb::Math::Vector3<float> G_worldPos(
+                                    t.position.x, t.position.y, t.position.z
+                                );
+                                nb::Math::Vector3<float> G_worldScale(
+                                    t.scale.x, t.scale.y, t.scale.z
+                                );
+                                nb::Math::Quaternion<float> outputQuat(
+                                    t.orientation.x, t.orientation.y, t.orientation.z,
+                                    t.orientation.w
+                                );
 
-                                tc.position.x = (pWorldScale.x != 0)
-                                                    ? (unrotatedDelta.x / pWorldScale.x)
-                                                    : 0.0f;
-                                tc.position.y = (pWorldScale.y != 0)
-                                                    ? (unrotatedDelta.y / pWorldScale.y)
-                                                    : 0.0f;
-                                tc.position.z = (pWorldScale.z != 0)
-                                                    ? (unrotatedDelta.z / pWorldScale.z)
-                                                    : 0.0f;
+                                nb::Math::Quaternion<float> newWorldQuat = outputQuat.conjugate();
 
-                                nb::Math::Quaternion<float> newWorldQuat = G_deltaQuat * worldQuat;
-                                tc.rotation = newWorldQuat * pWorldRot.conjugate();
+                                float dot =
+                                    newWorldQuat.x * worldQuat.x + newWorldQuat.y * worldQuat.y +
+                                    newWorldQuat.z * worldQuat.z + newWorldQuat.w * worldQuat.w;
+                                if (dot < 0.0f)
+                                {
+                                    newWorldQuat.x = -newWorldQuat.x;
+                                    newWorldQuat.y = -newWorldQuat.y;
+                                    newWorldQuat.z = -newWorldQuat.z;
+                                    newWorldQuat.w = -newWorldQuat.w;
+                                }
 
-                                tc.scale.x =
-                                    (pWorldScale.x != 0) ? (G_worldScale.x / pWorldScale.x) : 1.0f;
-                                tc.scale.y =
-                                    (pWorldScale.y != 0) ? (G_worldScale.y / pWorldScale.y) : 1.0f;
-                                tc.scale.z =
-                                    (pWorldScale.z != 0) ? (G_worldScale.z / pWorldScale.z) : 1.0f;
+                                if (hasParent)
+                                {
+                                    nb::Math::Mat4<float> invParent =
+                                        nb::Math::inverseWithoutTranspose(pWorldMatrix);
+                                    tc.position.x = G_worldPos.x * invParent[0][0] +
+                                                    G_worldPos.y * invParent[1][0] +
+                                                    G_worldPos.z * invParent[2][0] +
+                                                    invParent[3][0];
+                                    tc.position.y = G_worldPos.x * invParent[0][1] +
+                                                    G_worldPos.y * invParent[1][1] +
+                                                    G_worldPos.z * invParent[2][1] +
+                                                    invParent[3][1];
+                                    tc.position.z = G_worldPos.x * invParent[0][2] +
+                                                    G_worldPos.y * invParent[1][2] +
+                                                    G_worldPos.z * invParent[2][2] +
+                                                    invParent[3][2];
+
+                                    tc.rotation = newWorldQuat * pWorldRot.conjugate();
+
+                                    tc.scale.x = (std::abs(pWorldScale.x) > 0.0001f)
+                                                     ? (G_worldScale.x / pWorldScale.x)
+                                                     : G_worldScale.x;
+                                    tc.scale.y = (std::abs(pWorldScale.y) > 0.0001f)
+                                                     ? (G_worldScale.y / pWorldScale.y)
+                                                     : G_worldScale.y;
+                                    tc.scale.z = (std::abs(pWorldScale.z) > 0.0001f)
+                                                     ? (G_worldScale.z / pWorldScale.z)
+                                                     : G_worldScale.z;
+                                }
+                                else
+                                {
+                                    tc.position = G_worldPos;
+                                    tc.rotation = newWorldQuat;
+                                    tc.scale    = G_worldScale;
+                                }
+
+                                tc.rotation.normalize();
+                                tc.eulerAngle =
+                                    tc.rotation.toEulerXYZ(); // Медленная функция, но теперь
+                                                              // работает 1 раз за кадр
+                                tc.dirty        = true;
+                                tc.physicsDirty = true;
                             }
-                            else
-                            {
-                                tc.position = G_worldPos;
-                                tc.rotation = G_deltaQuat * worldQuat;
-                                tc.scale    = G_worldScale;
-                            }
-
-                            tc.rotation.normalize();
-                            tc.eulerAngle   = tc.rotation.toEulerXYZ();
-                            tc.lastEuler    = tc.eulerAngle;
-                            tc.dirty        = true;
-                            tc.physicsDirty = true;
                         }
                     }
 
-                    if (msg.message == WM_LBUTTONDOWN && !isGizmoHit)
+                    // 3. ВЫБОР ОБЪЕКТА (RAY PICKING)
+                    if (leftMouseDownThisFrame && !isGizmoHit)
                     {
-                        NbPoint<int>  point = {GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam)};
                         nb::Math::Ray pickRay;
-                        nb::Node      node = engine->rayPick(point.x, point.y, pickRay);
+                        nb::Node      node = engine->rayPick(mousePos.x, mousePos.y, pickRay);
                         activeNode         = node.isValid() ? node : nb::Node::createInvalid();
                         onActiveNodeChanged.emit();
                     }
-
-                    isGizmoHit = false;
                 }
 
-
-                if (msg.message == WM_INPUT) 
-                {
-                    engine->bufferizeInput(msg);
-                }
-
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-
-            if (engine)
-            {               
+                // 4. СИСТЕМНЫЙ UPDATE ДВИЖКА И РЕНДЕР
                 engine->processInput();
                 engine->run(!sceneWindow->getIsRenderable());
 
-                
-               
-                engine->getRenderer()->renderShadowPreview(
-                    sharedContext, engine->getRenderer()->ssaoResult, 0.1f, 100.0f
-                );
-                
+                //engine->getRenderer()->renderShadowPreview(
+                //    sharedContext, engine->getRenderer()->ssaoResult, 0.1f, 100.0f
+                //);
 
                 if (engine->shouldHideCursor())
+                {
                     mainWindow->hideCursor();
+                }
                 else
+                {
                     mainWindow->showCursor();
+                }
             }
 
             mainWindow->resetStateDirtyFlags();

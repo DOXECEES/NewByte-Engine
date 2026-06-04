@@ -5,6 +5,7 @@ include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(DEPENDENCIES_DIR "${PROJECT_SOURCE_DIR}/dependencies")
 set(LUA_DIR "${DEPENDENCIES_DIR}/lua")
@@ -13,13 +14,13 @@ set(TINY_GIZMO_DIR "${DEPENDENCIES_DIR}/tinyGizmo")
 set(JOLT_PATH "${DEPENDENCIES_DIR}/jolt")
 set(FETCHCONTENT_QUIET OFF)
 
-set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "" FORCE)
-set(TARGET_UNIT_TESTS OFF CACHE BOOL "" FORCE)
-set(TARGET_SAMPLES OFF CACHE BOOL "" FORCE)
-set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
-set(GENERATE_DEBUG_SYMBOLS ON CACHE BOOL "" FORCE)
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF CACHE BOOL "")
+set(TARGET_UNIT_TESTS OFF CACHE BOOL "")
+set(TARGET_SAMPLES OFF CACHE BOOL "")
+set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "")
+set(GENERATE_DEBUG_SYMBOLS ON CACHE BOOL "")
 
-set(USE_SSE4_2 ON CACHE BOOL "" FORCE)
+set(USE_SSE4_2 ON CACHE BOOL "")
 
 
 FetchContent_Declare(
@@ -244,6 +245,9 @@ set(SRC
     src/Renderer/Scene.hpp
     src/Renderer/Cubemap.cpp
     src/Renderer/Cubemap.hpp
+    src/Renderer/IUniformBuffer.hpp
+    src/Renderer/RendererTracker.cpp
+    src/Renderer/RendererTracker.hpp
 
     src/Math/Constants.hpp
     src/Math/Vector2.cpp
@@ -352,9 +356,13 @@ set(SRC
     src/Physics/TerrainCollider.cpp
     src/Physics/TerrainCollider.hpp
 
+    src/Audio/AudioEngine.cpp
+    src/Audio/AudioEngine.hpp
+
     dependencies/lodepng/lodepng.cpp
     dependencies/stb/stb_image.h
     dependencies/stb/stb_image_write.h
+    dependencies/Audio/miniaudio.h
 
     src/MemoryTracker.cpp
     src/MemoryTracker.hpp
@@ -373,12 +381,12 @@ find_package(OpenGL REQUIRED)
 # ============================================================
 # ASSIMP
 # ============================================================
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
-set(HUNTER_ENABLED OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "")
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
+set(ASSIMP_INSTALL OFF CACHE BOOL "")
+set(ASSIMP_NO_EXPORT ON CACHE BOOL "")
+set(HUNTER_ENABLED OFF CACHE BOOL "")
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
 FetchContent_Declare(
     assimp
@@ -388,6 +396,37 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(assimp)
+
+
+option(ENABLE_TRACY "Enable Tracy Profiler" ON)
+
+if(ENABLE_TRACY)
+    FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG        v0.13.1 # или конкретный тег, например v0.10
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(tracy)
+
+    # Добавляем макрос включения
+    target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
+    
+    # TracyClient.cpp нужно скомпилировать вместе с движком
+    # FetchContent скачивает файлы в переменную tracy_SOURCE_DIR
+    target_sources(${PROJECT_NAME} PRIVATE "${tracy_SOURCE_DIR}/public/TracyClient.cpp")
+    
+    # Пути к заголовкам
+    target_include_directories(${PROJECT_NAME} PUBLIC "${tracy_SOURCE_DIR}/public")
+
+    if(WIN32)
+        target_link_libraries(${PROJECT_NAME} PUBLIC ws2_32 dbghelp)
+    endif()
+    
+    message(STATUS "Tracy Profiler: ENABLED")
+else()
+    message(STATUS "Tracy Profiler: DISABLED")
+endif()
 
 # ============================================================
 # INCLUDE DIRS
@@ -425,7 +464,7 @@ target_link_directories(${PROJECT_NAME}
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
-    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /arch:AVX2)
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHsc /arch:AVX2 /bigobj)
 
     target_compile_definitions(${PROJECT_NAME} PUBLIC
         JPH_DEBUG_RENDERER

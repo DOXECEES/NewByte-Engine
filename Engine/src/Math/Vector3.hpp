@@ -2,12 +2,13 @@
 #ifndef SRC_MATH_VECTOR3_HPP
 #define SRC_MATH_VECTOR3_HPP
 
-#include <cmath>
 #include <Reflection/Reflection.hpp>
-#include "Constants.hpp"
 #include <Math/NbMath.hpp>
 
-#include "../Core.hpp"
+#include "Constants.hpp"
+#include <cmath>
+#include <initializer_list>
+#include <assert.h>
 
 namespace nb
 {
@@ -24,6 +25,7 @@ namespace nb
             using value_type = T;
 
             constexpr Vector3() noexcept = default;
+
 
             constexpr Vector3(const T value) noexcept
                 :x(value), y(value), z(value) {}

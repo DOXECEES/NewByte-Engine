@@ -2,6 +2,10 @@
 #define SRC_RENDERER_IFRAMEBUFFER_HPP
 #include <Types.hpp>
 
+#include <string_view>
+#include <string>
+
+
 namespace nb::Renderer
 {
     class IFrameBuffer
@@ -34,9 +38,14 @@ namespace nb::Renderer
 
         virtual uint32 getTexture(uint8 index = 0) const noexcept = 0;
         virtual uint64_t getTextureHandle(uint8 index = 0) const noexcept = 0;
+        virtual uint64_t getTextureByName(std::string_view name) const noexcept = 0;
+        virtual const std::string& getNameByTextureIndex(uint8 index) const noexcept = 0;
+
+        virtual size_t getTextureCount() const noexcept = 0;
+        virtual TextureAttachment getTextureAttachmentType(uint8 index = 0) const noexcept = 0;
 
         virtual void addRenderBufferAttachment(RenderBufferAttachment attachment) noexcept = 0;
-        virtual void addTextureAttachment(TextureAttachment attachment) noexcept = 0;
+        virtual void addTextureAttachment(TextureAttachment attachment, std::string_view name) noexcept = 0;
 
         virtual void setDrawBuffers(uint8 count) noexcept = 0;
 

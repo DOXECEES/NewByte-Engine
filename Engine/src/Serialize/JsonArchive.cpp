@@ -390,6 +390,23 @@ namespace nb::Serialize
         writeBool(value);
     }
 
+    void JsonArchive::value(
+        const char*            name,
+        std::filesystem::path& value
+    ) noexcept
+    {
+        if (isWrite())
+        {
+            writeCommaIfNeeded();
+            writeNameIfNeeded(name);
+
+            
+            std::string pathStr = value.generic_string();
+            writeString(pathStr);
+        }
+        
+    }
+
     void JsonArchive::save() noexcept
     {
         if (!isWrite())

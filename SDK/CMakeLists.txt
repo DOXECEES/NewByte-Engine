@@ -26,10 +26,16 @@ add_executable(${PROJECT_NAME} WIN32
     src/MaterialEditor.cpp
     src/MaterialEditor.hpp
 
+    src/AssetThumbnailWidget.hpp
+    src/AssetThumbnailWidget.cpp
+
     src/FileSystemModel.hpp
 
     src/ComponentBrowser.hpp
     src/PrimitiveCreationDialog.hpp
+    
+    src/FramebufferVisualization.cpp
+    src/FramebufferVisualization.hpp
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")

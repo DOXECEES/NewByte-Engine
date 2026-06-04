@@ -58,12 +58,17 @@ void nb::OpenGl::OpenGlShader::recompile() noexcept
     }
     shaders.clear(); 
     glDeleteProgram(program);
+    uniformLocationCache.clear(); 
 
     for (const auto &shaderPath : pathsToShaderSources)
     {
         link(shaderPath);
     }
     createProgram();
+    nb::Error::ErrorManager::instance().report(
+        nb::Error::Type::INFO,
+        "Hot-reload triggered. Shader '" + path.string() + "' recompiled successfully."
+    );
 }
 
 void nb::OpenGl::OpenGlShader::link(const std::filesystem::path &pathToShader) noexcept
@@ -90,17 +95,29 @@ void nb::OpenGl::OpenGlShader::setUniformBool(std::string_view name, const bool 
     setUniformInt(name, value);
 }
 
-void nb::OpenGl::OpenGlShader::setUniformFloat(std::string_view name, const float value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformFloat(
+    std::string_view name,
+    const float      value
+) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniform1f(program, loc, value);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniform1f(program, loc, value);
+    }
     uniformCache[std::string(name)] = value;
 }
 
-void nb::OpenGl::OpenGlShader::setUniformInt(std::string_view name, const int value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformInt(
+    std::string_view name,
+    const int        value
+) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniform1i(program, loc, value);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniform1i(program, loc, value);
+    }
     uniformCache[std::string(name)] = value;
 }
 
@@ -109,74 +126,128 @@ void nb::OpenGl::OpenGlShader::setUniformUint64(
     const uint64_t   value
 ) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniformHandleui64ARB(program, loc, value);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniformHandleui64ARB(program, loc, value);
+    }
     uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformVec2(
-    std::string_view name,
+    std::string_view            name,
     const Math::Vector2<float>& value
 ) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniform2f(program, loc, value.x, value.y);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniform2f(program, loc, value.x, value.y);
+    }
     uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformVec3(
-    std::string_view name,
+    std::string_view            name,
     const Math::Vector3<float>& value
 ) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniform3f(program, loc, value.x, value.y, value.z);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniform3f(program, loc, value.x, value.y, value.z);
+    }
     uniformCache[std::string(name)] = value;
 }
 
-void nb::OpenGl::OpenGlShader::setUniformVec4(std::string_view name, const Math::Vector4<float>& value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformVec4(
+    std::string_view            name,
+    const Math::Vector4<float>& value
+) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniform4f(program, loc, value.x, value.y, value.z, value.w);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniform4f(program, loc, value.x, value.y, value.z, value.w);
+    }
     uniformCache[std::string(name)] = value;
 }
 
-void nb::OpenGl::OpenGlShader::setUniformMat2(std::string_view name, const Math::Mat2<float> &value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformMat2(
+    std::string_view         name,
+    const Math::Mat2<float>& value
+) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniformMatrix2fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniformMatrix2fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    }
     uniformCache[std::string(name)] = value;
 }
 
-void nb::OpenGl::OpenGlShader::setUniformMat3(std::string_view name, const Math::Mat3<float> &value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformMat3(
+    std::string_view         name,
+    const Math::Mat3<float>& value
+) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    }
     uniformCache[std::string(name)] = value;
 }
 
-void nb::OpenGl::OpenGlShader::setUniformMat4(std::string_view name, const Math::Mat4<float> &value) const noexcept
+void nb::OpenGl::OpenGlShader::setUniformMat4(
+    std::string_view         name,
+    const Math::Mat4<float>& value
+) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value.valuePtr());
+    }
     uniformCache[std::string(name)] = value;
 }
 
 void nb::OpenGl::OpenGlShader::setUniformVec3Array(
-    const std::string& name,
+    const std::string&          name,
     const Math::Vector3<float>* values,
     uint32                      count
 ) const noexcept
 {
-    GLint loc = glGetUniformLocation(program, name.data());
-    glUniform3fv(loc, count, (const float*)values);
+    GLint loc = getUniformLocation(name);
+    if (loc != -1)
+    {
+        glUniform3fv(loc, count, (const float*)values);
+    }
 }
+
+GLint nb::OpenGl::OpenGlShader::getUniformLocation(std::string_view name) const noexcept
+{
+    auto it = uniformLocationCache.find(name);
+    if (it != uniformLocationCache.end())
+    {
+        return it->second;
+    }
+
+    // glGetUniformLocation требует null-terminated строку, поэтому создаем временную
+    std::string nameStr(name);
+    GLint       loc = glGetUniformLocation(program, nameStr.c_str());
+
+    uniformLocationCache.emplace(std::move(nameStr), loc);
+    return loc;
+}
+
 
 void nb::OpenGl::OpenGlShader::reapplyUniforms() const noexcept
 {
     for (const auto& [name, val] : uniformCache)
     {
-        GLint loc = glGetUniformLocation(program, name.c_str());
+        GLint loc = getUniformLocation(name);
+
         if (loc == -1)
         {
             continue;
@@ -337,6 +408,11 @@ bool nb::OpenGl::OpenGlShader::isCompiled() const noexcept
 
         // TODO 2: add message box about error
         Debug::debug(arr);
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::FATAL, "Failed to compile " + path.string() + " shader.")
+            .with("Error massage", arr);
+
         delete[] arr;
 
         glDeleteShader(currentShader);

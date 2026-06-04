@@ -196,5 +196,11 @@
 			"Assets/shaders/ssr_blur.vs",
 			"Assets/shaders/ssr_blur.fs"
 		]
-	}		
+	},
+	"fbo_visualization.shader" : {
+		"sources": [
+			"Assets/shaders/fbo_visualization.vs",
+			"Assets/shaders/fbo_visualization.fs"
+		]
+	}
 }
