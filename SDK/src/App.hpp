@@ -32,6 +32,8 @@
 //
 #include <Utils/PrimitiveNameManager.hpp>
 
+#include "CameraBookmark.hpp"
+
 namespace nbui
 {
     class LayoutBuilder;
@@ -110,6 +112,7 @@ private:
 
     Widgets::TreeView* savedTreeView = nullptr; 
     nb::Ecs::EntityID  copiedEntityId;
+    sdk::CameraBookmarkManager cameraBookmarkManager;
 
     void openColorPickerWindow();
     void openFilePickerWindow();
@@ -453,7 +456,32 @@ private:
                 }
 
                 // 4. СИСТЕМНЫЙ UPDATE ДВИЖКА И РЕНДЕР
+                
                 engine->processInput();
+                {
+
+                    using KeyCode = nb::Input::Keyboard::KeyCode;
+                    auto keyboard = engine->keyboard;
+
+                    for(size_t i = 0; i < sdk::CameraBookmarkManager::MAX_BOOKMARKS; i++)
+                    {
+                        KeyCode targetKey = static_cast<KeyCode>(static_cast<uint8_t>(KeyCode::NB_0) + i);
+
+                        if(keyboard->isKeyHeld(KeyCode::NB_CONTROL) && keyboard->isKeyPressed(targetKey))
+                        {
+                            if(cameraBookmarkManager.hasBookmark(i))
+                            {
+                                cameraBookmarkManager.apply(i, engine->getRenderer()->getCamera());
+                            }
+                            else
+                            {
+                                cameraBookmarkManager.record(i, engine->getRenderer()->getCamera());
+                            }
+                        }
+                    }
+
+                    
+                }
                 engine->run(!sceneWindow->getIsRenderable());
 
                 //engine->getRenderer()->renderShadowPreview(

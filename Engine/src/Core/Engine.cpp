@@ -215,7 +215,7 @@ namespace nb
                 }
             }
 
-
+            
             outlineSelectedObject();
         }
 

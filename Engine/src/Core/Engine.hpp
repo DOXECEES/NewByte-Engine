@@ -258,8 +258,11 @@ namespace nb
 
             std::unique_ptr<Subsystems>		subSystems      = std::make_unique<Subsystems>();
             Ref<nb::Renderer::Renderer>		renderer        = nullptr;
+
+            public:
             Ref<nb::Input::Keyboard>		keyboard        = nullptr;
             Ref<nb::Input::Mouse>			mouse           = nullptr;
+            private:
             AudioEngine                     audioEngine;
             AudioSystem                                 audioSystem;
             bool							isRunning       = true;

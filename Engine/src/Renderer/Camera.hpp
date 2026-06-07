@@ -34,6 +34,8 @@ namespace nb
 
             inline void moveTo(const Math::Vector3<float> &newPos) noexcept { position = newPos; };
             inline void moveAt(const Math::Vector3<float> &newDirection) noexcept { position += newDirection; };
+
+            void setDirection(const Math::Vector3<float> &newDirection) noexcept { direction = newDirection; };
             
             void toggleAlignByX() noexcept { alignByX = !alignByX; };
             void toggleAlignByY() noexcept { alignByY = !alignByY; };

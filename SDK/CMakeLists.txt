@@ -36,6 +36,9 @@ add_executable(${PROJECT_NAME} WIN32
     
     src/FramebufferVisualization.cpp
     src/FramebufferVisualization.hpp
+
+    src/CameraBookmark.cpp
+    src/CameraBookmark.hpp
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
