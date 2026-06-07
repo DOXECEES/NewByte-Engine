@@ -58,6 +58,8 @@ namespace nb
             PipelineHandle  pipeline;
             Math::Mat4<float>                         model;
             uint32 vertexCount = 0;
+            const std::vector<Math::Mat4<float>>*     boneTransforms = nullptr;
+
         };
 
         //struct BillboardComponent

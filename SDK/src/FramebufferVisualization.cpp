@@ -4,6 +4,7 @@
 
 #include <LayoutBuilder.hpp>
 #include <Widgets/Button.hpp>
+#include <Widgets/ComboBox.hpp>
 #include <Win32Window/Win32ChildWindow.hpp>
 
 #include <Renderer/RendererTracker.hpp>
@@ -55,10 +56,17 @@ namespace Sdk
                                  L" каналов)";
 
         ui = std::move(ui).child(
-            LayoutBuilder::widget(new Widgets::Button())
+            LayoutBuilder::widget(new Widgets::ComboBox())
                 .relativeHeight(1.0f)
                 .absoluteWidth(320)
-                .text(titleText)
+                .apply<Widgets::ComboBox>([this, titleText](Widgets::ComboBox* c) 
+                {
+                    //Renderer::RendererTracker::get
+                    c->addItem({titleText, 1});
+                    c->addItem({L"dasdas", 2});
+                    c->addItem({L"dasdasdd", 3});
+                    c->addItem({L"dasdasdasdasd", 4});
+                })
         );
 
         ui = std::move(ui).child(
@@ -216,13 +224,44 @@ namespace Sdk
             auto header = std::make_unique<Win32Window::ChildWindow>(container.get());
             
             std::wstring channelName = Utils::toWstring(frame->getNameByTextureIndex(i));
+
             std::wstring formatName = L"RGB_8";
+
+            switch (frame->getTextureAttachmentType(i))
+            {
+                case nb::Renderer::IFrameBuffer::TextureAttachment::COLOR:
+                {
+                    formatName = L"GL_RGBA8";
+                    break;
+                }
+                case nb::Renderer::IFrameBuffer::TextureAttachment::COLOR_HDR:
+                {
+                    formatName = L"GL_RGB16F";
+                    break;
+                }
+                case nb::Renderer::IFrameBuffer::TextureAttachment::DEPTH:
+                {
+                    formatName = L"GL_DEPTH_COMPONENT32";
+                    break;
+                }
+                case nb::Renderer::IFrameBuffer::TextureAttachment::STENCIL:
+                {
+                    formatName = L"GL_STENCIL_INDEX8";
+                    break;
+                }
+                case nb::Renderer::IFrameBuffer::TextureAttachment::DEPTH_STENCIL:
+                {
+                    formatName = L"GL_DEPTH24_STENCIL8";
+                    break;
+                }
+            }
+
             header->getLayoutRoot()->addChild(nbui::LayoutBuilder::hBox().relativeHeight(1.0f).relativeWidth(1.0f)
                 .child(
                     nbui::LayoutBuilder::label(channelName).relativeHeight(1.0f).relativeWidth(0.5f).textAlignment({.textAlignment = TextAlignment::LEFT, .gap = 10})
                 )
                 .child(
-                    nbui::LayoutBuilder::label(formatName).relativeHeight(1.0f).relativeWidth(0.5f).textAlignment({.textAlignment = TextAlignment::RIGHT, .gap = 10})
+                    nbui::LayoutBuilder::label(formatName).relativeHeight(1.0f).relativeWidth(0.5f).textAlignment({.textAlignment = TextAlignment::RIGHT, .gap = 10}).color({80, 80, 80})
                 )
                 .build());
             auto viewport = std::make_unique<Win32Window::ChildWindow>(container.get(), true);

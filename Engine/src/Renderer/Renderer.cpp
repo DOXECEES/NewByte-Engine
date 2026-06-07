@@ -29,6 +29,8 @@
 //
 #include "DebugDraw.hpp"
 
+#include "ECS/AnimatorComponent.hpp"
+
 #include <string_view>
 #include <format>
 #include <thread>
@@ -497,6 +499,22 @@ namespace nb::Renderer
                             return;
                         }
 
+                        const std::vector<Math::Mat4<float>>* boneMatricesPtr = nullptr;
+                        if (registry.has<AnimatorComponent>(entity))
+                        {
+                            auto& animComp = registry.get<AnimatorComponent>(entity);
+                            if (animComp.currentAnimation && !animComp.animator)
+                            {
+                                animComp.animator = std::make_unique<Animator>(animComp.currentAnimation.get());
+                            }
+
+                            if (animComp.animator && animComp.isPlaying)
+                            {
+                                // Обновляем состояние костей на CPU для текущего кадра
+                                animComp.animator->UpdateAnimation(0.016f * animComp.speed);
+                                boneMatricesPtr = &animComp.animator->GetFinalBoneMatrices();
+                            }
+                        }
 
                         Math::AABB3D worldAabb = Math::AABB3D::recalculateAabb3dByModelMatrix(
                             meshComp.mesh->getAabb3d(), transform.worldMatrix
@@ -525,7 +543,9 @@ namespace nb::Renderer
                             {.mesh     = meshComp.mesh.get(),
                              .material = meshComp.material,
                              .pipeline = api->getCache().getOrCreate(pipelineConfig),
-                             .model    = transform.worldMatrix}
+                             .model    = transform.worldMatrix,
+                             .boneTransforms = boneMatricesPtr
+                        }
                         );
                     }
                 }
@@ -867,6 +887,25 @@ namespace nb::Renderer
                 //     static_cast<int>(pointLightsData.size())
                 // );
 
+                if (cmd.boneTransforms && !cmd.boneTransforms->empty())
+                {
+                    // Передаем флаг, что меш анимирован
+                    shader->setUniformBool("u_UseSkinning", true);
+                    
+                    // Передаем массив матриц костей в шейдер
+                    const auto& matrices = *cmd.boneTransforms;
+                    for (size_t i = 0; i < matrices.size(); ++i)
+                    {
+                        std::string uniformName = std::format("gBones[{}]", i);
+                        shader->setUniformMat4(uniformName, matrices[i]);
+                    }
+                }
+                else
+                {
+                    // Меш статичен
+                    shader->setUniformBool("u_UseSkinning", false);
+                }
+
                 api->drawMesh(cmd);
             }
 
@@ -904,8 +943,9 @@ namespace nb::Renderer
         if (!previewQueue.isEmpty())
         {
             auto& materialPath = previewQueue.front(); 
-            
-            saveSpherePreview(materialPath, "Assets/cache/" + materialPath.stem().string() + ".png");
+            std::string replacedPath = materialPath.generic_string();
+            std::replace(replacedPath.begin(), replacedPath.end(), '/', '_');
+            saveSpherePreview(materialPath, "Assets/cache/" + replacedPath + ".png");
 
             for (size_t idx = 1; idx < previewQueue.size(); ++idx)
             {
@@ -1006,46 +1046,46 @@ namespace nb::Renderer
         gizmoCtx.draw();
 
 
-        // if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
-        // {
-        //     auto maskShader = rm->getResource<Shader>("mask_pass.shader");
+         if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
+         {
+             auto maskShader = rm->getResource<Shader>("mask_pass.shader");
             
-        //     auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
+             auto meshPtr    = activeNode.getComponent<MeshComponent>().mesh.get();
 
-        //     api->bindFrameBuffer(outlineMaskFrameBuffer);
-        //     api->setViewport({
-        //             0,
-        //             0,
-        //             (float)Core::EngineSettings::getWidth(),
-        //             (float)Core::EngineSettings::getHeight()
-        //         }
-        //     );
-        //     api->setClearColor(Colors::BLACK, 0.0f, 0);
-        //     api->clear(true, false, false);
+             api->bindFrameBuffer(outlineMaskFrameBuffer);
+             api->setViewport({
+                     0,
+                     0,
+                     (float)Core::EngineSettings::getWidth(),
+                     (float)Core::EngineSettings::getHeight()
+                 }
+             );
+             api->setClearColor(Colors::BLACK, 0.0f, 0);
+             api->clear(true, false, false);
 
-        //     maskShader->use();
-        //     maskShader->setUniformMat4("u_View", view);
-        //     maskShader->setUniformMat4("u_Proj", proj);
-        //     maskShader->setUniformMat4(
-        //         "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
-        //     );
+             maskShader->use();
+             maskShader->setUniformMat4("u_View", view);
+             maskShader->setUniformMat4("u_Proj", proj);
+             maskShader->setUniformMat4(
+                 "u_Model", activeNode.getComponent<TransformComponent>().worldMatrix
+             );
 
-        //     Pipeline maskPipeline{
-        //         .shader            = maskShader,
-        //         .isDepthTestEnable = false, 
-        //         .isBlendEnable     = false,
-        //         .isCullingEnable   = true,
-        //         .cullFront         = false
-        //     };
-        //     uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
-        //     api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
-        // }
-        // else if (outlineMaskFrameBuffer) 
-        // {
-        //     api->bindFrameBuffer(outlineMaskFrameBuffer);
-        //     api->setClearColor(Colors::BLACK, 0.0f, 0);
-        //     api->clear(true, false, false);
-        // }
+             Pipeline maskPipeline{
+                 .shader            = maskShader,
+                 .isDepthTestEnable = false, 
+                 .isBlendEnable     = false,
+                 .isCullingEnable   = true,
+                 .cullFront         = false
+             };
+             uint32 maskPsoId = api->getCache().getOrCreate(maskPipeline);
+             api->drawMesh({.mesh = meshPtr, .pipeline = maskPsoId});
+         }
+         else if (outlineMaskFrameBuffer) 
+         {
+             api->bindFrameBuffer(outlineMaskFrameBuffer);
+             api->setClearColor(Colors::BLACK, 0.0f, 0);
+             api->clear(true, false, false);
+         }
 
 
     }

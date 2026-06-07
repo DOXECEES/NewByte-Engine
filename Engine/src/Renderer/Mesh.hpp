@@ -124,68 +124,84 @@ namespace nb
                 {
                     size_t triangleCount = indiciesCount / 3;
 
-                    Math::Vector3<float> *tan1 = new Math::Vector3<float>[verticies.size() * 2];
-                    Math::Vector3<float> *tan2 = tan1 + verticies.size();
+                    Math::Vector3<float>* tan1 = new Math::Vector3<float>[verticies.size() * 2];
+                    Math::Vector3<float>* tan2 = tan1 + verticies.size();
                     ZeroMemory(tan1, verticies.size() * sizeof(Math::Vector3<float>) * 2);
 
+                    for (size_t a = 0; a < triangleCount; a++)
+                    {
+                        // 1. ЗАЩИТА ОТ ВЫЛЕТА ИЗ-ЗА ВЕКТОРА ИНДЕКСОВ (ind)
+                        // Проверяем, что мы не пытаемся читать за границами вектора ind
+                        if (a * 3 + 2 >= ind.size())
+                        {
+                            break; // Если вышли за пределы массива индексов - прекращаем расчет
+                        }
 
-                    for (size_t a = 0; a < triangleCount; a++) {
-                        int i1 = ind[a * 3 + 0];
-                        int i2 = ind[a * 3 + 1];
-                        int i3 = ind[a * 3 + 2];
-                
+                        size_t i1 = ind[a * 3 + 0];
+                        size_t i2 = ind[a * 3 + 1];
+                        size_t i3 = ind[a * 3 + 2];
+
+                        // 2. ЗАЩИТА ОТ ВЫЛЕТА ИЗ-ЗА ВЕКТОРА ВЕРШИН (verticies)
+                        // Проверяем, что полученные индексы не выходят за пределы размера вектора
+                        // вершин
+                        if (i1 >= verticies.size() || i2 >= verticies.size() ||
+                            i3 >= verticies.size())
+                        {
+                            continue; // Пропускаем некорректный полигон во избежание вылета
+                        }
 
                         const Math::Vector3<float>& v1 = verticies[i1].position;
                         const Math::Vector3<float>& v2 = verticies[i2].position;
                         const Math::Vector3<float>& v3 = verticies[i3].position;
-                
+
                         const Math::Vector2<float>& w1 = verticies[i1].textureCoordinates;
                         const Math::Vector2<float>& w2 = verticies[i2].textureCoordinates;
                         const Math::Vector2<float>& w3 = verticies[i3].textureCoordinates;
-                
+
                         float x1 = v2.x - v1.x;
                         float x2 = v3.x - v1.x;
                         float y1 = v2.y - v1.y;
                         float y2 = v3.y - v1.y;
                         float z1 = v2.z - v1.z;
                         float z2 = v3.z - v1.z;
-                
+
                         float s1 = w2.x - w1.x;
                         float s2 = w3.x - w1.x;
                         float t1 = w2.y - w1.y;
                         float t2 = w3.y - w1.y;
-                
-                        float r = 1.0F / (s1 * t2 - s2 * t1);
+
+                        float                r = 1.0F / (s1 * t2 - s2 * t1);
                         Math::Vector3<float> sdir(
-                            (t2 * x1 - t1 * x2) * r,
-                            (t2 * y1 - t1 * y2) * r,
+                            (t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r,
                             (t2 * z1 - t1 * z2) * r
                         );
                         Math::Vector3<float> tdir(
-                            (s1 * x2 - s2 * x1) * r,
-                            (s1 * y2 - s2 * y1) * r,
+                            (s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r,
                             (s1 * z2 - s2 * z1) * r
                         );
 
                         tan1[i1] += sdir;
                         tan1[i2] += sdir;
                         tan1[i3] += sdir;
-                
+
                         tan2[i1] += tdir;
                         tan2[i2] += tdir;
                         tan2[i3] += tdir;
                     }
-                
-                    for (size_t a = 0; a < verticies.size(); a++) {
+
+                    for (size_t a = 0; a < verticies.size(); a++)
+                    {
                         const Math::Vector3<float>& n = verticies[a].normal;
                         const Math::Vector3<float>& t = tan1[a];
-                
+
                         Math::Vector3<float> tangentVec = (t - n * n.dot(t));
                         tangentVec.normalize();
 
                         float handedness = (n.cross(t).dot(tan2[a]) < 0.0F) ? -1.0F : 1.0F;
-                
-                        verticies[a].tangent = Math::Vector4<float>(tangentVec.x, tangentVec.y,tangentVec.z, handedness);
+
+                        verticies[a].tangent = Math::Vector4<float>(
+                            tangentVec.x, tangentVec.y, tangentVec.z, handedness
+                        );
                     }
 
                     delete[] tan1;
@@ -207,12 +223,18 @@ namespace nb
                     return ind;
                 }
 
+                auto& GetBoneInfoMap() { return boneInfoMap; }
+                int& GetBoneCount() { return boneCount; }
+                std::unordered_map<std::string, BoneInfo> boneInfoMap;
+                int boneCount = 0;
+
             private:
                 std::vector<uint32_t> uniteIndicies() noexcept;
                 void applyMaterial(const SubMesh& mesh) const noexcept;
 
             private:
-
+               
+ 
 
                 Math::AABB3D                            aabb;
                 nb::OpenGl::VertexArray                 VAO;

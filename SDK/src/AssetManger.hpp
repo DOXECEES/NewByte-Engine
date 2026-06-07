@@ -67,6 +67,8 @@ public:
     //Signal<void()>
 
 private:
+    void createFolderThumbnail(nbui::LayoutBuilder& grid, const std::filesystem::path& path);
+
 
     struct DragInfo
     {
@@ -84,7 +86,9 @@ private:
         {".model", Widgets::AssetType::MODEL},
         {".lua", Widgets::AssetType::SCRIPT},
         {".vs", Widgets::AssetType::SHADER},
-        {".fs", Widgets::AssetType::SHADER}
+        {".fs", Widgets::AssetType::SHADER},
+        {".translation", Widgets::AssetType::TRANSLATION},
+        {"folder", Widgets::AssetType::FOLDER}
         //{".jpg", AssetType::TEXTURE},
         //{".texture", AssetType::TEXTURE},
         //{".fbx", AssetType::MODEL},

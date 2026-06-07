@@ -24,6 +24,7 @@ namespace nb
             registerLoader(".model", createRef<nb::Loaders::Factory::ObjFactory>());
             registerLoader(".texture", createRef<nb::Loaders::Factory::TextureFactory>());
             registerLoader(".material", createRef<nb::Loaders::Factory::MaterialFactory>());
+            registerLoader(".anim", createRef<nb::Loaders::Factory::ObjFactory>());
 
 
         }

@@ -120,3 +120,23 @@ Ui.TextureEditor.Size : Разрешение
 Ui.TextureEditor.Format : Формат
 Ui.TextureEditor.Metadata : Метаданные
 Ui.TextureEditor.TextureBrowser : Редактор текстур
+
+Ui.AssetImporter.TargetFolder : Целевая папка
+Ui.AssetImporter.Geometry : Геометрия
+Ui.AssetImporter.ImportMeshes : Импортировать меши
+Ui.AssetImporter.GenerateTangents : Генерировать тагненты
+Ui.AssetImporter.Materials : Материалы
+Ui.AssetImporter.ImportMaterials : Импортировать материалы
+Ui.AssetImporter.FlipUvs : Инвертировать UV координаты
+Ui.AssetImporter.Textures : Текстуры
+Ui.AssetImporter.Compression : Сжатие
+Ui.AssetImporter.Compression.None : Отсутствует
+Ui.AssetImporter.Compression.BC3 : BC3
+Ui.AssetImporter.Compression.BC7 : BC7
+Ui.AssetImporter.Import : Импорт
+Ui.AssetImporter.Cancel : Отмена
+Ui.AssetImporter.On : Включен
+Ui.AssetImporter.Off : Выключен
+Ui.AssetImporter.AssetName : Имя ассета
+Ui.AssetImporter.ImportingAsset : Импорт ассета
+Ui.AssetImporter.Common : Общее

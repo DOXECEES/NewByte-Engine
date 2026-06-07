@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(FETCHCONTENT_FULLY_DISCONNECTED ON)
+
 set(DEPENDENCIES_DIR "${PROJECT_SOURCE_DIR}/dependencies")
 set(LUA_DIR "${DEPENDENCIES_DIR}/lua")
 set(SOL2_DIR "${DEPENDENCIES_DIR}/sol")
@@ -249,6 +251,10 @@ set(SRC
     src/Renderer/RendererTracker.cpp
     src/Renderer/RendererTracker.hpp
 
+    src/Renderer/Bone.hpp
+    src/Renderer/Animator.hpp
+    src/Renderer/Animation.hpp
+
     src/Math/Constants.hpp
     src/Math/Vector2.cpp
     src/Math/Vector2.hpp
@@ -301,6 +307,7 @@ set(SRC
     src/Loaders/IhdrLoader.hpp
 
     src/Loaders/AsimpLoader.hpp
+    src/Loaders/AnimationLoader.hpp
 
     src/Loaders/ObjLoader.cpp
     src/Loaders/ObjLoader.hpp

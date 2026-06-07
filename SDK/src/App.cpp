@@ -248,11 +248,6 @@ void EditorApp::createWindows() noexcept
     });
 
     
-    // textureInspector = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
-    // textureInspector->setTitle(
-    //     Utils::toWstring(Translation::fromKey("Ui.Editor.TextureView.Title"))
-    // );
-
     debugWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     debugWindow->setTitle(
         Utils::toWstring(Translation::fromKey("Ui.Editor.DebugWindow.Title"))
@@ -261,8 +256,6 @@ void EditorApp::createWindows() noexcept
     toolbarWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     toolbarWindow->setTitle(L"Toolbar");
 
-    //tempWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    //tempWindow->setTitle(L"tempWindow");
     previewWindow = std::make_shared<Win32Window::ChildWindow>(nullptr);
     previewWindow->setTitle(L"prev");
     previewWindow->addCaption();
@@ -336,8 +329,6 @@ void EditorApp::initEngine() noexcept
         nb::Core::EngineSettings::setHeight(s.height);
         nb::Core::EngineSettings::setWidth(s.width);
     });
-
-
 }
 
 void EditorApp::setupMainWindow() noexcept
@@ -811,8 +802,6 @@ nbui::LayoutBuilder EditorApp::createSpinBox(std::function<void(int)> onChange, 
             )
             .background({ 25, 25, 25 })
             .color(color));
-            //.onEvent(&Widgets::SpinBox::onValueChangedByStep, onChange));
-
 }
 
 
@@ -837,27 +826,19 @@ auto createAssetCard(
                 s.color = NbColor{35, 35, 35};
             }
         )
-        // 1. Превью (80px)
         .child(
             LayoutBuilder::label(L"").absoluteWidth(110).absoluteHeight(80).background(
                 NbColor{20, 20, 20}
             )
         )
-
-        // 2. Цветовой индикатор типа (5px)
         .child(LayoutBuilder::label(L"").absoluteWidth(110).absoluteHeight(5).background(typeColor))
-
-        // 3. Имя (35px)
         .child(
             LayoutBuilder::label(name)
                 .absoluteWidth(110)
                 .absoluteHeight(35)
                 .fontSize(12)
                 .color(NbColor{220, 220, 220})
-                //.textAlignment({})
         )
-
-        // 4. Текст типа (25px)
         .child(
             LayoutBuilder::label(type)
                 .absoluteWidth(110)
@@ -871,12 +852,6 @@ auto createAssetCard(
 void EditorApp::setupSettingsUI() noexcept
 {
     using namespace nbui;
-    //modal =
-    //    std::make_shared<Win32Window::ModalWindow>(NbSize<int>{1280, 720}, debugWindow.get());
-    //modal->setTitle(L"Content Browser");
-
-
-    
 
     auto ui =
         LayoutBuilder::hBox()
@@ -891,9 +866,6 @@ void EditorApp::setupSettingsUI() noexcept
                     s.padding = {0, 0, 0, 0};
                 }
             )
-            // ==========================================
-            // ЛЕВАЯ ПАНЕЛЬ: ДЕРЕВО (25% ширины)
-            // ==========================================
             .child(
                 LayoutBuilder::vBox()
                     .style(
@@ -940,9 +912,6 @@ void EditorApp::setupSettingsUI() noexcept
                     .child(LayoutBuilder::spacer()) // Пружина: прижимает кнопки к верху
             )
 
-            // ==========================================
-            // ПРАВАЯ ПАНЕЛЬ: КОНТЕНТ (75% ширины)
-            // ==========================================
             .child(
                 LayoutBuilder::vBox()
                     .style(
@@ -957,7 +926,6 @@ void EditorApp::setupSettingsUI() noexcept
                         }
                     )
 
-                    // 1. Тулбар (Фиксированная высота 45px)
                     .child(
                         LayoutBuilder::hBox()
                             .style(
@@ -1139,7 +1107,6 @@ LayoutBuilder makeSliderRow(
         );
 }
 
-// Строка с инпутом (Label | Input)
 LayoutBuilder makeInputRow(
     const std::wstring& name,
     const std::wstring& value

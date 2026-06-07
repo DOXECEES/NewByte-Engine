@@ -16,7 +16,8 @@ namespace nb::SDK
         MESH,
         MODEL,
         TEXTURE,
-        MATERIAL
+        MATERIAL,
+        ANIMATION,
     };
 
     struct ImportedAssetInfo

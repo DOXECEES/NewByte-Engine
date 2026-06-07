@@ -14,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <array>
 
 namespace nb
 {
@@ -22,6 +23,7 @@ namespace nb
 
         struct Vertex
         {
+
 
             Vertex(
                 const Math::Vector3<float>& pos = {},
@@ -39,14 +41,36 @@ namespace nb
             Math::Vector2<float> textureCoordinates{};
             Math::Vector4<float> tangent{};
 
+            std::array<int32_t, 4> boneIDs = { -1, -1, -1, -1 };
+            std::array<float, 4>   weights = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+
+
             bool operator==(const Vertex &other) const
             {
                 return position == other.position &&
                        normal == other.normal &&
                        color == other.color &&
-                       textureCoordinates == other.textureCoordinates;
+                       textureCoordinates == other.textureCoordinates &&
+                       tangent == other.tangent &&
+                       boneIDs == other.boneIDs &&
+                       weights == other.weights;
             }
         };
+
+        struct BoneInfo
+        {
+            int id; 
+            Math::Mat4<float> offsetMatrix; 
+        };
+    struct AssimpNodeData
+    {
+        Math::Mat4<float> transformation;
+        std::string name;
+        int childrenCount;
+        std::vector<AssimpNodeData> children;
+    };
+
 
         class Material : public Resource::IResource
         {

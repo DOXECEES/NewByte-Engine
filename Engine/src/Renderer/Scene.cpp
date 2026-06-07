@@ -10,6 +10,7 @@
 #include "Scripting/ScriptComponent.hpp"
 #include "Physics/Physics.hpp"
 #include "Audio/AudioEngine.hpp"
+#include "ECS/AnimatorComponent.hpp"
 
 namespace nb
 {
@@ -577,6 +578,7 @@ namespace nb
 //        ecs.getStorage<nb::Physics::GroundTag>();
         ecs.getStorage<nb::Physics::Rigidbody>();
         ecs.getStorage<CameraComponent>();
+        ecs.getStorage<AnimatorComponent>();
 
         //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
 
@@ -613,6 +615,7 @@ namespace nb
         //ecs.getStorage<nb::Physics::GroundTag>();
         ecs.getStorage<nb::Physics::Rigidbody>();
         ecs.getStorage<CameraComponent>();
+        ecs.getStorage<AnimatorComponent>();
 
         //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
     }

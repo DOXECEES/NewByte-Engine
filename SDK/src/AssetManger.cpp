@@ -312,6 +312,15 @@ void AssetManager::refreshAssetGrid()
     {
         for (const auto& entry : std::filesystem::directory_iterator(currentPath))
         {
+            if(entry.is_directory())
+            {
+                createFolderThumbnail(grid, entry.path());
+                continue;
+            }
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(currentPath))
+        {
             if (!entry.is_regular_file())
             {
                 continue;
@@ -430,6 +439,8 @@ void AssetManager::refreshAssetGrid()
                                             }
                                             else
                                             {
+                                                //if(supportedExtensions.at(ext) )
+
                                                 if (this->textureEditor)
                                                 {
                                                     this->textureEditor = nullptr;
@@ -521,4 +532,97 @@ NbColor AssetManager::getAccentColorForExt(const std::wstring& ext)
         return {156, 39, 176}; // Фиолетовый
     }
     return {150, 150, 150}; // Серый
+}
+
+void AssetManager::createFolderThumbnail(nbui::LayoutBuilder& grid, const std::filesystem::path& path)
+{
+    using namespace nbui;
+
+    std::wstring directoryName = path.stem().wstring();
+
+    std::move(grid).child(
+        LayoutBuilder::vBox()
+            .margin({0, 12, 12, 0})
+            .style(
+                [](NNsLayout::LayoutStyle& s)
+                {
+                    s.width         = 120;
+                    s.height        = 160;
+                    s.color         = {38, 38, 38};
+                    s.border.radius = 4.0f;
+
+                    s.border.style        = Border::Style::SOLID;
+                    s.border.width.bottom = 3;
+                    s.border.color        = {255, 255, 255};
+                    s.border.sideMask     = Border::Side::BOTTOM;
+                }
+            )
+            .child(
+                LayoutBuilder::thumbnail(
+                    directoryName, L"", Widgets::AssetType::FOLDER,  path
+                )
+                    .relativeWidth(1.0f)
+                    .absoluteHeight(95)
+                    .background({25, 25, 25})
+                    .apply<Widgets::IWidget>(
+                        [this, path](Widgets::IWidget* w) 
+                        {
+                            w->onReleasedSignal.connect(
+                                [this, path]() 
+                                {
+                                    bool itemFound = false;
+                                    Widgets::ModelIndex targetIndex;
+
+                                    if (this->model && this->treeView)
+                                    {
+                                        this->model->forEach(
+                                            [&](const Widgets::ModelItem& item)
+                                            {
+                                                if (this->model->getPath(item) == path)
+                                                {
+                                                    targetIndex = Widgets::ModelIndex(item.getUuid());
+                                                    itemFound = true;
+                                                }
+                                            }
+                                        );
+                                    }
+
+                                    if (itemFound)
+                                    {
+                                        this->treeView->setSelectedItem(targetIndex);
+                                    }
+                                }
+                            );
+                        }
+                    )
+            )
+            .child(
+                LayoutBuilder::vBox()
+                    .style(
+                        [](auto& s)
+                        {
+                            s.padding = {8, 6, 8, 4};
+                        }
+                    )
+                    .child(
+                        LayoutBuilder::label(directoryName)
+                            .fontSize(10)
+                            .color({230, 230, 230})
+                            .absoluteHeight(28)
+                            .apply<Widgets::Label>(
+                                [](Widgets::Label* l)
+                                {
+                                    l->setEllipsis(true);
+                                }
+                            )
+                    )
+                    .child(
+                        LayoutBuilder::label(L"Folder")
+                            .fontSize(9)
+                            .color({110, 110, 110})
+                            .absoluteHeight(20)
+                    )
+            )
+
+    );
 }

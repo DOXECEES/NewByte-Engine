@@ -202,5 +202,13 @@
 			"Assets/shaders/fbo_visualization.vs",
 			"Assets/shaders/fbo_visualization.fs"
 		]
-	}
+	},
+	"ADS_sep.shader" : {
+        "sources": [
+            "Assets/shaders/ADS.vs",
+            "Assets/shaders/ADS_sep.fs"
+        ]
+    },
+
+	
 }

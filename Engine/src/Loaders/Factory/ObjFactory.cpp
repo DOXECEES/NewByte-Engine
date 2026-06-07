@@ -4,7 +4,7 @@
 #include "ObjFactory.hpp"
 #include "Loaders/AsimpLoader.hpp"
 #include "ModelFactory.hpp"
-
+#include "Loaders/AnimationLoader.hpp"
 
 namespace nb
 {
@@ -32,6 +32,10 @@ namespace nb
                 else if (path.extension() == ".model")
                 {
                     return nb::Resource::loadModel(path);
+                }
+                else if (path.extension() == ".anim")
+                {
+                    return nb::Resource::loadAnimation(path);
                 }
                
 
