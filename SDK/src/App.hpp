@@ -33,6 +33,10 @@
 #include <Utils/PrimitiveNameManager.hpp>
 
 #include "CameraBookmark.hpp"
+#include "CameraBookmarkWindow.hpp"
+
+#include "Camera/CameraSettingsController.hpp"
+#include "EngineSettingsController.hpp"
 
 namespace nbui
 {
@@ -86,12 +90,17 @@ private:
     std::shared_ptr<Win32Window::Window> mainWindow;
     std::unique_ptr<Temp::DockingSystem> dockManager;
 
+    std::shared_ptr<Win32Window::ChildWindow> sceneTabWindow;
+    std::shared_ptr<Win32Window::ChildWindow> sceneToolbar;
     std::shared_ptr<Win32Window::ChildWindow> sceneWindow;
+
     std::shared_ptr<Win32Window::ChildWindow> hierarchyWindow;
     std::shared_ptr<Win32Window::ChildWindow> inspectorWindow;
     std::shared_ptr<Win32Window::ChildWindow> debugWindow;
     std::shared_ptr<Win32Window::ChildWindow> assetManager;
     std::shared_ptr<Win32Window::ChildWindow> toolbarWindow;
+    std::unique_ptr<sdk::CameraBookmarkWindow> cameraBookmarkWindow;
+
     //std::shared_ptr<Win32Window::ChildWindow> tempWindow;
     std::shared_ptr<Win32Window::ChildWindow> previewWindow;
     nb::Renderer::SharedWindowContext         sharedContext;
@@ -99,6 +108,8 @@ private:
     std::shared_ptr<Win32Window::ModalWindow> colorPickerWindow;
     std::shared_ptr<Win32Window::ModalWindow> filePickerWindow;
     std::shared_ptr<Win32Window::ModalWindow> languagePicker;
+    std::shared_ptr<Win32Window::ModalWindow> gizmoToggleWindow = nullptr;
+
 
     std::shared_ptr<Win32Window::ChildWindow> shaderNodes;
     std::shared_ptr<Sdk::FramebufferVisualization> framebufferVisualization;
@@ -113,6 +124,10 @@ private:
     Widgets::TreeView* savedTreeView = nullptr; 
     nb::Ecs::EntityID  copiedEntityId;
     sdk::CameraBookmarkManager cameraBookmarkManager;
+    sdk::CameraSettingsController cameraSettingsController;
+
+    std::unique_ptr<sdk::EngineSettingsController> engineSettingsController;
+    nb::Renderer::DebugRendererSettings debugRendererSettings = {};
 
     void openColorPickerWindow();
     void openFilePickerWindow();
@@ -437,15 +452,19 @@ private:
 
                                 tc.rotation.normalize();
                                 tc.eulerAngle =
-                                    tc.rotation.toEulerXYZ(); // Медленная функция, но теперь
-                                                              // работает 1 раз за кадр
+                                    tc.rotation.toEulerXYZ(); 
+                                                              
                                 tc.dirty        = true;
                                 tc.physicsDirty = true;
+
+                                if (state.hotkey_ctrl)
+                                {
+                                    nb::Scene::getInstance().snapToSurface(activeNode.getId(), 1000.0f, true);
+                                }
                             }
                         }
                     }
 
-                    // 3. ВЫБОР ОБЪЕКТА (RAY PICKING)
                     if (leftMouseDownThisFrame && !isGizmoHit)
                     {
                         nb::Math::Ray pickRay;
@@ -455,7 +474,6 @@ private:
                     }
                 }
 
-                // 4. СИСТЕМНЫЙ UPDATE ДВИЖКА И РЕНДЕР
                 
                 engine->processInput();
                 {
@@ -476,6 +494,7 @@ private:
                             else
                             {
                                 cameraBookmarkManager.record(i, engine->getRenderer()->getCamera());
+                                cameraBookmarkWindow->refreshUi();
                             }
                         }
                     }

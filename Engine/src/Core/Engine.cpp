@@ -138,33 +138,39 @@ namespace nb
                 input->startHandlingPosition();
             }
 
+            float currentCameraSpeed = cameraSpeed;
+            if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_CONTROL))
+            {
+                currentCameraSpeed *= cameraSpeedMultiplier;
+            }
+
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_S))
             {
-                cam.moveAt(-camDir * 5.0f * deltaTime);
+                cam.moveAt(-camDir * currentCameraSpeed * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_W))
             {
-                cam.moveAt(camDir * 5.0f * deltaTime);
+                cam.moveAt(camDir * currentCameraSpeed * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_A))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(-rightVec * 5.0f * deltaTime);
+                cam.moveAt(-rightVec * currentCameraSpeed * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_D))
             {
                 auto rightVec = camDir.cross({0.0f, 1.0f, 0.0f});
                 rightVec.normalize();
-                cam.moveAt(rightVec * 5.0f * deltaTime);
+                cam.moveAt(rightVec * currentCameraSpeed * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SPACE))
             {
-                cam.moveAt(cam.getUpVector() * 5.0f * deltaTime);
+                cam.moveAt(cam.getUpVector() * currentCameraSpeed * deltaTime);
             }
             if (keyboard->isKeyHeld(Keyboard::KeyCode::NB_SHIFT))
             {
-                cam.moveAt(-(cam.getUpVector() * 5.0f * deltaTime));
+                cam.moveAt(-(cam.getUpVector() * currentCameraSpeed * deltaTime));
             }
 
             if (keyboard->isKeyPressed(Keyboard::KeyCode::NB_1))
@@ -549,6 +555,16 @@ namespace nb
         void Engine::setProjectPath(const std::filesystem::path& path) noexcept
         {
             projectPath = path;
+        }
+
+        void Engine::setCameraSpeed(float speed) noexcept
+        {
+            cameraSpeed = std::clamp(speed, 0.1f, 100.0f);
+        }
+
+        void Engine::setCameraSpeedMultiplier(float multiplier) noexcept
+        {
+            cameraSpeedMultiplier = std::clamp(multiplier, 1.0f, 100.0f);
         }
 
         void Engine::outlineSelectedObject() noexcept

@@ -438,6 +438,11 @@ namespace nb
 
         while (true)
         {
+            if (sceneBVH.nodes.empty())
+            {
+                return result;
+            }
+
             const auto& node = sceneBVH.nodes[currentNodeIdx];
             float       tNode;
             if (!Math::intersectRayAABB(ray, node.bounds, tNode) || tNode > result.distance)
@@ -457,7 +462,7 @@ namespace nb
                     const auto& item = sceneBVH.items[node.leftFirst + i];
                     if (item.entityId == ignoreId)
                     {
-                        continue; // Игнорируем шар
+                        continue;
                     }
 
                     float tAABB;
@@ -482,10 +487,12 @@ namespace nb
                         for (size_t j = 0; j < indices.size(); j += 3)
                         {
                             float tTri;
+                            const auto& v0 = vertices[indices[j]].position;
+                            const auto& v1 = vertices[indices[j + 1]].position;
+                            const auto& v2 = vertices[indices[j + 2]].position;
+
                             if (Math::intersectRayTriangle(
-                                    localRay, vertices[indices[j]].position,
-                                    vertices[indices[j + 1]].position,
-                                    vertices[indices[j + 2]].position, tTri
+                                    localRay, v0, v1, v2, tTri
                                 ))
                             {
                                 if (tTri < result.distance && tTri > 0.0001f)
@@ -493,6 +500,25 @@ namespace nb
                                     result.distance = tTri;
                                     result.entityId = item.entityId;
                                     result.hasHit   = true;
+
+                                    result.point = ray.origin + ray.direction * tTri;
+
+                                    Math::Vector3<float> e1 = v1 - v0;
+                                    Math::Vector3<float> e2 = v2 - v0;
+                                    Math::Vector3<float> localNormal = e1.cross(e2);
+                                    localNormal.normalize();
+
+                                    Math::Mat4<float> transposeInvModel;
+                                    for (int r = 0; r < 4; ++r)
+                                    {
+                                        for (int c = 0; c < 4; ++c)
+                                        {
+                                            transposeInvModel[c][r] = invModel[r][c];
+                                        }
+                                    }
+
+                                    result.normal = Math::transformVector(transposeInvModel, localNormal);
+                                    result.normal.normalize();
                                 }
                             }
                         }
@@ -554,6 +580,77 @@ namespace nb
         return result;
     }
 
+    bool Scene::snapToSurface(
+        Ecs::EntityID entityId, 
+        float maxRayDistance,
+        bool alignRotation
+    ) noexcept
+    {
+        if (!hasComponent<TransformComponent>(entityId))
+        {
+            return false;
+        }
+
+        auto& transform = getComponent<TransformComponent>(entityId);
+
+        Math::Ray ray;
+        ray.origin = transform.position + Math::Vector3<float>{0.0f, 0.1f, 0.0f};
+        ray.direction = Math::Vector3<float>{0.0f, -1.0f, 0.0f};
+
+        RaycastResult result = raycast(ray, entityId);
+
+        if (!result.hasHit || result.distance > maxRayDistance)
+        {
+            return false;
+        }
+
+        float offset = 0.0f;
+        if (hasComponent<MeshComponent>(entityId))
+        {
+            auto& meshComp = getComponent<MeshComponent>(entityId);
+            if (meshComp.mesh)
+            {
+                Math::AABB3D localAABB = meshComp.mesh->getAabb3d();
+                
+                offset = -localAABB.minPoint.y * transform.scale.y;
+            }
+        }
+
+        transform.position = result.point + (result.normal * offset);
+        transform.dirty = true;
+
+        if (alignRotation)
+        {
+            Math::Vector3<float> up(0.0f, 1.0f, 0.0f);
+            
+            Math::Vector3<float> v = up.cross(result.normal);
+            float e = up.dot(result.normal);
+            
+            if (e < -0.9999f) 
+            {
+                transform.rotation = Math::Quaternion<float>(1.0f, 0.0f, 0.0f, 0.0f); 
+            }
+            else
+            {
+                float s = std::sqrt((1.0f + e) * 2.0f);
+                float invS = 1.0f / s;
+                
+                Math::Quaternion<float> q;
+                q.x = v.x * invS;
+                q.y = v.y * invS;
+                q.z = v.z * invS;
+                q.w = s * 0.5f;
+                q.normalize();
+                
+                transform.rotation = q;
+            }
+
+            transform.eulerAngle = Math::quatToEuler(transform.rotation); 
+            transform.lastEuler = transform.eulerAngle;
+        }
+
+        return true;
+    }
 
     Scene::Scene() noexcept
     {

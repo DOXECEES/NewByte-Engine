@@ -37,7 +37,7 @@ AssetManager::AssetManager(
 
 void AssetManager::handleResize(const NbSize<int>& size)
 {
-    const int toolbarHeight = 35;
+    const int toolbarHeight = 0;
     const int treeWidth     = 250;
     const int totalWidth    = size.width;
     const int totalHeight   = size.height;
@@ -186,32 +186,32 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
         .relativeHeight(1.0f)
         .relativeWidth(1.0f)
 
-        .child(
-            LayoutBuilder::toolbar()
-                .style(
-                    [](NNsLayout::LayoutStyle& s)
-                    {
-                        s.color = {40, 40, 40};
-                        s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
-                        s.height = 35.0f;
-                    }
-                )
-                .child(
-                    LayoutBuilder::widget(new Widgets::Button())
-                        .text(L"  Import  ") 
-                        .absoluteWidth(80)
-                        .margin({5, 5, 5, 5})
-                        .background({60, 60, 60})
-                )
-                .child(
-                    LayoutBuilder::widget(new Widgets::Button())
-                        .text(L"  Add Folder  ")
-                        .absoluteWidth(100)
-                        .margin({0, 5, 5, 5})
-                        .background({60, 60, 60})
-                )
+        // .child(
+        //     LayoutBuilder::toolbar()
+        //         .style(
+        //             [](NNsLayout::LayoutStyle& s)
+        //             {
+        //                 s.color = {40, 40, 40};
+        //                 s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
+        //                 s.height = 35.0f;
+        //             }
+        //         )
+        //         .child(
+        //             LayoutBuilder::widget(new Widgets::Button())
+        //                 .text(L"  Import  ") 
+        //                 .absoluteWidth(80)
+        //                 .margin({5, 5, 5, 5})
+        //                 .background({60, 60, 60})
+        //         )
+        //         .child(
+        //             LayoutBuilder::widget(new Widgets::Button())
+        //                 .text(L"  Add Folder  ")
+        //                 .absoluteWidth(100)
+        //                 .margin({0, 5, 5, 5})
+        //                 .background({60, 60, 60})
+        //         )
 
-        )
+        // )
 
         .child(
             LayoutBuilder::hBox()

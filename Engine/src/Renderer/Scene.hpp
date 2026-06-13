@@ -297,6 +297,9 @@ namespace nb
         Ecs::EntityID entityId = 0;
         float         distance = std::numeric_limits<float>::max();
         bool          hasHit   = false;
+        Math::Vector3<float> point{};             
+        Math::Vector3<float> normal{0.f, 1.f, 0.f}; 
+
     };
 
 
@@ -399,6 +402,12 @@ namespace nb
         RaycastResult raycast(
             const Math::Ray& ray,
             Ecs::EntityID    ignoreId = 0
+        ) noexcept;
+
+        bool snapToSurface(
+            Ecs::EntityID entityId, 
+            float maxRayDistance = 1000.0f,
+            bool alignRotation = false
         ) noexcept;
 
         void serialize(nb::Serialize::IArchive* archive) noexcept override;

@@ -38,7 +38,13 @@ namespace nb
 {
     namespace Renderer
     {
-  
+        struct DebugRendererSettings 
+        {
+            bool showCameraFrustrum = true;
+            bool showDebugBillboards = true;
+            bool showLightGizmos = true;
+            bool showGizmo = true;
+        };
 
         class Renderer 
         {
@@ -63,6 +69,8 @@ namespace nb
 
             void setWireframeMode(bool flag) noexcept;
             void showVertexColor(bool flag) noexcept;
+
+            void setDebugSettings(const DebugRendererSettings& settings) noexcept;
 
             inline void toggleSsao() noexcept
             {
@@ -260,6 +268,8 @@ namespace nb
             //bool  isSSAOEnabled = true;
 
         private:
+
+            DebugRendererSettings debugRendererSettings;
 
             
             std::unique_ptr<Skybox> skybox;

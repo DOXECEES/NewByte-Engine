@@ -25,6 +25,12 @@ Ui.Editor.Rename : Переименовать
 Ui.Editor.Search : Поиск...
 Ui.Editor.View.Lang : Язык интерфейса
 
+Ui.Editor.Hierarchy.Title : Иерархия
+Ui.Editor.Scene.Title : Сцена
+Ui.Editor.Inspector.Title : Инспектор
+Ui.Editor.DebugWindow.Title : Настройки
+Ui.Editor.CameraBookMark.Title : Закладки камеры
+Ui.Editor.AssetManager.Title : Менеджер ассетов
 
 # --- Post-Processing ---
 Ui.Editor.SSAO.Enabled : Включено

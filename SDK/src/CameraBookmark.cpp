@@ -79,5 +79,9 @@ namespace sdk
             camera->setDirection(nextDir);
         }
     }
-}
-
+    
+    auto CameraBookmarkManager::getBookmarks() const noexcept -> const std::array<CameraBookmark, MAX_BOOKMARKS>& 
+    {
+        return bookmarks;
+    }
+} // namespace sdk

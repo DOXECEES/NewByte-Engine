@@ -246,6 +246,10 @@ namespace nb
             void setProjectPath(const std::filesystem::path& path) noexcept;
 
 
+            void setCameraSpeed(float speed) noexcept;
+            void setCameraSpeedMultiplier(float multiplier) noexcept;
+             
+
         private:
             void outlineSelectedObject() noexcept;
 
@@ -284,6 +288,9 @@ namespace nb
             mutable Node editorSelectedNode = Node();
 
             std::filesystem::path projectPath = "Assets/res/Scene.json";
+
+            float cameraSpeed = 5.0f;
+            float cameraSpeedMultiplier = 1.5f;
 
         };
     };

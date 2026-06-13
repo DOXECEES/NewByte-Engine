@@ -35,8 +35,10 @@ namespace sdk
         void record(size_t index, nbstl::NonOwningPtr<nb::Renderer::Camera> camera) noexcept;
         void apply(size_t index, nbstl::NonOwningPtr<nb::Renderer::Camera> camera) noexcept;
         void applyInterpolated(size_t index, nbstl::NonOwningPtr<nb::Renderer::Camera> camera, float t) noexcept;
+        auto getBookmarks() const noexcept -> const std::array<CameraBookmark, MAX_BOOKMARKS>&;
+
     private:
-        std::array<CameraBookmark, 10> bookmarks = {};
+        std::array<CameraBookmark, MAX_BOOKMARKS> bookmarks = {};
         
     };
 

@@ -216,7 +216,17 @@ void EditorApp::createWindows() noexcept
     //mainWindow->excludeFromClientRect({32, 0, 0, 0});
 
 
-    sceneWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
+    sceneTabWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
+    sceneTabWindow->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.SceneTab.Title"))
+    );
+
+    sceneToolbar = std::make_shared<Win32Window::ChildWindow>(sceneTabWindow.get());
+    sceneToolbar->setTitle(
+        Utils::toWstring(Translation::fromKey("Ui.Editor.SceneToolbar.Title"))
+    );
+
+    sceneWindow = std::make_shared<Win32Window::ChildWindow>(sceneTabWindow.get(), true);
     sceneWindow->setTitle(
         Utils::toWstring(Translation::fromKey("Ui.Editor.Scene.Title"))
     );
@@ -232,21 +242,17 @@ void EditorApp::createWindows() noexcept
     );
 
     assetManager = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
-    assetManager->setTitle(L"Asset");
+    assetManager->setTitle(
+        Localization::Translation::fromKeyToWstring("Ui.Editor.AssetManager.Title")
+    );
     assetManager->setOnFileDropCallback([this](const std::filesystem::path& dropFilePath) {
-
-        //if (importWindow)
-        //{
-        //    importWindow = nullptr;
-        //}
 
         importWindow = std::make_shared<ImportWindow>(nullptr, engine.get(), dropFilePath, [this]() {
             assetManagerWindow->refreshModel();
             importWindow = nullptr;
         });
 
-    });
-
+    });    
     
     debugWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     debugWindow->setTitle(
@@ -255,6 +261,7 @@ void EditorApp::createWindows() noexcept
 
     toolbarWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     toolbarWindow->setTitle(L"Toolbar");
+    //toolbarWindow->setSize(NbSize<int>{0, TOOLBAR_HEIGHT});
 
     previewWindow = std::make_shared<Win32Window::ChildWindow>(nullptr);
     previewWindow->setTitle(L"prev");
@@ -282,36 +289,64 @@ void EditorApp::createWindows() noexcept
 void EditorApp::setupDocking() noexcept
 {
     dockManager = std::make_unique<Temp::DockingSystem>(mainWindow);
+    mainWindow->setDockingSystem(dockManager.get());
 
-    auto sceneTab = dockManager->dockAsTab(sceneWindow, nullptr, "Scene");
+    // 1. Scene as the base
+    auto sceneTab = dockManager->dockAsTab(sceneTabWindow, nullptr, "Scene");
 
+    // 2. Hierarchy to the left of scene
     dockManager->dockRelative(
         hierarchyWindow, Temp::DockPosition::LEFT, sceneWindow, Temp::Percent(20)
     );
 
+    // 3. Inspector to the right
     dockManager->dockRelative(
         inspectorWindow, Temp::DockPosition::RIGHT, nullptr, Temp::Percent(25)
     );
 
-     dockManager->dockRelative(
-        debugWindow, Temp::DockPosition::BOTTOM, inspectorWindow, Temp::Percent(50)
-    );
+    // 4. Add tabs INTO the inspector group — do ALL of them before any further dockRelative calls
+    dockManager->dockAsTab(debugWindow, inspectorWindow, "debug");
 
-
+    // 5. Asset manager at the bottom — AFTER the inspector group is fully built
     dockManager->dockRelative(
         assetManager, Temp::DockPosition::BOTTOM, nullptr, Temp::Percent(40)
     );
 
-    dockManager->dockRelative(toolbarWindow, Temp::DockPosition::TOP, nullptr, Temp::Percent(3));
+    // auto toolbarTab = std::dynamic_pointer_cast<Temp::TabNode>(
+    //     dockManager->dockRelative(toolbarWindow, Temp::DockPosition::TOP, nullptr, Temp::Percent(3))
+    // );
+
+    // if (toolbarTab)
+    // {
+    //     if (auto group = toolbarTab->getTabGroup())
+    //         group->setShowTabBar(false);
+    // }
 
    
     subscribe(
         *mainWindow, &Win32Window::Window::onRectChanged,
         [this](const NbRect<int>& rect)
         {
+            toolbarWindow->setSize({rect.width, 35});
+            toolbarWindow->setPosition({rect.x, rect.y});
             dockManager->onSize(rect.width, rect.height);
+            OutputDebugStringW(dockManager->dumpTreeW().c_str());
+
+            const NbPoint<int>& scenePos = sceneTabWindow->getPosition();
+            const NbSize<int>& sceneSize = sceneTabWindow->getSize();
+
+            sceneToolbar->setPosition({scenePos.x, scenePos.y});
+            sceneToolbar->setSize({sceneSize.width, 35});
+
+            sceneWindow->setPosition({scenePos.x, scenePos.y + 35});
+            sceneWindow->setSize({sceneSize.width, sceneSize.height - 35});
+
+            LONG_PTR viewportStyle = GetWindowLongPtr(sceneWindow->getHandle().as<HWND>(), GWL_STYLE);
+            SetWindowLongPtr(sceneWindow->getHandle().as<HWND>(), GWL_STYLE, viewportStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
         }
     );
+
+
 }
 
 void EditorApp::initEngine() noexcept
@@ -349,7 +384,7 @@ void EditorApp::setupMainWindow() noexcept
             )
             .child(
                 LayoutBuilder::hBox()
-                    .absoluteHeight(30.0f)
+                    .absoluteHeight(35.0f)
                     .relativeWidth(1.0f)
                     .style(
                         [](NNsLayout::LayoutStyle& s)
@@ -529,7 +564,7 @@ void EditorApp::setupMainWindow() noexcept
                     ))
 
                     .child(createMenuButton(
-                        "Ui.Editor.Edit",
+                        "Ui.Editor.View",
                         [this](PopupMenu* popup)
                         {
                             popup->addItem(
@@ -728,6 +763,130 @@ void EditorApp::setupMainWindow() noexcept
                                     //
                                 }
                             );
+
+                            popup->addItem(
+                                Localization::Translation::fromKeyToWstring(
+                                    "Ui.Editor.GizmoToggle"
+                                ),
+                                IconType::Edit,
+                                [this]()
+                                {
+                                    if (gizmoToggleWindow)
+                                    {
+                                        gizmoToggleWindow = nullptr;
+                                    }
+
+                                    // Создаем модальное окно размером 350x180 под управлением toolbarWindow
+                                    gizmoToggleWindow = std::make_shared<Win32Window::ModalWindow>(
+                                        NbSize<int>{350, 180}, toolbarWindow.get()
+                                    );
+                                    gizmoToggleWindow->setTitle(
+                                        Localization::Translation::fromKeyToWstring(
+                                            "Ui.Editor.GizmoToggle"
+                                        )
+                                    );
+
+                                    auto ui =
+                                        LayoutBuilder::vBox()
+                                            //.spacing(10)
+                                            //.padding(Padding<int>{15, 15, 15, 15})
+                                            .relativeWidth(1.0f)
+                                            .relativeHeight(1.0f)
+                                            .background({35, 35, 35})
+                                            .child(
+                                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                                    .relativeWidth(1.0f)
+                                                    .autoHeight()
+                                                    .text(L"Показывать гизмо (Show Gizmo)")
+                                                    .checked(debugRendererSettings.showGizmo) // Состояние по умолчанию
+                                                    .onEvent(
+                                                        &Widgets::CheckBox::onCheckStateChanged,
+                                                        [this](bool state)
+                                                        {
+                                                            debugRendererSettings.showGizmo = state;
+                                                            engineSettingsController->setDebugRendererSettings(debugRendererSettings); 
+                                                        }
+                                                    )
+                                            )
+                                            .child(
+                                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                                    .relativeWidth(1.0f)
+                                                    .autoHeight()
+                                                    .text(L"Показывать фруструм камеры")
+                                                    .checked(debugRendererSettings.showCameraFrustrum)
+                                                    .onEvent(
+                                                        &Widgets::CheckBox::onCheckStateChanged,
+                                                        [this](bool state)
+                                                        {
+                                                            debugRendererSettings.showCameraFrustrum = state;
+                                                            engineSettingsController->setDebugRendererSettings(debugRendererSettings); 
+                                                        }
+                                                    )
+                                            )
+                                            .child(
+                                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                                    .relativeWidth(1.0f)
+                                                    .autoHeight()
+                                                    .text(L"Показывать отладочные билборды")
+                                                    .checked(debugRendererSettings.showDebugBillboards)
+                                                    .onEvent(
+                                                        &Widgets::CheckBox::onCheckStateChanged,
+                                                        [this](bool state)
+                                                        {
+                                                            debugRendererSettings.showDebugBillboards = state;
+                                                            engineSettingsController->setDebugRendererSettings(debugRendererSettings); 
+                                                        }
+                                                    )
+                                            )
+                                            .child(
+                                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                                    .relativeWidth(1.0f)
+                                                    .autoHeight()
+                                                    .text(L"Показывать световые гизмо")
+                                                    .checked(debugRendererSettings.showLightGizmos)
+                                                    .onEvent(
+                                                        &Widgets::CheckBox::onCheckStateChanged,
+                                                        [this](bool state)
+                                                        {
+                                                            debugRendererSettings.showLightGizmos = state;
+                                                            engineSettingsController->setDebugRendererSettings(debugRendererSettings); 
+                                                        }
+                                                    )
+                                            )
+                                            .child(LayoutBuilder::spacer())
+                                            .child(
+                                                LayoutBuilder::hBox()
+                                                    .relativeWidth(1.0f)
+                                                    .absoluteHeight(35)
+                                                    .child(LayoutBuilder::spacer())
+                                                    .child(
+                                                        LayoutBuilder::widget(new Widgets::Button())
+                                                            .text(
+                                                                Localization::Translation::
+                                                                    fromKeyToWstring(
+                                                                        "Ui.MaterialEditor.Exit"
+                                                                    )
+                                                            )
+                                                            .relativeWidth(0.4f)
+                                                            .background({50, 50, 50})
+                                                            .onEvent(
+                                                                &Widgets::Button::onReleasedSignal,
+                                                                [this]()
+                                                                {
+                                                                    gizmoToggleWindow->close();
+                                                                    gizmoToggleWindow = nullptr;
+                                                                }
+                                                            )
+                                                    )
+                                            );
+
+                                    gizmoToggleWindow->getLayoutRoot()->addChild(
+                                        std::move(ui).build()
+                                    );
+                                    gizmoToggleWindow->show();
+                                }
+                            );
+
                         }
                     ))
 
@@ -1065,10 +1224,16 @@ void EditorApp::setupSettingsUI() noexcept
 
 void EditorApp::setupEngineDependentUi() noexcept
 {
+    cameraSettingsController.init(engine.get());
     setupDebugUI();
     setupAssetManager();
     debugWindow->show();
 
+    cameraBookmarkWindow = std::make_unique<sdk::CameraBookmarkWindow>(mainWindow, cameraBookmarkManager, cameraSettingsController);
+    engineSettingsController = std::make_unique<sdk::EngineSettingsController>(engine.get());
+
+    dockManager->dockAsTab(cameraBookmarkWindow->getWindow(), inspectorWindow, "Bookmarks");
+    
     sharedContext = engine->getRenderer()->createSharedContextForWindow(previewWindow->getHandle().as<HWND>());
 }
 

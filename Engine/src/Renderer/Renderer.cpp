@@ -359,7 +359,8 @@ namespace nb::Renderer
                     Ecs::Entity entity{entityId};
 
                     if (registry.has<CameraComponent>(entity) &&
-                        registry.has<TransformComponent>(entity))
+                        registry.has<TransformComponent>(entity) && 
+                        debugRendererSettings.showCameraFrustrum) 
                     {
                         const auto& camera    = registry.get<CameraComponent>(entity);
                         const auto& transform = registry.get<TransformComponent>(entity);
@@ -422,11 +423,13 @@ namespace nb::Renderer
                     if (registry.has<LightComponent>(entity))
                     {
                         const auto& light = registry.get<LightComponent>(entity);
+                        TransformComponent& transform = registry.get<TransformComponent>(entity);
+
                         if (light.isPointLight())
                         {
                             pointLights.push_back(entityId);
 
-                            if (true) // editor mode
+                            if (debugRendererSettings.showDebugBillboards) // editor mode
                             {
                                 Pipeline pipelineConfig{};
                                 pipelineConfig.shader =
@@ -435,9 +438,7 @@ namespace nb::Renderer
                                     );
                                 pipelineConfig.polygonMode = PolygonMode::FULL;
 
-                                TransformComponent& transform =
-                                    registry.get<TransformComponent>(entity);
-
+                                
                                 billboardQueue.pushBack(
                                     {.mesh     = quadScreenMesh.get(),
                                      .pipeline = api->getCache().getOrCreate(pipelineConfig),
@@ -448,19 +449,20 @@ namespace nb::Renderer
                                                      )}
                                 );
 
+                            }
+
+                            if(debugRendererSettings.showLightGizmos)
+                            {
                                 DebugDraw::drawCircle(transform.position, 10.f, 32, {1.0f, 0.0f, 0.0f});
                                 DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 1.0f, 0.0f});
                                 DebugDraw::drawCircle(transform.position, 10.f, 32, {0.0f, 0.0f, 1.0f});
-
-                                // DebugDraw::drawLine(
-                                //     transform.position, transform.position + light.direction * 5.0f
-                                //);
                             }
                         }
                         else
                         {
                             directionalLights.push_back(entityId);
-                            if (true) // editor mode
+                            TransformComponent& transform = registry.get<TransformComponent>(entity);
+                            if (debugRendererSettings.showDebugBillboards) // editor mode
                             {
                                 Pipeline pipelineConfig{};
                                 pipelineConfig.shader =
@@ -469,8 +471,7 @@ namespace nb::Renderer
                                     );
                                 pipelineConfig.polygonMode = PolygonMode::FULL;
 
-                                TransformComponent& transform =
-                                    registry.get<TransformComponent>(entity);
+                                
 
                                 billboardQueue.pushBack(
                                     {.mesh     = quadScreenMesh.get(),
@@ -482,10 +483,16 @@ namespace nb::Renderer
                                                      )}
                                 );
 
+                                
+                            }
+
+                            if(debugRendererSettings.showLightGizmos)
+                            {
                                 DebugDraw::drawLine(
                                     transform.position, transform.position + light.direction * 5.0f
                                 );
                             }
+
                         }
                     }
 
@@ -1043,7 +1050,10 @@ namespace nb::Renderer
             }
         }
 
-        gizmoCtx.draw();
+        if(debugRendererSettings.showGizmo)
+        {
+            gizmoCtx.draw();
+        }
 
 
          if (activeNode.isValid() && activeNode.hasComponent<MeshComponent>())
@@ -1301,6 +1311,11 @@ namespace nb::Renderer
     void Renderer::showVertexColor(bool flag) noexcept
     {
 
+    }
+
+    void Renderer::setDebugSettings(const DebugRendererSettings& settings) noexcept
+    {
+        debugRendererSettings = settings;
     }
 
     bool Renderer::isResourceReady() const noexcept

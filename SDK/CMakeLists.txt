@@ -39,7 +39,19 @@ add_executable(${PROJECT_NAME} WIN32
 
     src/CameraBookmark.cpp
     src/CameraBookmark.hpp
-)
+    src/CameraBookmarkWindow.cpp
+    src/CameraBookmarkWindow.hpp
+    src/Camera/CameraSettingsController.cpp
+    src/Camera/CameraSettingsController.hpp
+    src/Camera/CameraSettings.hpp
+
+    src/EngineSettingsController.hpp
+
+    src/Scene/SceneWindow.cpp
+    src/Scene/SceneWindow.hpp
+    src/Scene/SceneController.cpp
+    src/Scene/SceneController.hpp
+   )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
 if(NOT EXISTS "${ASSETS_SRC_DIR}")
