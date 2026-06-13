@@ -216,20 +216,23 @@ void EditorApp::createWindows() noexcept
     //mainWindow->excludeFromClientRect({32, 0, 0, 0});
 
 
-    sceneTabWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
-    sceneTabWindow->setTitle(
-        Utils::toWstring(Translation::fromKey("Ui.Editor.SceneTab.Title"))
-    );
+    // sceneTabWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get(), true);
+    // sceneTabWindow->setTitle(
+    //     Utils::toWstring(Translation::fromKey("Ui.Editor.SceneTab.Title"))
+    // );
 
-    sceneToolbar = std::make_shared<Win32Window::ChildWindow>(sceneTabWindow.get());
-    sceneToolbar->setTitle(
-        Utils::toWstring(Translation::fromKey("Ui.Editor.SceneToolbar.Title"))
-    );
+    // sceneToolbar = std::make_shared<Win32Window::ChildWindow>(sceneTabWindow.get());
+    // sceneToolbar->setTitle(
+    //     Utils::toWstring(Translation::fromKey("Ui.Editor.SceneToolbar.Title"))
+    // );
 
-    sceneWindow = std::make_shared<Win32Window::ChildWindow>(sceneTabWindow.get(), true);
-    sceneWindow->setTitle(
-        Utils::toWstring(Translation::fromKey("Ui.Editor.Scene.Title"))
-    );
+    // sceneWindow = std::make_shared<Win32Window::ChildWindow>(sceneTabWindow.get(), true);
+    // sceneWindow->setTitle(
+    //     Utils::toWstring(Translation::fromKey("Ui.Editor.Scene.Title"))
+    // );
+
+    sceneWindow = std::make_shared<sdk::SceneWindow>(mainWindow.get());
+    sceneWindow->initialize();
 
     hierarchyWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     hierarchyWindow->setTitle(
@@ -292,11 +295,11 @@ void EditorApp::setupDocking() noexcept
     mainWindow->setDockingSystem(dockManager.get());
 
     // 1. Scene as the base
-    auto sceneTab = dockManager->dockAsTab(sceneTabWindow, nullptr, "Scene");
+    auto sceneTab = dockManager->dockAsTab(sceneWindow->getTabWindow(), nullptr, "Scene");
 
     // 2. Hierarchy to the left of scene
     dockManager->dockRelative(
-        hierarchyWindow, Temp::DockPosition::LEFT, sceneWindow, Temp::Percent(20)
+        hierarchyWindow, Temp::DockPosition::LEFT, sceneWindow->getTabWindow(), Temp::Percent(20)
     );
 
     // 3. Inspector to the right
@@ -332,17 +335,7 @@ void EditorApp::setupDocking() noexcept
             dockManager->onSize(rect.width, rect.height);
             OutputDebugStringW(dockManager->dumpTreeW().c_str());
 
-            const NbPoint<int>& scenePos = sceneTabWindow->getPosition();
-            const NbSize<int>& sceneSize = sceneTabWindow->getSize();
-
-            sceneToolbar->setPosition({scenePos.x, scenePos.y});
-            sceneToolbar->setSize({sceneSize.width, 35});
-
-            sceneWindow->setPosition({scenePos.x, scenePos.y + 35});
-            sceneWindow->setSize({sceneSize.width, sceneSize.height - 35});
-
-            LONG_PTR viewportStyle = GetWindowLongPtr(sceneWindow->getHandle().as<HWND>(), GWL_STYLE);
-            SetWindowLongPtr(sceneWindow->getHandle().as<HWND>(), GWL_STYLE, viewportStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+            sceneWindow->handleResize(rect);
         }
     );
 
@@ -351,16 +344,16 @@ void EditorApp::setupDocking() noexcept
 
 void EditorApp::initEngine() noexcept
 {
-    engine = std::make_shared<nb::Core::Engine>(sceneWindow->getHandle().as<HWND>());
+    engine = std::make_shared<nb::Core::Engine>(sceneWindow->getViewportWindow()->getHandle().as<HWND>());
     auto& scene = nb::Scene::getInstance();
 
     sceneModel = std::make_shared<SceneModelEcs>(scene.getRegistry(), scene.getRootEntity().id);
     
-    const auto& size = sceneWindow->getSize();
+    const auto& size = sceneWindow->getViewportWindow()->getSize();
     nb::Core::EngineSettings::setHeight(size.height);
     nb::Core::EngineSettings::setWidth(size.width);
 
-    subscribe(*sceneWindow, &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& s) {
+    subscribe(*(sceneWindow->getViewportWindow()), &Win32Window::ChildWindow::onSizeChanged, [](const NbSize<int>& s) {
         nb::Core::EngineSettings::setHeight(s.height);
         nb::Core::EngineSettings::setWidth(s.width);
     });
@@ -1231,7 +1224,8 @@ void EditorApp::setupEngineDependentUi() noexcept
 
     cameraBookmarkWindow = std::make_unique<sdk::CameraBookmarkWindow>(mainWindow, cameraBookmarkManager, cameraSettingsController);
     engineSettingsController = std::make_unique<sdk::EngineSettingsController>(engine.get());
-
+    sceneController = std::make_shared<sdk::SceneController>(engine, sceneModel, primitiveNameManager);
+    sceneWindow->attachController(sceneController);
     dockManager->dockAsTab(cameraBookmarkWindow->getWindow(), inspectorWindow, "Bookmarks");
     
     sharedContext = engine->getRenderer()->createSharedContextForWindow(previewWindow->getHandle().as<HWND>());
@@ -2424,189 +2418,6 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
     return parentBuilder;
 }
 
-void EditorApp::spawnPrimitive(
-    const Widgets::ModelIndex& index,
-    void*                      data,
-    nb::Reflect::TypeInfo*     typeInfo
-) noexcept
-{
-    if (!index.isValid() || !data || !typeInfo)
-    {
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::WARNING, "Invalid spawn parameters")
-            .with("hasData", data != nullptr)
-            .with("hasType", typeInfo != nullptr);
-        return;
-    }
-
-    auto* item = sceneModel->findById(index.getUuid());
-    if (!item)
-    {
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::WARNING, "Could not find scene item by UUID")
-            .with("uuid", index.getUuid().toString()); 
-        return;
-    }
-
-    const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-    auto&      scene    = nb::Scene::getInstance();
-
-    const std::string_view  typeName = typeInfo->name;
-    Ref<nb::Renderer::Mesh> mesh = createPrimitiveMesh(typeInfo->name, data);
-
-    if (mesh)
-    {
-        auto node = scene.createNode(parentId);
-
-        node.addComponent<MeshComponent>({.mesh = mesh, .material = {}});
-        std::string primitiveName = primitiveNameManager.generateName(typeName);
-        node.addComponent<NameComponent>({primitiveName});
-
-        node.addComponent<TransformComponent>({});
-
-        sceneModel->addEntity(parentId, node.getId());
-        
-        activeNode = scene.getNode(node.getId());
-        refreshHierarchyTreeViewSignal.emit();
-        onActiveNodeChanged.emit();
-        scene.invalidateBvh();
-
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::INFO, "Primitive spawned successfully")
-            .with("type", typeInfo->name)
-            .with("name", primitiveName)
-            .with("entityId", static_cast<uint64_t>(node.getId()));
-    }
-    else
-    {
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::FATAL, "Failed to create mesh for primitive")
-            .with("type", typeInfo->name);
-    }
-}
-
-void EditorApp::spawnEmpty(const Widgets::ModelIndex& index) noexcept
-{
-    if (!index.isValid())
-    {
-        nb::Error::ErrorManager::instance().report(
-            nb::Error::Type::WARNING, "Invalid spawn parameters for Empty node"
-        );
-        return;
-    }
-
-    auto* item = sceneModel->findById(index.getUuid());
-    if (!item)
-    {
-        nb::Error::ErrorManager::instance()
-            .report(nb::Error::Type::WARNING, "Could not find scene item by UUID for Empty node")
-            .with("uuid", index.getUuid().toString());
-        return;
-    }
-
-    const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-    auto&      scene    = nb::Scene::getInstance();
-    auto       node     = scene.createNode(parentId);
-
-    std::string nodeName = primitiveNameManager.generateName("Empty");
-    node.addComponent<NameComponent>({nodeName});
-
-    node.addComponent<TransformComponent>({});
-
-    sceneModel->addEntity(parentId, node.getId());
-
-    activeNode = scene.getNode(node.getId());
-
-    refreshHierarchyTreeViewSignal.emit();
-    onActiveNodeChanged.emit();
-
-    scene.invalidateBvh();
-
-    nb::Error::ErrorManager::instance()
-        .report(nb::Error::Type::INFO, "Empty node spawned successfully")
-        .with("name", nodeName)
-        .with("entityId", static_cast<uint64_t>(node.getId()));
-}
-
-
-void EditorApp::spawnModel(
-    const Widgets::ModelIndex&   index,
-    const std::filesystem::path& pathToModel,
-    const nb::Math::Vector3<float>&         position 
-) noexcept
-{
-    nb::Ecs::EntityID parentId = sceneModel->getRoot();
-    
-
-    auto& scene = nb::Scene::getInstance();
-    auto  node  = scene.createNode(parentId);
-
-    std::vector<Ref<nb::Resource::MaterialAsset>> materials;
-    std::string                                   meshResourcePath = pathToModel.string();
-
-    if (pathToModel.extension() == ".model")
-    {
-        try
-        {
-            auto modelJson = nb::Loaders::Json(pathToModel);
-
-            if (modelJson.contains("mesh_source"))
-            {
-                meshResourcePath = modelJson["mesh_source"].get<std::string>();
-            }
-
-            if (modelJson.contains("submeshes"))
-            {
-                for (int i = 0; i < modelJson["submeshes"].size(); i++)
-                {
-                    if (modelJson["submeshes"][i].contains("material"))
-                    {
-                        std::string matPath =
-                            modelJson["submeshes"][i]["material"].get<std::string>();
-                        auto res = nb::ResMan::ResourceManager::getInstance()
-                                       ->getResource<nb::Resource::MaterialAsset>(matPath);
-                        if (res)
-                        {
-                            materials.push_back(res);
-                        }
-                    }
-                }
-            }
-        }
-        catch (const std::exception& e)
-        {
-            nb::Error::ErrorManager::instance().report(
-                nb::Error::Type::WARNING,
-                "Failed to load materials from .model: " + std::string(e.what())
-            );
-        }
-    }
-
-    std::string nodeName = primitiveNameManager.generateName(pathToModel.filename().string());
-    node.addComponent<NameComponent>({nodeName});
-
-    node.addComponent<TransformComponent>(TransformComponent{.position = position});
-
-    node.addComponent<MeshComponent>(
-        {.mesh = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Renderer::Mesh>(
-             pathToModel.string()
-         ),
-         .material = materials}
-    );
-
-    sceneModel->addEntity(parentId, node.getId());
-    activeNode = scene.getNode(node.getId());
-
-    refreshHierarchyTreeViewSignal.emit();
-    onActiveNodeChanged.emit();
-
-    scene.invalidateBvh();
-
-    nb::Error::ErrorManager::instance()
-        .report(nb::Error::Type::INFO, "Model spawned successfully")
-        .with("name", nodeName);
-}
-
 void EditorApp::refreshInterfaceText() noexcept
 {
     using namespace Localization;
@@ -2618,7 +2429,7 @@ void EditorApp::refreshInterfaceText() noexcept
 
     if (sceneWindow)
     {
-        sceneWindow->setTitle(Translation::fromKeyToWstring("Ui.Editor.Scene.Title"));
+        sceneWindow->getTabWindow()->setTitle(Translation::fromKeyToWstring("Ui.Editor.Scene.Title"));
     }
 
     if (hierarchyWindow)
@@ -2737,7 +2548,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                             inspectorWindow.get(), paramsType,
                             [this, index](void* data, nb::Reflect::TypeInfo* typeInfo)
                             {
-                                this->spawnPrimitive(index, data, typeInfo);
+                                sceneController->spawnPrimitive(index, data, typeInfo);
                             }
                         );
                         dialog->show();
@@ -2749,7 +2560,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 L"➕ Добавить пустышку", nbui::IconType::Plus,
                 [this, index]()
                 {
-                    this->spawnEmpty(index);
+                    sceneController->spawnEmpty(index);
                 }
             );
 
@@ -2775,7 +2586,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 L"🗑️ Удалить", nbui::IconType::Delete,
                 [this, index]()
                 {
-                    this->deleteEntity(index);
+                    sceneController->deleteEntity(index);
 
                     nb::Error::ErrorManager::instance().report(
                         nb::Error::Type::INFO, "Delete requested"
@@ -2789,7 +2600,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 L"Копировать", nbui::IconType::None,
                 [this, index]()
                 {
-                    copyEntity(index);
+                    sceneController->copyEntity(index);
                 }
             );
 
@@ -2797,7 +2608,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
                 L"Вставить", nbui::IconType::None,
                 [this, index]()
                 {
-                    pasteEntity(index);
+                    sceneController->pasteEntity(index);
                 }
             );
 
@@ -2806,71 +2617,6 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
         }
     );
 }
-
-void EditorApp::deleteEntity(const Widgets::ModelIndex& index) noexcept
-{
-    if (!index.isValid())
-    {
-        return;
-    }
-
-    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
-    auto&             scene = nb::Scene::getInstance();
-
-    releaseNamesRecursive(id);
-
-    sceneModel->removeEntity(id);
-
-    scene.deleteEntity(id);
-
-    activeNode = nb::Node::createInvalid();
-
-    refreshHierarchyTreeViewSignal.emit();
-    onActiveNodeChanged.emit();
-    scene.invalidateBvh();
-}
-
-void EditorApp::copyEntity(const Widgets::ModelIndex& index) noexcept
-{
-    if (!index.isValid())
-    {
-        return;
-    }
-
-    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
-    auto&             scene = nb::Scene::getInstance();
-
-    copiedEntityId = id;
-
-}
-
-
-void EditorApp::pasteEntity(const Widgets::ModelIndex& index) noexcept
-{
-    if (!index.isValid())
-    {
-        return;
-    }
-
-    nb::Ecs::EntityID id    = sceneModel->getEntity(index);
-    auto&             scene = nb::Scene::getInstance();
-
-    
-    
-    nb::Node copy = scene.clone(id, copiedEntityId);
-    NameComponent& name = copy.getComponent<NameComponent>();
-    name.name                += " (Сopy)";
-    name.name = primitiveNameManager.generateName(name.name);
-
-    sceneModel->addEntity(id, copy.getId());
-
-    activeNode = copy;
-
-    refreshHierarchyTreeViewSignal.emit();
-    onActiveNodeChanged.emit();
-    scene.invalidateBvh();
-}
-
 
 void EditorApp::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
 {

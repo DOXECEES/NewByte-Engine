@@ -2,6 +2,9 @@
 #define NBSTL_SRC_STDUTILS_HPP
 
 #include <Windows.h>
+#include <string>
+#include <concepts>
+#include <format>
 
 namespace nbstl 
 {
@@ -35,6 +38,18 @@ namespace nbstl
         std::wstring utf16(len, L'\0');
         MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), utf16.data(), len);
         return utf16;
+    }
+
+    template <std::floating_point T>
+    inline std::string toStringWithPrecision(T val, size_t precision)
+    {
+        return std::format("{:.{}f}", val, precision);
+    }
+
+    template <std::floating_point T>
+    inline std::wstring toWStringWithPrecision(T val, size_t precision)
+    {
+        return std::format(L"{:.{}f}", val, precision);
     }
 
 

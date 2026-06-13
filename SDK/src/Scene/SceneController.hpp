@@ -13,6 +13,8 @@
 #include <Signal.hpp>
 #include <Widgets/TreeView.hpp>
 
+#include "Snapper.hpp"
+
 class SceneModelEcs;
 
 namespace nb::Utils
@@ -83,12 +85,19 @@ namespace sdk
             return refreshHierarchySignal;
         }
 
+        [[nodiscard]] Snapper& getSnapper() noexcept
+        {
+            return snapper;
+        }
+
     private:
         void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
 
         std::shared_ptr<nb::Core::Engine> engine;
         std::shared_ptr<SceneModelEcs>    sceneModel;
         nb::Utils::PrimitiveNameManager&             nameManager;
+
+        Snapper snapper;
 
         nb::Node          activeNode     = nb::Node::createInvalid();
         nb::Ecs::EntityID copiedEntityId = 0;

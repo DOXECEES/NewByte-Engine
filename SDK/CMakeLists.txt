@@ -51,7 +51,8 @@ add_executable(${PROJECT_NAME} WIN32
     src/Scene/SceneWindow.hpp
     src/Scene/SceneController.cpp
     src/Scene/SceneController.hpp
-   )
+    src/Scene/Snapper.hpp
+    )
 
 set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/Assets")
 if(NOT EXISTS "${ASSETS_SRC_DIR}")

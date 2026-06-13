@@ -38,6 +38,9 @@
 #include "Camera/CameraSettingsController.hpp"
 #include "EngineSettingsController.hpp"
 
+#include "Scene/SceneWindow.hpp"
+#include "Scene/SceneController.hpp"
+
 namespace nbui
 {
     class LayoutBuilder;
@@ -90,9 +93,12 @@ private:
     std::shared_ptr<Win32Window::Window> mainWindow;
     std::unique_ptr<Temp::DockingSystem> dockManager;
 
-    std::shared_ptr<Win32Window::ChildWindow> sceneTabWindow;
-    std::shared_ptr<Win32Window::ChildWindow> sceneToolbar;
-    std::shared_ptr<Win32Window::ChildWindow> sceneWindow;
+    std::shared_ptr<sdk::SceneWindow> sceneWindow = nullptr;
+    std::shared_ptr<sdk::SceneController> sceneController = nullptr;
+
+    // std::shared_ptr<Win32Window::ChildWindow> sceneTabWindow;
+    // std::shared_ptr<Win32Window::ChildWindow> sceneToolbar;
+    // std::shared_ptr<Win32Window::ChildWindow> sceneWindow;
 
     std::shared_ptr<Win32Window::ChildWindow> hierarchyWindow;
     std::shared_ptr<Win32Window::ChildWindow> inspectorWindow;
@@ -215,7 +221,7 @@ private:
 
     void showAllWindows()
     {
-        sceneWindow->show();
+        sceneWindow->getViewportWindow()->show();
         hierarchyWindow->show();
         inspectorWindow->show();
         debugWindow->show();
@@ -242,6 +248,8 @@ private:
     {
         MSG  msg                    = {0};
         bool leftMouseDownThisFrame = false;
+
+        auto sceneWindowViewport = sceneWindow->getViewportWindow();
 
         while (running)
         {
@@ -270,7 +278,7 @@ private:
                     break;
                 }
 
-                if (msg.hwnd == sceneWindow->getHandle().as<HWND>())
+                if (msg.hwnd == sceneWindowViewport->getHandle().as<HWND>())
                 {
                     if (msg.message == WM_LBUTTONDOWN)
                     {
@@ -297,15 +305,15 @@ private:
                 {
                     for (auto& i : spawnQueue)
                     {
-                        spawnModel(Widgets::ModelIndex(), i.pathToModel, i.position);
+                        sceneController->spawnModel(Widgets::ModelIndex(), i.pathToModel, i.position);
                     }
                     spawnQueue.clear();
                 }
 
                 // 2. ОБНОВЛЕНИЕ ГИЗМО (ВЫПОЛНЯЕТСЯ СТРОГО 1 РАЗ ЗА КАДР)
-                if (!sceneWindow->getIsRenderable()) // обновляем только если окно активно
+                if (!sceneWindowViewport->getIsRenderable()) // обновляем только если окно активно
                 {
-                    NbPoint<int>          mousePos = sceneWindow->mousePosition;
+                    NbPoint<int>          mousePos = sceneWindowViewport->mousePosition;
                     nb::Renderer::Camera* camera   = engine->getRenderer()->getCamera();
                     nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
 
@@ -414,6 +422,12 @@ private:
                                     newWorldQuat.w = -newWorldQuat.w;
                                 }
 
+                                sdk::Snapper& snapper = sceneController->getSnapper();
+
+                                G_worldPos = snapper.calculateTranslation(G_worldPos);
+                                newWorldQuat = snapper.calculateRotation(newWorldQuat);
+                                G_worldScale = snapper.calculateScale(G_worldScale);
+                                
                                 if (hasParent)
                                 {
                                     nb::Math::Mat4<float> invParent =
@@ -501,7 +515,7 @@ private:
 
                     
                 }
-                engine->run(!sceneWindow->getIsRenderable());
+                engine->run(!sceneWindowViewport->getIsRenderable());
 
                 //engine->getRenderer()->renderShadowPreview(
                 //    sharedContext, engine->getRenderer()->ssaoResult, 0.1f, 100.0f
@@ -518,7 +532,7 @@ private:
             }
 
             mainWindow->resetStateDirtyFlags();
-            sceneWindow->resetStateDirtyFlags();
+            sceneWindowViewport->resetStateDirtyFlags();
         }
         return static_cast<int>(msg.wParam);
     }
