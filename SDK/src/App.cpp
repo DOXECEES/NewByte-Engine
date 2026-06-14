@@ -422,7 +422,7 @@ void EditorApp::setupMainWindow() noexcept
                                                     engine->saveSnapshot();
                                                     engine->clearScene();
                                                     sceneModel->rebuildFromScene();
-                                                    activeNode = nb::Node::createInvalid();
+                                                    sceneController->setActiveNode(nb::Node::createInvalid());
 
                                                     refreshHierarchyTreeViewSignal.emit();
                                                     onActiveNodeChanged.emit();
@@ -477,7 +477,7 @@ void EditorApp::setupMainWindow() noexcept
                                                 engine->loadSnapshot();
 
                                                 sceneModel->rebuildFromScene();
-                                                activeNode = nb::Node::createInvalid();
+                                                sceneController->setActiveNode(nb::Node::createInvalid());
 
                                                 refreshHierarchyTreeViewSignal.emit();
                                                 onActiveNodeChanged.emit();
@@ -1224,7 +1224,11 @@ void EditorApp::setupEngineDependentUi() noexcept
 
     cameraBookmarkWindow = std::make_unique<sdk::CameraBookmarkWindow>(mainWindow, cameraBookmarkManager, cameraSettingsController);
     engineSettingsController = std::make_unique<sdk::EngineSettingsController>(engine.get());
+    
     sceneController = std::make_shared<sdk::SceneController>(engine, sceneModel, primitiveNameManager);
+    subscribe(*sceneController, &sdk::SceneController::refreshHierarchySignal, [this]() { this->refreshHierarchyTreeViewSignal.emit(); });
+
+
     sceneWindow->attachController(sceneController);
     dockManager->dockAsTab(cameraBookmarkWindow->getWindow(), inspectorWindow, "Bookmarks");
     
@@ -1665,7 +1669,7 @@ void EditorApp::rebuildInspector() noexcept
     nbui::GlobalWidgetContext::releasePressedWidget();
 
 
-    if (activeNode.getId() == 0)
+    if (sceneController->getActiveNode().getId() == 0)
     {
         inspectorWindow->getLayoutRoot()->clearChilds();
         return;
@@ -1683,7 +1687,7 @@ void EditorApp::rebuildInspector() noexcept
     );
 
     auto& registry = nb::Scene::getInstance().getRegistry();
-    auto entityId = activeNode.getId();
+    auto entityId = sceneController->getActiveNode().getId();
 
     for (auto& storage : registry.getAllStorages())
     {
@@ -1718,7 +1722,7 @@ void EditorApp::rebuildInspector() noexcept
         }
     }
 
-    if (activeNode.isValid())
+    if (sceneController->getActiveNode().isValid())
     {
         inspectorBuilder = std::move(inspectorBuilder)
             .child(
@@ -1734,7 +1738,7 @@ void EditorApp::rebuildInspector() noexcept
                             browser.clear();
 
                             auto& registry = nb::Scene::getInstance().getRegistry();
-                            auto  entityId = activeNode.getId();
+                            auto  entityId = sceneController->getActiveNode().getId();
 
                             for (auto& storage : registry.getAllStorages())
                             {
@@ -1783,7 +1787,7 @@ void EditorApp::subscribeAll() noexcept
 {
     subscribe(this, &EditorApp::onActiveNodeChanged, [&]() {
             shouldRebuildInspector = true;
-            engine->setEditorSelectedNode(activeNode);
+            engine->setEditorSelectedNode(sceneController->getActiveNode());
     });
 }
 
@@ -2459,7 +2463,7 @@ void EditorApp::refreshInterfaceText() noexcept
         setupDebugUI();
     }
 
-    if (activeNode.isValid())
+    if (sceneController->getActiveNode().isValid())
     {
         rebuildInspector();
     }
@@ -2496,7 +2500,7 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
             if (auto* item = sceneModel->findById(index.getUuid()))
             {
                 const auto id = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-                activeNode    = nb::Scene::getInstance().getNode(id);
+                sceneController->setActiveNode(nb::Scene::getInstance().getNode(id));
                 onActiveNodeChanged.emit();
             }
         }
@@ -2506,12 +2510,12 @@ void EditorApp::setupHierarchyEvents(Widgets::TreeView* tv) noexcept
         this, &EditorApp::onActiveNodeChanged,
         [this, tv]()
         {
-            if (!activeNode.isValid() || !sceneModel)
+            if (!sceneController->getActiveNode().isValid() || !sceneModel)
             {
                 return;
             }
 
-            const auto targetEntityId = activeNode.getId();
+            const auto targetEntityId = sceneController->getActiveNode().getId();
 
             Widgets::ModelIndex foundIndex;
 

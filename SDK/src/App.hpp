@@ -49,7 +49,7 @@ namespace nbui
 class EditorApp 
 {
 public:
-    EditorApp() : running(true), activeNode() {}
+    EditorApp() : running(true) {}
 
     int run(::HINSTANCE hInstance)
     {
@@ -156,7 +156,7 @@ private:
     //
     std::shared_ptr<SceneModelEcs> sceneModel;
     //nb::Renderer::BaseNode* activeNode = nullptr;
-    nb::Node activeNode;
+    ///nb::Node activeNode;
     std::atomic<bool> running;
 
     bool shouldRebuildInspector = false; 
@@ -311,7 +311,7 @@ private:
                 }
 
                 // 2. ОБНОВЛЕНИЕ ГИЗМО (ВЫПОЛНЯЕТСЯ СТРОГО 1 РАЗ ЗА КАДР)
-                if (!sceneWindowViewport->getIsRenderable()) // обновляем только если окно активно
+                if (!sceneWindowViewport->getIsRenderable() && sceneController) // обновляем только если окно активно
                 {
                     NbPoint<int>          mousePos = sceneWindowViewport->mousePosition;
                     nb::Renderer::Camera* camera   = engine->getRenderer()->getCamera();
@@ -335,7 +335,7 @@ private:
 
                     gizmo_ctx.update(state);
 
-                    if (activeNode.isValid())
+                    if (auto activeNode = sceneController->getActiveNode(); activeNode.isValid())
                     {
                         auto& tc = activeNode.getComponent<TransformComponent>();
 
@@ -483,7 +483,7 @@ private:
                     {
                         nb::Math::Ray pickRay;
                         nb::Node      node = engine->rayPick(mousePos.x, mousePos.y, pickRay);
-                        activeNode         = node.isValid() ? node : nb::Node::createInvalid();
+                        sceneController->setActiveNode(node.isValid() ? node : nb::Node::createInvalid());
                         onActiveNodeChanged.emit();
                     }
                 }

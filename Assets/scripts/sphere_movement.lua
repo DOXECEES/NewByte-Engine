@@ -1,4 +1,4 @@
-local forcePower = 50.0
+forcePower = 20.0
 
 function onUpdate(entityId, dt)
     local rb = Scene:getRigidbody(entityId)

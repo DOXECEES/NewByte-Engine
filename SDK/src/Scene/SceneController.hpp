@@ -90,6 +90,9 @@ namespace sdk
             return snapper;
         }
 
+        Signal<void()> activeNodeChanged;
+        Signal<void()> refreshHierarchySignal;
+
     private:
         void releaseNamesRecursive(nb::Ecs::EntityID id) noexcept;
 
@@ -102,8 +105,7 @@ namespace sdk
         nb::Node          activeNode     = nb::Node::createInvalid();
         nb::Ecs::EntityID copiedEntityId = 0;
 
-        Signal<void()> activeNodeChanged;
-        Signal<void()> refreshHierarchySignal;
+        
     };
 }; // namespace sdk
 
