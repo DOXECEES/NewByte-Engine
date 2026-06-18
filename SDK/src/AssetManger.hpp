@@ -71,7 +71,7 @@ public:
     //Signal<void()>
 
 private:
-    void createFolderThumbnail(nbui::LayoutBuilder& grid, const std::filesystem::path& path);
+    void createFolderThumbnail(nbui::LayoutBuilder& grid, const std::filesystem::path& path, bool isReturnFolder = false);
 
 
     struct DragInfo

@@ -294,7 +294,20 @@ namespace nb
                         Math::Ray localRay;
                         localRay.origin = Math::transformPoint(invModel, ray.origin);
 
-                        localRay.direction = Math::transformVector(invModel, ray.direction);
+                        Math::Vector3<float> localDir = Math::transformVector(invModel, ray.direction);
+
+                        float len = std::sqrt(
+                            localDir.x * localDir.x + localDir.y * localDir.y +
+                            localDir.z * localDir.z
+                        );
+
+                        if (len > 0.00001f)
+                        {
+                            localDir.x /= len;
+                            localDir.y /= len;
+                            localDir.z /= len;
+                        }
+                        localRay.direction = localDir;
 
                         const auto& vertices = meshComp.mesh->getVertices();
                         const auto& indices = meshComp.mesh->getIndices();
@@ -306,11 +319,13 @@ namespace nb
                                     localRay, vertices[indices[j]].position,
                                     vertices[indices[j + 1]].position,
                                     vertices[indices[j + 2]].position, tTri
-                                ))
+                                )
+                            )
                             {
-                                if (tTri < closestT && tTri > 0.0001f)
+                                float tWorld = tTri / len;
+                                if (tWorld < closestT && tWorld > 0.0001f)
                                 {
-                                    closestT = tTri;
+                                    closestT      = tWorld;
                                     closestEntity = item.entityId;
                                 }
                             }

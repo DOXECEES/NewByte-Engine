@@ -77,31 +77,22 @@ namespace nb
 
             static AABB3D recalculateAabb3dByModelMatrix(const AABB3D& aabb, const Math::Mat4<float> &modelMatrix) noexcept
             {
-                Math::Vector3<float> translationVector = {modelMatrix[3][0], modelMatrix[3][1], modelMatrix[3][2]};
-    
-                Math::Mat3<float> rotate = {
-                    {modelMatrix[0][0], modelMatrix[0][1], modelMatrix[0][2]},
-                    {modelMatrix[1][0], modelMatrix[1][1], modelMatrix[1][2]},
-                    {modelMatrix[2][0], modelMatrix[2][1], modelMatrix[2][2]}
-                };
-    
+                Math::Vector3<float> translationVector = { modelMatrix[3][0], modelMatrix[3][1], modelMatrix[3][2] };
+
                 Math::AABB3D B;
-    
                 B.maxPoint = translationVector;
                 B.minPoint = translationVector;
-    
-                float a;
-                float b;
-    
-    
-                for (int i = 0; i < 3; i++)
+
+                for (int i = 0; i < 3; i++) 
                 {
-                    for (int j = 0; j < 3; j++)
+                    for (int j = 0; j < 3; j++) 
                     {
-                        a = static_cast<float>((rotate[i][j] * aabb.minPoint[j]));
-                        b = static_cast<float>((rotate[i][j] * aabb.maxPoint[j]));
+                        float val = modelMatrix[j][i]; 
+                        
+                        float a = val * aabb.minPoint[j];
+                        float b = val * aabb.maxPoint[j];
+
                         if (a < b)
-    
                         {
                             B.minPoint[i] += a;
                             B.maxPoint[i] += b;
@@ -113,7 +104,7 @@ namespace nb
                         }
                     }
                 }
-    
+
                 return B;
             }
 

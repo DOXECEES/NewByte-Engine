@@ -309,6 +309,11 @@ void AssetManager::refreshAssetGrid()
 
     try
     {
+        if(currentPath.has_parent_path())
+        {
+            createFolderThumbnail(grid, currentPath.parent_path(), true);
+        }
+
         for (const auto& entry : std::filesystem::directory_iterator(currentPath))
         {
             if(entry.is_directory())
@@ -533,7 +538,7 @@ NbColor AssetManager::getAccentColorForExt(const std::wstring& ext)
     return {150, 150, 150}; // Серый
 }
 
-void AssetManager::createFolderThumbnail(nbui::LayoutBuilder& grid, const std::filesystem::path& path)
+void AssetManager::createFolderThumbnail(nbui::LayoutBuilder& grid, const std::filesystem::path& path, bool isReturnFolder)
 {
     using namespace nbui;
 
@@ -558,7 +563,7 @@ void AssetManager::createFolderThumbnail(nbui::LayoutBuilder& grid, const std::f
             )
             .child(
                 LayoutBuilder::thumbnail(
-                    directoryName, L"", Widgets::AssetType::FOLDER,  path
+                    directoryName, L"", isReturnFolder ? Widgets::AssetType::RETURN_FOLDER : Widgets::AssetType::FOLDER,  path
                 )
                     .relativeWidth(1.0f)
                     .absoluteHeight(95)
