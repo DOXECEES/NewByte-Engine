@@ -12,6 +12,8 @@
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>   
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h> 
 #include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Constraints/HingeConstraint.h>
+
 
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
@@ -347,6 +349,18 @@ namespace nb::Physics
             return;
         }
 
+        auto jointView = nb::Scene::getInstance().getEntitiesWith<HingeJoint>();
+        for (auto entity : jointView)
+        {
+            auto& hj = nb::Scene::getInstance().getComponent<HingeJoint>(entity.id);
+            if (hj.constraintRef)
+            {
+                physicsSystem->RemoveConstraint(hj.constraintRef);
+                hj.constraintRef = nullptr;
+            }
+        }
+
+
         JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
 
         JPH::BodyIDVector allBodies;
@@ -534,6 +548,92 @@ namespace nb::Physics
                     );
                 }
                 tc.physicsDirty = false;
+            }
+        }
+
+        auto jointView = scene.getEntitiesWith<Rigidbody, TransformComponent, HingeJoint>();
+
+        for (auto entity : jointView)
+        {
+            auto& rb = scene.getComponent<Rigidbody>(entity.id);
+            auto& tc = scene.getComponent<TransformComponent>(entity.id);
+            auto& hj = scene.getComponent<HingeJoint>(entity.id);
+
+            if (rb.bodyID.IsInvalid())
+            {
+                createRigidbody(entity.id, scene);
+            }
+
+            if (!hj.constraintRef && !rb.bodyID.IsInvalid())
+            {
+                JPH::Body* bodyA = nullptr;
+                
+                if (hj.connectedEntity != 0 && scene.hasComponent<Rigidbody>(hj.connectedEntity))
+                {
+                    auto& rbA = scene.getComponent<Rigidbody>(hj.connectedEntity);
+                    if (!rbA.bodyID.IsInvalid())
+                    {
+                        JPH::BodyLockWrite lock(physicsSystem->GetBodyLockInterface(), rbA.bodyID);
+                        if (lock.Succeeded()) bodyA = &lock.GetBody();
+                    }
+                }
+
+                JPH::BodyLockWrite lockB(physicsSystem->GetBodyLockInterface(), rb.bodyID);
+                if (lockB.Succeeded())
+                {
+                    JPH::Body& bodyB = lockB.GetBody();
+
+                    JPH::HingeConstraintSettings settings;
+                    
+                    nb::Math::Vector3<float> worldAnchor = tc.position + (tc.rotation * hj.anchor);
+                    settings.mPoint1 = settings.mPoint2 = JPH::RVec3(worldAnchor.x, worldAnchor.y, worldAnchor.z);
+
+                    nb::Math::Vector3<float> worldAxis = tc.rotation * hj.axis;
+                    settings.mHingeAxis1 = settings.mHingeAxis2 = JPH::Vec3(worldAxis.x, worldAxis.y, worldAxis.z);
+
+                    nb::Math::Vector3<float> norm = (std::abs(worldAxis.z) > 0.9f) ? 
+                        nb::Math::Vector3<float>(1.0f, 0.0f, 0.0f) : nb::Math::Vector3<float>(0.0f, 0.0f, 1.0f);
+                    settings.mNormalAxis1 = settings.mNormalAxis2 = JPH::Vec3(norm.x, norm.y, norm.z);
+
+                    if (hj.useMotor)
+                    {
+                        settings.mMotorSettings.mSpringSettings.mFrequency = 2.0f;
+                        settings.mMotorSettings.mSpringSettings.mDamping = 1.0f;
+                    }
+
+                    JPH::Constraint* constraint = nullptr;
+                    if (bodyA)
+                    {
+                        constraint = settings.Create(*bodyA, bodyB);
+                    }
+                    else
+                    {
+                        constraint = settings.Create(JPH::Body::sFixedToWorld, bodyB);
+                    }
+
+                    physicsSystem->AddConstraint(constraint);
+                    hj.constraintRef = constraint;
+                }
+            }
+
+            if (hj.constraintRef && hj.useMotor)
+            {
+                JPH::HingeConstraint* hinge = static_cast<JPH::HingeConstraint*>(hj.constraintRef.GetPtr());
+                hinge->SetMotorState(JPH::EMotorState::Velocity);
+                
+                float currentAngle = hinge->GetTargetAngle();
+                if (currentAngle > 0.8f) 
+                {
+                    hinge->SetTargetAngularVelocity(-hj.motorSpeed);
+                }
+                else if (currentAngle < -0.8f) 
+                {
+                    hinge->SetTargetAngularVelocity(hj.motorSpeed);
+                }
+                else if (hinge->GetTargetAngularVelocity() == 0.0f)
+                {
+                    hinge->SetTargetAngularVelocity(hj.motorSpeed);
+                }
             }
         }
 

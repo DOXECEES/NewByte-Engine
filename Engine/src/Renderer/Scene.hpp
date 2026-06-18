@@ -81,6 +81,11 @@ struct MeshComponent
 };
 
 NB_REFLECT_PTR(
+    Ref<nb::Resource::MaterialAsset>,
+    "Ref<nb::Resource::MaterialAsset>"
+)
+
+NB_REFLECT_PTR(
     std::shared_ptr<nb::Renderer::Mesh>,
     "std::shared_ptr<nb::Renderer::Mesh>"
 )

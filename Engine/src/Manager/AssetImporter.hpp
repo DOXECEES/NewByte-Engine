@@ -9,6 +9,8 @@
 #include <NonOwningPtr.hpp>
 #include "ResourceManager.hpp"
 
+
+struct aiScene;
 namespace nb::SDK
 {
     enum class AssetType
@@ -87,6 +89,9 @@ namespace nb::SDK
             const std::filesystem::path& p,
             const std::string&           ext
         ) noexcept;
+
+        void centerModelVertices(aiScene* scene);
+    
 
         bool ensureDir(const std::filesystem::path& p) noexcept;
 

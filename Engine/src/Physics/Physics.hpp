@@ -2,6 +2,8 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Core/Reference.h>
+#include <Jolt/Physics/Constraints/Constraint.h>
 
 #include "Math/Quaternion.hpp"
 #include "Math/Vector3.hpp"
@@ -92,6 +94,24 @@ namespace nb::Physics
 
         void applyImpulse(const Math::Vector3<float>& impulse);
     };
+
+    struct HingeJoint
+    {
+        HingeJoint() noexcept = default;
+
+        Ecs::EntityID connectedEntity = 0; 
+
+        Math::Vector3<float> anchor = {0.0f, 2.0f, 0.0f}; 
+        
+        Math::Vector3<float> axis   = {0.0f, 0.0f, 1.0f}; 
+
+        bool  useMotor   = false;
+        float motorSpeed = 2.0f; 
+        float maxTorque  = 500.0f; 
+
+        JPH::Ref<JPH::Constraint> constraintRef = nullptr;
+    };
+
 
     class PhysicsSystem
     {
@@ -204,4 +224,14 @@ NB_REFLECT_STRUCT(
         nb::Physics::Collider,
         offset
     )
+)
+
+NB_REFLECT_STRUCT(
+    nb::Physics::HingeJoint,
+    NB_FIELD(nb::Physics::HingeJoint, connectedEntity),
+    NB_FIELD(nb::Physics::HingeJoint, anchor),
+    NB_FIELD(nb::Physics::HingeJoint, axis),
+    NB_FIELD(nb::Physics::HingeJoint, useMotor),
+    NB_FIELD(nb::Physics::HingeJoint, motorSpeed),
+    NB_FIELD(nb::Physics::HingeJoint, maxTorque)
 )

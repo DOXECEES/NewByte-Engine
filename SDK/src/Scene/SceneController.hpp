@@ -62,6 +62,9 @@ namespace sdk
         void copyEntity(const Widgets::ModelIndex& index) noexcept;
         void pasteEntity(const Widgets::ModelIndex& index) noexcept;
 
+        void copyEntityById(nb::Ecs::EntityID id) noexcept;
+        void pasteEntityById(nb::Ecs::EntityID id) noexcept;
+
         void markComponentDirty(
             void*                        componentPtr,
             const nb::Reflect::TypeInfo* typeInfo

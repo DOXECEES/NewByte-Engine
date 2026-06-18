@@ -23,12 +23,18 @@ namespace nb::Script
 
         void onUpdate(
             Ecs::Entity entity,
-            float dt
+            float dt,
+            const std::vector<std::pair<std::string, float>>& variables 
         )
         {
             if (!engine)
             {
                 return;
+            }
+
+            for (const auto& var : variables)
+            {
+                env[var.first] = var.second;
             }
 
             sol::protected_function func = env["onUpdate"];
@@ -76,6 +82,8 @@ namespace nb::Script
             }
         }
 
+        std::vector<std::string> getVariables() noexcept;
+
 
         void setEngine(ScriptEngine& eng);
 
@@ -91,10 +99,17 @@ namespace nb::Script
         sol::environment env;
     };
 
+    // struct ScriptVariable
+    // {
+    //     std::string name;
+    //     float value;
+    // };
 
     struct ScriptComponent
     {
-        std::shared_ptr<Script> script;
+        std::shared_ptr<Script> script; // NEVER MOVE FROM TOP, BECAUSE OF OFFSET 0
+        std::vector<std::pair<std::string, float>> variables;// variant
+
 
         template <typename... Args>
         void call(
@@ -112,6 +127,17 @@ namespace nb::Script
 
 };
 
+// NB_REFLECT_STRUCT(
+//     nb::Script::ScriptVariable,
+//     NB_FIELD(
+//         nb::Script::ScriptVariable,
+//         name
+//     ),
+//     NB_FIELD(
+//         nb::Script::ScriptVariable,
+//         value
+//     )
+// )
 
 NB_REFLECT_PTR(
     std::shared_ptr<nb::Script::Script>,
@@ -125,6 +151,29 @@ NB_REFLECT_RESOURCE_PTR(
        const std::string& path)
     {
         *field = std::make_shared<nb::Script::Script>(nb::Script::ScriptEngineSingleton::instance(), path); 
+        
+        auto* comp = reinterpret_cast<nb::Script::ScriptComponent*>(field);
+        
+        if (comp->script)
+        {
+            comp->script->loadScript(); 
+            
+            comp->variables.clear();
+            std::vector<std::string> luaVars = comp->script->getVariables();
+            
+            for (const auto& varName : luaVars)
+            {
+                float initialValue = 0.0f;
+                
+                if (comp->script->env[varName].valid())
+                {
+                    sol::optional<float> optVal = comp->script->env[varName];
+                    initialValue                = optVal.value_or(0.0f);
+                }
+                
+                comp->variables.push_back({varName, initialValue});
+            }
+        }
     }
 )
 
@@ -133,6 +182,10 @@ NB_REFLECT_STRUCT(
     NB_FIELD(
         nb::Script::ScriptComponent,
         script
+    ),
+    NB_FIELD(
+        nb::Script::ScriptComponent,
+        variables
     )
 )
 

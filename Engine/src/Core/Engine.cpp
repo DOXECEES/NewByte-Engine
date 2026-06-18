@@ -317,7 +317,7 @@ namespace nb
                         auto& script = registry.get<nb::Script::ScriptComponent>(entity);
                         if (script.script)
                         {
-                            script.script->onUpdate(entity, deltaTime);
+                            script.script->onUpdate(entity, deltaTime, script.variables);
                         }
                     }
                     if (registry.has<AudioComponent>(entity))

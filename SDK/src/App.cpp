@@ -248,14 +248,6 @@ void EditorApp::createWindows() noexcept
     assetManager->setTitle(
         Localization::Translation::fromKeyToWstring("Ui.Editor.AssetManager.Title")
     );
-    assetManager->setOnFileDropCallback([this](const std::filesystem::path& dropFilePath) {
-
-        importWindow = std::make_shared<ImportWindow>(nullptr, engine.get(), dropFilePath, [this]() {
-            assetManagerWindow->refreshModel();
-            importWindow = nullptr;
-        });
-
-    });    
     
     debugWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     debugWindow->setTitle(
@@ -264,13 +256,11 @@ void EditorApp::createWindows() noexcept
 
     toolbarWindow = std::make_shared<Win32Window::ChildWindow>(mainWindow.get());
     toolbarWindow->setTitle(L"Toolbar");
-    //toolbarWindow->setSize(NbSize<int>{0, TOOLBAR_HEIGHT});
 
     previewWindow = std::make_shared<Win32Window::ChildWindow>(nullptr);
     previewWindow->setTitle(L"prev");
     previewWindow->addCaption();
     previewWindow->setRenderable(false);
-
 
     shaderNodes = std::make_shared<Win32Window::ChildWindow>(nullptr);
     shaderNodes->setTitle(L"Shader");
@@ -1780,7 +1770,7 @@ void EditorApp::rebuildInspector() noexcept
 
     inspectorWindow->getLayoutRoot()->clearChilds();
     inspectorWindow->getLayoutRoot()->addChild(std::move(finalUi));
-    inspectorWindow->show();
+    //inspectorWindow->show();
 }
 
 void EditorApp::subscribeAll() noexcept
@@ -2417,6 +2407,225 @@ nbui::LayoutBuilder EditorApp::buildFieldUI(
                 );
 
         return std::move(parentBuilder).child(std::move(resourceRow));
+    }
+    else if (field.type->isVector)
+    {
+        size_t size = field.type->vectorSize(fieldData);
+        nb::Reflect::TypeInfo* elemType = field.type->elementType;
+
+        const int itemHeight = 32;
+        const int headerHeight = 35;
+
+        auto vectorColumn = LayoutBuilder::vBox()
+            .relativeWidth(1.0f)
+            .absoluteHeight((int)size * itemHeight + headerHeight);
+
+        auto headerRow = LayoutBuilder::hBox()
+            .relativeWidth(1.0f)
+            .absoluteHeight(headerHeight);
+
+        headerRow = std::move(headerRow).child(
+            LayoutBuilder::label(Localization::Translation::fromKeyToWstring(field.name) + L" [" + std::to_wstring(size) + L"]")
+                .relativeWidth(0.75f)
+                .color({150, 150, 150})
+                .padding({0, 0, 0, 5})
+                .textAlignment({.textAlignment = TextAlignment::LEFT})
+        );
+
+        if (field.type->vectorPushBackDefault)
+        {
+            headerRow = std::move(headerRow).child(
+                LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"➕")
+                    .absoluteWidth(30)
+                    .absoluteHeight(25)
+                    .background({50, 50, 50})
+                    .onEvent(&Widgets::Button::onReleasedSignal, [this, fieldData, componentPtr, info, field]() {
+                        field.type->vectorPushBackDefault(fieldData);
+                        markComponentDirty(componentPtr, info);
+                        this->shouldRebuildInspector = true;
+                    })
+            );
+        }
+
+        vectorColumn = std::move(vectorColumn).child(std::move(headerRow));
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            void* elemPtr = field.type->vectorAt(fieldData, i);
+
+            auto row = LayoutBuilder::hBox()
+                .relativeWidth(1.0f)
+                .absoluteHeight(itemHeight)
+                .margin({0, 1, 0, 1});
+
+            // --- Динамическое определение заголовка строки ---
+            std::wstring itemLabel = L"  [" + std::to_wstring(i) + L"]";
+            bool isNamedPair = false;
+
+            if (elemType->isPair && elemType->fields.size() >= 2)
+            {
+                auto& firstField = elemType->fields[0];
+                // Если первый элемент пары — строка, используем её значение как имя
+                if (std::strcmp(firstField.type->name, "std::string") == 0)
+                {
+                    void* firstFieldPtr = (char*)elemPtr + firstField.offset;
+                    std::string strKey = *static_cast<std::string*>(firstFieldPtr);
+                    if (!strKey.empty())
+                    {
+                        itemLabel = L"  " + nb::Utils::toWString(strKey);
+                        isNamedPair = true; // Помечаем, что это пара с текстовым ключом
+                    }
+                }
+            }
+
+            row = std::move(row).child(
+                LayoutBuilder::label(itemLabel)
+                    .absoluteWidth(100) // Увеличенная ширина под имя переменной
+                    .color({160, 160, 160})
+                    .textAlignment({.textAlignment = TextAlignment::LEFT})
+            );
+
+            std::string elemTypeName = elemType->name;
+
+            if (elemTypeName == "float")
+            {
+                row = std::move(row).child(
+                    LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([this, elemPtr, componentPtr, info, field](Widgets::FloatSpinBox* c) {
+                            c->setStep(field.step);
+                            c->bind(
+                                [elemPtr]() { return *static_cast<float*>(elemPtr); },
+                                [this, elemPtr, componentPtr, info](float v) {
+                                    *static_cast<float*>(elemPtr) = v;
+                                    markComponentDirty(componentPtr, info);
+                                }
+                            );
+                        })
+                        .relativeWidth(0.7f)
+                        .absoluteHeight(28)
+                        .background({25, 25, 25})
+                );
+            }
+            else if (elemTypeName == "int" || elemTypeName == "int32_t")
+            {
+                row = std::move(row).child(
+                    LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                        .apply<Widgets::FloatSpinBox>([this, elemPtr, componentPtr, info](Widgets::FloatSpinBox* c) {
+                            c->setStep(1.0f);
+                            c->bind(
+                                [elemPtr]() { return static_cast<float>(*static_cast<int32_t*>(elemPtr)); },
+                                [this, elemPtr, componentPtr, info](float v) {
+                                    *static_cast<int32_t*>(elemPtr) = static_cast<int32_t>(v);
+                                    markComponentDirty(componentPtr, info);
+                                }
+                            );
+                        })
+                        .relativeWidth(0.7f)
+                        .absoluteHeight(28)
+                        .background({25, 25, 25})
+                );
+            }
+            else if (elemTypeName == "bool")
+            {
+                row = std::move(row).child(
+                    LayoutBuilder::widget(new Widgets::CheckBox())
+                        .apply<Widgets::CheckBox>([this, elemPtr, componentPtr, info](Widgets::CheckBox* c) {
+                            c->setChecked(*static_cast<bool*>(elemPtr));
+                            c->onToggled([this, elemPtr, componentPtr, info](bool v) {
+                                *static_cast<bool*>(elemPtr) = v;
+                                markComponentDirty(componentPtr, info);
+                            });
+                        })
+                        .relativeWidth(0.7f)
+                        .absoluteHeight(28)
+                );
+            }
+            else if (!elemType->fields.empty() || elemType->isPair)
+            {
+                auto fieldsBox = LayoutBuilder::hBox().relativeWidth(0.72f);
+                
+                // Если это именованная пара, первый элемент (имя) пропускаем при отрисовке полей ввода,
+                // начиная сразу со второго элемента (значения)
+                size_t startIndex = isNamedPair ? 1 : 0;
+                size_t fieldsCount = elemType->fields.size();
+
+                for (size_t fIdx = startIndex; fIdx < fieldsCount; ++fIdx)
+                {
+                    const auto& subField = elemType->fields[fIdx];
+                    void* subFieldData = (char*)elemPtr + subField.offset;
+                    std::string subTypeName = subField.type->name;
+
+                    auto subColumn = LayoutBuilder::vBox()
+                        .relativeWidth(1.0f / (fieldsCount - startIndex))
+                        .autoHeight();
+
+                    if (subTypeName == "float")
+                    {
+                        subColumn = std::move(subColumn).child(
+                            LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                                .apply<Widgets::FloatSpinBox>([this, subFieldData, componentPtr, info, subField](Widgets::FloatSpinBox* c) {
+                                    c->setStep(subField.step);
+                                    c->bind(
+                                        [subFieldData]() { return *static_cast<float*>(subFieldData); },
+                                        [this, subFieldData, componentPtr, info](float v) {
+                                            *static_cast<float*>(subFieldData) = v;
+                                            markComponentDirty(componentPtr, info);
+                                        }
+                                    );
+                                })
+                                .relativeWidth(0.95f)
+                                .absoluteHeight(28)
+                                .background({25, 25, 25})
+                        );
+                    }
+                    else if (subTypeName == "int" || subTypeName == "int32_t")
+                    {
+                        subColumn = std::move(subColumn).child(
+                            LayoutBuilder::widget(new Widgets::FloatSpinBox())
+                                .apply<Widgets::FloatSpinBox>([this, subFieldData, componentPtr, info](Widgets::FloatSpinBox* c) {
+                                    c->setStep(1.0f);
+                                    c->bind(
+                                        [subFieldData]() { return static_cast<float>(*static_cast<int32_t*>(subFieldData)); },
+                                        [this, subFieldData, componentPtr, info](float v) {
+                                            *static_cast<int32_t*>(subFieldData) = static_cast<int32_t>(v);
+                                            markComponentDirty(componentPtr, info);
+                                        }
+                                    );
+                                })
+                                .relativeWidth(0.95f)
+                                .absoluteHeight(28)
+                                .background({25, 25, 25})
+                        );
+                    }
+
+                    fieldsBox = std::move(fieldsBox).child(std::move(subColumn));
+                }
+                row = std::move(row).child(std::move(fieldsBox));
+            }
+
+            // Кнопка удаления элемента
+            row = std::move(row).child(
+                LayoutBuilder::widget(new Widgets::Button())
+                    .text(L"❌")
+                    .absoluteWidth(25)
+                    .absoluteHeight(25)
+                    .background({40, 40, 40})
+                    .onEvent(&Widgets::Button::onReleasedSignal, [this, fieldData, componentPtr, info, field]() {
+                        size_t currentSize = field.type->vectorSize(fieldData);
+                        if (currentSize > 0)
+                        {
+                            field.type->vectorResize(fieldData, currentSize - 1);
+                            markComponentDirty(componentPtr, info);
+                            this->shouldRebuildInspector = true;
+                        }
+                    })
+            );
+
+            vectorColumn = std::move(vectorColumn).child(std::move(row));
+        }
+
+        return std::move(parentBuilder).child(std::move(vectorColumn));
     }
 
     return parentBuilder;

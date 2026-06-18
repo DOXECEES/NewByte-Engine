@@ -36,6 +36,35 @@ namespace nb::Script
     //    }
     //}
 
+    std::vector<std::string> Script::getVariables() noexcept
+    {
+        std::vector<std::string> variables;
+
+        if (!env.valid())
+        {
+            nb::Error::ErrorManager::instance().report(nb::Error::Type::FATAL, "Script envirironment is not valid");
+            return variables;
+        }
+
+        for (auto const& pair : env)
+        {
+            sol::object key   = pair.first;
+            sol::object value = pair.second;
+
+            if (key.is<std::string>())
+            {
+                std::string varName = key.as<std::string>();
+
+                if (!value.is<sol::function>() && !value.is<sol::table>())
+                {
+                    variables.push_back(std::move(varName));
+                }
+            }
+        }
+
+        return variables;
+    }
+
     void Script::setEngine(ScriptEngine& eng)
     {
         engine = &eng;

@@ -258,12 +258,19 @@ private:
                 setupEngineDependentUi();
                 assetManagerWindow = std::make_shared<AssetManager>(assetManager, engine.get());
                 isEngineDependentUiInit = true;
+
+                assetManagerWindow->getAssetGridWindow()->setOnFileDropCallback([this](const std::filesystem::path& dropFilePath) {
+
+                    importWindow = std::make_shared<ImportWindow>(nullptr, engine.get(), dropFilePath, [this]() {
+                        assetManagerWindow->refreshModel();
+                        importWindow = nullptr;
+                    });
+
+                });    
             }
 
-            // Очищаем флаг клика перед обработкой сообщений
             leftMouseDownThisFrame = false;
 
-            // 1. ОЧЕНЬ БЫСТРЫЙ СБОР СООБЩЕНИЙ (БЕЗ МАТЕМАТИКИ)
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
             {
                 if (shouldRebuildInspector)
@@ -295,12 +302,10 @@ private:
                 DispatchMessage(&msg);
             }
 
-            // Если очередь пуста, обрабатываем физику, логику и ГИЗМО строго 1 раз за кадр
             if (engine && running)
             {
                 bool isGizmoHit = false;
 
-                // Выполняем спавн моделей
                 if (!spawnQueue.isEmpty())
                 {
                     for (auto& i : spawnQueue)
@@ -310,7 +315,6 @@ private:
                     spawnQueue.clear();
                 }
 
-                // 2. ОБНОВЛЕНИЕ ГИЗМО (ВЫПОЛНЯЕТСЯ СТРОГО 1 РАЗ ЗА КАДР)
                 if (!sceneWindowViewport->getIsRenderable() && sceneController) // обновляем только если окно активно
                 {
                     NbPoint<int>          mousePos = sceneWindowViewport->mousePosition;
@@ -511,6 +515,20 @@ private:
                                 cameraBookmarkWindow->refreshUi();
                             }
                         }
+                    }
+
+
+                    if(keyboard->isKeyHeld(KeyCode::NB_CONTROL) && keyboard->isKeyPressed(KeyCode::NB_C))
+                    {
+                        if(auto activeNode = sceneController->getActiveNode(); activeNode.isValid())
+                        {
+                            sceneController->copyEntityById(activeNode.getId());
+                        }
+                    }
+
+                    if(keyboard->isKeyHeld(KeyCode::NB_CONTROL) && keyboard->isKeyPressed(KeyCode::NB_V))
+                    {
+                        sceneController->pasteEntityById(1);
                     }
 
                     

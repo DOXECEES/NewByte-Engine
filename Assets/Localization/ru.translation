@@ -27,6 +27,7 @@ Ui.Editor.View.Lang : Язык интерфейса
 
 Ui.Editor.Hierarchy.Title : Иерархия
 Ui.Editor.Scene.Title : Сцена
+Ui.Editor.SceneTab.Title : Сцена
 Ui.Editor.Inspector.Title : Инспектор
 Ui.Editor.DebugWindow.Title : Настройки
 Ui.Editor.CameraBookMark.Title : Закладки камеры
@@ -108,6 +109,7 @@ nearClip : Ближняя плоскость
 farClip : Дальняя плоскость
 
 # --- UI / Hierarchy ---
+Ui.Scene.RandomizeAngle : Случайный угол
 Ui.Scene.Hierarchy : Иерархия сцены
 Ui.Scene.Entity : Сущность
 Ui.Scene.CreateEmpty : Создать пустой объект

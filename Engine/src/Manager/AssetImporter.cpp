@@ -233,7 +233,6 @@ namespace nb::SDK
             stbi_image_free(metData);
         }
 
-        // Сохраняем готовую ORM-карту в формате PNG
         int success =
             stbi_write_png(outputPath.string().c_str(), outW, outH, 3, ormPixels.data(), outW * 3);
         return success != 0;
@@ -406,6 +405,9 @@ namespace nb::SDK
         {
             return {false, L"Assimp Load Error"};
         }
+
+        centerModelVertices(const_cast<aiScene*>(scene));
+
 
         // --- Извлечение встроенных текстур на диск ---
         struct ExtractedTextures
@@ -787,6 +789,52 @@ namespace nb::SDK
         auto c = p;
         c.replace_extension(ext);
         return c;
+    }
+
+    void AssetImporter::centerModelVertices(aiScene* scene)
+    {
+        if (!scene || !scene->mNumMeshes) return;
+
+        aiVector3D minBounds(1e10f, 1e10f, 1e10f);
+        aiVector3D maxBounds(-1e10f, -1e10f, -1e10f);
+
+        for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
+            aiMesh* mesh = scene->mMeshes[m];
+            for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
+            {
+                aiVector3D vertex = mesh->mVertices[v];
+                minBounds.x = std::min(minBounds.x, vertex.x);
+                minBounds.y = std::min(minBounds.y, vertex.y);
+                minBounds.z = std::min(minBounds.z, vertex.z);
+
+                maxBounds.x = std::max(maxBounds.x, vertex.x);
+                maxBounds.y = std::max(maxBounds.y, vertex.y);
+                maxBounds.z = std::max(maxBounds.z, vertex.z);
+            }
+        }
+
+        aiVector3D center = (minBounds + maxBounds) * 0.5f;
+
+        for (unsigned int m = 0; m < scene->mNumMeshes; ++m)
+        {
+            aiMesh* mesh = scene->mMeshes[m];
+            
+            for (unsigned int v = 0; v < mesh->mNumVertices; ++v)
+            {
+                mesh->mVertices[v] -= center;
+            }
+
+            if (mesh->HasBones())
+            {
+                aiMatrix4x4 translation;
+                aiMatrix4x4::Translation(center, translation);
+
+                for (unsigned int b = 0; b < mesh->mNumBones; ++b)
+                {
+                    mesh->mBones[b]->mOffsetMatrix = mesh->mBones[b]->mOffsetMatrix * translation;
+                }
+            }
+        }
     }
 
 } // namespace nb::SDK

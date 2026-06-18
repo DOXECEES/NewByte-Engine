@@ -49,7 +49,6 @@ void AssetManager::handleResize(const NbSize<int>& size)
     assetGridWindow->setSize({totalWidth - treeWidth, totalHeight - toolbarHeight});
 }
 
-
 void AssetManager::importAsset(std::filesystem::path path) noexcept
 {
     if (path.extension() == ".png")

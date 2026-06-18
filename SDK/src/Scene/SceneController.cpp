@@ -321,6 +321,42 @@ namespace sdk
             .with("newEntityId", static_cast<uint64_t>(copy.getId()));
     }
 
+    void SceneController::copyEntityById(nb::Ecs::EntityID id) noexcept
+    {
+        copiedEntityId       = id;
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "Entity copied to clipboard")
+            .with("entityId", static_cast<uint64_t>(id));
+    }
+
+    void SceneController::pasteEntityById(nb::Ecs::EntityID id) noexcept
+    {
+        if (copiedEntityId == 0)
+        {
+            return;
+        }
+
+        auto&             scene = nb::Scene::getInstance();
+
+        nb::Node       copy     = scene.clone(id, copiedEntityId);
+        NameComponent& nameComp = copy.getComponent<NameComponent>();
+        nameComp.name += " (Copy)";
+        nameComp.name = nameManager.generateName(nameComp.name);
+
+        sceneModel->addEntity(id, copy.getId());
+
+        activeNode = copy;
+
+        refreshHierarchySignal.emit();
+        activeNodeChanged.emit();
+        scene.invalidateBvh();
+
+        nb::Error::ErrorManager::instance()
+            .report(nb::Error::Type::INFO, "Entity pasted successfully")
+            .with("newEntityId", static_cast<uint64_t>(copy.getId()));
+    }
+
     void SceneController::releaseNamesRecursive(nb::Ecs::EntityID id) noexcept
     {
         auto& scene = nb::Scene::getInstance();

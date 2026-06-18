@@ -64,6 +64,10 @@ public:
         return window;
     }
 
+    std::shared_ptr<Win32Window::ChildWindow> getAssetGridWindow() const noexcept
+    {
+        return assetGridWindow;
+    }
     //Signal<void()>
 
 private:

@@ -43,10 +43,41 @@ namespace sdk
             Utils::toWstring(Localization::Translation::fromKey("Ui.Editor.Scene.Title"))
         );
 
+        auto popup = std::make_unique<nbui::PopupMenu>();
+        popup->addItem(
+            Utils::toWstring(Localization::Translation::fromKey("Ui.Scene.RandomizeAngle")),
+            nbui::IconType::None,
+            [this]()-> void
+            {
+                if(sceneController && sceneController->getActiveNode().isValid())
+                {
+                    // TODO: replace if more generators used
+                    static std::mt19937 gen([]() {
+                        std::random_device rd;
+                        return rd();
+                    }());
+
+                    std::uniform_real_distribution<float> dist(0.0f, nb::Math::Constants::PI * 2.0f); 
+
+                    float rx = dist(gen);
+                    float ry = dist(gen);
+                    float rz = dist(gen);
+
+                    auto node = sceneController->getActiveNode();
+                    auto& transform = node.getComponent<TransformComponent>();
+                    
+                    transform.rotation = nb::Math::Quaternion<float>::eulerToQuaternionXYZ(rx, ry, rz);         
+                    transform.dirty = true;
+                }
+            }
+        );
+
+        sceneToolbar->setContextMenu(std::move(popup));
+
         nb::Error::ErrorManager::instance().report(
             nb::Error::Type::INFO, "SceneWindow components created successfully"
         );
-    }
+    }   
 
     void SceneWindow::handleResize(const NbRect<int>& rect) noexcept
     {

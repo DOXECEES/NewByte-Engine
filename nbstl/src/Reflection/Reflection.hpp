@@ -8,6 +8,7 @@
 #include <vector>
 #include <functional>
 #include <filesystem>
+#include <utility> 
 
 namespace nb::Reflect
 {
@@ -112,6 +113,17 @@ namespace nb::Reflect
         bool isEnum = false;
         std::vector<EnumValueInfo> enumValues;
 
+        bool isVector = false;
+        TypeInfo* elementType = nullptr;
+        size_t (*vectorSize)(void*) = nullptr;
+        void* (*vectorAt)(void*, size_t) = nullptr;
+        void (*vectorResize)(void*, size_t) = nullptr;
+        void (*vectorPushBackDefault)(void*) = nullptr;
+
+        bool isPair = false;
+        TypeInfo* keyType = nullptr;  
+        TypeInfo* valueType = nullptr; 
+
     };
 
 
@@ -162,6 +174,22 @@ namespace nb::Reflect
 
 
     template <typename T> TypeInfo* getType();
+    template <typename T> TypeInfo* buildType();
+
+    template <typename T, typename Enable = void>
+    struct TypeBuilder
+    {
+        static TypeInfo* get()
+        {
+            return buildType<T>();
+        }
+    };
+
+    template <typename T>
+    TypeInfo* getType()
+    {
+        return TypeBuilder<T>::get();
+    }
 
     template <typename T> TypeInfo* buildType()
     {
@@ -253,52 +281,138 @@ namespace nb::Reflect
         return &type;
     }
 
-    template <typename T> TypeInfo* getType()
-    {
-        return buildType<T>();
-    }
 
-
-    template <> inline TypeInfo* getType<float>()
-    {
-        static TypeInfo type = {"float", sizeof(float), {}, false};
-        return &type;
-    }
-
-    template <> inline TypeInfo* getType<int>()
-    {
-        static TypeInfo type = {"int", sizeof(int), {}, false};
-        return &type;
-    }
-
-    template <> inline TypeInfo* getType<bool>()
-    {
-        static TypeInfo type = {"bool", sizeof(bool), {}, false};
-        return &type;
-    }
 
     template <>
-    inline TypeInfo* getType<uint8_t>()
-    {
-        static TypeInfo type = {"uint8_t", sizeof(uint8_t), {}, false};
-        return &type;
-    }
+    struct TypeBuilder<float> {
+        static TypeInfo* get() {
+            static TypeInfo type = {"float", sizeof(float), {}, false};
+            return &type;
+        }
+    };
 
     template <>
-    inline TypeInfo* getType<std::string>()
-    {
-        static TypeInfo type = {"std::string", sizeof(std::string), {}, false};
-        return &type;
-    }
+    struct TypeBuilder<int> {
+        static TypeInfo* get() {
+            static TypeInfo type = {"int", sizeof(int), {}, false};
+            return &type;
+        }
+    };
 
     template <>
-    inline TypeInfo* getType<std::filesystem::path>()
-    {
-        static TypeInfo type = {"std::filesystem::path", sizeof(std::filesystem::path), {}, false};
-        return &type;
-    }
+    struct TypeBuilder<bool> {
+        static TypeInfo* get() {
+            static TypeInfo type = {"bool", sizeof(bool), {}, false};
+            return &type;
+        }
+    };
 
-  template <typename MemberType>
+    template <>
+    struct TypeBuilder<uint8_t> {
+        static TypeInfo* get() {
+            static TypeInfo type = {"uint8_t", sizeof(uint8_t), {}, false};
+            return &type;
+        }
+    };
+
+    template <>
+    struct TypeBuilder<std::string> {
+        static TypeInfo* get() {
+            static TypeInfo type = {"std::string", sizeof(std::string), {}, false};
+            return &type;
+        }
+    };
+
+    template <>
+    struct TypeBuilder<std::filesystem::path> {
+        static TypeInfo* get() {
+            static TypeInfo type = {"std::filesystem::path", sizeof(std::filesystem::path), {}, false};
+            return &type;
+        }
+    };
+
+    template <typename K, typename V>
+    struct TypeBuilder<std::pair<K, V>>
+    {
+        static TypeInfo* get()
+        {
+            static TypeInfo type;
+            static bool initialized = false;
+
+            if (!initialized)
+            {
+                static std::string nameStr = std::string("std::pair<") + getType<K>()->name + ", " + getType<V>()->name + ">";
+                type.name = nameStr.c_str();
+                type.size = sizeof(std::pair<K, V>);
+                type.isPair = true;
+                type.keyType = getType<K>();
+                type.valueType = getType<V>();
+
+                FieldInfo firstField;
+                firstField.name = "first";
+                firstField.offset = reinterpret_cast<size_t>(&(reinterpret_cast<std::pair<K, V> const volatile*>(0)->first));
+                firstField.type = getType<K>();
+
+                FieldInfo secondField;
+                secondField.name = "second";
+                secondField.offset = reinterpret_cast<size_t>(&(reinterpret_cast<std::pair<K, V> const volatile*>(0)->second));
+                secondField.type = getType<V>();
+
+                type.fields = { firstField, secondField };
+
+                initialized = true;
+                TypeRegistry::instance().registerType(&type);
+            }
+
+            return &type;
+        }
+    };
+
+    template <typename T>
+    struct TypeBuilder<std::vector<T>>
+    {
+        static TypeInfo* get()
+        {
+            static TypeInfo type;
+            static bool initialized = false;
+
+            if (!initialized)
+            {
+                static std::string nameStr = std::string("std::vector<") + getType<T>()->name + ">";
+                type.name = nameStr.c_str();
+                type.size = sizeof(std::vector<T>);
+                type.isVector = true;
+                type.elementType = getType<T>();
+
+                type.vectorSize = [](void* vecPtr) -> size_t {
+                    return static_cast<std::vector<T>*>(vecPtr)->size();
+                };
+
+                type.vectorAt = [](void* vecPtr, size_t index) -> void* {
+                    auto& vec = *static_cast<std::vector<T>*>(vecPtr);
+                    return static_cast<void*>(&vec[index]);
+                };
+
+                type.vectorResize = [](void* vecPtr, size_t newSize) {
+                    static_cast<std::vector<T>*>(vecPtr)->resize(newSize);
+                };
+
+                if constexpr (std::is_default_constructible_v<T>) {
+                    type.vectorPushBackDefault = [](void* vecPtr) {
+                        static_cast<std::vector<T>*>(vecPtr)->emplace_back();
+                    };
+                }
+
+                initialized = true;
+                TypeRegistry::instance().registerType(&type);
+            }
+
+            return &type;
+        }
+    };
+
+
+    template <typename MemberType>
     std::string getResourcePath(void* fieldPtr)
     {
         if constexpr (nb::Reflect::hasResourceGetPath<MemberType>::value)
@@ -311,17 +425,14 @@ namespace nb::Reflect
         }
     }
 
-    // Перегрузка для FieldInfo
     template <typename Class>
     std::string getResourcePathFromField(
         void* object,
         FieldInfo* field
     )
     {
-        // смещение уже хранится в field->offset
         void* fieldPtr = reinterpret_cast<uint8_t*>(object) + field->offset;
 
-        // MemberType можно получить через рефлексию:
         for (auto& f : nb::Reflect::getType<Class>()->fields)
         {
             if (&f == field)
@@ -470,7 +581,7 @@ namespace nb::Reflect
                 {                                                                                  \
                     if (item)                                                                      \
                         paths.push_back(item->getPath());                                          \
-                }                                                                                  \
+                }                                                                              \
             }                                                                                      \
             return paths;                                                                          \
         }                                                                                          \

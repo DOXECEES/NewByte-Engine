@@ -676,6 +676,7 @@ namespace nb
         ecs.getStorage<nb::Physics::Rigidbody>();
         ecs.getStorage<CameraComponent>();
         ecs.getStorage<AnimatorComponent>();
+        ecs.getStorage<nb::Physics::HingeJoint>();
 
         //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
 
@@ -713,6 +714,7 @@ namespace nb
         ecs.getStorage<nb::Physics::Rigidbody>();
         ecs.getStorage<CameraComponent>();
         ecs.getStorage<AnimatorComponent>();
+        ecs.getStorage<nb::Physics::HingeJoint>();
 
         //ecs.getStorage<nb::Physics::TerrainColliderComponent>();
     }
@@ -941,6 +943,41 @@ namespace nb
             else if (field.type->isEnum)
             {
                 archive->value(field.name, *reinterpret_cast<int*>(fieldPtr));
+            }
+            else if (field.type->isVector)
+            {
+                archive->beginArray(field.name);
+                size_t size = field.type->vectorSize(fieldPtr);
+                nb::Reflect::TypeInfo* elemType = field.type->elementType;
+
+                for (size_t i = 0; i < size; ++i)
+                {
+                    void* elemPtr = field.type->vectorAt(fieldPtr, i);
+
+                    if (std::strcmp(elemType->name, "float") == 0)
+                        archive->value(nullptr, *reinterpret_cast<float*>(elemPtr));
+                    else if (std::strcmp(elemType->name, "int") == 0 || std::strcmp(elemType->name, "int32_t") == 0)
+                        archive->value(nullptr, *reinterpret_cast<int32_t*>(elemPtr));
+                    else if (std::strcmp(elemType->name, "uint32_t") == 0)
+                        archive->value(nullptr, *reinterpret_cast<uint32_t*>(elemPtr));
+                    else if (std::strcmp(elemType->name, "bool") == 0)
+                        archive->value(nullptr, *reinterpret_cast<bool*>(elemPtr));
+                    else if (std::strcmp(elemType->name, "std::string") == 0)
+                        archive->value(nullptr, *reinterpret_cast<std::string*>(elemPtr));
+                    else if (std::strcmp(elemType->name, "uint8_t") == 0)
+                        archive->value(nullptr, *reinterpret_cast<uint8_t*>(elemPtr));
+                    else if (std::strcmp(elemType->name, "std::filesystem::path") == 0)
+                        archive->value(nullptr, (*reinterpret_cast<std::filesystem::path*>(elemPtr)));
+                    else if (elemType->isEnum)
+                        archive->value(nullptr, *reinterpret_cast<int*>(elemPtr));
+                    else if (!elemType->fields.empty())
+                    {
+                        archive->beginObject(nullptr);
+                        serializeFields(archive, elemPtr, elemType);
+                        archive->endObject();
+                    }
+                }
+                archive->endArray();
             }
             else if (!field.type->fields.empty())
             {
@@ -1214,6 +1251,42 @@ namespace nb
             else if (!fieldType->fields.empty() && fieldJson.isObject())
             {
                 deserializeFields(fieldJson, fieldPtr, fieldType);
+            }
+            else if (fieldType->isVector && fieldJson.isArray())
+            {
+                size_t size = fieldJson.size();
+                fieldType->vectorResize(fieldPtr, size);
+                nb::Reflect::TypeInfo* elemType = fieldType->elementType;
+
+                for (size_t i = 0; i < size; ++i)
+                {
+                    const auto& elemJson = fieldJson[i];
+                    void* elemPtr = fieldType->vectorAt(fieldPtr, i);
+
+                    if (std::strcmp(elemType->name, "float") == 0 && elemJson.isValue())
+                        *reinterpret_cast<float*>(elemPtr) = elemJson.get<float>();
+                    else if ((std::strcmp(elemType->name, "int") == 0 || std::strcmp(elemType->name, "int32_t") == 0) && elemJson.isValue())
+                        *reinterpret_cast<int32_t*>(elemPtr) = elemJson.get<int32_t>();
+                    else if (std::strcmp(elemType->name, "uint32_t") == 0 && elemJson.isValue())
+                        *reinterpret_cast<uint32_t*>(elemPtr) = elemJson.get<uint32_t>();
+                    else if (std::strcmp(elemType->name, "bool") == 0 && elemJson.isValue())
+                        *reinterpret_cast<bool*>(elemPtr) = elemJson.get<bool>();
+                    else if (std::strcmp(elemType->name, "std::string") == 0 && elemJson.isValue())
+                        *reinterpret_cast<std::string*>(elemPtr) = elemJson.get<std::string>();
+                    else if (std::strcmp(elemType->name, "std::filesystem::path") == 0 && elemJson.isValue())
+                        *reinterpret_cast<std::filesystem::path*>(elemPtr) = elemJson.get<std::string>();
+                    else if (std::strcmp(elemType->name, "uint8_t") == 0 && elemJson.isValue())
+                        *reinterpret_cast<uint8_t*>(elemPtr) = static_cast<uint8_t>(elemJson.get<int>());
+                    else if (elemType->isEnum && elemJson.isValue())
+                    {
+                        int value = elemJson.get<int>();
+                        std::memcpy(elemPtr, &value, sizeof(int));
+                    }
+                    else if (!elemType->fields.empty() && elemJson.isObject())
+                    {
+                        deserializeFields(elemJson, elemPtr, elemType);
+                    }
+                }
             }
         }
     }
