@@ -390,6 +390,11 @@ namespace nb::Physics
 
         nb::Math::Vector3<float> worldScale = nb::Math::getScaleFromModelMatrix(tc.worldMatrix);
 
+        // Защита от нулевого масштаба в редакторе
+        worldScale.x = std::max(0.001f, std::abs(worldScale.x));
+        worldScale.y = std::max(0.001f, std::abs(worldScale.y));
+        worldScale.z = std::max(0.001f, std::abs(worldScale.z));
+
         JPH::ShapeRefC shape;
         switch (c.type)
         {
@@ -414,30 +419,62 @@ namespace nb::Physics
         }
         case ColliderType::CAPSULE:
         {
-            JPH::CapsuleShapeSettings settings(
-                c.height * 0.5f * worldScale.y, c.radius * worldScale.x
-            );
+            // Защита от деления на ноль и недопустимых размеров капсулы в Jolt
+            float                     halfHeight = std::max(0.01f, c.height * 0.5f * worldScale.y);
+            float                     radius     = std::max(0.01f, c.radius * worldScale.x);
+            JPH::CapsuleShapeSettings settings(halfHeight, radius);
             shape = settings.Create().Get();
             break;
         }
         case ColliderType::MESH:
         {
-            const auto& vertices = c.mesh->getVertices(); 
-            const auto& indices  = c.mesh->getIndices();  
-            
+            // ЗАЩИТА: Если меш не загружен, пустой или поврежден, строим временный Box, чтобы
+            // редактор не упал
+            if (!c.mesh || c.mesh->getVertices().empty() || c.mesh->getIndices().empty())
+            {
+                nb::Error::ErrorManager::instance().report(
+                    nb::Error::Type::WARNING, "MeshCollider ignored: Mesh asset is null, empty or "
+                                              "still loading. Temporary Box shape created."
+                );
+
+                JPH::BoxShapeSettings settings(JPH::Vec3(0.1f, 0.1f, 0.1f));
+                shape = settings.Create().Get();
+                break;
+            }
+
+            const auto& vertices = c.mesh->getVertices();
+            const auto& indices  = c.mesh->getIndices();
 
             JPH::VertexList          joltVertices;
             JPH::IndexedTriangleList joltIndices;
 
-            
+            joltVertices.reserve(vertices.size());
             for (const auto& v : vertices)
             {
                 joltVertices.push_back(JPH::Float3(v.position.x, v.position.y, v.position.z));
             }
 
+            joltIndices.reserve(indices.size() / 3);
             for (size_t i = 0; i < indices.size(); i += 3)
-                joltIndices.push_back(JPH::IndexedTriangle(indices[i], indices[i+1], indices[i+2]));
-            
+            {
+                // Защита от выхода индексов за пределы вершинного буфера
+                if (indices[i] >= vertices.size() || indices[i + 1] >= vertices.size() ||
+                    indices[i + 2] >= vertices.size())
+                {
+                    continue;
+                }
+                joltIndices.push_back(
+                    JPH::IndexedTriangle(indices[i], indices[i + 1], indices[i + 2])
+                );
+            }
+
+            // Если после фильтрации индексы оказались невалидными
+            if (joltIndices.empty())
+            {
+                JPH::BoxShapeSettings settings(JPH::Vec3(0.1f, 0.1f, 0.1f));
+                shape = settings.Create().Get();
+                break;
+            }
 
             JPH::MeshShapeSettings meshSettings(joltVertices, joltIndices);
 
@@ -461,7 +498,6 @@ namespace nb::Physics
             }
             break;
         }
-
         }
 
         if (c.offset.squaredLength() > 0.0001f)
@@ -479,9 +515,14 @@ namespace nb::Physics
         nb::Math::Vector3<float>    wPos = nb::Math::getPositionFromModelMatrix(tc.worldMatrix);
         nb::Math::Quaternion<float> wRot = nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
 
+        // Защита от неопределенности или деления на ноль при сингулярности кватерниона
+        if (std::isnan(wRot.x) || std::isnan(wRot.y) || std::abs(wRot.length() - 1.0f) > 0.001f)
+        {
+            wRot = nb::Math::Quaternion<float>{0.0f, 0.0f, 0.0f, 1.0f};
+        }
+
         JPH::BodyCreationSettings settings(
-            shape, JPH::RVec3(wPos.x, wPos.y, wPos.z),
-            JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), 
+            shape, JPH::RVec3(wPos.x, wPos.y, wPos.z), JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w),
             motionType, layer
         );
 
@@ -541,10 +582,15 @@ namespace nb::Physics
                     nb::Math::Quaternion<float> wRot =
                         nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
 
+                    // Защита от невалидного кватерниона (NaN / ненормализован)
+                    if (std::isnan(wRot.x) || std::abs(wRot.length() - 1.0f) > 0.001f)
+                    {
+                        wRot = nb::Math::Quaternion<float>{0.0f, 0.0f, 0.0f, 1.0f};
+                    }
+
                     bodyInterface.SetPositionAndRotation(
                         rb.bodyID, JPH::RVec3(wPos.x, wPos.y, wPos.z),
-                        JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), 
-                        JPH::EActivation::Activate
+                        JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), JPH::EActivation::Activate
                     );
                 }
                 tc.physicsDirty = false;
@@ -728,6 +774,53 @@ namespace nb::Physics
     {
         return physicsSystem->GetBodyInterface();
     }
+
+    JPH::PhysicsSystem* PhysicsSystem::getSystem() noexcept
+    {
+        return physicsSystem;
+    }
+
+    void PhysicsSystem::syncEditorBodies(Scene& scene)
+    {
+        if (!isInitialized || !physicsSystem)
+        {
+            return;
+        }
+
+        auto view = scene.getEntitiesWith<Rigidbody, TransformComponent, Collider>();
+        JPH::BodyInterface& bodyInterface = physicsSystem->GetBodyInterface();
+
+        for (auto entity : view)
+        {
+            auto& rb = scene.getComponent<Rigidbody>(entity.id);
+            auto& tc = scene.getComponent<TransformComponent>(entity.id);
+
+            // Если тело еще не создано в физическом мире Jolt - создаем его
+            if (rb.bodyID.IsInvalid())
+            {
+                createRigidbody(entity.id, scene);
+            }
+
+            // Синхронизируем положение тела, если объект переместили в редакторе
+            if (tc.dirty || tc.physicsDirty)
+            {
+                if (!rb.bodyID.IsInvalid() && bodyInterface.IsAdded(rb.bodyID))
+                {
+                    nb::Math::Vector3<float> wPos = nb::Math::getPositionFromModelMatrix(tc.worldMatrix);
+                    nb::Math::Quaternion<float> wRot = nb::Math::getRotationFromModelMatrix(tc.worldMatrix);
+
+                    // Устанавливаем координаты БЕЗ активации физического движения (DontActivate)
+                    bodyInterface.SetPositionAndRotation(
+                        rb.bodyID, JPH::RVec3(wPos.x, wPos.y, wPos.z),
+                        JPH::Quat(-wRot.x, -wRot.y, -wRot.z, wRot.w), 
+                        JPH::EActivation::DontActivate
+                    );
+                }
+                tc.physicsDirty = false;
+            }
+        }
+    }
+
 
     void Rigidbody::addForce(const Math::Vector3<float>& f)
     {

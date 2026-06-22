@@ -537,8 +537,13 @@ namespace nb
         }
 
 
-		NB_NODISCARD ShaderSystem& Engine::getShaderSystem() noexcept
-		{
+		NB_NODISCARD
+                nb::Physics::PhysicsSystem& Engine::getPhysicsSystem() noexcept
+                {
+                    return subSystems->getPhysicsSystem();
+                }
+                ShaderSystem& Engine::getShaderSystem() noexcept
+                {
             return shaderSystem;
         }
 

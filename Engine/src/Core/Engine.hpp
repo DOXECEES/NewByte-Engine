@@ -127,6 +127,7 @@ namespace nb
                 input->linkKeyboard(keyboard);
                 input->linkMouse(mouse);
                 audioEngine.init();
+                renderer->setPhysicsSystem(&subSystems->getPhysicsSystem());
              
 
                 nb::Script::ScriptEngineSingleton::instance().getLuaState()["Keyboard"] = keyboard;
@@ -237,7 +238,7 @@ namespace nb
 
             Renderer::Camera* findPrimaryGameCamera(Scene& scene) noexcept;
 
-
+            nb::Physics::PhysicsSystem& getPhysicsSystem() noexcept;
             ShaderSystem& getShaderSystem() noexcept;
 
             void setEditorSelectedNode(Node node) noexcept;

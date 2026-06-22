@@ -379,7 +379,7 @@ void AssetManager::refreshAssetGrid()
                             .absoluteHeight(95)
                             .background({25, 25, 25})
                             .apply<Widgets::IWidget>(
-                                [this, entry](Widgets::IWidget* w)
+                                [this, entry, extStr](Widgets::IWidget* w)
                                 {
                                     w->onPressedSignal.connect(
                                         [this, entry]()
@@ -392,7 +392,7 @@ void AssetManager::refreshAssetGrid()
                                     );
 
                                     w->onReleasedSignal.connect(
-                                        [this, entry]()
+                                        [this, entry, extStr]()
                                         {
                                             if (!this->dragInfo.active)
                                             {
@@ -443,30 +443,61 @@ void AssetManager::refreshAssetGrid()
                                             }
                                             else
                                             {
-                                                //if(supportedExtensions.at(ext) )
 
-                                                if (this->textureEditor)
+                                                if(extStr == ".hlsl" || extStr == ".lua")
                                                 {
-                                                    this->textureEditor = nullptr;
+
                                                 }
-
-
-                                                auto textureRes =
-                                                    nb::ResMan::ResourceManager::getInstance()
-                                                        ->getResource<nb::Resource::TextureAsset>(
-                                                            "Assets/res/" + entry.path().stem().string() +
-                                                            ".texture"
-                                                        );
-
-                                                if (textureRes)
+                                                else if(extStr == ".material")
                                                 {
-                                                    this->textureEditor =
-                                                        std::make_shared<TextureEditor>(
-                                                            this->window.get(), this->engine.get(),
-                                                            textureRes.get()
-                                                        );
-                                                    this->textureEditor->show();
+                                                    if (this->materialEditor)
+                                                    {
+                                                        this->materialEditor = nullptr;
+                                                    }
+
+                                                    auto material = nb::ResMan::ResourceManager::getInstance()->getResource<nb::Resource::MaterialAsset>(
+                                                        entry.path().string()
+                                                    ); 
+
+                                                    this->materialEditor = std::make_shared<MaterialEditor>(
+                                                        this->window.get(),
+                                                        this->engine.get(),
+                                                        material.get()
+                                                    );
+
+                                                    this->materialEditor->show();
+                                                    return;
                                                 }
+                                                else if(extStr == ".texture" || extStr == ".png" || extStr == ".jpg")
+                                                {
+                                                    if (this->textureEditor)
+                                                    {
+                                                        this->textureEditor = nullptr;
+                                                    }
+
+                                                    std::filesystem::path path = entry.path();
+
+                                                    auto textureRes =
+                                                        nb::ResMan::ResourceManager::getInstance()
+                                                            ->getResource<nb::Resource::TextureAsset>(
+                                                                path.replace_extension(".texture").string()
+                                                            );
+
+                                                    if (textureRes)
+                                                    {
+                                                        this->textureEditor =
+                                                            std::make_shared<TextureEditor>(
+                                                                this->window.get(), this->engine.get(),
+                                                                textureRes.get()
+                                                            );
+                                                        this->textureEditor->show();
+                                                    }
+                                                }
+                                                else 
+                                                {
+                                                    nb::Error::ErrorManager::instance()
+                                                        .report(nb::Error::Type::WARNING, "Unsupported file type");
+                                                }                                                
                                             }
                                         }
                                     );

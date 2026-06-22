@@ -836,6 +836,21 @@ void EditorApp::setupMainWindow() noexcept
                                                         }
                                                     )
                                             )
+                                            .child(
+                                                LayoutBuilder::widget(new Widgets::CheckBox())
+                                                    .relativeWidth(1.0f)
+                                                    .autoHeight()
+                                                    .text(L"Показывать световые гизмо")
+                                                    .checked(debugRendererSettings.showColliders)
+                                                    .onEvent(
+                                                        &Widgets::CheckBox::onCheckStateChanged,
+                                                        [this](bool state)
+                                                        {
+                                                            debugRendererSettings.showColliders = state;
+                                                            engineSettingsController->setDebugRendererSettings(debugRendererSettings); 
+                                                        }
+                                                    )
+                                            )
                                             .child(LayoutBuilder::spacer())
                                             .child(
                                                 LayoutBuilder::hBox()

@@ -250,6 +250,8 @@ set(SRC
     src/Renderer/IUniformBuffer.hpp
     src/Renderer/RendererTracker.cpp
     src/Renderer/RendererTracker.hpp
+    src/Renderer/JoltDebugRenderer.cpp
+    src/Renderer/JoltDebugRenderer.hpp
 
     src/Renderer/Bone.hpp
     src/Renderer/Animator.hpp

@@ -30,6 +30,7 @@
 #include <Loaders/JSON/Json.hpp>
 
 #include "TextureEditor.hpp"
+#include "MaterialEditor.hpp"
 #include <Widgets/Thumbnail.hpp>
 
 class AssetManager
@@ -111,7 +112,9 @@ private:
 
 
     nbstl::NonOwningPtr<nb::Core::Engine> engine;
-    std::shared_ptr<TextureEditor>            textureEditor;
+    std::shared_ptr<TextureEditor>        textureEditor;
+    std::shared_ptr<MaterialEditor>       materialEditor;
+
     Widgets::TreeView*                    treeView;
     bool                                  isTreeUpdating = false;
 

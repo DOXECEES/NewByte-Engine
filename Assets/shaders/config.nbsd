@@ -209,6 +209,12 @@
             "Assets/shaders/ADS_sep.fs"
         ]
     },
+	"gizmosShader.shader" : {
+        "sources": [
+            "Assets/shaders/gizmo.vs",
+            "Assets/shaders/gizmo.fs"
+        ]
+    },
 
 	
 }

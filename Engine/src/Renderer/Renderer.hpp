@@ -32,18 +32,27 @@
 #include "Light.hpp"
 
 #include "IUniformBuffer.hpp"
+#include "JoltDebugRenderer.hpp"
 //
+
+namespace nb::Physics
+{
+    class PhysicsSystem;
+}
 
 namespace nb
 {
     namespace Renderer
     {
+        class JoltDebugRenderer;
+
         struct DebugRendererSettings 
         {
             bool showCameraFrustrum = true;
             bool showDebugBillboards = true;
             bool showLightGizmos = true;
             bool showGizmo = true;
+            bool showColliders = false;
         };
 
         class Renderer 
@@ -211,6 +220,14 @@ namespace nb
                 previewQueue.pushBack(path);
             }
 
+            void setPhysicsSystem(nb::Physics::PhysicsSystem* physicsSystem) noexcept
+            {
+                mPhysicsSystem = physicsSystem;
+            }
+
+            void drawJoltGeometry(const Ref<Mesh>& mesh, const nb::Math::Mat4<float>& modelMatrix, bool isWireframe) noexcept;
+
+
 
         private:
 
@@ -235,6 +252,7 @@ namespace nb
                 int height
             ) noexcept;
 
+            
             
 
         private:
@@ -298,10 +316,14 @@ namespace nb
 
             std::unique_ptr<IUniformBuffer<PointLightData>> pointLightUbo;
 
+            nb::Physics::PhysicsSystem* mPhysicsSystem = nullptr; 
+            std::unique_ptr<JoltDebugRenderer> mJoltDebugRenderer;
+
             PolygonMode polygonMode;
             IRenderAPI* api;
 
             Ref<Mesh> quadScreenMesh;
+
 
             std::unordered_map<Ecs::EntityID, Ref<nb::Renderer::Cubemap>> m_pointShadowMaps;
 

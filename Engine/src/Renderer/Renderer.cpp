@@ -35,6 +35,10 @@
 #include <format>
 #include <thread>
 
+#include <Jolt/Physics/Body/BodyManager.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+
+
 namespace nb::Math
 {
 
@@ -219,6 +223,7 @@ namespace nb::Renderer
         ssao   = new SSAO(api, (uint32_t)400, (uint32_t)300, (uint32_t)64);
         
 
+        mJoltDebugRenderer = std::make_unique<JoltDebugRenderer>(this);
 
     }
 
@@ -934,6 +939,26 @@ namespace nb::Renderer
                 cmd.mesh->draw(GL_TRIANGLES, billboardShader);
             }
 
+
+            if(debugRendererSettings.showColliders)
+            {
+                mJoltDebugRenderer->SetViewProj(cam->getLookAt() * cam->getProjection());
+
+                JPH::BodyManager::DrawSettings drawSettings;
+                drawSettings.mDrawShape = true;
+                drawSettings.mDrawBoundingBox = false;
+
+                if (mPhysicsSystem)
+                {
+                    mPhysicsSystem->syncEditorBodies(scene); 
+                    mPhysicsSystem->getSystem()->DrawBodies(drawSettings, mJoltDebugRenderer.get());
+                }
+
+                mJoltDebugRenderer->ResetAccumulators();
+
+            }
+            
+
             DebugDraw::setThickness(5.0f);
             DebugDraw::drawBatch(api, cam);
 
@@ -962,6 +987,33 @@ namespace nb::Renderer
         }
 
         api->endFrame();
+    }
+
+    void Renderer::drawJoltGeometry(const Ref<Mesh>& mesh, const nb::Math::Mat4<float>& modelMatrix, bool isWireframe) noexcept
+    {
+        if (!mesh) return;
+
+        auto gizmoShader = ResMan::ResourceManager::getInstance()->getResource<Shader>("gizmosShader.shader");
+        if (!gizmoShader) return;
+
+        // Безопасная инициализация Pipeline (без designated-инициализаторов для обхода ошибки C7560)
+        Pipeline pipeline{};
+        pipeline.shader            = gizmoShader;
+        pipeline.isDepthTestEnable = true;
+        pipeline.polygonMode       = isWireframe ? PolygonMode::LINES : PolygonMode::FULL;
+
+        uint32 pso = api->getCache().getOrCreate(pipeline);
+
+        // Установка матриц трансформаций
+        gizmoShader->setUniformMat4("uViewProj", cam->getLookAt() * cam->getProjection());
+        gizmoShader->setUniformMat4("model", modelMatrix);
+
+        // Безопасное создание команды отрисовки RendererCommand
+        RendererCommand cmd{};
+        cmd.mesh     = mesh.get();
+        cmd.pipeline = pso;
+
+        api->drawMesh(cmd);
     }
 
     void Renderer::renderDebugPasses(

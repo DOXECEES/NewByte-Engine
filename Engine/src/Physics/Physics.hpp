@@ -140,6 +140,14 @@ namespace nb::Physics
         static PhysicsSystem& getInstance();
 
         JPH::BodyInterface& getBodyInterface();
+        JPH::PhysicsSystem* getSystem() noexcept;
+
+        JPH::PhysicsSystem* getPhysicsSystem() noexcept
+        {
+            return physicsSystem;
+        }
+        void syncEditorBodies(Scene& scene);
+
 
     private:
         JPH::PhysicsSystem*       physicsSystem = nullptr;
