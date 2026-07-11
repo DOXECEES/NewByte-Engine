@@ -159,7 +159,7 @@ private:
     ///nb::Node activeNode;
     std::atomic<bool> running;
 
-    bool shouldRebuildInspector = false; 
+    bool shouldRebuildInspector = true; 
     nb::Utils::PrimitiveNameManager primitiveNameManager;
 
     Signal<void()> refreshHierarchyTreeViewSignal;
@@ -273,7 +273,7 @@ private:
 
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
             {
-                if (shouldRebuildInspector)
+                if (sceneController && shouldRebuildInspector)
                 {
                     rebuildInspector();
                     shouldRebuildInspector = false;

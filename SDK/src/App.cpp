@@ -1674,9 +1674,21 @@ void EditorApp::rebuildInspector() noexcept
     nbui::GlobalWidgetContext::releasePressedWidget();
 
 
-    if (sceneController->getActiveNode().getId() == 0)
+    if (!sceneController->getActiveNode().isValid())
     {
         inspectorWindow->getLayoutRoot()->clearChilds();
+        auto emptyInspectorUi = LayoutBuilder::vBox()
+            .relativeHeight(1.0f)
+            .relativeWidth(1.0f)
+            .child(
+                LayoutBuilder::label(Localization::Translation::fromKeyToWstring("Ui.Inspector.NoNodeSelected"))
+                .relativeWidth(1.0f)
+                .relativeHeight(1.0f)
+                .textAlignment({.textAlignment = TextAlignment::CENTER})
+            )
+            .build();
+
+        inspectorWindow->getLayoutRoot()->addChild(std::move(emptyInspectorUi));
         return;
     }
 

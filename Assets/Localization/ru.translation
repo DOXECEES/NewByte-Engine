@@ -109,6 +109,7 @@ nearClip : Ближняя плоскость
 farClip : Дальняя плоскость
 
 # --- UI / Hierarchy ---
+Ui.Inspector.NoNodeSelected : Объект не выбран
 Ui.Scene.RandomizeAngle : Случайный угол
 Ui.Scene.Hierarchy : Иерархия сцены
 Ui.Scene.Entity : Сущность
