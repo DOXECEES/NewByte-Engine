@@ -171,7 +171,7 @@ NB_REFLECT_RESOURCE_PTR(
                     initialValue                = optVal.value_or(0.0f);
                 }
                 
-                comp->variables.push_back({varName, initialValue});
+                comp->variables.emplace_back(varName, initialValue);
             }
         }
     }

@@ -41,7 +41,7 @@ namespace nb
                 , writer()
                 , IResource(path)
             {
-                readFromFile(path);
+                Json::readFromFile(path);
             }
 
             inline explicit Json(const std::string &json)

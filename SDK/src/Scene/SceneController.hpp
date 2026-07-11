@@ -35,6 +35,12 @@ namespace nb::Reflect
 namespace sdk
 {
 
+    enum class ViewMode
+    {
+        Lit,
+        Wireframe,
+    };
+
     class SceneController
     {
     public:
@@ -69,6 +75,8 @@ namespace sdk
             void*                        componentPtr,
             const nb::Reflect::TypeInfo* typeInfo
         ) noexcept;
+
+        void setViewMode(ViewMode mode) noexcept;
 
         [[nodiscard]] nb::Node getActiveNode() const noexcept
         {

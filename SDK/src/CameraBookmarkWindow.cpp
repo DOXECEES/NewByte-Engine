@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "CameraBookmarkWindow.hpp"
 
 #include <Win32Window/Win32ChildWindow.hpp>
@@ -62,7 +65,7 @@ namespace sdk
         {
             std::wstring bookmarkName = L"bookmark.name_" + std::to_wstring(counter);
 
-            mockBookmarks.push_back({
+            mockBookmarks.emplace_back(
                 bookmarkName,
                 100.0f,
                 bookmark.position.x,
@@ -73,7 +76,7 @@ namespace sdk
                 bookmark.direction.z,
                 1.5f,
                 bookmark.isValid
-            });
+            );
 
             counter++; 
         });

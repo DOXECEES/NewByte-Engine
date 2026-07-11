@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "SceneWindow.hpp"
 #include <Common/StringUtils.hpp>
 
@@ -132,13 +135,19 @@ namespace sdk
                     .text(L"Lit")
                     .absoluteWidth(36)
                     .relativeHeight(1.0f)
-                    .background({31, 56, 92}, LayoutBuilder::StateStyle::ACTIVE) 
+                    .background({31, 56, 92}, LayoutBuilder::StateStyle::ACTIVE)
+                    .onEvent(&Widgets::Button::onReleasedSignal, [this]() {
+                        this->sceneController->setViewMode(ViewMode::Lit);
+                    }) 
             )
             .child(
                 LayoutBuilder::widget(new Widgets::Button())
                     .text(L"Wireframe")
                     .absoluteWidth(85)
                     .relativeHeight(1.0f)
+                    .onEvent(&Widgets::Button::onReleasedSignal, [this]() {
+                        this->sceneController->setViewMode(ViewMode::Wireframe);
+                    })
             )
             .checkedGroupIndex(true, 0) 
         .endGroup()

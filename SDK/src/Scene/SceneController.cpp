@@ -1,4 +1,10 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "SceneController.hpp"
+
+#include <Core/Engine.hpp>
+
 #include "../ComponentBrowser.hpp"
 #include "../SceneModel.hpp"
 
@@ -7,9 +13,10 @@
 #include <Serialize/JsonArchive.hpp>
 #include <Utils/PrimitiveNameManager.hpp>
 
+#include <cstdint>
+
 namespace sdk
 {
-    // Вспомогательная функция сборки примитивов
     [[nodiscard]] static Ref<nb::Renderer::Mesh> createPrimitiveMesh(
         std::string_view typeName,
         const void*      data
@@ -107,7 +114,9 @@ namespace sdk
             return;
         }
 
-        const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
+        const auto parentId = static_cast<nb::Ecs::EntityID>(
+            reinterpret_cast<std::uintptr_t>(item->getData())
+        );
         auto&      scene    = nb::Scene::getInstance();
 
         const std::string_view  typeName = typeInfo->name;
@@ -164,8 +173,10 @@ namespace sdk
             return;
         }
 
-        const auto parentId = reinterpret_cast<nb::Ecs::EntityID>(item->getData());
-        auto&      scene    = nb::Scene::getInstance();
+        const auto parentId = static_cast<nb::Ecs::EntityID>(
+            reinterpret_cast<std::uintptr_t>(item->getData())
+        );
+        auto& scene = nb::Scene::getInstance();
         auto       node     = scene.createNode(parentId);
 
         std::string nodeName = nameManager.generateName("Empty");
@@ -399,6 +410,11 @@ namespace sdk
                 return;
             }
         }
+    }
+
+    void SceneController::setViewMode(ViewMode mode) noexcept
+    {
+        engine->getRenderer()->setWireframeMode(mode == ViewMode::Wireframe);
     }
 
 } // namespace sdk

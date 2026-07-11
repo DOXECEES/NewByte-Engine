@@ -980,6 +980,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     if (!hglrc)
     {
         initFail("Failed to create modern OpenGL context", tempContext);
+        ReleaseDC(dummyWindow, dummyHDC);
         return false;
     }
 
@@ -989,6 +990,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     if (!wglMakeCurrent(hdc, hglrc))
     {
         initFail("Failed to set the modern OpenGL context", hglrc);
+        ReleaseDC(dummyWindow, dummyHDC);
         return false;
     }
 
@@ -997,6 +999,7 @@ bool nb::OpenGl::OpenGLRender::init(void* handle) noexcept
     if (!gladLoadGL())
     {
         initFail("Failed to initialize GLAD", hglrc);
+        ReleaseDC(dummyWindow, dummyHDC);
         return false;
     }
 
