@@ -79,6 +79,8 @@ void AssetManager::rebuildTreeAndPreserveState(Widgets::TreeView* tv)
     std::vector<std::filesystem::path> expandedPaths;
     std::filesystem::path              selectedPath;
 
+    int offset = tv->getScrollOffset();
+
     model->forEach(
         [&](const Widgets::ModelItem& item)
         {
@@ -116,6 +118,8 @@ void AssetManager::rebuildTreeAndPreserveState(Widgets::TreeView* tv)
             }
         }
     );
+
+    treeView->setScrollOffset(offset);
 
     isTreeUpdating = false;
 }
@@ -177,118 +181,6 @@ std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildGridUI()
                 }
             )
         )
-        .build();
-}
-
-std::unique_ptr<NNsLayout::LayoutNode> AssetManager::buildUI()
-{
-    using namespace nbui;
-
-    return LayoutBuilder::vBox()
-        .relativeHeight(1.0f)
-        .relativeWidth(1.0f)
-
-        // .child(
-        //     LayoutBuilder::toolbar()
-        //         .style(
-        //             [](NNsLayout::LayoutStyle& s)
-        //             {
-        //                 s.color = {40, 40, 40};
-        //                 s.heightSizeType = NNsLayout::SizeType::ABSOLUTE;
-        //                 s.height = 35.0f;
-        //             }
-        //         )
-        //         .child(
-        //             LayoutBuilder::widget(new Widgets::Button())
-        //                 .text(L"  Import  ") 
-        //                 .absoluteWidth(80)
-        //                 .margin({5, 5, 5, 5})
-        //                 .background({60, 60, 60})
-        //         )
-        //         .child(
-        //             LayoutBuilder::widget(new Widgets::Button())
-        //                 .text(L"  Add Folder  ")
-        //                 .absoluteWidth(100)
-        //                 .margin({0, 5, 5, 5})
-        //                 .background({60, 60, 60})
-        //         )
-
-        // )
-
-        .child(
-            LayoutBuilder::hBox()
-                .relativeHeight(1.0f)
-                .relativeWidth(1.0f)
-
-                .child(
-                    LayoutBuilder::vBox()
-                        .relativeHeight(1.0f)
-                        .absoluteWidth(250.0f)
-                        .style(
-                            [](NNsLayout::LayoutStyle& s)
-                            {
-                                s.border.style = Border::Style::SOLID;
-                                s.border.width.right = 1;
-                                s.border.color = {251, 251, 251};
-                                s.border.sideMask = Border::Side::RIGHT;
-                            }
-                        )
-
-                        .child(
-                            LayoutBuilder::label(L"Folders")
-                                .relativeWidth(1.0f)
-                                .absoluteHeight(30.0f)
-                        )
-
-                        .child(
-                            LayoutBuilder::treeView()
-                                .apply<Widgets::TreeView>(
-                                    [&](Widgets::TreeView* tv)
-                                    {
-                                        subscribe(tv, &Widgets::TreeView::onItemChangeSignal,
-                                            [&](const Widgets::ModelIndex& index)
-                                            {
-                                                auto* item = this->model->findById(index.getUuid());
-                                                if (item)
-                                                {
-                                                    this->onFolderSelected(this->model->getPath(*item));
-                                                    model->rebuildModel("Assets");
-                                                    tv->refresh();
-                                                }
-                                            });
-
-                                        tv->setModel(model);
-                                    }
-                                )
-                                .relativeHeight(1.0f)
-                                .relativeWidth(1.0f)
-                                .background({28, 28, 28})
-                        )
-                )
-
-                .child(
-                        LayoutBuilder::vBox()
-                            .absoluteHeight(500.0f)
-                            .relativeWidth(1.0f) 
-                            .child(
-                                LayoutBuilder::scrollBox()
-                                    .relativeHeight(1.0f)
-                                    .relativeWidth(1.0f) 
-                                    .child(
-                                        LayoutBuilder::vBox()
-                                            .relativeWidth(1.0f) 
-                                            .relativeHeight(1.0f)
-                                            .apply<NNsLayout::LayoutNode>(
-                                                [this](auto* n)
-                                                {
-                                                    this->assetGridNode = n;
-                                                }
-                                            )
-                                    )
-                            )
-                    )
-        )
-
         .build();
 }
 
