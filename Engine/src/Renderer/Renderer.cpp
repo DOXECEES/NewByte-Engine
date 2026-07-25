@@ -213,7 +213,7 @@ namespace nb::Renderer
 
             RendererCommand gridRenderCommand{.mesh = &m, .pipeline = gridPSO};
 
-            sh->setUniformMat4("uViewProj", cam->getLookAt() * cam->getProjection());
+            sh->setUniformMat4("uViewProj", cachedCamera->getLookAt() * cachedCamera->getProjection());
 
             api->drawMesh(gridRenderCommand);
         };
@@ -325,8 +325,15 @@ namespace nb::Renderer
         const std::string_view MAIN_SHADER_NAME          = "ADS.shader";
     }
 
-    void Renderer::render() noexcept
+    void Renderer::render(nbstl::NonOwningPtr<Camera> camera) noexcept
     {
+        if(!camera)
+        {
+            return;
+        }
+
+        cachedCamera = camera;
+        
         const int width  = nb::Core::EngineSettings::getWidth();
         const int height = nb::Core::EngineSettings::getHeight();
 
@@ -713,7 +720,6 @@ namespace nb::Renderer
             api->setClearColor(nb::Colors::BLACK, 1.0f, 0);
         }
 
-        ////////////
 
          {
 
@@ -732,8 +738,8 @@ namespace nb::Renderer
 
 
             //prePassShader->use();
-            prePassShader->setUniformMat4("view", cam->getLookAt());
-            prePassShader->setUniformMat4("projection", cam->getProjection());
+            prePassShader->setUniformMat4("view", cachedCamera->getLookAt());
+            prePassShader->setUniformMat4("projection", cachedCamera->getProjection());
 
             for (const auto& cmd : mainQueue)
             {
@@ -749,7 +755,7 @@ namespace nb::Renderer
         {
             ssaoResult = ssao->process(
                 resourceManager, gBuffer->getFramebuffer()->getTextureHandle(1),
-                gBuffer->getFramebuffer()->getTextureHandle(0), cam
+                gBuffer->getFramebuffer()->getTextureHandle(0), cachedCamera
             );
         }
 
@@ -759,9 +765,9 @@ namespace nb::Renderer
             GL_FRAMEBUFFER_BARRIER_BIT
         );
 
-        const auto view   = cam->getLookAt();
-        const auto proj   = cam->getProjection();
-        const auto camPos = cam->getPosition();
+        const auto view   = cachedCamera->getLookAt();
+        const auto proj   = cachedCamera->getProjection();
+        const auto camPos = cachedCamera->getPosition();
 
         {
             api->bindDefaultFrameBuffer();
@@ -930,8 +936,8 @@ namespace nb::Renderer
             {
                 
                 billboardShader->setUniformVec3("uPosition", cmd.pos);
-                billboardShader->setUniformMat4("uView", cam->getLookAt());
-                billboardShader->setUniformMat4("uProjection", cam->getProjection());
+                billboardShader->setUniformMat4("uView", cachedCamera->getLookAt());
+                billboardShader->setUniformMat4("uProjection", cachedCamera->getProjection());
                 billboardShader->setUniformUint64(
                     "uTexture", cmd.texture->getInternalTexture()->getHandle()
                 );
@@ -942,7 +948,7 @@ namespace nb::Renderer
 
             if(debugRendererSettings.showColliders)
             {
-                mJoltDebugRenderer->SetViewProj(cam->getLookAt() * cam->getProjection());
+                mJoltDebugRenderer->SetViewProj(cachedCamera->getLookAt() * cachedCamera->getProjection());
 
                 JPH::BodyManager::DrawSettings drawSettings;
                 drawSettings.mDrawShape = true;
@@ -960,7 +966,7 @@ namespace nb::Renderer
             
 
             DebugDraw::setThickness(5.0f);
-            DebugDraw::drawBatch(api, cam);
+            DebugDraw::drawBatch(api, cachedCamera);
 
             renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
         }
@@ -1005,7 +1011,7 @@ namespace nb::Renderer
         uint32 pso = api->getCache().getOrCreate(pipeline);
 
         // Установка матриц трансформаций
-        gizmoShader->setUniformMat4("uViewProj", cam->getLookAt() * cam->getProjection());
+        gizmoShader->setUniformMat4("uViewProj", cachedCamera->getLookAt() * cachedCamera->getProjection());
         gizmoShader->setUniformMat4("model", modelMatrix);
 
         // Безопасное создание команды отрисовки RendererCommand
@@ -1330,7 +1336,7 @@ namespace nb::Renderer
     {
         Math::RayPicker picker;
         Math::Ray ray = picker.cast(
-            cam, x, y, Core::EngineSettings::getWidth(), Core::EngineSettings::getHeight()
+            cachedCamera, x, y, Core::EngineSettings::getWidth(), Core::EngineSettings::getHeight()
         );
 
         auto&         scene = Scene::getInstance();
@@ -1745,7 +1751,7 @@ namespace nb::Renderer
         );
 
 
-        Math::Mat4<float> cameraView = cam->getLookAt();
+        Math::Mat4<float> cameraView = cachedCamera->getLookAt();
         cameraView = Math::inverse(cameraView);
         cameraView[3][0] = 0.0f;
         cameraView[3][1] = 0.0f;

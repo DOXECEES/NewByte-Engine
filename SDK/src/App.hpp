@@ -318,7 +318,7 @@ private:
                 if (!sceneWindowViewport->getIsRenderable() && sceneController) // обновляем только если окно активно
                 {
                     NbPoint<int>          mousePos = sceneWindowViewport->mousePosition;
-                    nb::Renderer::Camera* camera   = engine->getRenderer()->getCamera();
+                    nb::Renderer::Camera* camera   = engine->getCamera();
                     nb::Math::Ray ray = camera->getRayFromMousePoint(mousePos.x, mousePos.y);
 
                     auto& gizmo_ctx = engine->getRenderer()->getGizmoContext();
@@ -507,11 +507,11 @@ private:
                         {
                             if(cameraBookmarkManager.hasBookmark(i))
                             {
-                                cameraBookmarkManager.apply(i, engine->getRenderer()->getCamera());
+                                cameraBookmarkManager.apply(i, engine->getCamera());
                             }
                             else
                             {
-                                cameraBookmarkManager.record(i, engine->getRenderer()->getCamera());
+                                cameraBookmarkManager.record(i, engine->getCamera());
                                 cameraBookmarkWindow->refreshUi();
                             }
                         }

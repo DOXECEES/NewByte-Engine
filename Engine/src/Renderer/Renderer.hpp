@@ -4,6 +4,7 @@
 #include "../Core.hpp"
 
 #include <Vector.hpp>
+#include <NonOwningPtr.hpp>
 
 #include "../Math/Vector3.hpp"
 #include "../Math/Vector2.hpp"
@@ -64,12 +65,12 @@ namespace nb
             Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept;
 
             void onResize(uint32 width, uint32 heigth) noexcept;
-            void render() noexcept;
+            void render(nbstl::NonOwningPtr<Camera> camera) noexcept;
 
             ~Renderer() = default;
 
-            void setCamera(Camera* camera)                                      { this->cam = camera; };
-            inline Camera *getCamera() const noexcept                           { return cam; };
+            // void setCamera(Camera* camera)                                      { this->cam = camera; };
+            // inline Camera *getCamera() const noexcept                           { return cam; };
 
             void togglePolygonVisibilityMode(PolygonMode mode) const noexcept;
             inline void setPolygonVisibilityMode(PolygonMode mode) noexcept     { polygonMode = mode; };
@@ -295,7 +296,7 @@ namespace nb
 
             bool    isResourceLoaded     = false;
             bool    isPreviewInitialized = false;
-            Camera* cam;
+            nbstl::NonOwningPtr<Camera> cachedCamera;
 
             Ref<IFrameBuffer> mainFrameBuffer;         
             Ref<IFrameBuffer> ssrResultBuffer;

@@ -232,16 +232,11 @@ namespace nb
             processCommands();
 
             float deltaTime = Utils::Timer::timeElapsed();
-             
-            //this->mouseDelta = mouseDelta;
-            //renderer->setCamera(&cam);
-
 
             static float yaw;
             static float pitch;
             auto& scene = Scene::getInstance();
             auto& registry = scene.getRegistry();
-
 
             cam.update(static_cast<float>(mouse->getX()), static_cast<float>(mouse->getY()));
 
@@ -290,7 +285,7 @@ namespace nb
 
             scene.updateAllTransforms();
 
-            renderer->render();
+            renderer->render(primaryCamera);
             
             FrameMark;
             return true;
@@ -397,7 +392,7 @@ namespace nb
 
             Math::RayPicker picker;
             ray = picker.cast(
-                renderer->getCamera(), x, y, EngineSettings::getWidth(),
+                primaryCamera, x, y, EngineSettings::getWidth(),
                 EngineSettings::getHeight()
             );
 
@@ -442,11 +437,12 @@ namespace nb
                 Scene&            scene  = Scene::getInstance();
                 Renderer::Camera* camera = findPrimaryGameCamera(scene);
 
-                renderer->setCamera(camera);
+                primaryCamera = camera;
             }   
             else if (newMode == Mode::EDITOR)
             {
-                renderer->setCamera(&cam);
+                primaryCamera = &cam;
+
                 subSystems->getPhysicsSystem().clear();
 
                 auto& scene    = Scene::getInstance();

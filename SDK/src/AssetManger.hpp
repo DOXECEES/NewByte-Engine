@@ -50,9 +50,6 @@ public:
     std::unique_ptr<NNsLayout::LayoutNode> buildTreeUI();
     std::unique_ptr<NNsLayout::LayoutNode> buildGridUI();
 
-
-    std::unique_ptr<NNsLayout::LayoutNode> buildUI();
-
     void onFolderSelected(std::filesystem::path path);
 
     void refreshAssetGrid();

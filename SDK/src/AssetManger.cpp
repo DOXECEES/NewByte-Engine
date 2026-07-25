@@ -188,6 +188,7 @@ void AssetManager::onFolderSelected(std::filesystem::path path)
 {
     this->currentPath = path;
     this->refreshAssetGrid();
+    //assetGridWindow->setS
 }
 
 void AssetManager::refreshAssetGrid()
@@ -435,8 +436,9 @@ void AssetManager::refreshAssetGrid()
     catch (...)
     {
     }
-
+    
     assetGridNode->addChild(std::move(grid).build());
+    assetGridNode->getParent()->resetScroll();
 }
 
 void AssetManager::refreshModel() noexcept

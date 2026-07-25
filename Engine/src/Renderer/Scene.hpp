@@ -208,7 +208,8 @@ struct CameraComponent
     bool isVignetteEnabled             = false;
     bool isOrbit                       = false;
 
-    CameraComponent() : controller(std::make_unique<nb::Renderer::Camera>())
+    CameraComponent() 
+        : controller(std::make_unique<nb::Renderer::Camera>())
     {
     }
 

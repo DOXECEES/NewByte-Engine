@@ -52,6 +52,9 @@ namespace nbstl
         }
 
         constexpr explicit operator bool() const noexcept { return ptr != nullptr; }
+        constexpr operator const T*() const noexcept { return ptr; }
+        constexpr operator T*() noexcept { return ptr; }
+
 
         constexpr void reset(T* newPtr = nullptr) noexcept { ptr = newPtr; }
 

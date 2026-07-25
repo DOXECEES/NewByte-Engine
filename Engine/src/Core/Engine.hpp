@@ -119,7 +119,7 @@ namespace nb
                 subSystems->Init(hwnd);
                 ///physics  = std::make_shared<Physics::PhysicsSystem>();
                 renderer = subSystems->getRenderer();
-                renderer->setCamera(&cam);
+                //renderer->setCamera(&cam);
                 ResMan::ResourceManager::init(renderer->getApi());
                 keyboard = subSystems->getKeyboard();
                 mouse = subSystems->getMouse();
@@ -162,8 +162,9 @@ namespace nb
             void loadSnapshot() noexcept;
 
             inline static const HWND& getLinkedHwnd() noexcept { return hwnd; }
-            inline Math::Vector3<float> getCameraPos() const noexcept { return renderer->getCamera()->getPosition(); }
-            inline Math::Vector3<float> getCameraDirection() const noexcept { return renderer->getCamera()->getDirection(); }
+            inline Math::Vector3<float> getCameraPos() const noexcept { return primaryCamera->getPosition(); }
+            inline Math::Vector3<float> getCameraDirection() const noexcept { return primaryCamera->getDirection(); }
+            inline nbstl::NonOwningPtr<Renderer::Camera> getCamera() const noexcept { return primaryCamera; } 
             inline Ref<nb::Renderer::Renderer> getRenderer() noexcept { return renderer; }
 
             Math::Vector3<float> getSpawnPosition(
@@ -274,7 +275,8 @@ namespace nb
             bool							handleInput     = true;
             bool                            hideCursor = false;
             
-            nb::Renderer::Camera			cam;
+            Renderer::Camera			cam;
+            mutable nbstl::NonOwningPtr<Renderer::Camera> primaryCamera = &cam;
             // temp
             Ref<nb::Input::Input>			input           = nullptr;
 
