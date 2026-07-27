@@ -7,11 +7,17 @@ in vec2 TexCoords;
 uniform sampler2D depthMap; 
 uniform vec2 screenSize;   
 layout(bindless_sampler) uniform sampler2D u_SSRTexture; 
+layout(bindless_sampler) uniform sampler2D u_DepthMap; 
+
 layout(bindless_sampler) uniform sampler2D u_OutlineMask;
 uniform vec3 u_OutlineColor;
 uniform int u_OutlineThickness; 
 layout(bindless_sampler) uniform sampler2D lookupTableTexture;
 uniform bool u_UseLut = true;
+
+
+const int DOF_SAMPLES = 16;            
+const float GOLDEN_ANGLE = 2.39996323; 
 
 // Экспозиция (настрой под свою сцену, если слишком темно - увеличь до 1.2)
 const float u_Exposure = 1.0; 
@@ -76,6 +82,29 @@ vec3 applyLut(vec3 inColor) {
     return mix(col1, col2, fract(blueValue));
 }
 
+vec3 applyDOF(vec2 uv, float coc)
+{
+    vec3 colorAccum = vec3(0.0);
+    float weightAccum = 0.0;
+    vec2 maxBlurRadius = vec2(12.0) / screenSize; 
+    
+    for (int i = 0; i < DOF_SAMPLES; i++)
+    {
+        float r = sqrt(float(i) / float(DOF_SAMPLES));
+        float theta = float(i) * GOLDEN_ANGLE;
+        vec2 offset = vec2(cos(theta), sin(theta)) * r * coc * maxBlurRadius;
+        
+        vec2 sampleUV = clamp(uv + offset, vec2(0.0), vec2(1.0));
+        
+        colorAccum += getSceneWithOutline(sampleUV);
+        weightAccum += 1.0;
+    }
+    return colorAccum / weightAccum;
+}
+
+
+
+
 void main() {
     vec3 finalColor;
 
@@ -126,6 +155,26 @@ void main() {
 #else
     finalColor = getSceneWithOutline(TexCoords);
 #endif
+
+#ifdef USE_DOF
+    const float near = 1.0;
+    const float far = 100.0;
+    const float focusDistance = 15.0; 
+    const float focusRange = 100.0;  
+
+    float depth = texture(u_DepthMap, TexCoords).r;
+    float depthVal = depth * 2.0 - 1.0; 
+    float linearDepth = (2.0 * near * far) / (far + near - depthVal * (far - near));
+    
+    float coc = clamp(abs(linearDepth - focusDistance) / focusRange, 0.0, 1.0);
+
+    if (coc >= 0.1) {
+        finalColor = applyDOF(TexCoords, coc); 
+    }
+
+#endif
+
+    
 
     // 1. Применяем экспозицию (умножение HDR данных)
     finalColor *= u_Exposure;

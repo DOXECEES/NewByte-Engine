@@ -971,6 +971,7 @@ namespace nb::Renderer
             renderDebugPasses(view, proj, directionalLights, pointLights, mainQueue);
         }
 
+
         if (postProcessConfig.isSSREnabled)
         {
             renderSSR(width, height, view, proj);
@@ -1255,9 +1256,18 @@ namespace nb::Renderer
         int height
     ) noexcept
     {
+        std::array<std::string, COUNT_OF_POST_EFFECTS> activePostEffects = {"USE_FXAA"};
+        uint8_t activeCount = 1;
+
+        if(postProcessConfig.isDepthOfFieldEnabled)
+        {
+            activePostEffects[activeCount++] = "USE_DOF";
+        }
+
         auto quadShader = ResMan::ResourceManager::getInstance()->getResource<Shader>(
-            "quadShader.shader", {"USE_FXAA"}
+            "quadShader.shader", nbstl::Span<std::string>(activePostEffects.data(), activeCount)
         );
+
 
         api->bindDefaultFrameBuffer();
         api->setViewport({0, 0, static_cast<float>(width), static_cast<float>(height)});
@@ -1266,6 +1276,8 @@ namespace nb::Renderer
 
         //quadShader->use();
         quadShader->setUniformInt("depthMap", 3);
+        quadShader->setUniformUint64("u_DepthMap", gBuffer->getFramebuffer()->getTextureByName("Depth"));
+
         quadShader->setUniformVec2(
             "screenSize", {static_cast<float>(width), static_cast<float>(height)}
         );

@@ -59,7 +59,7 @@ namespace nb
         class Renderer 
         {
         public:
-
+            constexpr static uint32_t COUNT_OF_POST_EFFECTS = 4;
 
             Renderer() = delete;
             Renderer(HWND hwnd, nb::Core::GraphicsAPI apiType) noexcept;
@@ -68,9 +68,6 @@ namespace nb
             void render(nbstl::NonOwningPtr<Camera> camera) noexcept;
 
             ~Renderer() = default;
-
-            // void setCamera(Camera* camera)                                      { this->cam = camera; };
-            // inline Camera *getCamera() const noexcept                           { return cam; };
 
             void togglePolygonVisibilityMode(PolygonMode mode) const noexcept;
             inline void setPolygonVisibilityMode(PolygonMode mode) noexcept     { polygonMode = mode; };
@@ -198,6 +195,7 @@ namespace nb
             {
                 bool isLutEnabled = true;
                 bool isSSREnabled = false;
+                bool isDepthOfFieldEnabled = false;
             };
 
             const PostProcessConfig& getPostProcessConfig() const noexcept
