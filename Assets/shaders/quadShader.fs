@@ -19,7 +19,6 @@ uniform bool u_UseLut = true;
 const int DOF_SAMPLES = 16;            
 const float GOLDEN_ANGLE = 2.39996323; 
 
-// Экспозиция (настрой под свою сцену, если слишком темно - увеличь до 1.2)
 const float u_Exposure = 1.0; 
 
 #ifdef USE_FXAA
@@ -28,7 +27,19 @@ const float u_Exposure = 1.0;
     #define FXAA_SPAN_MAX     8.0
 #endif
 
-// ACES Filmic Tonemapping - убирает "молоко" и делает картинку сочной
+#ifdef USE_DOF
+
+    layout(std140, binding = 0) uniform DofParams {
+        float near;
+        float far;
+        float focusDistance; 
+        float focusRange;  
+    } u_Dof;
+
+    
+#endif
+
+
 vec3 tonemap(vec3 x) {
     const float a = 2.51;
     const float b = 0.03;
@@ -157,16 +168,12 @@ void main() {
 #endif
 
 #ifdef USE_DOF
-    const float near = 1.0;
-    const float far = 100.0;
-    const float focusDistance = 15.0; 
-    const float focusRange = 100.0;  
 
     float depth = texture(u_DepthMap, TexCoords).r;
     float depthVal = depth * 2.0 - 1.0; 
-    float linearDepth = (2.0 * near * far) / (far + near - depthVal * (far - near));
+    float linearDepth = (2.0 * u_Dof.near * u_Dof.far) / (u_Dof.far + u_Dof.near - depthVal * (u_Dof.far - u_Dof.near));
     
-    float coc = clamp(abs(linearDepth - focusDistance) / focusRange, 0.0, 1.0);
+    float coc = clamp(abs(linearDepth - u_Dof.focusDistance) / u_Dof.focusRange, 0.0, 1.0);
 
     if (coc >= 0.1) {
         finalColor = applyDOF(TexCoords, coc); 

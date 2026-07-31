@@ -2,6 +2,9 @@
 #define NBCOMMON_NBCORE_HPP
 
 #define NOMINMAX
+#undef min
+#undef max
+
 
 #if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(nodiscard)

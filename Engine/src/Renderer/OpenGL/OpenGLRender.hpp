@@ -28,6 +28,7 @@
 #include "ShaderConstants.hpp"
 
 #include "Renderer/OpenGL/FBO.hpp"
+#include "Renderer/OpenGL/UBO.hpp"
 #include "DepthBuffer.hpp"
 #include "PostProcessFbo.hpp"
 
@@ -119,6 +120,7 @@ namespace nb
                     float                                           farPlane
                 ) noexcept override;
 
+                
 
                 void setViewport(const Renderer::Viewport& viewport) noexcept override;
 
@@ -175,6 +177,12 @@ namespace nb
                 static Math::Mat4<float>        gizmoModelMat;
 
                 inline static int               countOfDraws    = 0;
+
+            protected:
+                std::unique_ptr<Renderer::IUniformBufferBase> createUniformBufferRaw(size_t size) noexcept override
+                {
+                    return std::make_unique<UniformBuffer>(size); 
+                }
 
             private:
                 void initDynamicBuffer() noexcept;

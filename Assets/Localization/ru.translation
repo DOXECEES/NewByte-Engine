@@ -149,3 +149,10 @@ Ui.AssetImporter.Off : Выключен
 Ui.AssetImporter.AssetName : Имя ассета
 Ui.AssetImporter.ImportingAsset : Импорт ассета
 Ui.AssetImporter.Common : Общее
+
+Ui.Editor.DepthOfField : Глубина резкости
+Ui.Editor.DepthOfField.Enabled : Включено
+Ui.Editor.DepthOfField.Near : Ближайшая плоскость
+Ui.Editor.DepthOfField.Far : Дальняя плоскость
+Ui.Editor.DepthOfField.FocusDistance : Фокусная дистанция
+Ui.Editor.DepthOfField.FocusRange : Диапазон фокусировки

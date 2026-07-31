@@ -22,6 +22,35 @@
 #include <Vector.hpp>
 #include <Span.hpp>
 
+
+namespace nb::Renderer
+{
+    template <typename T>
+    class UniformBufferAdapter final : public IUniformBuffer<T>
+    {
+    public:
+        explicit UniformBufferAdapter(std::unique_ptr<IUniformBufferBase> rawBuffer)
+            : m_rawBuffer(std::move(rawBuffer)) {}
+
+        void bind() const noexcept override { m_rawBuffer->bind(); }
+        void unbind() const noexcept override { m_rawBuffer->unbind(); }
+        void bindBase(uint32_t bindingPoint) const noexcept override { m_rawBuffer->bindBase(bindingPoint); }
+        void updateRaw(const void* data, size_t size) noexcept override { m_rawBuffer->updateRaw(data, size); }
+        uint32_t getId() const noexcept override { return m_rawBuffer->getId(); }
+
+        void update(const T& data) noexcept override 
+        {
+            m_rawBuffer->updateRaw(&data, sizeof(T));
+        }
+
+    private:
+        std::unique_ptr<IUniformBufferBase> m_rawBuffer;
+    };
+
+}
+
+
+
 namespace nb
 {
     namespace Renderer
@@ -162,10 +191,10 @@ namespace nb
                 const CubemapParameters& params
             ) noexcept                                                                         = 0;  
             virtual Ref<Texture> createTexture2d(const TextureDescriptor& descriptor) noexcept = 0; 
-            virtual Ref<Renderer::Cubemap> bakeTextureIntoCubeMap(Ref<Texture> texture2d) noexcept = 0;
-            virtual Ref<Renderer::Cubemap> bakeIrradiance(Ref<Renderer::Cubemap> enviromentCubemap) noexcept = 0;
-            virtual Ref<Renderer::Cubemap> bakePrefilter(Ref<Renderer::Cubemap> envCubemap) noexcept = 0;
-            virtual Ref<Renderer::Texture> bakeBRDF() noexcept = 0;
+            virtual Ref<Cubemap> bakeTextureIntoCubeMap(Ref<Texture> texture2d) noexcept = 0;
+            virtual Ref<Cubemap> bakeIrradiance(Ref<Cubemap> enviromentCubemap) noexcept = 0;
+            virtual Ref<Cubemap> bakePrefilter(Ref<Cubemap> envCubemap) noexcept = 0;
+            virtual Ref<Texture> bakeBRDF() noexcept = 0;
 
             virtual Ref<nb::Renderer::Cubemap> bakePointLightMap(
                 const nbstl::Vector<RendererCommand>& queue,
@@ -173,7 +202,12 @@ namespace nb
                 float                                           farPlane
             ) noexcept = 0;
 
-           
+            template <typename T>
+            std::unique_ptr<IUniformBuffer<T>> createUniformBuffer() noexcept
+            {
+                auto rawBuffer = createUniformBufferRaw(sizeof(T));
+                return std::make_unique<UniformBufferAdapter<T>>(std::move(rawBuffer));
+            }
 
             virtual void setViewport(const Viewport& viewport) noexcept = 0;
             virtual void clear(bool color, bool depth, bool stencil) noexcept = 0;
@@ -210,6 +244,10 @@ namespace nb
             void enableLightVisualization() noexcept;
             void disableLightVisualization() noexcept;
             void toggleLightVisualization() noexcept;
+
+        protected:
+            virtual std::unique_ptr<IUniformBufferBase> createUniformBufferRaw(size_t size) noexcept = 0;
+
 
         protected:
            

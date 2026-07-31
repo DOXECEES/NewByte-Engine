@@ -252,6 +252,9 @@ set(SRC
     src/Renderer/RendererTracker.hpp
     src/Renderer/JoltDebugRenderer.cpp
     src/Renderer/JoltDebugRenderer.hpp
+    src/Renderer/PostProcess.cpp
+    src/Renderer/PostProcess.hpp
+    src/Renderer/PostEffects/DepthOfField.hpp
 
     src/Renderer/Bone.hpp
     src/Renderer/Animator.hpp

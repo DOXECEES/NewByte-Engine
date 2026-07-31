@@ -46,6 +46,17 @@ namespace nbui
     class LayoutBuilder;
 };
 
+template <typename T>
+T* getPostProcessFromEngine(std::shared_ptr<nb::Core::Engine> engine)
+{
+    using namespace nb::Renderer;
+    auto renderer = engine->getRenderer();
+    PostProcess& postProcess = renderer->getPostProcess();
+
+    return postProcess.getEffectConfig<T>();
+}
+
+
 class EditorApp 
 {
 public:

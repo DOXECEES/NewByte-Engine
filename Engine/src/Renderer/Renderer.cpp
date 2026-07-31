@@ -38,6 +38,7 @@
 #include <Jolt/Physics/Body/BodyManager.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+#include "PostEffects/DepthOfField.hpp"
 
 namespace nb::Math
 {
@@ -135,8 +136,8 @@ namespace nb::Renderer
             {
                 std::abort();
             }
-            pointLightUbo = std::make_unique<OpenGl::UniformBuffer<PointLightData>>();
-
+            pointLightUbo = std::move(api->createUniformBuffer<PointLightData>());
+            postProcess = std::make_unique<PostProcess>(api);
             break;
         case nb::Core::GraphicsAPI::DIRECTX:
             NB_FALLTHROUGH;
@@ -1257,9 +1258,11 @@ namespace nb::Renderer
     ) noexcept
     {
         std::array<std::string, COUNT_OF_POST_EFFECTS> activePostEffects = {"USE_FXAA"};
+        postProcess->addEffect<Fxaa>();
+        
         uint8_t activeCount = 1;
 
-        if(postProcessConfig.isDepthOfFieldEnabled)
+        if(postProcess->isEffectActive<PostEffects::DepthOfField>())
         {
             activePostEffects[activeCount++] = "USE_DOF";
         }
@@ -1291,6 +1294,15 @@ namespace nb::Renderer
                             ->getInternalTexture()
                             ->getHandle()
             );
+        }
+
+        if(postProcess->isEffectActive<PostEffects::DepthOfField>())
+        {
+            const auto* config = postProcess->getEffectConfig<PostEffects::DepthOfField>();
+            
+            const auto& buffer = postProcess->getUniformBuffer<PostEffects::DepthOfField>();
+            buffer->bindBase(0);
+            buffer->update(config->data);
         }
             
         quadShader->setUniformBool("u_UseLut", postProcessConfig.isLutEnabled);

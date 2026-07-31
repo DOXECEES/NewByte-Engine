@@ -39,6 +39,7 @@
 #include <Renderer/Material.hpp>
 #include <Renderer/Texture.hpp>
 #include <Renderer/Mesh.hpp>
+#include <Renderer/PostEffects/DepthOfField.hpp>
 
 #include <Renderer/Objects/Objects.hpp>
 #include <Renderer/Scene.hpp>
@@ -1297,259 +1298,183 @@ LayoutBuilder makeInputRow(
         );
 }
 
+namespace UiHelper
+{
+    inline nbui::LayoutBuilder createSection(const std::wstring& title, const Margin<int>& margin)
+    {
+        return nbui::LayoutBuilder::section(title)
+            .relativeWidth(1.0f)
+            .autoHeight()
+            .style([](auto& s) { s.color = {52, 52, 52}; }) 
+            .margin(margin);
+    }
+
+    template <typename Func>
+    inline nbui::LayoutBuilder createCheckbox(const std::string& locKey, bool defaultChecked, Func&& onStateChanged)
+    {
+        auto text = Localization::Translation::fromKeyToWstring(locKey);
+        return nbui::LayoutBuilder::vBox()
+            .relativeWidth(1.0f)
+            .absoluteHeight(30)
+            .child(
+                nbui::LayoutBuilder::widget(new Widgets::CheckBox())
+                    .text(text)
+                    .relativeWidth(1.0f)
+                    .relativeHeight(1.0f)
+                    .apply<Widgets::CheckBox>([defaultChecked](Widgets::CheckBox* c) {
+                        c->setChecked(defaultChecked);
+                    })
+                    .onEvent(&Widgets::CheckBox::onCheckStateChanged, std::forward<Func>(onStateChanged))
+            );
+    }
+
+    template <typename Getter, typename Setter>
+    inline nbui::LayoutBuilder createSliderRow(const std::string& locKey, Getter&& getter, Setter&& setter)
+    {
+        auto text = Localization::Translation::fromKeyToWstring(locKey);
+        return nbui::LayoutBuilder::hBox()
+            .relativeWidth(1.0f)
+            .absoluteHeight(26)
+            .child(
+                nbui::LayoutBuilder::label(text)
+                    .absoluteWidth(140)
+            )
+            .child(
+                nbui::LayoutBuilder::hBox()
+                    .relativeWidth(0.6f)
+                    .absoluteHeight(26)
+                    .background({45, 45, 45, 255})
+                    .border(1, Border::Style::SOLID, {70, 70, 70, 255})
+                    .child(
+                        nbui::LayoutBuilder::widget(new Widgets::Slider<float>())
+                            .relativeWidth(1.0f)
+                            .relativeHeight(1.0f)
+                            .apply<Widgets::Slider<float>>([g = std::forward<Getter>(getter), s = std::forward<Setter>(setter)](Widgets::Slider<float>* slid) {
+                                slid->bind(g, s);
+                            })
+                    )
+            );
+    }
+
+    using DofConfig = nb::Renderer::PostEffects::DepthOfField;
+    using DofData = decltype(DofConfig::data);
+
+
+    auto createDofSlider(const std::string& label, float DofData::*member, const std::shared_ptr<nb::Core::Engine>& engine)
+    {
+        using namespace nb::Renderer;
+
+        return UiHelper::createSliderRow(label,
+            [member, engine]() {
+                auto* dofConfig = getPostProcessFromEngine<DofConfig>(engine);
+                return dofConfig ? dofConfig->data.*member : 0.0f;
+            },
+            [member, engine](float val) { 
+                if (auto* dofConfig = getPostProcessFromEngine<DofConfig>(engine)) {
+                    dofConfig->data.*member = val;
+                }
+            }
+        );
+    }
+
+}; 
+
 void EditorApp::setupDebugUI() noexcept
 {
     using namespace nbui;
+
+    auto tr = [](const std::string& key) {
+        return Localization::Translation::fromKeyToWstring(key);
+    };
 
     auto ui =
         LayoutBuilder::vBox()
             .relativeWidth(1.0f)
             .relativeHeight(1.0f)
             .background({35, 35, 35, 255})
-            //.padding({10, 10, 10, 10})
             .spacing(2)
+            
             .child(
-                LayoutBuilder::section(L"▼ Ambient Occlusion (SSAO)")
-                    .relativeWidth(1.0f)
-                    .autoHeight()
-                    .style(
-                        [this](auto& s)
-                        {
-                            s.color = {52, 52, 52};
-                        }
-                    )
-                    .margin({10,10,0,10})
+                UiHelper::createSection(L"▼ Ambient Occlusion (SSAO)", {10, 10, 0, 10})
                     .child(
                         LayoutBuilder::vBox()
                             .relativeWidth(1.0f)
                             .autoHeight()
-                            //.padding({10, 10, 10, 10}) 
                             .spacing(6)
-
                             .child(
-                                LayoutBuilder::vBox()
-                                    .relativeWidth(1.0f)
-                                    .absoluteHeight(25)
-                                    .child(
-                                        LayoutBuilder::widget(new Widgets::CheckBox())
-                                        .text(
-                                            Localization::Translation::fromKeyToWstring(
-                                                "Ui.Editor.SSAO.Enabled"
-                                            )
-                                        )
-                                            .relativeWidth(1.0f)
-                                            .relativeHeight(1.0f)
-                                            .apply<Widgets::CheckBox>(
-                                                [&](Widgets::CheckBox* c)
-                                                {
-                                                    c->setChecked(true);
-                                                }
-                                            )
-                                            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                                                engine->getRenderer()->toggleSsao();
-                                            })
-                                    )
-                            )
-
-                            .child(
-                                LayoutBuilder::hBox()
-                                    .relativeWidth(1.0f)
-                                    .absoluteHeight(26)
-                                    .child(
-                                        LayoutBuilder::label(
-                                            Localization::Translation::fromKeyToWstring(
-                                                "Ui.Editor.SSAO.Radius"
-                                            )
-                                        )
-                                            .absoluteWidth(
-                                            140
-                                        ) 
-                                    )
-                                    .child(
-                                        LayoutBuilder::hBox()
-                                            .relativeWidth(0.6f)
-                                            .absoluteHeight(26)
-                                            .background({45, 45, 45, 255})
-                                            .border(1, Border::Style::SOLID, {70, 70, 70, 255})
-                                            .child(
-                                                LayoutBuilder::widget(
-                                                    new Widgets::Slider<float>()
-                                                ) 
-                                                    .relativeWidth(1.0f)
-                                                    .relativeHeight(1.0f)
-                                                    .apply<Widgets::Slider<float>>([&](Widgets::Slider<float>* slid)
-                                                        {
-                                                            slid->bind(
-                                                                [&]()
-                                                                {
-                                                                    return engine->getRenderer()
-                                                                        ->getSSAOConfig()
-                                                                        .radius;
-                                                                },
-                                                                [&](float val)
-                                                                {
-                                                                    engine->getRenderer()
-                                                                               ->getSSAOConfig()
-                                                                               .radius = val;
-                                                                }
-                                                            );
-                                                        }
-                                                    )
-                                            )
-                                    )
+                                UiHelper::createCheckbox("Ui.Editor.SSAO.Enabled", true, [this](bool checked) {
+                                    engine->getRenderer()->toggleSsao();
+                                })
                             )
                             .child(
-                                LayoutBuilder::hBox()
-                                    .relativeWidth(1.0f)
-                                    .absoluteHeight(26)
-                                    .child(
-                                        LayoutBuilder::label(
-                                            Localization::Translation::fromKeyToWstring(
-                                                "Ui.Editor.SSAO.Bias"
-                                            )
-                                        )
-                                            .absoluteWidth(
-                                                140
-                                            ) 
-                                    )
-                                    .child(
-                                        LayoutBuilder::hBox() 
-                                            .relativeWidth(0.6f)
-                                            .absoluteHeight(26)
-                                            .background({45, 45, 45, 255})
-                                            .border(1, Border::Style::SOLID, {70, 70, 70, 255})
-                                            .child(
-                                                LayoutBuilder::widget(
-                                                    new Widgets::Slider<float>()
-                                                ) 
-                                                    .relativeWidth(1.0f)
-                                                    .relativeHeight(1.0f)
-                                                    .apply<Widgets::Slider<float>>(
-                                                        [&](Widgets::Slider<float>* slid)
-                                                        {
-                                                            slid->bind(
-                                                                [&]()
-                                                                {
-                                                                    return engine->getRenderer()
-                                                                        ->getSSAOConfig()
-                                                                        .bias;
-                                                                },
-                                                                [&](float val)
-                                                                {
-                                                                    engine->getRenderer()
-                                                                        ->getSSAOConfig()
-                                                                        .bias = val;
-                                                                }
-                                                            );
-                                                        }
-                                                    )
-                                            )
-                                    )
+                                UiHelper::createSliderRow("Ui.Editor.SSAO.Radius",
+                                    [this]() { return engine->getRenderer()->getSSAOConfig().radius; },
+                                    [this](float val) { engine->getRenderer()->getSSAOConfig().radius = val; }
+                                )
                             )
-
+                            .child(
+                                UiHelper::createSliderRow("Ui.Editor.SSAO.Bias",
+                                    [this]() { return engine->getRenderer()->getSSAOConfig().bias; },
+                                    [this](float val) { engine->getRenderer()->getSSAOConfig().bias = val; }
+                                )
+                            )
                     )
             )
+
             .child(
-                LayoutBuilder::section(
-                    Localization::Translation::fromKeyToWstring("Ui.Editor.ColorGrading")
-                )
-                    .relativeWidth(1.0f)
-                    .autoHeight()
-                    .style(
-                        [this](auto& s)
-                        {
-                            s.color = {52, 52, 52};
-                        }
-                    )
-                    .margin({0, 10, 0, 10})
+                UiHelper::createSection(tr("Ui.Editor.ColorGrading"), {0, 10, 0, 10})
                     .child(
-                        LayoutBuilder::vBox()
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(30.0f)
-                        .child(
-                            LayoutBuilder::widget(new Widgets::CheckBox())
-                            .relativeHeight(1.0f)
-                            .relativeWidth(1.0f)
-                                        .text(
-                                            Localization::Translation::fromKeyToWstring(
-                                                "Ui.Editor.ColorGrading.Enabled"
-                                            )
-                                        )
-                            .apply<Widgets::CheckBox>([](Widgets::CheckBox* c) { c->setChecked(true); })
-                            .onEvent(&Widgets::CheckBox::onCheckStateChanged, [&](bool checked) {
-                                engine->getRenderer()->getPostProcessConfig().isLutEnabled = checked;
-                            })
-                            //.textAlignment(TextFormatAlignment::CENTER)
-                        )                           
+                        UiHelper::createCheckbox("Ui.Editor.ColorGrading.Enabled", true, [this](bool checked) {
+                            engine->getRenderer()->getPostProcessConfig().isLutEnabled = checked;
+                        })
                     )
                     .child(
                         LayoutBuilder::hBox()
-                        .relativeWidth(1.0f)
-                        .absoluteHeight(100.0f)
-                        //.padding({10, 10, 10, 10}) 
-
-                        .child(
-                                    LayoutBuilder::label(
-                                        Localization::Translation::fromKeyToWstring(
-                                            "Ui.Editor.ColorGrading.LUTexture"
-                                        )
-                                    )
-                            .relativeHeight(1.0f)
-                            .relativeWidth(0.4f)
-                        )
-                        .child(
-                            LayoutBuilder::widget(new Widgets::MaterialWidget())
-                            .relativeHeight(1.0f)
-                            .relativeWidth(0.6f)
-                        )
+                            .relativeWidth(1.0f)
+                            .absoluteHeight(100.0f)
+                            .child(
+                                LayoutBuilder::label(tr("Ui.Editor.ColorGrading.LUTexture"))
+                                    .relativeHeight(1.0f)
+                                    .relativeWidth(0.4f)
+                            )
+                            .child(
+                                LayoutBuilder::widget(new Widgets::MaterialWidget())
+                                    .relativeHeight(1.0f)
+                                    .relativeWidth(0.6f)
+                            )
                     )
             )
-            .child(
-                LayoutBuilder::section(
-                    Localization::Translation::fromKeyToWstring("Ui.Editor.SSR")
-                )
-                        .relativeWidth(1.0f)
-                        .autoHeight()
-                        .style(
-                            [this](auto& s)
-                            {
-                                s.color = {52, 52, 52};
-                            }
-                        )
-                        .margin({0, 10, 10, 10})
-                        .child(
-                            LayoutBuilder::vBox()
-                                .relativeWidth(1.0f)
-                                .absoluteHeight(30.0f)
-                                .child(
-                                    LayoutBuilder::widget(new Widgets::CheckBox())
-                                        .relativeHeight(1.0f)
-                                        .relativeWidth(1.0f)
-                                        .text(
-                                            Localization::Translation::fromKeyToWstring(
-                                                "Ui.Editor.SSR.Enabled"
-                                            )
-                                        )
-                                        .apply<Widgets::CheckBox>(
-                                            [](Widgets::CheckBox* c)
-                                            {
-                                                c->setChecked(false);
 
-                                            }
-                                        )
-                                        .onEvent(
-                                            &Widgets::CheckBox::onCheckStateChanged,
-                                            [&](bool checked)
-                                            {
-                                                engine->getRenderer()
-                                                    ->getPostProcessConfig()
-                                                    .isSSREnabled = checked;
-                                            }
-                                        )
-                                    //.textAlignment(TextFormatAlignment::CENTER)
-                                )
-                        )
-                        
+            .child(
+                UiHelper::createSection(tr("Ui.Editor.SSR"), {0, 10, 0, 10})
+                    .child(
+                        UiHelper::createCheckbox("Ui.Editor.SSR.Enabled", false, [this](bool checked) {
+                            engine->getRenderer()->getPostProcessConfig().isSSREnabled = checked;
+                        })
+                    )
+            )
+
+            .child(
+                UiHelper::createSection(tr("Ui.Editor.DepthOfField"), {0, 10, 10, 10})
+                    .child(
+                        UiHelper::createCheckbox("Ui.Editor.DepthOfField.Enabled", false, [this](bool checked) {
+                            using namespace nb::Renderer::PostEffects;
+
+                            auto& postProcess = engine->getRenderer()->getPostProcess();
+                            if(checked)
+                            {
+                                postProcess.addEffect<DepthOfField>();
+                            }
+                            else
+                            {
+                                postProcess.removeEffect<DepthOfField>();
+                            }
+                        })
+                    )
+                    .child(UiHelper::createDofSlider("Ui.Editor.DepthOfField.Near", &UiHelper::DofData::nearPlane, engine))
+                    .child(UiHelper::createDofSlider("Ui.Editor.DepthOfField.Far", &UiHelper::DofData::farPlane, engine))
+                    .child(UiHelper::createDofSlider("Ui.Editor.DepthOfField.FocusDistance", &UiHelper::DofData::focusDistance, engine))
+                    .child(UiHelper::createDofSlider("Ui.Editor.DepthOfField.FocusRange", &UiHelper::DofData::focusRange, engine))
             )
 
             .child(LayoutBuilder::spacer())

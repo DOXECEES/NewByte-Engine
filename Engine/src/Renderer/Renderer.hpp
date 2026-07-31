@@ -34,6 +34,7 @@
 
 #include "IUniformBuffer.hpp"
 #include "JoltDebugRenderer.hpp"
+#include "PostProcess.hpp"
 //
 
 namespace nb::Physics
@@ -191,6 +192,8 @@ namespace nb
                 return ssao->getConfig();
             }
 
+            PostProcess& getPostProcess() noexcept { return *postProcess; }
+
             struct PostProcessConfig
             {
                 bool isLutEnabled = true;
@@ -287,6 +290,7 @@ namespace nb
         private:
 
             DebugRendererSettings debugRendererSettings;
+            std::unique_ptr<PostProcess> postProcess = nullptr;
 
             
             std::unique_ptr<Skybox> skybox;
