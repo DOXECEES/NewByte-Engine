@@ -503,8 +503,11 @@ private:
                     }
                 }
 
-                
-                engine->processInput();
+                if(sceneWindow->getViewportWindow()->isFocused())
+                {
+                    engine->processInput();
+                }
+
                 {
 
                     using KeyCode = nb::Input::Keyboard::KeyCode;

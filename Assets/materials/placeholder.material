@@ -4,10 +4,10 @@
     "u_AlbedoMap": "Assets/res/placeholder_albedo.texture",
 	"u_NormalMap": "Assets/res/lightgold_normal-ogl.texture",
     "u_ORMMap": "Assets/res/orm_placeholder.texture",
-    "u_BaseColorFactor": 0.0,
-    "u_RoughnessFactor": 0.0,
-    "u_MetallicFactor": 0.0,
-    "u_OcclusionFactor": 0.0,
+    "u_BaseColorFactor":1.0,
+    "u_RoughnessFactor": 1.0,
+    "u_MetallicFactor": 1.0,
+    "u_OcclusionFactor": 1.0,
     "u_Emission": 1.0
   }
 }
